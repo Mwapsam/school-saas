@@ -9,8 +9,6 @@
 import { cookies } from 'next/headers';
 
 const SESSION_COOKIE_NAME = 'school-saas-session';
-const DJANGO_ACCESS_TOKEN_KEY = 'django-access-token';
-const DJANGO_REFRESH_TOKEN_KEY = 'django-refresh-token';
 
 export interface SessionData {
   accessToken: string;

@@ -9,6 +9,8 @@
 
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from 'react';
 import { Container, Box, Typography, Grid, CircularProgress } from '@mui/material';
 import { useTenantStore } from '@/lib/tenant/store';

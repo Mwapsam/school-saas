@@ -23,10 +23,8 @@ interface ApiResponse<T> {
 
 class ApiClient {
   private instance: AxiosInstance;
-  private baseURL: string;
 
   constructor(baseURL: string = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1') {
-    this.baseURL = baseURL;
     this.instance = axios.create({
       baseURL,
       withCredentials: true, // Send httpOnly cookies

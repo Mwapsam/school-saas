@@ -4,6 +4,8 @@
 
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { Container, Box, Typography, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useLibraryBookList } from '@/features/library/hooks';

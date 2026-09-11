@@ -4,6 +4,8 @@
 
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useRouter } from 'next/navigation';
 import { Container, Box, Typography, Alert, CircularProgress } from '@mui/material';
 import { useTenantStore } from '@/lib/tenant/store';

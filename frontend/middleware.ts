@@ -13,7 +13,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import Cookies from 'js-cookie';
 
 const PUBLIC_ROUTES = ['/auth/login', '/auth/signup', '/auth/forgot-password', '/auth/reset', '/health'];
 const PROTECTED_ROUTES = ['/dashboard'];
