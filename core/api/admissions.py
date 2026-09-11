@@ -18,7 +18,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from datetime import date
 
 from core.models import (
-    AdmissionApplication, AdmissionInquiry, Batch, Course
+    AdmissionApplication, AdmissionDocument, Batch, Course
 )
 from core.authz.drf import ModuleEnabled, HasPermission
 
@@ -26,19 +26,6 @@ from core.authz.drf import ModuleEnabled, HasPermission
 # ───────────────────────────────────────────────────────────────────────────
 # Serializers
 # ───────────────────────────────────────────────────────────────────────────
-
-class AdmissionInquirySerializer(serializers.ModelSerializer):
-    """Serializer for AdmissionInquiry — prospective parent inquiries."""
-    class Meta:
-        model = AdmissionInquiry
-        fields = [
-            'id', 'full_name', 'email', 'phone', 'student_name',
-            'student_date_of_birth', 'interested_batch', 'message',
-            'inquiry_date', 'follow_up_date', 'status', 'notes',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'inquiry_date', 'created_at', 'updated_at']
-
 
 class AdmissionApplicationSerializer(serializers.ModelSerializer):
     """Serializer for AdmissionApplication — student applications."""
@@ -78,73 +65,6 @@ class AdmissionApplicationBatchAssignmentSerializer(serializers.Serializer):
 # ViewSets
 # ───────────────────────────────────────────────────────────────────────────
 
-class AdmissionInquiryViewSet(viewsets.ModelViewSet):
-    """
-    Admissions inquiry management — prospective parent inquiries.
-
-    Covers:
-    - List/filter/search inquiries
-    - Retrieve, create, update, delete inquiries
-    - Follow-up tracking
-    - Convert to application (custom action)
-    """
-    queryset = AdmissionInquiry.objects.all()
-    serializer_class = AdmissionInquirySerializer
-    permission_classes = [
-        IsAuthenticated,
-        ModuleEnabled("admissions"),
-        HasPermission(read="admissions.inquiry.view", write="admissions.inquiry.manage"),
-    ]
-    module = "admissions"
-    filterset_fields = ['status', 'inquiry_date']
-    search_fields = ['student_name', 'full_name', 'email', 'phone']
-    ordering_fields = ['inquiry_date', 'student_name']
-    ordering = ['-inquiry_date']
-
-    @extend_schema(
-        description="List admissions inquiries (paginated, filterable by status)",
-        parameters=[
-            OpenApiParameter(name='status', enum=['new', 'contacted', 'converted', 'lost']),
-        ],
-    )
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    @action(detail=True, methods=['post'])
-    @extend_schema(description="Mark inquiry as contacted")
-    def mark_contacted(self, request, pk=None):
-        """Mark inquiry as contacted."""
-        inquiry = self.get_object()
-        inquiry.status = 'contacted'
-        inquiry.follow_up_date = date.today()
-        inquiry.save()
-        return Response(AdmissionInquirySerializer(inquiry).data)
-
-    @action(detail=True, methods=['post'])
-    @extend_schema(description="Convert inquiry to admission application")
-    def convert_to_application(self, request, pk=None):
-        """Convert an inquiry into an admission application."""
-        inquiry = self.get_object()
-        # Create application from inquiry
-        application = AdmissionApplication.objects.create(
-            student_name=inquiry.student_name,
-            date_of_birth=inquiry.student_date_of_birth,
-            parent_name=inquiry.full_name,
-            parent_email=inquiry.email,
-            parent_phone=inquiry.phone,
-            email=inquiry.email,
-            phone=inquiry.phone,
-            batch=inquiry.interested_batch,
-            course=inquiry.interested_batch.course if inquiry.interested_batch else None,
-            status='pending_review',
-            notes=f"Converted from inquiry: {inquiry.message}",
-            tenant=request.tenant,
-        )
-        inquiry.status = 'converted'
-        inquiry.save()
-        return Response(AdmissionApplicationSerializer(application).data)
-
-
 class AdmissionApplicationViewSet(viewsets.ModelViewSet):
     """
     Admissions application management — student applications.
@@ -160,7 +80,7 @@ class AdmissionApplicationViewSet(viewsets.ModelViewSet):
     serializer_class = AdmissionApplicationSerializer
     permission_classes = [
         IsAuthenticated,
-        ModuleEnabled("admissions"),
+        ModuleEnabled,
         HasPermission(read="admissions.application.view", write="admissions.application.manage"),
     ]
     module = "admissions"
@@ -199,7 +119,7 @@ class AdmissionApplicationViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     @extend_schema(
         description="Reject an admission application",
-        request=serializers.Serializer(fields={'reason': serializers.CharField()}),
+        request={'type': 'object', 'properties': {'reason': {'type': 'string'}}},
         responses={200: AdmissionApplicationSerializer},
     )
     def reject(self, request, pk=None):
@@ -213,10 +133,7 @@ class AdmissionApplicationViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     @extend_schema(
         description="Assign application to a batch",
-        request=serializers.Serializer(fields={
-            'batch_id': serializers.UUIDField(),
-            'notes': serializers.CharField(required=False),
-        }),
+        request={'type': 'object', 'properties': {'batch_id': {'type': 'string', 'format': 'uuid'}, 'notes': {'type': 'string'}}},
         responses={200: AdmissionApplicationSerializer},
     )
     def assign_batch(self, request, pk=None):

@@ -100,7 +100,7 @@ class StudentViewSet(viewsets.ModelViewSet):
     - Search by admission number or name
 
     Permission model:
-    - ModuleEnabled("academics"): entire endpoint disabled if academics module off
+    - ModuleEnabled: entire endpoint disabled if academics module off
     - IsAuthenticated: user must be logged in
     - HasPermission("students.view" / "students.manage"): capability-based access control
     """
@@ -108,7 +108,7 @@ class StudentViewSet(viewsets.ModelViewSet):
     serializer_class = StudentSerializer
     permission_classes = [
         IsAuthenticated,
-        ModuleEnabled("academics"),
+        ModuleEnabled,
         HasPermission(read="students.view", write="students.manage"),
     ]
     module = "academics"  # Required for ModuleEnabled permission
@@ -182,7 +182,7 @@ class BatchViewSet(viewsets.ModelViewSet):
     serializer_class = BatchSerializer
     permission_classes = [
         IsAuthenticated,
-        ModuleEnabled("academics"),
+        ModuleEnabled,
         HasPermission(read="academics.batches.view", write="academics.batches.manage"),
     ]
     module = "academics"
@@ -209,7 +209,7 @@ class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
     permission_classes = [
         IsAuthenticated,
-        ModuleEnabled("academics"),
+        ModuleEnabled,
         HasPermission(read="academics.courses.view", write="academics.courses.manage"),
     ]
     module = "academics"
@@ -232,7 +232,7 @@ class SubjectViewSet(viewsets.ModelViewSet):
     serializer_class = SubjectSerializer
     permission_classes = [
         IsAuthenticated,
-        ModuleEnabled("academics"),
+        ModuleEnabled,
         HasPermission(read="academics.subjects.view", write="academics.subjects.manage"),
     ]
     module = "academics"

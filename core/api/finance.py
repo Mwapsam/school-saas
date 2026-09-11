@@ -171,7 +171,7 @@ class FeeCategoryViewSet(viewsets.ModelViewSet):
     serializer_class = FeeCategorySerializer
     permission_classes = [
         IsAuthenticated,
-        ModuleEnabled("finance"),
+        ModuleEnabled,
         HasPermission(read="finance.fees.view", write="finance.fees.manage"),
     ]
     module = "finance"
@@ -193,7 +193,7 @@ class FeeDiscountViewSet(viewsets.ModelViewSet):
     serializer_class = FeeDiscountSerializer
     permission_classes = [
         IsAuthenticated,
-        ModuleEnabled("finance"),
+        ModuleEnabled,
         HasPermission(read="finance.discounts.view", write="finance.discounts.manage"),
     ]
     module = "finance"
@@ -218,7 +218,7 @@ class FineSlabViewSet(viewsets.ModelViewSet):
     serializer_class = FineSlabSerializer
     permission_classes = [
         IsAuthenticated,
-        ModuleEnabled("finance"),
+        ModuleEnabled,
         HasPermission(read="finance.fines.view", write="finance.fines.manage"),
     ]
     module = "finance"
@@ -240,7 +240,7 @@ class FinanceTransactionCategoryViewSet(viewsets.ModelViewSet):
     serializer_class = FinanceTransactionCategorySerializer
     permission_classes = [
         IsAuthenticated,
-        ModuleEnabled("finance"),
+        ModuleEnabled,
         HasPermission(read="finance.transactions.view", write="finance.transactions.manage"),
     ]
     module = "finance"
@@ -263,7 +263,7 @@ class FinanceTransactionViewSet(viewsets.ModelViewSet):
     serializer_class = FinanceTransactionSerializer
     permission_classes = [
         IsAuthenticated,
-        ModuleEnabled("finance"),
+        ModuleEnabled,
         HasPermission(read="finance.transactions.view", write="finance.transactions.manage"),
     ]
     module = "finance"
@@ -301,7 +301,7 @@ class StudentFeeViewSet(viewsets.ModelViewSet):
     serializer_class = StudentFeeSerializer
     permission_classes = [
         IsAuthenticated,
-        ModuleEnabled("finance"),
+        ModuleEnabled,
         HasPermission(read="finance.student-fees.view", write="finance.student-fees.manage"),
     ]
     module = "finance"
@@ -363,7 +363,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     serializer_class = InvoiceSerializer
     permission_classes = [
         IsAuthenticated,
-        ModuleEnabled("finance"),
+        ModuleEnabled,
         HasPermission(read="finance.invoices.view", write="finance.invoices.manage"),
     ]
     module = "finance"

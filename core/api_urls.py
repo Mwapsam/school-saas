@@ -52,47 +52,36 @@ from .api.finance import (
 )
 
 from .api.hr import (
-    EmployeeRoleViewSet,
     EmployeeViewSet,
+    EmployeeQualificationViewSet,
+    EmployeeDocumentViewSet,
+    EmployeeContractViewSet,
     LeaveTypeViewSet,
-    LeaveRequestViewSet,
     AttendanceViewSet,
-    TrainingViewSet,
-    TrainingAttendanceViewSet,
     PerformanceReviewViewSet,
-    EmployeeDisciplinaryViewSet,
-    EmployeeGrievanceViewSet,
-    EmployeeOnboardingViewSet,
+    TrainingRecordViewSet,
     EmployeeExitViewSet,
-    HRPolicyViewSet,
-    PolicyAcknowledgmentViewSet,
 )
 
 from .api.admissions import (
-    AdmissionInquiryViewSet,
     AdmissionApplicationViewSet,
 )
 
 from .api.hostel import (
-    HostelViewSet,
     HostelRoomViewSet,
-    HostelAssignmentViewSet,
+    HostelFeeViewSet,
 )
 
 from .api.transport import (
-    TransportVehicleViewSet,
     TransportRouteViewSet,
     TransportRouteStopViewSet,
     TransportStaffViewSet,
-    TransportAssignmentViewSet,
+    TransportFeeViewSet,
 )
 
 from .api.library import (
-    LibraryCategoryViewSet,
-    LibraryBookViewSet,
-    LibraryBookCopyViewSet,
-    LibraryBorrowViewSet,
-    LibraryReturnViewSet,
+    LibraryViewSet,
+    LibraryStaffViewSet,
 )
 
 from .view_modules.multi_step_admission_views import (
@@ -129,43 +118,32 @@ router.register(r'student-fees', StudentFeeViewSet, basename='student-fee')
 router.register(r'invoices', InvoiceViewSet, basename='invoice')
 
 # HR domain endpoints
-router.register(r'employee-roles', EmployeeRoleViewSet, basename='employee-role')
 router.register(r'employees', EmployeeViewSet, basename='employee')
+router.register(r'employee-qualifications', EmployeeQualificationViewSet, basename='employee-qualification')
+router.register(r'employee-documents', EmployeeDocumentViewSet, basename='employee-document')
+router.register(r'employee-contracts', EmployeeContractViewSet, basename='employee-contract')
 router.register(r'leave-types', LeaveTypeViewSet, basename='leave-type')
-router.register(r'leave-requests', LeaveRequestViewSet, basename='leave-request')
 router.register(r'attendance', AttendanceViewSet, basename='attendance')
-router.register(r'trainings', TrainingViewSet, basename='training')
-router.register(r'training-attendance', TrainingAttendanceViewSet, basename='training-attendance')
 router.register(r'performance-reviews', PerformanceReviewViewSet, basename='performance-review')
-router.register(r'disciplinary-cases', EmployeeDisciplinaryViewSet, basename='disciplinary-case')
-router.register(r'grievances', EmployeeGrievanceViewSet, basename='grievance')
-router.register(r'onboarding', EmployeeOnboardingViewSet, basename='onboarding')
-router.register(r'exits', EmployeeExitViewSet, basename='exit')
-router.register(r'hr-policies', HRPolicyViewSet, basename='hr-policy')
-router.register(r'policy-acknowledgments', PolicyAcknowledgmentViewSet, basename='policy-acknowledgment')
+router.register(r'training-records', TrainingRecordViewSet, basename='training-record')
+router.register(r'employee-exits', EmployeeExitViewSet, basename='employee-exit')
 
 # Admissions domain endpoints
-router.register(r'admission-inquiries', AdmissionInquiryViewSet, basename='admission-inquiry')
 router.register(r'admission-applications', AdmissionApplicationViewSet, basename='admission-application')
 
 # Hostel domain endpoints
-router.register(r'hostels', HostelViewSet, basename='hostel')
 router.register(r'hostel-rooms', HostelRoomViewSet, basename='hostel-room')
-router.register(r'hostel-assignments', HostelAssignmentViewSet, basename='hostel-assignment')
+router.register(r'hostel-fees', HostelFeeViewSet, basename='hostel-fee')
 
 # Transport domain endpoints
-router.register(r'vehicles', TransportVehicleViewSet, basename='vehicle')
 router.register(r'routes', TransportRouteViewSet, basename='route')
 router.register(r'route-stops', TransportRouteStopViewSet, basename='route-stop')
 router.register(r'transport-staff', TransportStaffViewSet, basename='transport-staff')
-router.register(r'transport-assignments', TransportAssignmentViewSet, basename='transport-assignment')
+router.register(r'transport-fees', TransportFeeViewSet, basename='transport-fee')
 
 # Library domain endpoints
-router.register(r'library-categories', LibraryCategoryViewSet, basename='library-category')
-router.register(r'library-books', LibraryBookViewSet, basename='library-book')
-router.register(r'library-copies', LibraryBookCopyViewSet, basename='library-copy')
-router.register(r'library-borrows', LibraryBorrowViewSet, basename='library-borrow')
-router.register(r'library-returns', LibraryReturnViewSet, basename='library-return')
+router.register(r'libraries', LibraryViewSet, basename='library')
+router.register(r'library-staff', LibraryStaffViewSet, basename='library-staff')
 
 # Bootstrap endpoint — tenant configuration contract for frontend
 from .api.bootstrap import bootstrap
@@ -194,11 +172,6 @@ urlpatterns = [
 
     # DRF authentication endpoints
     path('auth/', include('rest_framework.urls')),
-
-    # OpenAPI schema and documentation
-    path('v1/schema/', include([
-        path('', include('drf_spectacular.urls')),
-    ])),
 ]
 
 # Add API root view for better discoverability
