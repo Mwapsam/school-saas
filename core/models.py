@@ -156,7 +156,7 @@ class School(TenantMixin):
         return None
 
 
-class SchoolModule(TenantAwareModel):
+class SchoolModule(BaseModel):
     """
     Runtime module enablement: schools can enable/disable product areas (HR, Finance, etc.)
     independently, turning whole feature sets on/off without code changes.
