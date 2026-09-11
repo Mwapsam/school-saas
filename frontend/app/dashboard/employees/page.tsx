@@ -4,7 +4,6 @@
 
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { Container, Box, Typography, Button, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
@@ -13,8 +12,7 @@ import { useEmployeeList } from '@/features/hr/hooks';
 
 export default function EmployeesPage() {
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
-  const [page, setPage] = useState(1);
-  const { data, isLoading, error } = useEmployeeList({ page, page_size: 10 });
+  const { data, isLoading, error } = useEmployeeList({ page: 1, page_size: 10 });
 
   if (!bootstrap || !isModuleEnabled('hr') || !can('hr.employees.view')) {
     return (

@@ -10,7 +10,7 @@ if [ "$DJANGO_ENV" = "production" ]; then
 
     echo "Starting Gunicorn..."
 
-    exec gunicorn pinewood.wsgi:application \
+    exec gunicorn config.wsgi:application \
         --bind 0.0.0.0:8000 \
         --workers ${GUNICORN_WORKERS:-3} \
         --worker-class gthread \
