@@ -14,9 +14,9 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         # Tenant defaults match the original hardcoded values; overridable.
-        parser.add_argument('--name', default='Pinewood School', help='School name')
+        parser.add_argument('--name', default='Test School', help='School name')
         parser.add_argument('--code', default='PWS001', help='Unique school code')
-        parser.add_argument('--schema', default='pinewood', help='PostgreSQL schema name')
+        parser.add_argument('--schema', default='test_school', help='PostgreSQL schema name')
         parser.add_argument('--domain', default='localhost', help='Primary domain (dev default: localhost)')
 
         # Superuser

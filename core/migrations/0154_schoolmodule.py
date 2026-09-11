@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0019_add_report_template_models'),
+        ('core', '0153_policydocument_policyacknowledgement_and_more'),
     ]
 
     operations = [

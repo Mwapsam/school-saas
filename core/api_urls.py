@@ -21,6 +21,7 @@ See core/api/students.py for the reference implementation pattern.
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .api.grading_api import (
     get_subject_grades,
@@ -172,6 +173,12 @@ urlpatterns = [
 
     # DRF authentication endpoints
     path('auth/', include('rest_framework.urls')),
+
+    # JWT token endpoints
+    path('token/', include([
+        path('', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+        path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    ])),
 ]
 
 # Add API root view for better discoverability

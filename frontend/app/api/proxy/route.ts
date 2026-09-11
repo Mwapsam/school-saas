@@ -36,7 +36,7 @@ function getSessionData(request: NextRequest): SessionData | null {
 
 async function refreshAccessToken(refreshToken: string): Promise<string | null> {
   try {
-    const res = await fetch(`${DJANGO_BASE_URL}/api/token/refresh/`, {
+    const res = await fetch(`${DJANGO_BASE_URL}/api/v1/token/refresh/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh: refreshToken }),

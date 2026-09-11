@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Exchange credentials for Django JWT tokens
-    const tokenRes = await fetch(`${DJANGO_BASE_URL}/api/token/`, {
+    const tokenRes = await fetch(`${DJANGO_BASE_URL}/api/v1/token/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
