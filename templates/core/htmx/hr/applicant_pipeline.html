@@ -1,0 +1,38 @@
+<div class="row g-3">
+    {% for stage, applicants in stage_groups %}
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header py-2">
+                <strong class="text-capitalize">{{ stage|cut:"_"|title }}</strong>
+                <span class="badge bg-secondary float-end">{{ applicants|length }}</span>
+            </div>
+            <div class="card-body p-2">
+                {% for a in applicants %}
+                <div class="border rounded p-2 mb-2">
+                    <div class="fw-semibold">{{ a.first_name }} {{ a.last_name }}</div>
+                    <div><small class="text-muted">{{ a.email|default:"" }} {{ a.phone|default:"" }}</small></div>
+                    {% if a.qualifications_summary %}<div><small>{{ a.qualifications_summary|truncatechars:80 }}</small></div>{% endif %}
+                    {% if a.converted_employee_id %}
+                        <span class="badge bg-success mt-1">Hired</span>
+                    {% elif can_manage %}
+                    <div class="mt-1 d-flex gap-1 flex-wrap">
+                        <select class="form-select form-select-sm" style="width:auto" onchange="advanceApplicant('{{ a.id }}', this.value)">
+                            <option value="">Move to…</option>
+                            {% for value, label in stage_choices %}
+                                {% if value != a.stage %}<option value="{{ value }}">{{ label }}</option>{% endif %}
+                            {% endfor %}
+                        </select>
+                        {% if a.stage == 'offered' and can_convert %}
+                        <button type="button" class="btn btn-success btn-sm" onclick="convertApplicant('{{ a.id }}')">Convert</button>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <p class="text-muted small mb-0">—</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>

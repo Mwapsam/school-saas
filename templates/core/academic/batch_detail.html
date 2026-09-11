@@ -1,0 +1,599 @@
+{% extends 'core/layouts/detail.html' %}
+
+{% block layout_header %}
+{% url 'core:batch_list' as back_fallback %}
+{% include 'core/components/page_header.html' with title=batch.name description="Batch details, students, subjects, timetable, and attendance." icon='fa-info-circle' back_url=back_url|default:back_fallback crumbs=crumbs %}
+<div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
+    <button type="button" class="btn btn-primary" onclick="openEditBatch('{{ batch.id }}')">
+        <i class="fas fa-edit"></i> Edit Batch
+    </button>
+</div>
+{% endblock %}
+
+{% block page_title %}{{ batch.name }} - Batch Details{% endblock %}
+
+
+{% block layout_sections %}
+<div id="batch-detail-content" data-batch-id="{{ batch.id }}">
+    {% include 'core/htmx/batch_detail_content.html' %}
+</div>
+
+<!-- Include Batch Form Modal -->
+{% include 'core/htmx/batch_form_modal.html' %}
+
+<!-- Include Reassign Teacher Modal -->
+{% include 'core/htmx/reassign_teacher_modal.html' %}
+
+<!-- Import Students Modal (Pinewood UI) -->
+<div id="importStudentsModal" class="pw-modal-backdrop">
+    <div class="pw-modal" style="max-width:660px">
+        <div class="pw-modal-header">
+            <span class="pw-modal-title"><i class="fas fa-user-plus me-2"></i>Promote / Import Students</span>
+            <button class="pw-modal-close" onclick="closeImportStudents()" aria-label="Close">&times;</button>
+        </div>
+        <div class="pw-modal-body">
+            <p class="pw-card-meta mb-3">Promote students into <strong>{{ batch.name }}</strong>. Pick a year, choose the source batch, then select who to move. Selected students are <strong>removed from the source batch</strong> and their academic records are preserved.</p>
+            <div class="row g-2">
+                <div class="col-md-6 pw-form-group">
+                    <label class="pw-form-label" for="importYear">Academic Year</label>
+                    <select class="pw-form-control" id="importYear" onchange="loadImportSourceBatches()">
+                        <option value="">Select year…</option>
+                    </select>
+                </div>
+                <div class="col-md-6 pw-form-group">
+                    <label class="pw-form-label" for="importSourceBatch">Source Batch</label>
+                    <select class="pw-form-control" id="importSourceBatch" onchange="loadImportStudents()" disabled>
+                        <option value="">Select batch…</option>
+                    </select>
+                </div>
+            </div>
+            <div class="pw-form-group">
+                <input type="text" class="pw-form-control" id="importSearch" placeholder="Filter listed students…" oninput="filterImportRows()" disabled>
+            </div>
+            <div id="importStudentsArea">
+                <div class="pw-alert pw-alert-info" style="margin-top:4px"><i class="fas fa-info-circle"></i> Choose an academic year and source batch to list students.</div>
+            </div>
+        </div>
+        <div class="pw-modal-footer">
+            <span id="importSelCount" class="pw-card-meta" style="margin-right:auto"></span>
+            <button class="pw-btn pw-btn-outline pw-btn-sm" onclick="closeImportStudents()">Cancel</button>
+            <button class="pw-btn pw-btn-primary pw-btn-sm" id="importSubmitBtn" onclick="submitImportStudents()" disabled>Promote Selected</button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Subject Modal -->
+<div class="modal fade" id="editSubjectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-semibold"><i class="fas fa-pen text-success me-2"></i>Edit Subject</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editSubjectForm">
+                <input type="hidden" id="editSubjectId">
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label for="editSubjectName" class="form-label text-muted small fw-medium mb-1">Subject Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editSubjectName" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editSubjectCode" class="form-label text-muted small fw-medium mb-1">Code</label>
+                            <input type="text" class="form-control" id="editSubjectCode">
+                        </div>
+                    </div>
+                    <div class="mb-1">
+                        <label for="editTeacherSelect" class="form-label text-muted small fw-medium mb-1">Assigned Teacher</label>
+                        <select class="form-select" id="editTeacherSelect">
+                            <option value="">Not assigned</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Class Teachers Modal (Pinewood UI) -->
+<div id="assignTeachersModal" class="pw-modal-backdrop">
+    <div class="pw-modal" style="max-width:520px">
+        <div class="pw-modal-header">
+            <span class="pw-modal-title"><i class="fas fa-chalkboard-teacher me-2"></i>Assign Class Teachers</span>
+            <button class="pw-modal-close" onclick="closeAssignTeachers()" aria-label="Close">&times;</button>
+        </div>
+        <div class="pw-modal-body">
+            <p class="pw-card-meta mb-3">Select the class teacher(s) responsible for <strong>{{ batch.name }}</strong>.</p>
+            <div class="pw-form-group">
+                <input type="text" class="pw-form-control" id="assignSearch" placeholder="Search teachers…" oninput="filterAssignRows()">
+            </div>
+            <div id="assignTeachersArea">
+                <div class="text-center text-muted py-4" style="font-size:13px"><i class="fas fa-spinner fa-spin"></i> Loading…</div>
+            </div>
+        </div>
+        <div class="pw-modal-footer">
+            <span id="assignSelCount" class="pw-card-meta" style="margin-right:auto"></span>
+            <button class="pw-btn pw-btn-outline pw-btn-sm" onclick="closeAssignTeachers()">Cancel</button>
+            <button class="pw-btn pw-btn-primary pw-btn-sm" id="assignSubmitBtn" onclick="submitAssignTeachers()">Save</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const batchId = '{{ batch.id }}';
+
+// Batch Management Functions
+function deleteBatch(batchId) {
+    showConfirm(
+        'Delete this batch? This action cannot be undone.',
+        function () {
+            fetch(`/batches/${batchId}/delete/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Batch deleted', 'success');
+                    setTimeout(() => { window.location.href = '{% url "core:batch_list" %}'; }, 700);
+                } else {
+                    showToast(data.error || 'Failed to delete batch', 'danger');
+                }
+            })
+            .catch(() => showToast('Network error', 'danger'));
+        },
+        'Delete Batch', 'danger'
+    );
+}
+
+// Student Management Functions
+function removeStudentFromBatch(studentId) {
+    showConfirm('Remove this student from the batch?', function () {
+        fetch(`/api/batches/${batchId}/students/${studentId}/remove/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) { showToast('Student removed from batch', 'success'); refreshTab('students'); }
+            else showToast(data.error || 'Failed to remove student', 'danger');
+        })
+        .catch(() => showToast('Network error', 'danger'));
+    }, 'Remove', 'danger');
+}
+
+// ===== Students tab: client-side search & sort =====
+function filterBatchStudents(q) {
+    q = (q || '').trim().toLowerCase();
+    const table = document.getElementById('batchStudentsTable');
+    if (!table) return;
+    let shown = 0;
+    table.querySelectorAll('tbody tr').forEach(tr => {
+        const name = tr.getAttribute('data-name') || '';
+        const adm = tr.getAttribute('data-admission') || '';
+        const match = !q || name.includes(q) || adm.includes(q);
+        tr.style.display = match ? '' : 'none';
+        if (match) shown++;
+    });
+    _renumberBatchStudents();
+    const lbl = document.getElementById('batchStudentShown');
+    if (lbl) lbl.textContent = q ? shown + ' shown' : '';
+}
+
+function sortBatchStudents(mode) {
+    const table = document.getElementById('batchStudentsTable');
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    Array.from(tbody.querySelectorAll('tr'))
+        .sort((a, b) => {
+            if (mode === 'admission') {
+                return (a.dataset.admission || '').localeCompare(b.dataset.admission || '');
+            }
+            const cmp = (a.dataset.name || '').localeCompare(b.dataset.name || '');
+            return mode === 'name_desc' ? -cmp : cmp;
+        })
+        .forEach(r => tbody.appendChild(r));
+    _renumberBatchStudents();
+}
+
+function _renumberBatchStudents() {
+    const table = document.getElementById('batchStudentsTable');
+    if (!table) return;
+    let n = 0;
+    table.querySelectorAll('tbody tr').forEach(tr => {
+        if (tr.style.display === 'none') return;
+        n++;
+        const cell = tr.querySelector('.sl-no');
+        if (cell) cell.textContent = n;
+    });
+}
+
+// ===== Import Students (cross academic-year) =====
+function addStudentToBatch() {
+    openImportStudents();
+}
+
+function openImportStudents() {
+    // Reset state
+    document.getElementById('importSourceBatch').innerHTML = '<option value="">Select batch…</option>';
+    document.getElementById('importSourceBatch').disabled = true;
+    const search = document.getElementById('importSearch');
+    search.value = ''; search.disabled = true;
+    document.getElementById('importStudentsArea').innerHTML =
+        '<div class="pw-alert pw-alert-info" style="margin-top:4px"><i class="fas fa-info-circle"></i> Choose an academic year and source batch to list students.</div>';
+    document.getElementById('importSubmitBtn').disabled = true;
+    document.getElementById('importSelCount').textContent = '';
+
+    loadImportYears();
+    document.getElementById('importStudentsModal').classList.add('show');
+}
+
+function closeImportStudents() {
+    document.getElementById('importStudentsModal').classList.remove('show');
+}
+
+function loadImportYears() {
+    const yearSel = document.getElementById('importYear');
+    // Avoid reloading if already populated
+    if (yearSel.options.length > 1) return;
+    fetch('/api/academic-years/?all=1')
+        .then(r => r.json())
+        .then(data => {
+            (data.academic_years || []).forEach(y => {
+                const opt = document.createElement('option');
+                opt.value = y.id;
+                opt.textContent = y.is_active ? `${y.name} (current)` : y.name;
+                yearSel.appendChild(opt);
+            });
+        })
+        .catch(() => showToast('Could not load academic years', 'danger'));
+}
+
+function loadImportSourceBatches() {
+    const yearId = document.getElementById('importYear').value;
+    const batchSel = document.getElementById('importSourceBatch');
+    batchSel.innerHTML = '<option value="">Select batch…</option>';
+    batchSel.disabled = true;
+    resetImportList('Choose a source batch to list students.');
+    if (!yearId) return;
+
+    fetch(`/api/batches/by-academic-year/?academic_year_id=${yearId}&exclude=${batchId}`)
+        .then(r => r.json())
+        .then(data => {
+            const batches = data.batches || [];
+            if (!batches.length) {
+                resetImportList('No other batches found in this academic year.');
+                return;
+            }
+            batches.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b.id;
+                opt.textContent = `${b.course_name ? b.course_name + ' · ' : ''}${b.name} (${b.student_count})`;
+                batchSel.appendChild(opt);
+            });
+            batchSel.disabled = false;
+        })
+        .catch(() => showToast('Could not load batches', 'danger'));
+}
+
+function resetImportList(message) {
+    document.getElementById('importStudentsArea').innerHTML =
+        `<div class="pw-alert pw-alert-info" style="margin-top:4px"><i class="fas fa-info-circle"></i> ${message}</div>`;
+    const search = document.getElementById('importSearch');
+    search.value = ''; search.disabled = true;
+    document.getElementById('importSubmitBtn').disabled = true;
+    document.getElementById('importSelCount').textContent = '';
+}
+
+function loadImportStudents() {
+    const sourceId = document.getElementById('importSourceBatch').value;
+    if (!sourceId) { resetImportList('Choose a source batch to list students.'); return; }
+
+    document.getElementById('importStudentsArea').innerHTML =
+        '<div class="text-center text-muted py-4" style="font-size:13px"><i class="fas fa-spinner fa-spin"></i> Loading students…</div>';
+
+    fetch(`/api/batches/${batchId}/importable-students/?source_batch_id=${sourceId}`)
+        .then(r => r.json())
+        .then(data => {
+            const students = data.students || [];
+            if (!students.length) {
+                resetImportList('No students available to import — they may already be in this batch.');
+                return;
+            }
+            let rows = '';
+            students.forEach(s => {
+                rows += `
+                    <tr class="import-row" data-name="${(s.full_name || '').toLowerCase()}" data-adm="${(s.admission_no || '').toLowerCase()}">
+                        <td><input type="checkbox" class="import-check" value="${s.id}" onchange="updateImportCount()"></td>
+                        <td><strong>${s.full_name}</strong></td>
+                        <td><span class="pw-badge pw-badge-active">${s.admission_no}</span></td>
+                    </tr>`;
+            });
+            document.getElementById('importStudentsArea').innerHTML = `
+                <div class="pw-table-wrap" style="max-height:320px;overflow-y:auto">
+                    <table class="pw-table">
+                        <thead><tr>
+                            <th style="width:40px"><input type="checkbox" id="importSelectAll" onclick="toggleImportAll(this)"></th>
+                            <th>Student</th>
+                            <th style="width:150px">Admission No.</th>
+                        </tr></thead>
+                        <tbody id="importStudentRows">${rows}</tbody>
+                    </table>
+                </div>`;
+            const search = document.getElementById('importSearch');
+            search.disabled = false;
+            updateImportCount();
+        })
+        .catch(() => showToast('Could not load students', 'danger'));
+}
+
+function filterImportRows() {
+    const q = document.getElementById('importSearch').value.trim().toLowerCase();
+    document.querySelectorAll('#importStudentRows .import-row').forEach(row => {
+        const match = !q || row.dataset.name.includes(q) || row.dataset.adm.includes(q);
+        row.style.display = match ? '' : 'none';
+    });
+}
+
+function toggleImportAll(master) {
+    document.querySelectorAll('#importStudentRows .import-row').forEach(row => {
+        if (row.style.display === 'none') return; // only toggle visible rows
+        row.querySelector('.import-check').checked = master.checked;
+    });
+    updateImportCount();
+}
+
+function updateImportCount() {
+    const n = document.querySelectorAll('#importStudentRows .import-check:checked').length;
+    document.getElementById('importSelCount').textContent = n ? `${n} selected` : '';
+    document.getElementById('importSubmitBtn').disabled = n === 0;
+}
+
+function submitImportStudents() {
+    const ids = Array.from(document.querySelectorAll('#importStudentRows .import-check:checked')).map(cb => cb.value);
+    if (!ids.length) { showToast('Please select at least one student.', 'warning'); return; }
+
+    // The chosen source batch makes this a move/promotion — the backend
+    // deactivates these students in the source class so they aren't duplicated.
+    const sourceBatchId = document.getElementById('importSourceBatch').value;
+
+    const btn = document.getElementById('importSubmitBtn');
+    btn.disabled = true;
+    fetch(`/api/batches/${batchId}/students/add/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_ids: ids, source_batch_id: sourceBatchId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message || `Promoted ${ids.length} student(s) into the batch`, 'success');
+            closeImportStudents();
+            refreshTab('students');
+        } else {
+            showToast(data.error || 'Failed to import students', 'danger');
+            btn.disabled = false;
+        }
+    })
+    .catch(() => { showToast('Network error', 'danger'); btn.disabled = false; });
+}
+
+// Attendance Functions
+function takeAttendance() {
+    window.location.href = `/academic/attendance-management/?batch_id=${batchId}`;
+}
+
+// ── Subject Functions (edit / remove only — adding is done in Subjects Center) ──
+
+let _teachersLoaded = false;
+
+function _loadTeachersInto(selectId, preselect) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    if (_teachersLoaded && sel.options.length > 1) {
+        if (preselect !== undefined) sel.value = preselect || '';
+        return;
+    }
+    fetch('/api/employees/?role=teacher')
+        .then(r => r.json())
+        .then(data => {
+            (data.employees || []).forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.textContent = `${t.first_name} ${t.last_name}`;
+                sel.appendChild(opt);
+            });
+            if (preselect !== undefined) sel.value = preselect || '';
+            _teachersLoaded = true;
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('editSubjectForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const subjectId = document.getElementById('editSubjectId').value;
+        const body = new URLSearchParams();
+        body.append('name', document.getElementById('editSubjectName').value);
+        body.append('code', document.getElementById('editSubjectCode').value);
+        body.append('teacher_id', document.getElementById('editTeacherSelect').value);
+        const btn = this.querySelector('[type=submit]');
+        btn.disabled = true;
+        fetch(`/api/batches/${batchId}/subjects/${subjectId}/edit/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') },
+            body
+        })
+        .then(resp => {
+            const ct = resp.headers.get('content-type') || '';
+            if (resp.ok && ct.includes('text/html')) {
+                return resp.text().then(html => {
+                    document.getElementById('subjects-tab-body').innerHTML = html;
+                    bootstrap.Modal.getInstance(document.getElementById('editSubjectModal')).hide();
+                    showToast('Subject updated', 'success');
+                });
+            }
+            return resp.json().then(d => showToast(d.error || 'Failed to update subject', 'danger'));
+        })
+        .catch(() => showToast('Network error', 'danger'))
+        .finally(() => { btn.disabled = false; });
+    });
+});
+
+function editSubject(subjectId, subjectName, teacherId, subjectCode) {
+    document.getElementById('editSubjectId').value = subjectId;
+    document.getElementById('editSubjectName').value = subjectName || '';
+    document.getElementById('editSubjectCode').value = subjectCode || '';
+    // Reset teacher select to just the placeholder, then load + preselect
+    const sel = document.getElementById('editTeacherSelect');
+    sel.innerHTML = '<option value="">Not assigned</option>';
+    _teachersLoaded = false;
+    _loadTeachersInto('editTeacherSelect', teacherId);
+    new bootstrap.Modal(document.getElementById('editSubjectModal')).show();
+}
+
+function removeSubject(subjectId, subjectName) {
+    showConfirm(`Remove "<strong>${subjectName}</strong>" from this batch?`, function () {
+        fetch(`/api/batches/${batchId}/subjects/${subjectId}/remove/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        })
+        .then(resp => {
+            const ct = resp.headers.get('content-type') || '';
+            if (resp.ok && ct.includes('text/html')) {
+                return resp.text().then(html => {
+                    document.getElementById('subjects-tab-body').innerHTML = html;
+                    showToast('Subject removed from batch', 'success');
+                });
+            }
+            return resp.json().then(d => showToast(d.error || 'Failed to remove subject', 'danger'));
+        })
+        .catch(() => showToast('Network error', 'danger'));
+    }, 'Remove', 'danger');
+}
+
+// ===== Assign Class Teachers =====
+function openAssignTeachers() {
+    document.getElementById('assignSearch').value = '';
+    document.getElementById('assignTeachersArea').innerHTML =
+        '<div class="text-center text-muted py-4" style="font-size:13px"><i class="fas fa-spinner fa-spin"></i> Loading…</div>';
+    document.getElementById('assignSelCount').textContent = '';
+    document.getElementById('assignTeachersModal').classList.add('show');
+    loadAssignTeachers();
+}
+
+function closeAssignTeachers() {
+    document.getElementById('assignTeachersModal').classList.remove('show');
+}
+
+function loadAssignTeachers() {
+    fetch(`/api/batches/${batchId}/class-teachers/`)
+        .then(r => r.json())
+        .then(data => {
+            const teachers = data.teachers || [];
+            if (!teachers.length) {
+                document.getElementById('assignTeachersArea').innerHTML =
+                    '<div class="pw-alert pw-alert-info"><i class="fas fa-info-circle"></i> No employees available to assign.</div>';
+                return;
+            }
+            let rows = '';
+            teachers.forEach(t => {
+                rows += `
+                    <tr class="assign-row" data-name="${(t.full_name || '').toLowerCase()}">
+                        <td style="width:40px"><input type="checkbox" class="assign-check" value="${t.id}" ${t.assigned ? 'checked' : ''} onchange="updateAssignCount()"></td>
+                        <td>${t.full_name}</td>
+                    </tr>`;
+            });
+            document.getElementById('assignTeachersArea').innerHTML = `
+                <div class="pw-table-wrap" style="max-height:320px;overflow-y:auto">
+                    <table class="pw-table">
+                        <thead><tr><th style="width:40px"></th><th>Teacher</th></tr></thead>
+                        <tbody id="assignTeacherRows">${rows}</tbody>
+                    </table>
+                </div>`;
+            updateAssignCount();
+        })
+        .catch(() => showToast('Could not load teachers', 'danger'));
+}
+
+function filterAssignRows() {
+    const q = document.getElementById('assignSearch').value.trim().toLowerCase();
+    document.querySelectorAll('#assignTeacherRows .assign-row').forEach(row => {
+        row.style.display = (!q || row.dataset.name.includes(q)) ? '' : 'none';
+    });
+}
+
+function updateAssignCount() {
+    const n = document.querySelectorAll('#assignTeacherRows .assign-check:checked').length;
+    document.getElementById('assignSelCount').textContent = n ? `${n} selected` : 'None selected';
+}
+
+function submitAssignTeachers() {
+    const ids = Array.from(document.querySelectorAll('#assignTeacherRows .assign-check:checked')).map(cb => cb.value);
+    const btn = document.getElementById('assignSubmitBtn');
+    btn.disabled = true;
+    fetch(`/api/batches/${batchId}/class-teachers/assign/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teacher_ids: ids })
+    })
+    .then(resp => {
+        const ct = resp.headers.get('content-type') || '';
+        if (resp.ok && ct.indexOf('text/html') !== -1) {
+            return resp.text().then(html => {
+                const card = document.getElementById('batch-overview-card');
+                if (card) card.outerHTML = html;
+                closeAssignTeachers();
+                showToast('Class teachers updated', 'success');
+            });
+        }
+        return resp.json().then(d => showToast(d.error || 'Failed to assign teachers', 'danger'));
+    })
+    .catch(() => showToast('Network error', 'danger'))
+    .finally(() => { btn.disabled = false; });
+}
+
+// Timetable Functions
+function addSchedule() {
+    window.location.href = `/academic/timetables/?batch_id=${batchId}`;
+}
+
+function createExam() {
+    window.location.href = `/gradebook/management/?batch_id=${batchId}`;
+}
+
+// Utility Functions
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+
+// Refresh a single batch tab via HTMX partial swap (keeps the active tab/scroll).
+function refreshTab(name) {
+    const map = {
+        students: { url: `/api/batches/${batchId}/students/partial/`, target: '#students-tab-body' },
+        subjects: { url: `/api/batches/${batchId}/subjects/partial/`, target: '#subjects-tab-body' },
+        timetable: { url: `/api/batches/${batchId}/timetable/partial/`, target: '#timetable-tab-body' },
+    };
+    const cfg = map[name];
+    if (!cfg || !window.htmx) { location.reload(); return; }
+    htmx.ajax('GET', cfg.url, { target: cfg.target, swap: 'innerHTML' });
+}
+</script>
+{% endblock %}

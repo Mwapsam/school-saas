@@ -1,0 +1,185 @@
+{% extends 'core/layouts/form.html' %}
+{% block page_title %}New Fee Collection{% endblock %}
+
+{% block layout_header %}
+{% url 'core:fee_collections' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Create Fee Collection" description="Generates a fee obligation for every active student in the selected batches, priced from the fee group's particulars." icon='fa-calendar-check' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block extra_css %}
+{% include 'core/finance/_finance_ui_styles.html' %}
+{% endblock %}
+{% block layout_form %}
+<div class="container-lg py-4" style="max-width:720px">
+
+    {% include 'core/finance/_workflow_nav.html' %}
+    <div class="card"><div class="card-body">
+        {% if messages %}{% for m in messages %}
+            <div class="alert alert-{{ m.tags|default:'info' }}">{{ m }}</div>
+        {% endfor %}{% endif %}
+        <form method="post" id="collectionForm">{% csrf_token %}
+            <div class="mb-3"><label class="form-label">Collection Name</label>
+                <input type="text" name="name" class="form-control" placeholder="e.g. Term 1 Collection" required></div>
+            <div class="mb-3"><label class="form-label">Academic Year</label>
+                <select name="academic_year" id="academicYearSelect" class="form-select" required>
+                    {% for y in academic_years %}<option value="{{ y.id }}" {% if y.is_active %}selected{% endif %}>{{ y.name }}</option>{% endfor %}
+                </select></div>
+            <div class="mb-3"><label class="form-label">Term</label>
+                <select name="term" id="termSelect" class="form-select" required>
+                    <option value="">Select term…</option>
+                    {% for t in terms %}
+                    <option value="{{ t.name }}"
+                            data-year="{{ t.academic_year_id }}"
+                            data-start="{{ t.start_date|date:'Y-m-d' }}"
+                            data-end="{{ t.end_date|date:'Y-m-d' }}">
+                        {{ t.name }} ({{ t.start_date|date:'M j' }} – {{ t.end_date|date:'M j, Y' }})
+                    </option>
+                    {% endfor %}
+                </select>
+                <small class="text-muted">Start and end dates are taken from the term.</small>
+            </div>
+            <div class="mb-3"><label class="form-label">Fee Group (Category)</label>
+                <select name="fee_category" id="feeCategorySelect" class="form-select" required>
+                    <option value="">Select fee group…</option>
+                    {% for c in fee_categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+                </select></div>
+            <div class="mb-3"><label class="form-label">Batches</label>
+                <div id="batchesDisplay" class="p-3 bg-light border rounded">
+                    <p class="text-muted mb-0" id="batchesPlaceholder">Select a fee category to see assigned batches</p>
+                    <div id="batchesList" style="display:none;">
+                        <!-- Batches will be populated here -->
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3"><label class="form-label">Start Date</label>
+                    <input type="date" id="startDateInput" class="form-control" disabled>
+                    <small class="text-muted">From term</small></div>
+                <div class="col-md-4 mb-3"><label class="form-label">End Date</label>
+                    <input type="date" id="endDateInput" class="form-control" disabled>
+                    <small class="text-muted">From term</small></div>
+                <div class="col-md-4 mb-3"><label class="form-label">Due Date</label>
+                    <input type="date" name="due_date" id="dueDateInput" class="form-control">
+                    <small class="text-muted">Defaults to term end</small></div>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+                <a href="{% url 'core:fee_collections' %}" class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">Create Collection</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+
+<script>
+let selectedBatches = [];
+
+const academicYearSelect = document.getElementById('academicYearSelect');
+const termSelect = document.getElementById('termSelect');
+const startDateInput = document.getElementById('startDateInput');
+const endDateInput = document.getElementById('endDateInput');
+const dueDateInput = document.getElementById('dueDateInput');
+
+// Show only the terms that belong to the chosen academic year.
+function filterTermsByYear() {
+    const yearId = academicYearSelect.value;
+    let currentStillValid = false;
+    Array.from(termSelect.options).forEach(opt => {
+        if (!opt.value) return;
+        const match = opt.dataset.year === yearId;
+        opt.hidden = !match;
+        opt.disabled = !match;
+        if (match && opt.selected) currentStillValid = true;
+    });
+    if (!currentStillValid) {
+        termSelect.value = '';
+        applyTermDates();
+    }
+}
+
+// Derive start/end (and default due) dates from the selected term.
+function applyTermDates() {
+    const opt = termSelect.selectedOptions[0];
+    const start = opt ? opt.dataset.start || '' : '';
+    const end = opt ? opt.dataset.end || '' : '';
+    startDateInput.value = start;
+    endDateInput.value = end;
+    if (end && (!dueDateInput.value || dueDateInput.dataset.autofilled === '1')) {
+        dueDateInput.value = end;
+        dueDateInput.dataset.autofilled = '1';
+    }
+}
+
+dueDateInput.addEventListener('input', () => { dueDateInput.dataset.autofilled = '0'; });
+academicYearSelect.addEventListener('change', filterTermsByYear);
+termSelect.addEventListener('change', applyTermDates);
+filterTermsByYear();
+
+document.getElementById('feeCategorySelect').addEventListener('change', function() {
+    const categoryId = this.value;
+    const placeholder = document.getElementById('batchesPlaceholder');
+    const batchesList = document.getElementById('batchesList');
+
+    batchesList.innerHTML = '';
+    batchesList.style.display = 'none';
+    selectedBatches = [];
+
+    if (!categoryId) {
+        placeholder.textContent = 'Select a fee category to see assigned batches';
+        return;
+    }
+
+    fetch(`/api/finance/collections/batches/?category_id=${categoryId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                placeholder.textContent = `Error: ${data.error}`;
+                return;
+            }
+
+            const batches = data.batches;
+            if (batches.length === 0) {
+                placeholder.textContent = 'No batches assigned to this fee category. Go to Batch Assignment to add batches.';
+                return;
+            }
+
+            placeholder.style.display = 'none';
+            selectedBatches = batches.map(b => b.id);
+            batches.forEach(batch => {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-primary me-2 mb-2';
+                badge.textContent = batch.name;
+                batchesList.appendChild(badge);
+            });
+
+            batchesList.style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            placeholder.textContent = 'Error loading batches. Please try again.';
+        });
+});
+
+document.getElementById('collectionForm').addEventListener('submit', function(e) {
+    if (!termSelect.value) {
+        e.preventDefault();
+        (window.showToast || alert)('Please select a term', 'warning');
+        return false;
+    }
+    if (selectedBatches.length === 0) {
+        e.preventDefault();
+        (window.showToast || alert)('Please select a fee category with assigned batches', 'warning');
+        return false;
+    }
+
+    selectedBatches.forEach(batchId => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'batches';
+        input.value = batchId;
+        this.appendChild(input);
+    });
+});
+</script>
+{% endblock %}
+
+{% block layout_extra %}{% endblock %}

@@ -1,0 +1,297 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block page_title %}Students{% endblock %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title=terms.student_plural description="Manage student enrolment and class assignments" icon="fa-user-graduate" actions=header_actions back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_filters %}
+<!-- Search and Filters -->
+<div class="card mb-4">
+    <div class="card-header bg-light d-flex align-items-center justify-content-between py-2">
+        <span class="fw-semibold">Search &amp; Filter</span>
+        {% if active_academic_year %}
+            <span class="badge bg-success">{{ active_academic_year.name }}</span>
+        {% else %}
+            <span class="badge bg-warning text-dark">No active academic year</span>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3" hx-get="{% url 'core:student_list' %}" hx-target="#student-list-content" hx-trigger="submit, input delay:500ms from:input[name=search]" hx-push-url="true" hx-sync="this:replace">
+            <div class="col-md-5">
+                <label for="search" class="form-label">Search Students</label>
+                <input type="text" class="form-control" id="search" name="search" value="{{ search_query }}" placeholder="Name or admission number..."
+                       {% if not active_academic_year %}disabled title="No active academic year set"{% endif %}>
+            </div>
+            <div class="col-md-3">
+                <label for="batch" class="form-label">Filter by Batch</label>
+                <select class="form-select" id="batch" name="batch"
+                        {% if not active_academic_year %}disabled{% endif %}>
+                    <option value="">All Batches</option>
+                    <option value="{{ unallocated_value }}" {% if showing_unallocated %}selected{% endif %}>
+                        ⚠ Unallocated (no class)
+                    </option>
+                    {% for batch in batches %}
+                        <option value="{{ batch.id }}" {% if batch.id|stringformat:"s" == selected_batch %}selected{% endif %}>
+                            {{ batch.name }} ({{ batch.course.course_name }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="sort" class="form-label">Sort by</label>
+                <select class="form-select" id="sort" name="sort"
+                        onchange="this.form.requestSubmit ? this.form.requestSubmit() : htmx.trigger(this.form, 'submit')"
+                        {% if not active_academic_year %}disabled{% endif %}>
+                    <option value="name" {% if selected_sort == 'name' %}selected{% endif %}>Name (A–Z)</option>
+                    <option value="name_desc" {% if selected_sort == 'name_desc' %}selected{% endif %}>Name (Z–A)</option>
+                    <option value="admission" {% if selected_sort == 'admission' %}selected{% endif %}>Admission No. (asc)</option>
+                    <option value="admission_desc" {% if selected_sort == 'admission_desc' %}selected{% endif %}>Admission No. (desc)</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-outline-primary w-100" data-loading
+                        {% if not active_academic_year %}disabled{% endif %}>
+                    <i class="fas fa-search"></i>
+                    <div class="htmx-indicator loading-spinner d-inline-block ms-2"></div>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Export Button -->
+<div class="d-flex justify-content-end mb-3">
+    <a href="?export=csv" class="table-export-btn">
+        <i class="fas fa-download me-2"></i>Export as CSV
+    </a>
+</div>
+{% endblock %}
+
+{% block layout_table %}
+<div x-data="studentList()">
+    <!-- Student List -->
+    <div class="pinewood-table-container">
+        <div class="pinewood-table-header">
+            <h5 class="mb-0">
+                Students
+                {% if has_filter and is_paginated %}
+                    <span class="table-info">({{ paginator.count }} found)</span>
+                {% endif %}
+            </h5>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="selectAll" @change="toggleSelectAll">
+                <label class="form-check-label" for="selectAll">
+                    Select All
+                </label>
+            </div>
+        </div>
+
+        <div id="student-list-content">
+            {% include 'core/htmx/student_list_content.html' %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block layout_extra %}
+    <!-- Bulk Actions Modal -->
+    {% include 'core/components/modal.html' with id="bulkActionsModal" title="Bulk Actions" %}
+                    <p>Select an action to perform on <span x-text="selectedStudents.length"></span> selected student(s):</p>
+
+                    <div class="border rounded p-3 mb-3">
+                        <label for="allocateBatchSelect" class="form-label fw-semibold">Allocate to Class</label>
+                        <div class="input-group">
+                            <select class="form-select" id="allocateBatchSelect">
+                                <option value="">Choose a class…</option>
+                                {% for batch in batches %}
+                                    <option value="{{ batch.id }}">{{ batch.name }} ({{ batch.course.course_name }})</option>
+                                {% endfor %}
+                            </select>
+                            <button class="btn btn-primary" @click="performBulkAction('allocate')">
+                                Allocate
+                            </button>
+                        </div>
+                        <small class="text-muted d-block mt-1">
+                            Only students not already in a class{% if active_academic_year %} for {{ active_academic_year.name }}{% endif %} will be allocated; the rest are skipped.
+                        </small>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-warning" @click="performBulkAction('deactivate')">
+                            Deactivate Students
+                        </button>
+                        <button class="btn btn-success" @click="performBulkAction('reactivate')">
+                            Reactivate Students
+                        </button>
+                    </div>
+    {% include 'core/components/modal_close.html' with no_footer=True %}
+
+    <!-- Single Student Allocation Modal -->
+    {% include 'core/components/modal.html' with id="singleAllocateModal" title="Allocate Student to Class" %}
+                    <p class="mb-3">Allocating <strong id="allocateStudentName"></strong> to:</p>
+                    <select class="form-select" id="singleAllocateBatch">
+                        <option value="">Choose a class…</option>
+                        {% for batch in batches %}
+                            <option value="{{ batch.id }}">{{ batch.name }} ({{ batch.course.course_name }})</option>
+                        {% endfor %}
+                    </select>
+    {% include 'core/components/modal_close.html' with footer=single_allocate_footer %}
+</div><!-- /x-data (opened in layout_table) -->
+
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function studentList() {
+    return {
+        selectedStudents: [],
+
+        init() {
+            // Watch for changes in selected students
+            this.$watch('selectedStudents', (value) => {
+                const bulkBtn = document.getElementById('bulk-actions-btn');
+                if (bulkBtn) {
+                    bulkBtn.disabled = value.length === 0;
+                    bulkBtn.onclick = () => {
+                        if (value.length > 0) {
+                            new bootstrap.Modal(document.getElementById('bulkActionsModal')).show();
+                        }
+                    };
+                }
+            });
+
+            // Row checkboxes live inside an htmx-swapped container, so use event
+            // delegation on the stable wrapper to track selection.
+            const content = document.getElementById('student-list-content');
+            content.addEventListener('change', (e) => {
+                if (e.target.classList.contains('student-checkbox')) this.syncSelection();
+            });
+            // A list refresh (search / filter / pagination) replaces the rows —
+            // clear any stale selection.
+            content.addEventListener('htmx:afterSwap', () => {
+                const selectAll = document.getElementById('selectAll');
+                if (selectAll) selectAll.checked = false;
+                this.syncSelection();
+            });
+        },
+
+        syncSelection() {
+            this.selectedStudents = Array.from(
+                document.querySelectorAll('.student-checkbox:checked')
+            ).map(cb => cb.value);
+        },
+
+        toggleSelectAll(event) {
+            document.querySelectorAll('.student-checkbox').forEach(checkbox => {
+                checkbox.checked = event.target.checked;
+            });
+            this.syncSelection();
+        },
+
+        performBulkAction(action) {
+            if (this.selectedStudents.length === 0) return;
+
+            const payload = { action: action, student_ids: this.selectedStudents };
+
+            if (action === 'allocate') {
+                const sel = document.getElementById('allocateBatchSelect');
+                const batchId = sel ? sel.value : '';
+                if (!batchId) { this.showMessage('Please choose a class to allocate students to.', 'warning'); return; }
+                payload.batch_id = batchId;
+            }
+
+            fetch('{% url "core:student_bulk_action" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Re-run the current search/filter so the list reflects the change
+                    // (e.g. newly allocated students drop out of the Unallocated view).
+                    const form = document.querySelector('form[hx-get]');
+                    if (form && window.htmx) htmx.trigger(form, 'submit');
+                    this.selectedStudents = [];
+
+                    // Hide modal
+                    bootstrap.Modal.getInstance(document.getElementById('bulkActionsModal')).hide();
+
+                    // Show success message
+                    this.showMessage(data.message, 'success');
+                } else {
+                    this.showMessage('Action failed: ' + (data.error || 'Unknown error'), 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.showMessage('An error occurred', 'danger');
+            });
+        },
+
+        showMessage(message, type) {
+            if (type === 'success') showSuccess(message);
+            else if (type === 'danger') showDanger(message);
+            else showToast(message);
+        }
+    }
+}
+
+// Global variables for single student allocation
+let allocatingStudentId = null;
+let allocatingStudentName = null;
+
+function allocateStudent(studentId, studentName) {
+    allocatingStudentId = studentId;
+    allocatingStudentName = studentName;
+    document.getElementById('allocateStudentName').textContent = studentName;
+    document.getElementById('singleAllocateBatch').value = '';
+    new bootstrap.Modal(document.getElementById('singleAllocateModal')).show();
+}
+
+function confirmSingleAllocate() {
+    const batchId = document.getElementById('singleAllocateBatch').value;
+    if (!batchId) {
+        alert('Please select a class to allocate the student to.');
+        return;
+    }
+
+    // Use the existing bulk action function with a single student
+    fetch('{% url "core:student_bulk_action" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            action: 'allocate',
+            student_ids: [allocatingStudentId],
+            batch_id: batchId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        bootstrap.Modal.getInstance(document.getElementById('singleAllocateModal')).hide();
+
+        if (data.success) {
+            showSuccess(`${allocatingStudentName} allocated successfully!`);
+            // Re-run the current search/filter to refresh the list
+            const form = document.querySelector('form[hx-get]');
+            if (form && window.htmx) htmx.trigger(form, 'submit');
+        } else {
+            showDanger('Error: ' + (data.error || 'Failed to allocate student'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showDanger('An error occurred while allocating the student');
+    });
+}
+</script>
+{% endblock %}

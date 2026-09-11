@@ -1,0 +1,45 @@
+{% extends 'core/layouts/list.html' %}
+{% block page_title %}Subject Assignments{% endblock %}
+
+{% block layout_header %}
+  {% url 'core:hr_dashboard' as back_fallback %}
+  {% include 'core/components/page_header.html' with title="Subject Assignments" description="Link teaching staff to the subjects they teach" icon="fa-chalkboard-teacher" back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_table %}
+  <div class="row g-3">
+    <div class="col-md-4">
+      <div class="pw-card">
+        <h2 class="h6 fw-bold mb-2">Teaching staff</h2>
+        <div class="list-group list-group-flush" style="max-height:520px;overflow-y:auto">
+          {% for emp in teaching_staff %}
+            <a class="list-group-item list-group-item-action {% if selected_id == emp.id|stringformat:'s' %}active{% endif %}"
+               href="{% url 'core:hr_subject_assignments' %}?employee={{ emp.id }}">
+              {{ emp.first_name }} {{ emp.last_name }}
+              <small class="d-block {% if selected_id == emp.id|stringformat:'s' %}text-white-50{% else %}text-muted{% endif %}">{{ emp.employee_number }}</small>
+            </a>
+          {% empty %}
+            <p class="text-muted small mb-0">No teaching staff. Mark employees as teaching staff first.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="col-md-8">
+      <div class="pw-card">
+        {% if selected_id %}
+          <form id="subject-assignment-form"
+                hx-get="{% url 'core:employee_subjects_tab' employee_id=selected_id %}"
+                hx-trigger="load"
+                hx-target="#employee-subjects-content"
+                hx-swap="outerHTML">
+            <div id="employee-subjects-content">
+              {% include 'core/components/loading_state.html' with message="Loading subjects…" %}
+            </div>
+          </form>
+        {% else %}
+          {% include 'core/components/empty_state.html' with title="Select a staff member" description="Pick someone on the left to manage their subject assignments." %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

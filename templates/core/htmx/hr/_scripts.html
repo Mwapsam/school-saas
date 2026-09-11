@@ -1,0 +1,60 @@
+<script>
+(function () {
+  function csrftoken() {
+    var m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+  }
+
+  // POST a form (or FormData/plain object) to `url`. On 2xx, swap the returned
+  // HTML into `targetSel` (if given) and hide `modalSel` (if given). On error,
+  // surface the message into `.hr-form-error` inside the form, else alert().
+  window.hrPost = function (url, source, opts) {
+    opts = opts || {};
+    var body;
+    var form = null;
+    if (source instanceof HTMLFormElement) { form = source; body = new FormData(source); }
+    else if (source instanceof FormData) { body = source; }
+    else {
+      body = new FormData();
+      Object.keys(source || {}).forEach(function (k) { body.append(k, source[k]); });
+    }
+    return fetch(url, { method: 'POST', headers: { 'X-CSRFToken': csrftoken() }, body: body })
+      .then(function (r) { return r.text().then(function (t) { return { ok: r.ok, body: t }; }); })
+      .then(function (res) {
+        if (res.ok) {
+          if (opts.target) {
+            var el = document.querySelector(opts.target);
+            if (el) el.innerHTML = res.body;
+          }
+          if (opts.modal) {
+            var inst = bootstrap.Modal.getInstance(document.querySelector(opts.modal));
+            if (inst) inst.hide();
+          }
+          if (typeof opts.onSuccess === 'function') opts.onSuccess(res.body);
+        } else {
+          var msg = res.body;
+          try { var j = JSON.parse(res.body); msg = j.error || Object.values(j).flat().join(' '); } catch (e) {}
+          var errEl = form && form.querySelector('.hr-form-error');
+          if (errEl) { errEl.textContent = msg; errEl.hidden = false; }
+          else window.alert(msg || 'Action failed');
+        }
+      });
+  };
+
+  window.hrOpenModal = function (sel) {
+    return bootstrap.Modal.getOrCreateInstance(document.querySelector(sel)).show();
+  };
+  window.hrCloseModal = function (sel) {
+    var inst = bootstrap.Modal.getInstance(document.querySelector(sel));
+    if (inst) inst.hide();
+  };
+
+  // Convenience: wire a <form data-hr-post="url" data-hr-target="#sel" data-hr-modal="#sel">
+  document.addEventListener('submit', function (evt) {
+    var f = evt.target;
+    if (!(f instanceof HTMLFormElement) || !f.dataset.hrPost) return;
+    evt.preventDefault();
+    hrPost(f.dataset.hrPost, f, { target: f.dataset.hrTarget, modal: f.dataset.hrModal });
+  });
+})();
+</script>

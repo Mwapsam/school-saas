@@ -1,0 +1,13 @@
+<div class="hdr {% if compact %}hdr-compact{% endif %}">
+    {% if school.logo_url and not compact %}<img class="hdr-logo" src="{{ school.logo_url }}" alt="">{% endif %}
+    <div>
+        <div class="hdr-name">{{ school.name }}</div>
+        {% if not compact %}
+        <div class="hdr-sub">
+            {% if school.address_line1 %}{{ school.address_line1 }}{% endif %}{% if school.city %}, {{ school.city }}{% endif %}
+            {% if school.phone %}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{{ school.phone }}{% endif %}{% if school.email %}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{{ school.email }}{% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% if subtitle %}<div class="doc-title">{{ subtitle }}</div>{% endif %}

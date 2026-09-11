@@ -1,0 +1,184 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Employees" description="Manage teaching and non-teaching staff records." icon='fa-chalkboard-user' back_url=back_url|default:back_fallback crumbs=crumbs %}
+<div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
+<div class="btn-toolbar" role="toolbar">
+    {% if 'hr.employee.manage' in perms %}
+    <div class="btn-group me-2" role="group">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#teacherModal" onclick="resetTeacherForm()">
+            <i class="fas fa-plus"></i> Add Employee
+        </button>
+    </div>
+    {% endif %}
+    <div class="btn-group" role="group">
+        <button type="button" class="btn btn-outline-secondary" onclick="exportTeachers()">
+            <i class="fas fa-download"></i> Export
+        </button>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block page_title %}Employees{% endblock %}
+
+
+{% block layout_table %}
+<div x-data="teacherList()">
+    {% if 'hr.employee.manage' not in perms %}
+    <div class="alert alert-info mb-4">
+        <i class="fas fa-info-circle"></i>
+        You have view-only access to employees. Contact an administrator to create, edit, or delete employee records.
+    </div>
+    {% endif %}
+
+    <!-- Search and Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3" hx-get="/teachers/" hx-target="#teacher-list-content" hx-trigger="submit, input delay:500ms from:input[name=search]">
+                <div class="col-md-3">
+                    <label for="search" class="form-label">Search Employees</label>
+                    <input type="text" class="form-control" id="search" name="search" value="{{ request.GET.search }}" placeholder="Name, employee number, email...">
+                </div>
+                <div class="col-md-2">
+                    <label for="department" class="form-label">Department</label>
+                    <select class="form-select" id="department" name="department" hx-get="/teachers/" hx-target="#teacher-list-content" hx-trigger="change">
+                        <option value="">All Departments</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="staff_type" class="form-label">Staff Type</label>
+                    <select class="form-select" id="staff_type" name="staff_type" hx-get="/teachers/" hx-target="#teacher-list-content" hx-trigger="change">
+                        <option value="all" {% if request.GET.staff_type == 'all' or not request.GET.staff_type %}selected{% endif %}>All Staff</option>
+                        <option value="teaching" {% if request.GET.staff_type == 'teaching' %}selected{% endif %}>Teaching Staff</option>
+                        <option value="non_teaching" {% if request.GET.staff_type == 'non_teaching' %}selected{% endif %}>Non-Teaching Staff</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status" hx-get="/teachers/" hx-target="#teacher-list-content" hx-trigger="change">
+                        <option value="">All</option>
+                        <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+                        <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary w-100" data-loading>
+                        <i class="fas fa-search"></i>
+                        <div class="htmx-indicator loading-spinner d-inline-block ms-2"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Employees List -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                Employees
+                {% if is_paginated %}
+                    <small class="text-muted">({{ paginator.count }} total)</small>
+                {% endif %}
+            </h5>
+        </div>
+
+        <div id="teacher-list-content">
+            {% include 'core/htmx/teacher_list_content.html' %}
+        </div>
+    </div>
+
+    <!-- Employee Details Modal -->
+    <div class="modal fade" id="teacherDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Employee Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="teacher-details-content">
+                        <!-- Content loaded via HTMX -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include Employee Form Modal -->
+{% if 'hr.employee.manage' in perms %}
+{% include 'core/htmx/teacher_form_modal.html' %}
+{% endif %}
+
+<script>
+function teacherList() {
+    return {
+        selectedTeacher: null,
+        
+        viewTeacher(teacherId, teacherName) {
+            this.selectedTeacher = { id: teacherId, name: teacherName };
+            
+            // Update modal title
+            document.querySelector('#teacherDetailsModal .modal-title').textContent = `${teacherName} - Details`;
+            
+            // Load teacher details via HTMX
+            htmx.ajax('GET', `/api/teachers/${teacherId}/`, {
+                target: '#teacher-details-content'
+            });
+            
+            // Show modal
+            new bootstrap.Modal(document.getElementById('teacherDetailsModal')).show();
+        }
+    }
+}
+
+function exportTeachers() {
+    const params = new URLSearchParams(window.location.search);
+    window.open(`/api/teachers/export/?${params.toString()}`, '_blank');
+}
+
+// Load departments on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadDepartments('department');
+});
+
+// Shared by the filter bar above and the Add/Edit Teacher modal (teacher_form_modal.html)
+function loadDepartments(selectId) {
+    const departmentSelect = document.getElementById(selectId);
+    if (!departmentSelect) return;
+
+    fetch('/api/departments/')
+        .then(response => response.json())
+        .then(data => {
+            data.departments.forEach(dept => {
+                departmentSelect.innerHTML += `<option value="${dept.id}">${dept.name}</option>`;
+            });
+        })
+        .catch(error => console.log('Could not load departments'));
+}
+
+// Shared alert helper used by this page, teacher_form_modal.html and teacher_list_content.html
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    document.body.appendChild(alertDiv);
+
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 3000);
+}
+</script>
+
+{% csrf_token %}
+{% endblock %}
+

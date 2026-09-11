@@ -1,0 +1,617 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+{% load currency_tags %}
+
+{% block page_title %}Fine Slabs{% endblock %}
+
+{% block layout_header %}
+{% url 'core:fee_structure' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Fine Slabs" description="Configure penalty charges for overdue fees" icon='fa-sliders-h' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+
+{% block layout_filters %}
+<!-- Filters will be extracted and moved here -->
+{% endblock %}
+
+{% block layout_table %}
+<div class="container-lg py-4">
+    <div class="d-flex justify-content-end mb-3">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createFineModal">
+            <i class="fas fa-plus me-2"></i>New Fine Slab
+        </button>
+    </div>
+
+    {% include 'core/finance/_workflow_nav.html' with active_step=1 %}
+
+    <!-- Fine Slabs List -->
+    {% if grouped_slabs %}
+    {% for fine_name, slabs in grouped_slabs.items %}
+    <div class="card mb-4">
+        <div class="card-header bg-light border-0">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="fas fa-layer-group me-2 text-primary"></i>{{ fine_name }}
+                    <span class="badge bg-light text-dark ms-2">{{ slabs|length }} slab{{ slabs|length|pluralize }}</span>
+                </h6>
+            </div>
+        </div>
+        <div class="card-body pb-0">
+            <!-- Fine Ladder Visual -->
+            <div class="fine-ladder mb-4">
+                {% for slab in slabs %}
+                <div class="ladder-step">
+                    <div class="step-marker">{{ slab.days_after_due }}d</div>
+                    <div class="step-content">
+                        {% if slab.fine_mode == 'percentage' %}
+                            <span>{{ slab.fine_value }}%</span>
+                        {% else %}
+                            <span>₭{{ slab.fine_value|floatformat:2 }}</span>
+                        {% endif %}
+                    </div>
+                    {% if not forloop.last %}
+                    <div class="step-connector"></div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Fine Slabs Table -->
+            <div class="table-responsive">
+                <table class="table table-striped table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 15%;">Days</th>
+                            <th style="width: 15%;">Mode</th>
+                            <th style="width: 15%;">Value</th>
+                            <th style="width: 30%;">Description</th>
+                            <th class="text-center" style="width: 15%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for slab in slabs %}
+                        <tr class="align-middle">
+                            <td>
+                                <span class="badge bg-warning text-dark fw-500">{{ slab.days_after_due }} days</span>
+                            </td>
+                            <td>
+                                {% if slab.fine_mode == 'percentage' %}
+                                    <span class="badge bg-info">Percentage</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Fixed Amount</span>
+                                {% endif %}
+                            </td>
+                            <td class="fw-500">
+                                {% if slab.fine_mode == 'percentage' %}
+                                    {{ slab.fine_value }}%
+                                {% else %}
+                                    ₭{{ slab.fine_value|floatformat:2 }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    {% if slab.fine_mode == 'percentage' %}
+                                        {{ slab.fine_value }}% of outstanding balance after {{ slab.days_after_due }} days
+                                    {% else %}
+                                        ₭{{ slab.fine_value|floatformat:2 }} flat charge after {{ slab.days_after_due }} days
+                                    {% endif %}
+                                </small>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-outline-primary edit-fine"
+                                            title="Edit"
+                                            data-id="{{ slab.id }}"
+                                            data-name="{{ slab.fine_name }}"
+                                            data-days="{{ slab.days_after_due }}"
+                                            data-mode="{{ slab.fine_mode }}"
+                                            data-value="{{ slab.fine_value }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger delete-fine"
+                                            title="Delete"
+                                            data-id="{{ slab.id }}"
+                                            data-name="{{ slab.fine_name }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="card">
+        <div class="card-body p-5 text-center">
+            <div class="mb-3">
+                <i class="fas fa-hourglass-end fa-3x text-muted opacity-25"></i>
+            </div>
+            <h5 class="text-muted">No Fine Slabs Configured</h5>
+            <p class="text-muted mb-4">Create fine slabs to automatically charge penalties for overdue fees. Set up multiple tiers to enforce payment compliance.</p>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createFineModal">
+                <i class="fas fa-plus me-2"></i>Create First Fine Slab
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Help Section -->
+    <div class="card mt-4">
+        <div class="card-header bg-light border-0">
+            <h6 class="mb-0"><i class="fas fa-circle-info me-2 text-primary"></i>How Fine Slabs Work</h6>
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <h6 class="text-primary fw-600 mb-3">How Fines Are Applied</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <small>Fines are calculated based on days overdue from due date</small>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <small>Multiple slabs can tier penalties as days increase</small>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <small>System applies the appropriate slab based on days overdue</small>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-primary fw-600 mb-3">Example Setup</h6>
+                    <div class="bg-light p-3 border-start border-primary border-3 rounded">
+                        <small class="d-block fw-500 mb-2">Late Payment Fine:</small>
+                        <small class="d-block">• After 7 days: 5% of outstanding</small>
+                        <small class="d-block">• After 15 days: 10% of outstanding</small>
+                        <small class="d-block">• After 30 days: ₭50 flat charge</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Fine Modal -->
+<div class="modal fade" id="createFineModal" tabindex="-1" aria-labelledby="createFineModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light border-0">
+                <div>
+                    <h5 class="modal-title mb-0" id="createFineModalLabel">
+                        <i class="fas fa-hourglass-end me-2 text-primary"></i>New Fine Slab
+                    </h5>
+                    <small class="text-muted d-block mt-1">Add a penalty tier for overdue fees</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="fineForm" action="{% url 'core:fine_slabs_create' %}" method="post">
+                <div class="modal-body">
+                    {% csrf_token %}
+
+                    <!-- Fine Selection -->
+                    <div class="mb-4">
+                        <label for="fineSelect" class="form-label fw-500">Fine Name</label>
+                        <select class="form-select" id="fineSelect" name="fine_name" required>
+                            <option value="">Select or create new fine...</option>
+                            {% for fine_name in grouped_slabs.keys %}
+                                <option value="{{ fine_name }}">{{ fine_name }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted d-block mt-2">Select an existing fine or leave empty to create a new one</small>
+                    </div>
+
+                    <!-- Custom Fine Name -->
+                    <div class="mb-4" id="customFineNameGroup" style="display: none;">
+                        <label for="customFineName" class="form-label fw-500">New Fine Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="customFineName" name="custom_fine_name"
+                               placeholder="e.g., Late Payment Fine">
+                        <small class="text-muted d-block mt-2">Enter a unique name for this fine category</small>
+                    </div>
+
+                    <!-- Days After Due -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="daysAfterDue" class="form-label fw-500">Days After Due <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="daysAfterDue" name="days_after_due"
+                                   placeholder="e.g., 7" min="0" required>
+                            <small class="text-muted d-block mt-2">When this fine kicks in</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="fineValue" class="form-label fw-500">Fine Value <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="fineValue" name="fine_value"
+                                       placeholder="0.00" step="0.01" min="0" required>
+                                <span class="input-group-text fw-500" id="fineSymbol">%</span>
+                            </div>
+                            <small class="text-muted d-block mt-2">Amount or percentage</small>
+                        </div>
+                    </div>
+
+                    <!-- Mode Selection -->
+                    <div class="mb-4">
+                        <label class="form-label fw-500">Charge Type</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check form-check-lg">
+                                    <input class="form-check-input" type="radio" name="fine_mode" id="finePercentage" value="percentage" checked>
+                                    <label class="form-check-label" for="finePercentage">
+                                        <strong>Percentage</strong>
+                                        <small class="d-block text-muted">Calculate as % of outstanding balance</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-check-lg">
+                                    <input class="form-check-input" type="radio" name="fine_mode" id="fineAmount" value="amount">
+                                    <label class="form-check-label" for="fineAmount">
+                                        <strong>Fixed Amount</strong>
+                                        <small class="d-block text-muted">Flat charge regardless of balance</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Add Fine Slab
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block layout_pagination %}{% endblock %}
+
+{% block layout_extra %}{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    // Handle fine selection
+    $('#fineSelect').change(function() {
+        if ($(this).val() === '') {
+            $('#customFineNameGroup').show();
+            $('#customFineName').attr('required', true);
+        } else {
+            $('#customFineNameGroup').hide();
+            $('#customFineName').removeAttr('required');
+        }
+    });
+
+    // Update fine symbol based on mode
+    $('input[name="fine_mode"]').change(function() {
+        const symbol = $(this).val() === 'percentage' ? '%' : '{% currency_symbol %}';
+        const maxValue = $(this).val() === 'percentage' ? '100' : '';
+        
+        $('#fineSymbol').text(symbol);
+        $('#fineValue').attr('max', maxValue);
+        
+        if ($(this).val() === 'percentage') {
+            $('#fineValue').attr('placeholder', '0 - 100');
+        } else {
+            $('#fineValue').attr('placeholder', '0.00');
+        }
+    });
+
+    // Form submission
+    $('#fineForm').submit(function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        // Use custom name if creating new fine
+        if ($('#fineSelect').val() === '') {
+            formData.set('fine_name', $('#customFineName').val());
+        }
+        
+        $.ajax({
+            url: '{% url "core:fine_slabs_create" %}',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRFToken': csrftoken
+            },
+            success: function(response) {
+                if (response.success) {
+                    showAlert('success', response.message);
+                    $('#createFineModal').modal('hide');
+                    // Reset form
+                    document.getElementById('fineForm').reset();
+                    $('#customFineNameGroup').hide();
+                    $('#customFineName').removeAttr('required');
+                    $('#fineSymbol').text('%');
+                    // Reload page after delay
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showAlert('danger', response.error || 'Creation failed');
+                }
+            },
+            error: function(xhr) {
+                const response = xhr.responseJSON;
+                showAlert('danger', response?.error || 'Creation failed');
+            }
+        });
+    });
+
+    function showAlert(type, message) {
+        const alertHtml = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>`;
+        
+        $('.alert-dismissible').remove();
+        $('.container-lg').prepend(alertHtml);
+        
+        setTimeout(() => {
+            $('.alert-dismissible').alert('close');
+        }, 5000);
+    }
+
+    // Reset modal on close
+    $('#createFineModal').on('hidden.bs.modal', function() {
+        document.getElementById('fineForm').reset();
+        $('#customFineNameGroup').hide();
+        $('#customFineName').removeAttr('required');
+        $('#fineSymbol').text('%');
+        $('#fineValue').removeAttr('max');
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header {
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 1.5rem;
+}
+
+.page-header h1 {
+    color: #212529;
+    font-weight: 600;
+}
+
+.breadcrumb-sm {
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+.breadcrumb-sm .breadcrumb-item a {
+    color: #28a745;
+    text-decoration: none;
+}
+
+.breadcrumb-sm .breadcrumb-item a:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-sm .breadcrumb-item.active {
+    color: #6c757d;
+}
+
+.breadcrumb-sm .breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+    color: #6c757d;
+}
+
+.card {
+    border: 1px solid #e9ecef;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    padding: 1rem;
+    font-weight: 600;
+}
+
+.card-header h6 {
+    font-weight: 600;
+    color: #212529;
+    margin: 0;
+}
+
+.modal-header {
+    padding: 1.5rem;
+}
+
+.modal-header h5 {
+    color: #212529;
+    font-weight: 600;
+}
+
+.form-label.fw-500 {
+    font-weight: 500;
+    color: #212529;
+}
+
+.form-check-lg .form-check-input {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0.15rem;
+}
+
+.form-check-lg .form-check-label {
+    margin-left: 0.5rem;
+}
+
+.table th {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.875rem;
+    background-color: #f8f9fa;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.btn-group .btn {
+    border-radius: 0.375rem;
+}
+
+.btn-group .btn:not(:last-child) {
+    margin-right: 0.25rem;
+}
+
+.btn-group-sm .btn {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.badge {
+    font-weight: 500;
+    font-size: 0.75rem;
+    padding: 0.35rem 0.6rem;
+}
+
+.badge.bg-warning {
+    background-color: #ffc107 !important;
+}
+
+.badge.bg-info {
+    background-color: #0dcaf0 !important;
+}
+
+.badge.bg-secondary {
+    background-color: #6c757d !important;
+}
+
+.opacity-25 {
+    opacity: 0.25;
+}
+
+/* Fine Ladder Styling */
+.fine-ladder {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    overflow-x: auto;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 0.375rem;
+    border: 1px solid #e9ecef;
+}
+
+.fine-ladder::-webkit-scrollbar {
+    height: 4px;
+}
+
+.fine-ladder::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.fine-ladder::-webkit-scrollbar-thumb {
+    background: #dee2e6;
+    border-radius: 2px;
+}
+
+.ladder-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: max-content;
+    position: relative;
+}
+
+.step-marker {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+    background: #fff;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid #dee2e6;
+}
+
+.step-content {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+    min-width: 70px;
+    text-align: center;
+}
+
+.step-connector {
+    position: absolute;
+    right: -0.625rem;
+    width: 0.5rem;
+    height: 2px;
+    background: #dee2e6;
+    top: 2.25rem;
+}
+
+@media (max-width: 768px) {
+    .fine-ladder {
+        padding: 1rem;
+        gap: 0.5rem;
+    }
+
+    .step-content {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.75rem;
+        min-width: 60px;
+    }
+
+    .step-marker {
+        font-size: 0.75rem;
+    }
+
+    .step-connector {
+        top: 2rem;
+    }
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+}
+
+.border-start {
+    border-left: 0.25rem solid #28a745 !important;
+}
+
+.fw-600 {
+    font-weight: 600;
+}
+</style>
+{% endblock %}

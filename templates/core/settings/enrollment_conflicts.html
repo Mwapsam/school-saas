@@ -1,0 +1,197 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:configuration' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-exclamation-circle' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Enrollment Conflicts{% endblock %}
+
+
+
+{% block layout_table %}
+{# ── Breadcrumb ── #}
+
+
+{# ── Page header ── #}
+<div class="ec-header">
+    <div class="ec-header-icon" aria-hidden="true">
+        <i class="fas fa-triangle-exclamation"></i>
+    </div>
+    <div class="ec-header-body">
+        <h1>Enrollment Conflicts</h1>
+        <p>Students assigned to more than one class within the same academic year. Enrollments in different years are not shown — they are part of normal progression.</p>
+    </div>
+    <a href="{% url 'core:manage_class_batch' %}" class="btn btn-outline-secondary btn-sm flex-shrink-0">
+        <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Back
+    </a>
+</div>
+
+{% if conflict_years %}
+
+{# ── Year filter strip ── #}
+<div class="mcb-filter" style="margin-bottom:20px">
+    <label for="yearSelect">Academic Year</label>
+    <select id="yearSelect" onchange="filterByYear()" aria-label="Select academic year">
+        {% for year in conflict_years %}
+        <option value="{{ year.id }}" {% if year == selected_year %}selected{% endif %}>
+            {{ year.name }}
+        </option>
+        {% endfor %}
+    </select>
+    {% if selected_year %}
+    <span style="font-size:12px;color:var(--color-muted)">
+        {{ conflict_count }} conflict{{ conflict_count|pluralize }} in this year
+        {% if total_conflict_count != conflict_count %}
+        · {{ total_conflict_count }} total
+        {% endif %}
+    </span>
+    {% endif %}
+</div>
+
+{% if conflicts %}
+
+{# ── Summary banner ── #}
+<div class="ec-banner" role="status">
+    <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
+    <span>
+        <strong>{{ conflict_count }}</strong> student{{ conflict_count|pluralize }}
+        with conflicting class assignments in <strong>{{ selected_year.name }}</strong>.
+        Choose the class to keep — the others will be removed for that academic year
+        (records are preserved).
+    </span>
+</div>
+
+{# ── Conflict cards ── #}
+{% for conflict in conflicts %}
+<div class="ec-card" id="conflict-{{ conflict.student.id }}-{{ conflict.academic_year.id }}">
+    <div class="ec-card-head">
+        <div>
+            <span class="ec-student-name">
+                {{ conflict.student.first_name }} {{ conflict.student.last_name }}
+            </span>
+            <span class="ec-admission-badge">{{ conflict.student.admission_no }}</span>
+        </div>
+        <span class="ec-year-badge">{{ conflict.academic_year.name }}</span>
+    </div>
+
+    <p class="ec-card-meta">
+        Assigned to {{ conflict.enrollments|length }} classes in this academic year — select one to keep:
+    </p>
+
+    <div class="pw-table-wrap">
+        <table class="pw-table">
+            <thead>
+                <tr>
+                    <th>Batch</th>
+                    <th>Class</th>
+                    <th style="width:160px"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for link in conflict.enrollments %}
+                <tr>
+                    <td><strong>{{ link.batch.name }}</strong></td>
+                    <td style="color:var(--color-muted);font-size:13px">{{ link.batch.course.course_name }}</td>
+                    <td class="text-end">
+                        <button class="ec-keep-btn"
+                                onclick="resolveConflict('{{ conflict.student.id }}', '{{ conflict.academic_year.id }}', '{{ link.batch.id }}', this)">
+                            <i class="fas fa-check" aria-hidden="true"></i> Keep this class
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endfor %}
+
+{% else %}
+
+{# ── No conflicts in this year ── #}
+<div class="ec-empty">
+    <div class="ec-empty-icon" aria-hidden="true">
+        <i class="fas fa-circle-check"></i>
+    </div>
+    <h5>No conflicts in {{ selected_year.name }}</h5>
+    <p>Every student is assigned to a single class within this academic year.</p>
+</div>
+
+{% endif %}
+
+{% else %}
+
+{# ── All clear empty state ── #}
+<div class="ec-empty">
+    <div class="ec-empty-icon" aria-hidden="true">
+        <i class="fas fa-circle-check"></i>
+    </div>
+    <h5>No enrollment conflicts</h5>
+    <p>Every student is assigned to a single class within each academic year.</p>
+</div>
+
+{% endif %}
+
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function _csrf() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function filterByYear() {
+    const yearId = document.getElementById('yearSelect').value;
+    const url = new URL(window.location);
+    url.searchParams.set('year_id', yearId);
+    window.location.href = url.toString();
+}
+
+function resolveConflict(studentId, academicYearId, keepBatchId, btn) {
+    showConfirmModal(
+        'Keep the selected class and remove this student from the other class(es) for this academic year?',
+        function () {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner d-inline-block me-1"></span>Saving…';
+
+            const body = new FormData();
+            body.append('student_id', studentId);
+            body.append('academic_year_id', academicYearId);
+            body.append('keep_batch_id', keepBatchId);
+
+            fetch('{% url "core:resolve_enrollment_conflict_api" %}', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': _csrf() },
+                body: body,
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const card = document.getElementById('conflict-' + studentId + '-' + academicYearId);
+                    if (card) {
+                        card.style.opacity = '0';
+                        card.style.transition = 'opacity .2s';
+                        setTimeout(() => card.remove(), 200);
+                    }
+                    showToast(data.message || 'Conflict resolved', 'success');
+                    if (!document.querySelector('.ec-card')) setTimeout(() => location.reload(), 600);
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-check"></i> Keep this class';
+                    showToast(data.error || 'Failed to resolve conflict', 'danger');
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check"></i> Keep this class';
+                showToast('Network error. Please try again.', 'danger');
+            });
+        },
+        { heading: 'Resolve Conflict', okLabel: 'Keep &amp; Remove Others' }
+    );
+}
+</script>
+{% endblock %}

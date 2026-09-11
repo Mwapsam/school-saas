@@ -1,0 +1,665 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-list' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Report Templates{% endblock %}
+
+
+
+{% block layout_table %}
+{# ── Breadcrumb ── #}
+
+
+{# ── Page header ── #}
+<div class="rt-header">
+    <div class="rt-header-icon" aria-hidden="true">
+        <i class="fas fa-file-invoice"></i>
+    </div>
+    <div class="rt-header-body">
+        <h1>Report Templates</h1>
+        <p>Design and manage student report card templates</p>
+    </div>
+    <div class="rt-header-actions">
+        <a href="{% url 'core:report_generation' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-file-pdf me-1" aria-hidden="true"></i>Generate Reports
+        </a>
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createTemplateModal">
+            <i class="fas fa-plus me-1" aria-hidden="true"></i>New Template
+        </button>
+    </div>
+</div>
+
+{# ── Search ── #}
+<form method="get" class="rt-search">
+    <span class="rt-search-label">Search</span>
+    <input type="search" name="search" value="{{ search_query }}"
+           placeholder="Template name…" aria-label="Search templates">
+    <button type="submit" class="btn btn-primary btn-sm">
+        <i class="fas fa-search" aria-hidden="true"></i>
+    </button>
+    {% if search_query %}
+    <a href="{% url 'core:report_template_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-times me-1" aria-hidden="true"></i>Clear
+    </a>
+    {% endif %}
+</form>
+
+{# ── Templates table ── #}
+<div class="pw-card">
+    <div class="pw-card-header">
+        <span class="pw-card-title">
+            <i class="fas fa-list me-1" aria-hidden="true"></i>Templates
+        </span>
+        <span class="pw-card-meta">{{ templates|length }} template{{ templates|length|pluralize }}</span>
+    </div>
+
+    {% if templates %}
+    <div class="pw-table-wrap">
+        <table class="pw-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Batch</th>
+                    <th>Format</th>
+                    <th class="d-none d-md-table-cell">Term</th>
+                    <th class="d-none d-md-table-cell">Year</th>
+                    <th>Status</th>
+                    <th class="d-none d-lg-table-cell">Created</th>
+                    <th style="width:1px">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for template in templates %}
+                <tr>
+                    <td><strong>{{ template.name }}</strong></td>
+                    <td style="font-size:13px">{{ template.batch.name }}</td>
+                    <td>
+                        {% if template.layout_type == 'SKILLS' %}
+                            <span class="rt-badge rt-badge-skills">Skills</span>
+                        {% elif template.layout_type == 'SIMPLE_ACADEMIC' %}
+                            <span class="rt-badge rt-badge-simple">Simple</span>
+                        {% else %}
+                            <span class="rt-badge rt-badge-full">Full</span>
+                        {% endif %}
+                    </td>
+                    <td class="d-none d-md-table-cell">
+                        <span class="pw-badge pw-badge-zero">{{ template.term }}</span>
+                    </td>
+                    <td class="d-none d-md-table-cell" style="font-size:12px;color:var(--color-muted)">
+                        {{ template.academic_year.name }}
+                    </td>
+                    <td>
+                        {% if template.is_active %}
+                            <span class="rt-badge rt-badge-active">Active</span>
+                        {% else %}
+                            <span class="rt-badge rt-badge-inactive">Inactive</span>
+                        {% endif %}
+                        {% if template.is_default %}
+                            <span class="rt-badge rt-badge-default ms-1">Default</span>
+                        {% endif %}
+                    </td>
+                    <td class="d-none d-lg-table-cell" style="font-size:12px;color:var(--color-muted);white-space:nowrap">
+                        {{ template.created_at|date:"d M Y" }}
+                    </td>
+                    <td>
+                        <div class="rt-dropdown dropdown">
+                            <button class="rt-menu-btn"
+                                    type="button"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false"
+                                    aria-label="Actions for {{ template.name }}">
+                                <i class="fas fa-ellipsis-v" aria-hidden="true"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <button class="dropdown-item" onclick="viewTemplate('{{ template.id }}')">
+                                        <i class="fas fa-eye" aria-hidden="true"></i> Preview
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item" onclick="editTemplate('{{ template.id }}')">
+                                        <i class="fas fa-pencil-alt" aria-hidden="true"></i> Edit
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item" onclick="generateReports('{{ template.id }}')">
+                                        <i class="fas fa-file-pdf" aria-hidden="true"></i> Generate Reports
+                                    </button>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% if not template.is_default %}
+                                <li>
+                                    <button class="dropdown-item"
+                                            onclick="setDefaultTemplate('{{ template.id }}', '{{ template.name|escapejs }}')">
+                                        <i class="fas fa-star" aria-hidden="true"></i> Set as Default
+                                    </button>
+                                </li>
+                                {% endif %}
+                                <li>
+                                    <button class="dropdown-item text-danger"
+                                            onclick="deleteTemplate('{{ template.id }}', '{{ template.name|escapejs }}')">
+                                        <i class="fas fa-trash-alt" aria-hidden="true"></i> Delete
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <nav aria-label="Templates pagination" class="mt-3 px-3 pb-3">
+        <ul class="pagination pagination-sm justify-content-center mb-0">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">‹ Prev</a>
+            </li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Next ›</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="text-center py-5">
+        <div style="width:56px;height:56px;background:var(--color-brand-bg);color:var(--color-brand);display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 16px;">
+            <i class="fas fa-file-invoice" aria-hidden="true"></i>
+        </div>
+        {% if search_query %}
+            <h5 style="color:var(--color-text);margin-bottom:6px">No templates match "{{ search_query }}"</h5>
+            <p style="font-size:13px;color:var(--color-muted);margin-bottom:16px">Try a different search term or clear the filter.</p>
+            <a href="{% url 'core:report_template_list' %}" class="btn btn-outline-secondary btn-sm">Clear search</a>
+        {% else %}
+            <h5 style="color:var(--color-text);margin-bottom:6px">No report templates yet</h5>
+            <p style="font-size:13px;color:var(--color-muted);margin-bottom:16px">Create your first template to start generating student reports.</p>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createTemplateModal">
+                <i class="fas fa-plus me-1" aria-hidden="true"></i>Create Template
+            </button>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{# ── Create Template Modal ── #}
+<div class="modal fade" id="createTemplateModal" tabindex="-1" aria-labelledby="createModalTitle">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header pw-brand">
+                <h5 class="modal-title" id="createModalTitle">
+                    <i class="fas fa-plus me-2" aria-hidden="true"></i>Create Report Template
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="createTemplateForm">
+                <div class="modal-body">
+                    {% include "core/reports/_template_form_fields.html" with prefix="create" %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="createTemplateSubmitBtn">
+                        <i class="fas fa-plus me-1" aria-hidden="true"></i>Create Template
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{# ── Edit Template Modal ── #}
+<div class="modal fade" id="editTemplateModal" tabindex="-1" aria-labelledby="editModalTitle">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header pw-brand">
+                <h5 class="modal-title" id="editModalTitle">
+                    <i class="fas fa-pencil-alt me-2" aria-hidden="true"></i>Edit Report Template
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editTemplateForm">
+                <input type="hidden" id="edit_template_id">
+                <div class="modal-body">
+                    {% include "core/reports/_template_form_fields.html" with prefix="edit" %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="editTemplateSubmitBtn">
+                        <i class="fas fa-save me-1" aria-hidden="true"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+const CSRF = document.cookie.split(';').reduce((v,c)=>{const[k,val]=c.trim().split('=');return k==='csrftoken'?decodeURIComponent(val):v;},'');
+const SUBJECTS_BY_BATCH = {{ subjects_by_batch_json|safe }};
+const SKILL_CATEGORIES   = {{ skill_categories_json|safe }};
+
+/* ── Section ordering helpers ── */
+function moveSection(prefix, btn, dir) {
+    const li = btn.closest('li');
+    const ul = document.getElementById(prefix + '_section_order_list');
+    const items = Array.from(ul.children);
+    const idx = items.indexOf(li);
+    const target = items[idx + dir];
+    if (!target) return;
+    if (dir === -1) ul.insertBefore(li, target);
+    else ul.insertBefore(target, li);
+}
+
+function serializeSectionOrder(prefix) {
+    const ul = document.getElementById(prefix + '_section_order_list');
+    const order = Array.from(ul.children).map(li => li.dataset.key);
+    document.getElementById(prefix + '_section_order').value = JSON.stringify(order);
+}
+
+function applySectionOrder(prefix, order) {
+    const ul = document.getElementById(prefix + '_section_order_list');
+    if (!order || !order.length) return;
+    const byKey = {};
+    Array.from(ul.children).forEach(li => { byKey[li.dataset.key] = li; });
+    order.forEach(key => { if (byKey[key]) ul.appendChild(byKey[key]); });
+}
+
+/* ── Subject ordering helpers ── */
+function moveSubject(prefix, btn, dir) {
+    const li = btn.closest('li');
+    const ul = document.getElementById(prefix + '_subject_order_list');
+    const items = Array.from(ul.children);
+    const idx = items.indexOf(li);
+    const target = items[idx + dir];
+    if (!target) return;
+    if (dir === -1) ul.insertBefore(li, target);
+    else ul.insertBefore(target, li);
+}
+
+function serializeSubjectOrder(prefix) {
+    const ul = document.getElementById(prefix + '_subject_order_list');
+    if (!ul) return;
+    const order = Array.from(ul.children).map(li => li.dataset.key).filter(Boolean);
+    const hidden = document.getElementById(prefix + '_subject_order');
+    if (hidden) hidden.value = JSON.stringify(order);
+}
+
+function loadSubjectsForBatch(prefix, batchId, existingOrder) {
+    const section = document.getElementById(prefix + '_subject_order_section');
+    const ul = document.getElementById(prefix + '_subject_order_list');
+    if (!section || !ul) return;
+
+    if (!batchId || batchId === '__all__') {
+        section.style.display = 'none';
+        ul.innerHTML = '';
+        return;
+    }
+
+    const allSubjects = (SUBJECTS_BY_BATCH && SUBJECTS_BY_BATCH[batchId]) ? SUBJECTS_BY_BATCH[batchId] : [];
+
+    // Skills-only batch: has subjects configured but none have exams.
+    const isSkillsBatch = allSubjects.length > 0 && allSubjects.every(s => !s.has_exams);
+
+    if (isSkillsBatch) {
+        // Auto-select the first SKILLS grading scheme so the form configures
+        // itself correctly for a skills/pre-grade class.
+        const sel = document.getElementById(prefix + '_grading_scale_id');
+        if (sel) {
+            const skillsOpt = Array.from(sel.options).find(o => o.dataset.layout === 'SKILLS');
+            if (skillsOpt && !skillsOpt.selected) {
+                sel.value = skillsOpt.value;
+                onGradingSchemeChange(prefix);
+            }
+        }
+        // Subject ordering is not applicable for skills/pre-grade batches.
+        section.style.display = 'none';
+        ul.innerHTML = '';
+        return;
+    }
+
+    if (!allSubjects.length) {
+        // No subjects configured at all — hide the section.
+        section.style.display = 'none';
+        ul.innerHTML = '';
+        return;
+    }
+
+    // Current layout — if SKILLS was set externally, skip showing.
+    const layoutEl = document.getElementById(prefix + '_layout_type');
+    if (layoutEl && layoutEl.value === 'SKILLS') {
+        section.style.display = 'none';
+        ul.innerHTML = '';
+        return;
+    }
+
+    section.style.display = '';
+    ul.innerHTML = '';
+
+    let subjects = [...allSubjects];
+    if (existingOrder && existingOrder.length) {
+        const orderMap = {};
+        existingOrder.forEach((id, i) => { orderMap[id] = i; });
+        subjects.sort((a, b) => {
+            const ai = orderMap[a.id] !== undefined ? orderMap[a.id] : 9999;
+            const bi = orderMap[b.id] !== undefined ? orderMap[b.id] : 9999;
+            return ai !== bi ? ai - bi : a.name.localeCompare(b.name);
+        });
+    }
+
+    subjects.forEach(subj => {
+        const code = subj.code ? ` <span class="text-muted">(${subj.code})</span>` : '';
+        const badge = subj.has_exams ? '' : ' <span class="badge bg-warning-light text-warning ms-1" title="No exams configured">No Exams</span>';
+        const li = document.createElement('li');
+        li.className = 'list-group-item d-flex justify-content-between align-items-center py-1 px-2 small';
+        li.dataset.key = subj.id;
+        li.innerHTML = `<span>${subj.name}${code}${badge}</span><span class="btn-group btn-group-sm ms-2"><button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1" onclick="moveSubject('${prefix}', this, -1)" title="Move up">▲</button><button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1" onclick="moveSubject('${prefix}', this, 1)" title="Move down">▼</button></span>`;
+        ul.appendChild(li);
+    });
+}
+
+/* ── Skill category ordering helpers ── */
+function moveSkillCategory(prefix, btn, dir) {
+    const li = btn.closest('li');
+    const ul = li.parentElement;
+    if (dir === -1 && li.previousElementSibling) ul.insertBefore(li, li.previousElementSibling);
+    else if (dir === 1 && li.nextElementSibling) ul.insertBefore(li.nextElementSibling, li);
+}
+
+function serializeSkillCategoryOrder(prefix) {
+    const ul = document.getElementById(prefix + '_skill_category_order_list');
+    if (!ul) return;
+    const order = Array.from(ul.children).map(li => li.dataset.key).filter(Boolean);
+    const hidden = document.getElementById(prefix + '_skill_category_order');
+    if (hidden) hidden.value = JSON.stringify(order);
+}
+
+function loadSkillCategoriesForTemplate(prefix, existingOrder) {
+    const section = document.getElementById(prefix + '_skill_category_order_section');
+    const ul = document.getElementById(prefix + '_skill_category_order_list');
+    if (!section || !ul) return;
+
+    if (!SKILL_CATEGORIES || !SKILL_CATEGORIES.length) {
+        section.style.display = 'none';
+        return;
+    }
+
+    section.style.display = '';
+    ul.innerHTML = '';
+
+    let cats = [...SKILL_CATEGORIES];
+    if (existingOrder && existingOrder.length) {
+        const orderMap = {};
+        existingOrder.forEach((id, i) => { orderMap[id] = i; });
+        cats.sort((a, b) => {
+            const ai = orderMap[a.id] !== undefined ? orderMap[a.id] : 9999;
+            const bi = orderMap[b.id] !== undefined ? orderMap[b.id] : 9999;
+            return ai !== bi ? ai - bi : a.name.localeCompare(b.name);
+        });
+    }
+
+    cats.forEach(cat => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item d-flex justify-content-between align-items-center py-1 px-2 small';
+        li.dataset.key = cat.id;
+        li.innerHTML = `<span>${cat.name}</span><span class="btn-group btn-group-sm ms-2"><button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1" onclick="moveSkillCategory('${prefix}', this, -1)" title="Move up">▲</button><button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1" onclick="moveSkillCategory('${prefix}', this, 1)" title="Move down">▼</button></span>`;
+        ul.appendChild(li);
+    });
+}
+
+/* ── Grading scheme → format coupling ── */
+const FORMAT_LABELS = {
+    SKILLS: 'Skills Checklist (Beginners / Reception)',
+    SIMPLE_ACADEMIC: 'Simple Academic (Grade 1–2)',
+    FULL_ACADEMIC: 'Full Academic (Grade 3–7)',
+};
+
+function applyFormat(prefix, layout) {
+    layout = layout || 'FULL_ACADEMIC';
+    const hidden = document.getElementById(prefix + '_layout_type');
+    if (hidden) hidden.value = layout;
+    const lbl = document.getElementById(prefix + '_format_label');
+    if (lbl) lbl.textContent = '→ ' + (FORMAT_LABELS[layout] || layout);
+    document.querySelectorAll('#' + prefix + '_section_toggles .section-toggle').forEach(el => {
+        const fmts = (el.dataset.formats || '').split(',');
+        el.style.display = fmts.indexOf(layout) !== -1 ? '' : 'none';
+    });
+    // Subject ordering is only relevant for exam-based layouts.
+    const subjectSection = document.getElementById(prefix + '_subject_order_section');
+    if (subjectSection && layout === 'SKILLS') subjectSection.style.display = 'none';
+
+    // Skill category ordering is only relevant for the skills layout.
+    const skillSection = document.getElementById(prefix + '_skill_category_order_section');
+    if (skillSection) {
+        if (layout === 'SKILLS') {
+            loadSkillCategoriesForTemplate(prefix, []);
+        } else {
+            skillSection.style.display = 'none';
+        }
+    }
+}
+
+function onGradingSchemeChange(prefix) {
+    const sel = document.getElementById(prefix + '_grading_scale_id');
+    const opt = sel.options[sel.selectedIndex];
+    const layout = opt ? (opt.dataset.layout || '') : '';
+    const fallback = document.getElementById(prefix + '_layout_fallback');
+    if (layout) {
+        if (fallback) fallback.classList.add('d-none');
+        applyFormat(prefix, layout);
+    } else {
+        if (fallback) fallback.classList.remove('d-none');
+        const fb = document.getElementById(prefix + '_layout_type_select');
+        applyFormat(prefix, fb ? fb.value : 'FULL_ACADEMIC');
+    }
+}
+
+function onLayoutFallbackChange(prefix) {
+    const fb = document.getElementById(prefix + '_layout_type_select');
+    applyFormat(prefix, fb ? fb.value : 'FULL_ACADEMIC');
+}
+
+/* ── Batch filter by course ── */
+function filterBatchesByCourse(prefix) {
+    const courseId = document.getElementById(prefix + '_course_id').value;
+    const batchSel = document.getElementById(prefix + '_batch_id');
+    const placeholder = batchSel.options[0];
+    let selectionHidden = false;
+    Array.from(batchSel.options).forEach(opt => {
+        if (!opt.value || opt.value === '__all__') return;
+        const match = !courseId || opt.dataset.course === courseId;
+        opt.hidden = !match;
+        opt.disabled = !match;
+        if (!match && opt.selected) selectionHidden = true;
+    });
+    const allOpt = batchSel.querySelector('option[value="__all__"]');
+    if (allOpt) {
+        allOpt.hidden = !courseId;
+        allOpt.disabled = !courseId;
+        allOpt.style.display = courseId ? '' : 'none';
+    }
+    if (placeholder) {
+        placeholder.textContent = courseId ? '— Specific batch (or pick All below) —' : '— Select a class first —';
+    }
+    if (selectionHidden) batchSel.value = '';
+}
+
+/* ── Form submissions ── */
+document.addEventListener('DOMContentLoaded', function () {
+    const createModal = document.getElementById('createTemplateModal');
+    if (createModal) createModal.addEventListener('show.bs.modal', () => {
+        onGradingSchemeChange('create');
+        filterBatchesByCourse('create');
+    });
+
+    document.getElementById('createTemplateForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        serializeSectionOrder('create');
+        serializeSubjectOrder('create');
+        serializeSkillCategoryOrder('create');
+        const btn = document.getElementById('createTemplateSubmitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading-spinner d-inline-block me-1"></span>Creating…';
+        fetch("{% url 'core:create_report_template_api' %}", {
+            method: 'POST',
+            body: new FormData(this),
+            headers: { 'X-CSRFToken': CSRF }
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-plus me-1"></i>Create Template';
+            if (data.success) {
+                const msg = data.created_count > 1
+                    ? `${data.created_count} templates created successfully`
+                    : (data.message || 'Template created successfully');
+                showToast(msg, 'success');
+                location.reload();
+            } else {
+                showToast(data.error || 'Failed to create template', 'danger');
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-plus me-1"></i>Create Template';
+            showToast('An error occurred while creating the template.', 'danger');
+        });
+    });
+
+    document.getElementById('editTemplateForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        serializeSectionOrder('edit');
+        serializeSubjectOrder('edit');
+        serializeSkillCategoryOrder('edit');
+        const templateId = document.getElementById('edit_template_id').value;
+        const btn = document.getElementById('editTemplateSubmitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading-spinner d-inline-block me-1"></span>Saving…';
+        fetch(`/api/reports/templates/${templateId}/update/`, {
+            method: 'POST',
+            body: new FormData(this),
+            headers: { 'X-CSRFToken': CSRF }
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save me-1"></i>Save Changes';
+            if (data.success) { showToast('Template saved', 'success'); location.reload(); }
+            else { showToast(data.error || 'Failed to save template', 'danger'); }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save me-1"></i>Save Changes';
+            showToast('An error occurred while saving.', 'danger');
+        });
+    });
+});
+
+/* ── Row actions ── */
+function viewTemplate(templateId) {
+    window.open(`/reports/templates/${templateId}/preview/`, '_blank');
+}
+
+function generateReports(templateId) {
+    window.location.href = "{% url 'core:comprehensive_reports' %}?template=" + templateId;
+}
+
+function editTemplate(templateId) {
+    fetch(`/api/reports/templates/${templateId}/`, { headers: { 'X-CSRFToken': CSRF } })
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('edit_template_id').value = data.id;
+        document.getElementById('edit_name').value = data.name;
+        document.getElementById('edit_term').value = data.term;
+        document.getElementById('edit_course_id').value = data.course_id || '';
+        filterBatchesByCourse('edit');
+        document.getElementById('edit_batch_id').value = data.batch_id;
+        document.getElementById('edit_academic_year_id').value = data.academic_year_id;
+        if (data.primary_color) document.getElementById('edit_primary_color').value = data.primary_color;
+        if (data.layout_type) {
+            document.getElementById('edit_layout_type').value = data.layout_type;
+            const fb = document.getElementById('edit_layout_type_select');
+            if (fb) fb.value = data.layout_type;
+        }
+        document.getElementById('edit_report_signature_id').value = data.report_signature_id || '';
+        document.getElementById('edit_next_term_start').value = data.next_term_start || '';
+        if (data.grading_scale_id !== undefined) document.getElementById('edit_grading_scale_id').value = data.grading_scale_id || '';
+        const bools = ['include_skills','include_exam_scores','include_homework_assessment','include_project_work',
+                       'include_clubs','include_sports','include_other_activities',
+                       'include_attendance','include_grading_scale'];
+        bools.forEach(k => {
+            const el = document.getElementById('edit_' + k);
+            if (el) el.checked = data[k];
+        });
+        if (data.section_order && data.section_order.length) applySectionOrder('edit', data.section_order);
+        loadSubjectsForBatch('edit', data.batch_id, data.subject_order || []);
+        onGradingSchemeChange('edit');
+        if (data.layout_type) applyFormat('edit', data.layout_type);
+        if (data.layout_type === 'SKILLS') {
+            loadSkillCategoriesForTemplate('edit', data.skill_category_order || []);
+        }
+        new bootstrap.Modal(document.getElementById('editTemplateModal')).show();
+    })
+    .catch(() => showToast('Failed to load template data.', 'danger'));
+}
+
+function setDefaultTemplate(templateId, templateName) {
+    showConfirmModal(
+        `Set <strong>${templateName}</strong> as the default template for its batch?`,
+        function () {
+            fetch(`/api/reports/templates/${templateId}/set-default/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': CSRF }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`"${data.template_name}" is now the default for this batch`, 'success');
+                    location.reload();
+                } else {
+                    showToast(data.error || 'Failed to set default', 'danger');
+                }
+            })
+            .catch(() => showToast('An error occurred.', 'danger'));
+        },
+        { heading: 'Set Default Template', okLabel: 'Set Default' }
+    );
+}
+
+function deleteTemplate(templateId, templateName) {
+    showDanger(
+        `Delete template <strong>${templateName}</strong>? This cannot be undone.`,
+        function () {
+            fetch(`/api/reports/templates/${templateId}/delete/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': CSRF }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) { showToast('Template deleted', 'success'); location.reload(); }
+                else { showToast(data.error || 'Cannot delete template', 'danger'); }
+            })
+            .catch(() => showToast('An error occurred while deleting.', 'danger'));
+        },
+        { heading: 'Delete Template', okLabel: 'Delete' }
+    );
+}
+</script>
+{% endblock %}

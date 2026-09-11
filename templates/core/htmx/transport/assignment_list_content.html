@@ -1,0 +1,55 @@
+<div class="pinewood-table-responsive">
+  <table class="pinewood-table">
+    <thead>
+      <tr>
+        <th>No.</th><th>Student</th><th>Route</th><th class="d-none d-md-table-cell">Boarding stop</th>
+        <th class="d-none d-md-table-cell">Period</th><th>Billing</th><th width="170">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+        <tr>
+          <td class="text-center">{{ forloop.counter0|add:page_obj.start_index }}</td>
+          <td><strong>{{ item.student.first_name }} {{ item.student.last_name }}</strong>
+            <small class="text-muted d-block">{{ item.student.admission_no }}</small></td>
+          <td>{{ item.route.route_name }}</td>
+          <td class="d-none d-md-table-cell">{{ item.boarding_stop.stop.name|default:"—" }}</td>
+          <td class="d-none d-md-table-cell">
+            {{ item.start_date|date:'Y-m-d' }}{% if item.end_date %} → {{ item.end_date|date:'Y-m-d' }}{% endif %}
+          </td>
+          <td>
+            {% if item.finance_fee %}
+              <span class="badge bg-success">Charged</span>
+              <small class="text-muted d-block">bal {{ item.finance_fee.balance }}</small>
+            {% elif item.is_active %}<span class="badge bg-warning">Not charged</span>
+            {% else %}<span class="badge bg-secondary">Ended</span>{% endif %}
+          </td>
+          <td class="table-actions">
+            <div class="btn-group btn-group-sm" role="group">
+              {% if not item.finance_fee and item.is_active %}
+                <button type="button" class="btn btn-outline-success btn-sm" title="Charge"
+                  onclick="transportChargeAssignment('{{ item.id }}', '{{ item.route.fare }}')">
+                  <i class="fas fa-money-bill"></i></button>
+              {% endif %}
+              {% if item.is_active %}
+                <button type="button" class="btn btn-outline-secondary btn-sm" title="End assignment"
+                  onclick="transportAction('assignments','end','{{ item.id }}','End this assignment today?')">
+                  <i class="fas fa-stop"></i></button>
+              {% endif %}
+              {% if not item.finance_fee %}
+                <button type="button" class="btn btn-outline-danger btn-sm" title="Delete"
+                  onclick="transportAction('assignments','delete','{{ item.id }}','Delete this assignment?')">
+                  <i class="fas fa-trash"></i></button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4">
+          No students assigned yet. <a href="#" onclick="transportOpenAdd('assignments');return false;">Assign one</a>.
+        </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include 'core/htmx/transport/_pager.html' with list_url='/transport/assignments/list/' entity='assignments' %}

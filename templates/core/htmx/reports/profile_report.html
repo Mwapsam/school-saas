@@ -1,0 +1,254 @@
+{% load currency_tags %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-user text-info"></i> Complete Student Profile</h5>
+    </div>
+    <div class="card-body">
+        <!-- Student Photo and Basic Info -->
+        <div class="row mb-4">
+            <div class="col-md-3 text-center">
+                {% if student.photo_file_name %}
+                    <img src="/media/{{ student.photo_file_name }}" 
+                         alt="Student Photo" 
+                         class="rounded-circle mb-3"
+                         style="width: 120px; height: 120px; object-fit: cover;">
+                {% else %}
+                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                         style="width: 120px; height: 120px;">
+                        <i class="fas fa-user fa-4x text-muted"></i>
+                    </div>
+                {% endif %}
+                <h5>{{ student.first_name }} {{ student.last_name }}</h5>
+                <p class="text-muted">{{ student.admission_no }}</p>
+                <span class="badge bg-{% if student.is_active %}success{% else %}warning{% endif %}">
+                    {% if student.is_active %}Active{% else %}Inactive{% endif %}
+                </span>
+            </div>
+            <div class="col-md-9">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Personal Information</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Full Name:</strong></td>
+                                <td>{{ student.first_name }} {% if student.middle_name %}{{ student.middle_name }} {% endif %}{{ student.last_name }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Gender:</strong></td>
+                                <td>{{ student.get_gender_display }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Date of Birth:</strong></td>
+                                <td>{{ student.date_of_birth|date:"F j, Y"|default:"-" }}</td>
+                            </tr>
+                            {% if age %}
+                            <tr>
+                                <td><strong>Age:</strong></td>
+                                <td>{{ age }} years</td>
+                            </tr>
+                            {% endif %}
+                            {% if student.blood_group %}
+                            <tr>
+                                <td><strong>Blood Group:</strong></td>
+                                <td>{{ student.blood_group }}</td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <td><strong>Admission Date:</strong></td>
+                                <td>{{ student.admission_date|date:"F j, Y"|default:"-" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Contact Information</h6>
+                        <table class="table table-sm">
+                            {% if student.phone1 %}
+                            <tr>
+                                <td><strong>Phone 1:</strong></td>
+                                <td>{{ student.phone1 }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if student.phone2 %}
+                            <tr>
+                                <td><strong>Phone 2:</strong></td>
+                                <td>{{ student.phone2 }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if student.email %}
+                            <tr>
+                                <td><strong>Email:</strong></td>
+                                <td>{{ student.email }}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                        
+                        {% if student.address_line1 or student.city or student.state %}
+                        <h6>Address</h6>
+                        <address class="small">
+                            {% if student.address_line1 %}{{ student.address_line1 }}<br>{% endif %}
+                            {% if student.address_line2 %}{{ student.address_line2 }}<br>{% endif %}
+                            {% if student.city %}{{ student.city }}{% endif %}
+                            {% if student.state %}, {{ student.state }}{% endif %}
+                            {% if student.pin_code %} {{ student.pin_code }}{% endif %}
+                            {% if student.city or student.state %}<br>{% endif %}
+                            {% if student.country %}{{ student.country.name }}{% endif %}
+                        </address>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Academic Information -->
+        {% if current_batch %}
+        <div class="row mb-4">
+            <div class="col-12">
+                <h6>Current Academic Status</h6>
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Batch:</strong> {{ current_batch.batch.name }}<br>
+                                <strong>Course:</strong> {{ current_batch.batch.course.course_name }}<br>
+                                {% if current_batch.roll_number %}
+                                    <strong>Roll Number:</strong> {{ current_batch.roll_number }}<br>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Start Date:</strong> {{ current_batch.batch.start_date|date:"M j, Y" }}<br>
+                                <strong>End Date:</strong> {{ current_batch.batch.end_date|date:"M j, Y"|default:"Ongoing" }}<br>
+                                <span class="badge bg-success">Currently Enrolled</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Parents / Guardians -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h6><i class="fas fa-users text-info me-1"></i> Parents / Guardians</h6>
+                {% if guardian_relations %}
+                <div class="row g-3">
+                    {% for rel in guardian_relations %}
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="mb-0">
+                                        {{ rel.guardian.first_name }} {{ rel.guardian.last_name }}
+                                    </h6>
+                                    <span class="badge bg-secondary text-capitalize">
+                                        {{ rel.relation|default:rel.guardian.relation|default:"Guardian" }}
+                                    </span>
+                                </div>
+                                {% if rel.is_immediate_contact %}
+                                <span class="badge bg-success mb-2"><i class="fas fa-star"></i> Primary Contact</span>
+                                {% endif %}
+                                <table class="table table-sm mb-0">
+                                    {% if rel.guardian.mobile_phone %}
+                                    <tr><td><strong>Mobile:</strong></td><td>{{ rel.guardian.mobile_phone }}</td></tr>
+                                    {% endif %}
+                                    {% if rel.guardian.office_phone %}
+                                    <tr><td><strong>Office Phone:</strong></td><td>{{ rel.guardian.office_phone }}</td></tr>
+                                    {% endif %}
+                                    {% if rel.guardian.email %}
+                                    <tr><td><strong>Email:</strong></td><td>{{ rel.guardian.email }}</td></tr>
+                                    {% endif %}
+                                    {% if rel.guardian.occupation %}
+                                    <tr><td><strong>Occupation:</strong></td><td>{{ rel.guardian.occupation }}</td></tr>
+                                    {% endif %}
+                                    {% if rel.guardian.office_address_line1 or rel.guardian.city %}
+                                    <tr>
+                                        <td><strong>Address:</strong></td>
+                                        <td>
+                                            {% if rel.guardian.office_address_line1 %}{{ rel.guardian.office_address_line1 }}{% endif %}
+                                            {% if rel.guardian.city %}{% if rel.guardian.office_address_line1 %}, {% endif %}{{ rel.guardian.city }}{% endif %}
+                                            {% if rel.guardian.state %}, {{ rel.guardian.state }}{% endif %}
+                                            {% if rel.guardian.country %}, {{ rel.guardian.country.name }}{% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted small mb-0">No parent or guardian details recorded for this student.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Summary Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                {% if attendance_summary %}
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h4 class="text-primary">{{ attendance_summary.attendance_percentage|floatformat:1|default:0 }}%</h4>
+                        <small class="text-muted">Attendance Rate</small>
+                        <hr>
+                        <div class="row">
+                            <div class="col-6">
+                                <strong class="text-success">{{ attendance_summary.present_days|default:0 }}</strong><br>
+                                <small>Present</small>
+                            </div>
+                            <div class="col-6">
+                                <strong class="text-danger">{{ attendance_summary.absent_days|default:0 }}</strong><br>
+                                <small>Absent</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h4 class="{% if fee_balance > 0 %}text-warning{% elif fee_balance < 0 %}text-info{% else %}text-success{% endif %}">
+                            {% currency_format fee_balance %}
+                        </h4>
+                        <small class="text-muted">Fee Balance</small>
+                        <hr>
+                        <span class="badge bg-{% if fee_balance > 0 %}warning{% elif fee_balance < 0 %}info{% else %}success{% endif %}">
+                            {% if fee_balance > 0 %}
+                                Outstanding
+                            {% elif fee_balance < 0 %}
+                                Credit
+                            {% else %}
+                                Cleared
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h4 class="text-primary">{{ student.admission_date|timesince|default:"N/A" }}</h4>
+                        <small class="text-muted">Since Admission</small>
+                        <hr>
+                        <span class="badge bg-primary">{{ student.admission_date|date:"Y"|default:"N/A" }}</span>
+                        <small class="d-block">Admission Year</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <button class="btn btn-primary btn-sm" onclick="window.print()">
+                <i class="fas fa-print"></i> Print Complete Profile
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="exportToPDF()">
+                <i class="fas fa-file-pdf"></i> Export PDF
+            </button>
+            <button class="btn btn-outline-info btn-sm" onclick="emailReport()">
+                <i class="fas fa-envelope"></i> Email Report
+            </button>
+        </div>
+    </div>
+</div>

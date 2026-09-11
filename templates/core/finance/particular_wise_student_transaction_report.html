@@ -1,0 +1,448 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}Fee Collection Report{% endblock %}
+
+{% block layout_header %}
+{% url 'core:finance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Fee Collection Report" description="Particular-wise student transaction breakdown" icon='fa-chart-bar' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+
+{% block layout_filters %}
+<!-- Filters will be extracted and moved here -->
+{% endblock %}
+
+{% block layout_table %}
+<div class="container-lg py-4">
+    <div class="d-flex justify-content-end mb-3">
+        {% include 'core/finance/_year_selector.html' %}
+    </div>
+
+    {% if not selected_year %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        No academic year configured for this school — set one up before running this report.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <!-- Workflow Nav -->
+    {% include 'core/finance/_workflow_nav.html' %}
+
+    <!-- Filter Card -->
+    <div class="card mb-4">
+        <div class="card-header bg-light border-0">
+            <h6 class="mb-0"><i class="fas fa-filter me-2 text-primary"></i>Filter Report</h6>
+        </div>
+        <div class="card-body">
+            <form method="get">
+                <input type="hidden" name="academic_year" value="{{ selected_year_id }}">
+                <div class="row g-3">
+                    <!-- Fee Account -->
+                    <div class="col-lg-6">
+                        <label for="fee_account" class="form-label fw-500">Fee Account</label>
+                        <select class="form-select" id="fee_account" name="fee_account">
+                            <option value="all" {% if fee_account == 'all' %}selected{% endif %}>All selected</option>
+                            {% for category in fee_categories %}
+                                <option value="{{ category.id }}" {% if fee_account == category.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ category.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Date Range -->
+                    <div class="col-lg-6">
+                        <label for="from_date" class="form-label fw-500">Date Range</label>
+                        <div class="input-group input-group-sm">
+                            <input type="date" class="form-control" id="from_date" name="from_date" value="{{ from_date }}">
+                            <span class="input-group-text">to</span>
+                            <input type="date" class="form-control" id="to_date" name="to_date" value="{{ to_date }}">
+                        </div>
+                    </div>
+
+                    <!-- Student Status -->
+                    <div class="col-md-6">
+                        <label for="student_status" class="form-label fw-500">Student Status</label>
+                        <select class="form-select" id="student_status" name="student_status">
+                            <option value="all" {% if student_status == 'all' %}selected{% endif %}>All</option>
+                            <option value="active" {% if student_status == 'active' %}selected{% endif %}>Active</option>
+                        </select>
+                    </div>
+
+                    <!-- Class -->
+                    <div class="col-md-6">
+                        <label for="class" class="form-label fw-500">Class</label>
+                        <select class="form-select" id="class" name="class">
+                            <option value="all" {% if class_filter == 'all' %}selected{% endif %}>All selected</option>
+                            {% for course in courses %}
+                                <option value="{{ course.id }}" {% if class_filter == course.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ course.course_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Batch -->
+                    <div class="col-md-6">
+                        <label for="batch" class="form-label fw-500">Batch</label>
+                        <select class="form-select" id="batch" name="batch">
+                            <option value="all" {% if batch_filter == 'all' %}selected{% endif %}>All selected</option>
+                            {% for batch in batches %}
+                                <option value="{{ batch.id }}" {% if batch_filter == batch.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ batch.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Batch Type -->
+                    <div class="col-md-6">
+                        <label for="batch_type" class="form-label fw-500">Batch Type</label>
+                        <select class="form-select" id="batch_type" name="batch_type">
+                            <option value="active" selected>Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+
+                    <!-- Options -->
+                    <div class="col-12">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="with_expected" name="with_expected" {% if with_expected %}checked{% endif %}>
+                            <label class="form-check-label" for="with_expected">
+                                Include PTA &amp; Tuition breakdown
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="col-12 pt-2 border-top">
+                        <button type="submit" name="view_report" value="1" class="btn btn-primary">
+                            <i class="fas fa-eye me-2"></i>View Report
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    {% if rows %}
+    <div class="card">
+        <div class="card-header bg-light border-0">
+            <h6 class="mb-0"><i class="fas fa-table me-2 text-primary"></i>Report Results</h6>
+        </div>
+        <div class="card-body p-0">
+            <!-- Results Table -->
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            {% if with_expected %}<th style="width: 2rem;"></th>{% endif %}
+                            <th style="width: 3rem;">Sl No.</th>
+                            <th>Student Name</th>
+                            <th>Batch</th>
+                            <th class="text-end">Expected</th>
+                            <th class="text-end">Paid</th>
+                            <th class="text-end">Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr class="align-middle" {% if with_expected %}role="button" data-bs-toggle="collapse" data-bs-target="#detail-{{ forloop.counter0 }}" aria-expanded="false"{% endif %}>
+                            {% if with_expected %}
+                            <td class="text-center text-muted">
+                                <i class="fas fa-chevron-right" style="font-size: 0.75rem; transition: transform 0.2s;"></i>
+                            </td>
+                            {% endif %}
+                            <td>{{ page_obj.start_index|add:forloop.counter0 }}</td>
+                            <td class="fw-500">{{ row.student.first_name }} {{ row.student.last_name }}</td>
+                            <td><span class="badge bg-light text-dark">{{ row.batch_name }}</span></td>
+                            <td class="text-end">₭ {{ row.expected_amount|floatformat:2 }}</td>
+                            <td class="text-end text-success fw-500">₭ {{ row.paid_amount|floatformat:2 }}</td>
+                            <td class="text-end">₭ {{ row.balance_amount|floatformat:2 }}</td>
+                        </tr>
+                        {% if with_expected %}
+                        <tr class="collapse" id="detail-{{ forloop.counter0 }}">
+                            <td colspan="7">
+                                <div class="p-3 bg-light">
+                                    <div class="row g-4">
+                                        <!-- PTA Breakdown -->
+                                        <div class="col-md-6">
+                                            <h6 class="text-primary mb-3"><i class="fas fa-graduation-cap me-2"></i>PTA</h6>
+                                            <div class="row g-2">
+                                                <div class="col-6">
+                                                    <small class="text-muted d-block">Expected</small>
+                                                    <strong>₭ {{ row.pta_expected|floatformat:2 }}</strong>
+                                                </div>
+                                                <div class="col-6">
+                                                    <small class="text-muted d-block">Paid</small>
+                                                    <strong class="text-success">₭ {{ row.pta_paid|floatformat:2 }}</strong>
+                                                </div>
+                                                <div class="col-6">
+                                                    <small class="text-muted d-block">Balance</small>
+                                                    <strong>₭ {{ row.pta_balance|floatformat:2 }}</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Tuition Fee Breakdown -->
+                                        <div class="col-md-6">
+                                            <h6 class="text-primary mb-3"><i class="fas fa-book me-2"></i>Tuition Fee</h6>
+                                            <div class="row g-2">
+                                                <div class="col-6">
+                                                    <small class="text-muted d-block">Expected</small>
+                                                    <strong>₭ {{ row.tuition_expected|floatformat:2 }}</strong>
+                                                </div>
+                                                <div class="col-6">
+                                                    <small class="text-muted d-block">Paid</small>
+                                                    <strong class="text-success">₭ {{ row.tuition_paid|floatformat:2 }}</strong>
+                                                </div>
+                                                <div class="col-6">
+                                                    <small class="text-muted d-block">Balance</small>
+                                                    <strong>₭ {{ row.tuition_balance|floatformat:2 }}</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+
+                        <!-- Grand Total Row -->
+                        <tr class="table-warning fw-bold">
+                            {% if with_expected %}<td></td>{% endif %}
+                            <td colspan="3">Grand Total</td>
+                            <td class="text-end">₭ {{ grand_totals.grand_expected|floatformat:2 }}</td>
+                            <td class="text-end">₭ {{ grand_totals.grand_paid|floatformat:2 }}</td>
+                            <td class="text-end">₭ {{ grand_totals.grand_balance|floatformat:2 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="d-flex justify-content-between align-items-center p-3 border-top">
+                <div class="text-muted small">
+                    Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} out of {{ page_obj.paginator.count }}
+                </div>
+                {% if is_paginated %}
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">&laquo; previous</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">&laquo; previous</span></li>
+                        {% endif %}
+
+                        {% for page_num in page_obj.paginator.page_range %}
+                        <li class="page-item {% if page_num == page_obj.number %}active{% endif %}">
+                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_num }}">{{ page_num }}</a>
+                        </li>
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">next &raquo;</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">next &raquo;</span></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+
+            <!-- Export Buttons -->
+            <div class="p-3 border-top bg-light">
+                <div class="d-flex gap-2">
+                    <a href="?{% for key, value in request.GET.items %}{% if key != 'format' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}format=csv"
+                       class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-file-csv me-1"></i>
+                        CSV report
+                    </a>
+                    <a href="?{% for key, value in request.GET.items %}{% if key != 'format' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}format=pdf"
+                       class="btn btn-outline-danger btn-sm">
+                        <i class="fas fa-file-pdf me-1"></i>
+                        PDF report
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block layout_pagination %}{% endblock %}
+
+{% block layout_extra %}{% endblock %}
+
+{% block extra_css %}
+{% include 'core/finance/_finance_ui_styles.html' %}
+<style>
+.card-header {
+    padding: 1rem;
+    font-weight: 600;
+}
+
+.card-header h6 {
+    font-weight: 600;
+    color: #212529;
+    margin: 0;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    font-size: 0.875rem;
+    background-color: #f8f9fa;
+}
+
+.table tbody tr {
+    vertical-align: middle;
+}
+
+.table tbody tr[role="button"] {
+    cursor: pointer;
+}
+
+.table tbody tr[role="button"]:hover {
+    background-color: #f8f9fa !important;
+}
+
+.table tbody tr[role="button"] .fa-chevron-right {
+    display: inline-block;
+}
+
+.table tbody tr[role="button"][aria-expanded="true"] .fa-chevron-right {
+    transform: rotate(90deg);
+}
+
+.table-warning {
+    background-color: #fff3cd !important;
+}
+
+.table-warning td {
+    border-color: #ffeaa7;
+}
+
+.form-label.fw-500 {
+    font-weight: 500;
+    color: #212529;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.6rem;
+}
+
+.detail-section {
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
+    padding: 1.5rem;
+}
+
+.pagination-sm .page-link {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.input-group-sm .form-control {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Class → Batch cascading dropdown
+    const classSelect = document.getElementById('class');
+    const batchSelect = document.getElementById('batch');
+
+    if (classSelect && batchSelect) {
+        classSelect.addEventListener('change', function() {
+            const courseId = this.value;
+
+            if (courseId === 'all') {
+                resetBatchDropdown();
+                return;
+            }
+
+            showBatchLoading();
+            fetch(`{% url 'core:batches_by_class_api' %}?course_id=${courseId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.batches) {
+                        updateBatchDropdown(data.batches);
+                    } else {
+                        console.error('Error:', data.error);
+                        resetBatchDropdown();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching batches:', error);
+                    resetBatchDropdown();
+                })
+                .finally(() => hideBatchLoading());
+        });
+    }
+
+    function showBatchLoading() {
+        batchSelect.disabled = true;
+        batchSelect.innerHTML = '<option>Loading...</option>';
+    }
+
+    function hideBatchLoading() {
+        batchSelect.disabled = false;
+    }
+
+    function updateBatchDropdown(batches) {
+        batchSelect.innerHTML = '<option value="all">All selected</option>';
+        batches.forEach(batch => {
+            const option = document.createElement('option');
+            option.value = batch.id;
+            option.textContent = batch.name;
+            if (batch.id === '{{ batch_filter }}') {
+                option.selected = true;
+            }
+            batchSelect.appendChild(option);
+        });
+    }
+
+    function resetBatchDropdown() {
+        batchSelect.innerHTML = `
+            <option value="all" {% if batch_filter == 'all' %}selected{% endif %}>All selected</option>
+            {% for batch in batches %}
+                <option value="{{ batch.id }}" {% if batch_filter == batch.id|stringformat:"s" %}selected{% endif %}>
+                    {{ batch.name }}
+                </option>
+            {% endfor %}
+        `;
+    }
+
+    // Detail row expand/collapse animation
+    document.querySelectorAll('tbody tr[role="button"]').forEach(row => {
+        row.addEventListener('click', function(e) {
+            if (e.target.closest('a, button, .form-check')) return;
+            const chevron = this.querySelector('.fa-chevron-right');
+            if (chevron) {
+                const isExpanded = this.getAttribute('aria-expanded') === 'true';
+                this.setAttribute('aria-expanded', !isExpanded);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

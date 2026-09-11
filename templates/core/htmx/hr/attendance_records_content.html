@@ -1,0 +1,35 @@
+<div class="pinewood-table-responsive">
+  <table class="pinewood-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Employee</th>
+        <th class="d-none d-md-table-cell">Department</th>
+        <th>Status</th>
+        <th class="d-none d-lg-table-cell">Marked by</th>
+        <th class="d-none d-lg-table-cell">Remarks</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for rec in records %}
+        <tr>
+          <td>{{ rec.date|date:"M j, Y" }}</td>
+          <td><strong>{{ rec.employee.first_name }} {{ rec.employee.last_name }}</strong></td>
+          <td class="d-none d-md-table-cell">{{ rec.employee.employee_department.name|default:"—" }}</td>
+          <td>
+            {% if rec.status == 'present' %}<span class="badge bg-success">Present</span>
+            {% elif rec.status == 'absent' %}<span class="badge bg-danger">Absent</span>
+            {% elif rec.status == 'on_leave' %}<span class="badge bg-info">On Leave</span>
+            {% elif rec.status == 'half_day' %}<span class="badge bg-warning">Half Day</span>
+            {% else %}<span class="badge bg-secondary">{{ rec.get_status_display }}</span>{% endif %}
+          </td>
+          <td class="d-none d-lg-table-cell">{% if rec.marked_by %}{{ rec.marked_by.first_name }} {{ rec.marked_by.last_name }}{% else %}—{% endif %}</td>
+          <td class="d-none d-lg-table-cell">{{ rec.remarks|default:"" }}</td>
+        </tr>
+      {% empty %}
+        <tr class="empty-state"><td colspan="6">No attendance records match these filters.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include 'core/htmx/hr/_pager.html' with list_url=request.path target="#hr-attendance-records-content" %}

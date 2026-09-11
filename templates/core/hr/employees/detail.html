@@ -1,0 +1,202 @@
+{% extends 'core/layouts/detail.html' %}
+{% block page_title %}{{ employee.full_name }}{% endblock %}
+
+{% block layout_header %}
+  {% url 'core:hr_dashboard' as back_fallback %}
+  {% include 'core/components/page_header.html' with title=employee.full_name description=employee.job_title icon="fa-id-badge" back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_summary %}
+  <div class="pw-stat-grid mb-3">
+    <div class="pw-stat-card"><p class="pw-stat-label">Employee #</p><p class="pw-stat-value pw-stat-sm">{{ employee.employee_number }}</p></div>
+    <div class="pw-stat-card"><p class="pw-stat-label">Department</p><p class="pw-stat-value pw-stat-sm">{{ employee.employee_department.name|default:"—" }}</p></div>
+    <div class="pw-stat-card"><p class="pw-stat-label">Position</p><p class="pw-stat-value pw-stat-sm">{{ employee.employee_position.name|default:"—" }}</p></div>
+    <div class="pw-stat-card"><p class="pw-stat-label">Status</p><p class="pw-stat-value pw-stat-sm">{% if employee.status %}Active{% else %}Inactive{% endif %}</p></div>
+  </div>
+{% endblock %}
+
+{% block layout_tabs %}
+  <ul class="nav nav-tabs" id="empTabs" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-personal" type="button">Personal</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-employment" type="button">Employment</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-contract" type="button"
+        hx-get="{% url 'core:hr_employee_contracts_tab' employee_id=employee.id %}" hx-target="#tab-contract" hx-trigger="click once">Contract</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-qualifications" type="button"
+        hx-get="{% url 'core:hr_employee_qualifications_tab' employee_id=employee.id %}" hx-target="#tab-qualifications" hx-trigger="click once">Qualifications</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-teaching" type="button">Academic / Teaching</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-onboarding" type="button"
+        hx-get="{% url 'core:hr_employee_onboarding_tab' employee_id=employee.id %}" hx-target="#tab-onboarding" hx-trigger="click once">Onboarding</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-attendance" type="button">Attendance</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-leave" type="button">Leave</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-performance" type="button"
+        hx-get="{% url 'core:hr_employee_performance_tab' employee_id=employee.id %}" hx-target="#tab-performance" hx-trigger="click once">Performance</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-training" type="button"
+        hx-get="{% url 'core:hr_employee_training_tab' employee_id=employee.id %}" hx-target="#tab-training" hx-trigger="click once">Training</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-exit" type="button"
+        hx-get="{% url 'core:hr_employee_exit_tab' employee_id=employee.id %}" hx-target="#tab-exit" hx-trigger="click once">Exit</button></li>
+    {% if 'hr.disciplinary.view' in perms %}
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-disciplinary" type="button"
+        hx-get="{% url 'core:hr_employee_disciplinary_tab' employee_id=employee.id %}" hx-target="#tab-disciplinary" hx-trigger="click once">Disciplinary</button></li>
+    {% endif %}
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-payroll" type="button"
+        hx-get="{% url 'core:employee_payroll_tab' employee_id=employee.id %}" hx-target="#tab-payroll" hx-trigger="click once">Payroll</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-documents" type="button"
+        hx-get="{% url 'core:hr_employee_documents_tab' employee_id=employee.id %}" hx-target="#tab-documents" hx-trigger="click once">Documents</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-history" type="button"
+        hx-get="{% url 'core:hr_employee_history_tab' employee_id=employee.id %}" hx-target="#tab-history" hx-trigger="click once">History</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-roles" type="button"
+        hx-get="{% url 'core:employee_roles_tab' employee_id=employee.id %}" hx-target="#tab-roles" hx-trigger="click once">Roles &amp; Access</button></li>
+  </ul>
+{% endblock %}
+
+{% block layout_sections %}
+  <form style="display:none">{% csrf_token %}</form>
+  <div class="tab-content pt-3">
+    <div class="tab-pane fade show active" id="tab-personal">
+      <div class="pw-card">
+        <dl class="row mb-0">
+          <dt class="col-sm-3">Full name</dt><dd class="col-sm-9">{{ employee.full_name }}</dd>
+          <dt class="col-sm-3">Date of birth</dt><dd class="col-sm-9">{{ employee.date_of_birth|date:"M j, Y"|default:"—" }}</dd>
+          <dt class="col-sm-3">Gender</dt><dd class="col-sm-9">{% if employee.gender %}Male{% else %}Female{% endif %}</dd>
+          <dt class="col-sm-3">Marital status</dt><dd class="col-sm-9">{{ employee.marital_status|default:"—" }}</dd>
+          <dt class="col-sm-3">Email</dt><dd class="col-sm-9">{{ employee.email|default:"—" }}</dd>
+          <dt class="col-sm-3">Mobile</dt><dd class="col-sm-9">{{ employee.mobile_phone|default:"—" }}</dd>
+          <dt class="col-sm-3">Blood group</dt><dd class="col-sm-9">{{ employee.blood_group|default:"—" }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-employment">
+      <div class="pw-card">
+        <dl class="row mb-0">
+          <dt class="col-sm-3">Employee #</dt><dd class="col-sm-9">{{ employee.employee_number }}</dd>
+          <dt class="col-sm-3">Department</dt><dd class="col-sm-9">{{ employee.employee_department.name|default:"—" }}</dd>
+          <dt class="col-sm-3">Position</dt><dd class="col-sm-9">{{ employee.employee_position.name|default:"—" }}</dd>
+          <dt class="col-sm-3">Category</dt><dd class="col-sm-9">{{ employee.employee_category.name|default:"—" }}</dd>
+          <dt class="col-sm-3">Grade</dt><dd class="col-sm-9">{{ employee.employee_grade.name|default:"—" }}</dd>
+          <dt class="col-sm-3">Reporting manager</dt><dd class="col-sm-9">{{ employee.reporting_manager.full_name|default:"—" }}</dd>
+          <dt class="col-sm-3">Date joined</dt><dd class="col-sm-9">{{ employee.joining_date|date:"M j, Y"|default:"—" }}</dd>
+          <dt class="col-sm-3">Staff type</dt><dd class="col-sm-9">{% if employee.is_teaching_staff %}Teaching{% else %}Non-teaching{% endif %}</dd>
+          <dt class="col-sm-3">Status</dt><dd class="col-sm-9">{% if employee.status %}Active{% else %}Inactive{% endif %}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-contract">
+      <div class="pw-card"><p class="text-muted mb-0">Loading contracts…</p></div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-qualifications">
+      <div class="pw-card"><p class="text-muted mb-0">Loading qualifications…</p></div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-history">
+      <div class="pw-card"><p class="text-muted mb-0">Loading history…</p></div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-onboarding">
+      <div class="pw-card"><p class="text-muted mb-0">Loading onboarding…</p></div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-performance">
+      <div class="pw-card"><p class="text-muted mb-0">Loading performance…</p></div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-training">
+      <div class="pw-card"><p class="text-muted mb-0">Loading training…</p></div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-exit">
+      <div class="pw-card"><p class="text-muted mb-0">Loading exit…</p></div>
+    </div>
+
+    {% if 'hr.disciplinary.view' in perms %}
+    <div class="tab-pane fade" id="tab-disciplinary">
+      <div class="pw-card"><p class="text-muted mb-0">Loading disciplinary…</p></div>
+    </div>
+    {% endif %}
+
+    <div class="tab-pane fade" id="tab-teaching">
+      <div class="pw-card">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h2 class="h6 fw-bold mb-0">Subjects taught</h2>
+          {% if 'hr.employee.manage' in perms %}
+          <a class="pw-btn pw-btn-outline pw-btn-sm" href="{% url 'core:hr_subject_assignments' %}?employee={{ employee.id }}"><i class="fas fa-edit me-1"></i>Manage</a>
+          {% endif %}
+        </div>
+        <ul class="mb-0">
+          {% for s in subjects %}<li>{{ s.name }} <small class="text-muted">({{ s.batch.name }})</small></li>
+          {% empty %}<li class="text-muted list-unstyled">No subjects assigned.</li>{% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-attendance">
+      <div class="pw-stat-grid mb-3">
+        <div class="pw-stat-card"><p class="pw-stat-label">Present (30d)</p><p class="pw-stat-value">{{ attendance_summary.present }}</p></div>
+        <div class="pw-stat-card"><p class="pw-stat-label">Absent</p><p class="pw-stat-value">{{ attendance_summary.absent }}</p></div>
+        <div class="pw-stat-card"><p class="pw-stat-label">On leave</p><p class="pw-stat-value">{{ attendance_summary.on_leave }}</p></div>
+        <div class="pw-stat-card"><p class="pw-stat-label">Half day</p><p class="pw-stat-value">{{ attendance_summary.half_day }}</p></div>
+      </div>
+      <div class="pinewood-table-responsive">
+        <table class="pinewood-table">
+          <thead><tr><th>Date</th><th>Status</th><th>Remarks</th></tr></thead>
+          <tbody>
+            {% for rec in recent_attendance %}
+              <tr><td>{{ rec.date|date:"M j, Y" }}</td><td>{{ rec.get_status_display }}</td><td>{{ rec.remarks|default:"" }}</td></tr>
+            {% empty %}<tr class="empty-state"><td colspan="3">No recent attendance.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-leave">
+      <h2 class="h6 fw-bold">Balances — {{ leave_year }}</h2>
+      <div class="pinewood-table-responsive mb-3">
+        <table class="pinewood-table">
+          <thead><tr><th>Leave type</th><th class="text-end">Allocated</th><th class="text-end">Used</th><th class="text-end">Remaining</th></tr></thead>
+          <tbody>
+            {% for b in leave_balances %}
+              <tr><td>{{ b.leave_type.name }}</td><td class="text-end">{{ b.allocated }}</td><td class="text-end">{{ b.used }}</td><td class="text-end fw-semibold">{{ b.remaining }}</td></tr>
+            {% empty %}<tr class="empty-state"><td colspan="4">No leave types configured.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <h2 class="h6 fw-bold">Recent requests</h2>
+      <div class="pinewood-table-responsive">
+        <table class="pinewood-table">
+          <thead><tr><th>Type</th><th>From</th><th>To</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for lv in recent_leaves %}
+              <tr><td>{{ lv.leave_type.name|default:lv.leave_type_legacy|default:"—" }}</td><td>{{ lv.start_date|date:"M j, Y" }}</td><td>{{ lv.end_date|date:"M j, Y" }}</td><td>{{ lv.get_status_display }}</td></tr>
+            {% empty %}<tr class="empty-state"><td colspan="4">No leave requests.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-payroll">
+      <div class="pw-card">
+        {% if payroll_profile %}
+          <dl class="row mb-0">
+            <dt class="col-sm-3">Payroll group</dt><dd class="col-sm-9">{{ payroll_profile.payroll_group.name|default:"—" }}</dd>
+            <dt class="col-sm-3">Basic pay</dt><dd class="col-sm-9">{{ payroll_profile.basic_pay_amount }}</dd>
+            <dt class="col-sm-3">Bank</dt><dd class="col-sm-9">{{ payroll_profile.bank_name|default:"—" }} {{ payroll_profile.bank_account_number }}</dd>
+          </dl>
+        {% else %}
+          <p class="text-muted mb-0">Loading payroll profile…</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-documents">
+      <div class="pw-card"><p class="text-muted mb-0">Loading documents…</p></div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-roles">
+      <div class="pw-card">
+        <p class="text-muted mb-0">Loading roles…</p>
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,1871 @@
+﻿{% extends 'core/layouts/dashboard.html' %}
+{% load static %}
+
+{% block page_title %}Grading Settings{% endblock %}
+
+
+{% block layout_header %}
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Grading Settings" description="Grading profiles, scales, activity and attribute profiles, and report card defaults." icon="fa-cog" back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% block layout_primary %}
+<div class="gb-grading-settings">
+<div class="container-fluid">
+    <!-- Settings Cards Grid -->
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 config-card"
+                 onclick="bootstrap.Modal.getOrCreateInstance(document.getElementById('gradingProfilesModal')).show()">
+                <div class="card-body">
+                    <h4 class="text-success">Grading Profiles</h4>
+                    <p class="card-text text-muted">Create and manage all applicable grading profiles for the institution</p>
+                    <small class="text-success"><i class="fas fa-arrow-right me-1"></i>{{ grading_types|length }} profile{{ grading_types|length|pluralize }} configured</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 config-card"
+                 onclick="bootstrap.Modal.getOrCreateInstance(document.getElementById('activityProfilesModal')).show()">
+                <div class="card-body">
+                    <h4 class="text-success">Activity Profiles</h4>
+                    <p class="card-text text-muted">Create activity profiles to manage grade based non-scholastic evaluations</p>
+                    <small class="text-success"><i class="fas fa-arrow-right me-1"></i>{{ coscholastic_assessments|length }} activit{{ coscholastic_assessments|length|pluralize:"y,ies" }} configured</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 config-card"
+                 onclick="bootstrap.Modal.getOrCreateInstance(document.getElementById('attributeProfilesModal')).show()">
+                <div class="card-body">
+                    <h4 class="text-success">Attribute Profiles</h4>
+                    <p class="card-text text-muted">Create attribute profiles to evaluate subject exams based on parameters</p>
+                    <small class="text-success"><i class="fas fa-arrow-right me-1"></i>{{ subject_settings|length }} subject setting{{ subject_settings|length|pluralize }} configured</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 config-card"
+                 onclick="bootstrap.Modal.getOrCreateInstance(document.getElementById('remarkBankModal')).show()">
+                <div class="card-body">
+                    <h4 class="text-success">Remark Bank</h4>
+                    <p class="card-text text-muted">Configure remark banks to group similar remarks under a set</p>
+                    <small class="text-muted"><i class="fas fa-clock me-1"></i>Coming soon</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 config-card"
+                 onclick="bootstrap.Modal.getOrCreateInstance(document.getElementById('gradeScalesModal')).show()">
+                <div class="card-body">
+                    <h4 class="text-success">Scholastic Grade Scales</h4>
+                    <p class="card-text text-muted">Define letter grades, descriptive levels, or custom grading scales used across exams and subjects</p>
+                    <small class="text-success"><i class="fas fa-arrow-right me-1"></i>{{ grading_scales|length }} scale{{ grading_scales|length|pluralize }} configured</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 config-card"
+                 onclick="bootstrap.Modal.getOrCreateInstance(document.getElementById('gpaSettingsModal')).show()">
+                <div class="card-body">
+                    <h4 class="text-success">GPA Settings</h4>
+                    <p class="card-text text-muted">Manage GPA-based grading configuration</p>
+                    <small class="text-success"><i class="fas fa-arrow-right me-1"></i>
+                        {% for gt in grading_types %}{% if gt.code == 'GPA' %}{{ gt.name }}{% endif %}{% empty %}Not configured{% endfor %}
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 config-card" onclick="openReportCardDefaultsModal()">
+                <div class="card-body">
+                    <h4 class="text-success">Report Card Configuration</h4>
+                    <p class="card-text text-muted">
+                        Set school branding, report layout, default sections, and appearance used when new report templates are created
+                    </p>
+                    <small class="text-success"><i class="fas fa-arrow-right me-1"></i>
+                        {% if rc_defaults.rc_layout_type == 'SKILLS' %}Skills Checklist default
+                        {% elif rc_defaults.rc_layout_type == 'SIMPLE_ACADEMIC' %}Simple Academic default
+                        {% else %}Full Academic default{% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Card Grading Scale (unchanged) -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-medium d-flex align-items-center justify-content-between">
+            <span><i class="fas fa-layer-group text-success me-2"></i>Report Card Grading Scale</span>
+            <small class="text-muted">Per-batch overrides for the A–E scale used on generated PDFs</small>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 mb-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small fw-medium">Batch</label>
+                    <select class="form-select form-select-sm" id="scalesBatchSelect" onchange="loadBatchScale(this.value)">
+                        <option value="">— select batch —</option>
+                        {% for b in batches %}
+                        <option value="{{ b.id }}">{{ b.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-sm btn-outline-danger d-none" id="scalesResetBtn" onclick="resetBatchScale()">
+                        <i class="fas fa-undo me-1"></i>Reset to default A–E
+                    </button>
+                </div>
+            </div>
+            <div id="scalesPanel" class="d-none">
+                <table class="table table-sm table-bordered align-middle mb-2">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:15%">Grade</th>
+                            <th style="width:20%">Min Score (%)</th>
+                            <th>Description</th>
+                            <th class="text-center" style="width:12%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scalesBody"></tbody>
+                </table>
+                <button class="btn btn-sm btn-primary" onclick="showAddLevelRow()">
+                    <i class="fas fa-plus me-1"></i>Add Grade Level
+                </button>
+                <div class="mt-2 d-none" id="addLevelRow">
+                    <div class="d-flex gap-2 align-items-center">
+                        <input type="text" class="form-control form-control-sm" id="newGrade" placeholder="A" style="width:80px">
+                        <input type="number" class="form-control form-control-sm" id="newMinScore" placeholder="Min %" style="width:100px" min="0" max="100">
+                        <input type="text" class="form-control form-control-sm" id="newDescription" placeholder="Description (optional)">
+                        <button class="btn btn-sm btn-primary" onclick="saveNewLevel()">Save</button>
+                        <button class="btn btn-sm btn-secondary" onclick="document.getElementById('addLevelRow').classList.add('d-none')">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            <p id="scalesPlaceholder" class="text-muted small mb-0">Select a batch to manage its grading scale.</p>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white d-flex align-items-center justify-content-between">
+            <span class="fw-medium"><i class="fas fa-file-alt text-success me-2"></i>Report Templates</span>
+            <div class="d-flex gap-2 align-items-center">
+                <a href="{% url 'core:report_template_list' %}" class="btn btn-sm btn-outline-secondary" title="View all / search">
+                    <i class="fas fa-list me-1"></i>View All
+                </a>
+                <button class="btn btn-sm btn-primary" onclick="openGsCreateTemplate()">
+                    <i class="fas fa-plus me-1"></i>New Template
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if report_templates %}
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Batch</th>
+                        <th>Term</th>
+                        <th>Academic Year</th>
+                        <th>Layout &amp; Status</th>
+                        <th>Grading Scale</th>
+                        <th class="text-center" style="width:140px">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tpl in report_templates %}
+                    <tr>
+                        <td class="fw-medium">
+                            {{ tpl.name }}
+                            {% if tpl.is_default %}<span class="badge bg-warning text-dark ms-1">Default</span>{% endif %}
+                        </td>
+                        <td>{{ tpl.batch.name }}</td>
+                        <td><span class="badge bg-light text-dark">{{ tpl.term }}</span></td>
+                        <td>{{ tpl.academic_year.name }}</td>
+                        <td>
+                            {% if tpl.layout_type == 'SKILLS' %}
+                                <span class="badge bg-info text-dark">Skills</span>
+                            {% elif tpl.layout_type == 'SIMPLE_ACADEMIC' %}
+                                <span class="badge bg-primary">Simple</span>
+                            {% else %}
+                                <span class="badge bg-success">Full</span>
+                            {% endif %}
+                            {% if not tpl.is_active %}<span class="badge bg-secondary ms-1">Inactive</span>{% endif %}
+                        </td>
+                        <td class="small text-muted">{{ tpl.grading_scale.name|default:"Batch default" }}</td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'core:comprehensive_reports' %}?template={{ tpl.id }}"
+                                   class="btn btn-outline-success" title="Generate Reports">
+                                    <i class="fas fa-file-pdf"></i>
+                                </a>
+                                <button class="btn btn-outline-secondary" title="Edit"
+                                        onclick="openGsEditTemplate('{{ tpl.id }}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-outline-danger" title="Delete"
+                                        onclick="gsDeleteTemplate('{{ tpl.id }}', '{{ tpl.name|escapejs }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+                <i class="fas fa-file-alt fa-2x mb-2 opacity-25 d-block"></i>
+                <p class="mb-2">No report templates yet.</p>
+                <button class="btn btn-sm btn-primary" onclick="openGsCreateTemplate()">
+                    <i class="fas fa-plus me-1"></i>Create First Template
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+
+<!-- GRADE SCALES MODAL -->
+<div class="modal fade" id="gradeScalesModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-layer-group me-2 text-success"></i>Scholastic Grade Scales</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="row g-0" style="min-height:480px">
+                    <!-- Left: scale list -->
+                    <div class="col-md-4 border-end">
+                        <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                            <span class="fw-medium small text-muted text-uppercase">Grade Scales</span>
+                            <button type="button" class="btn btn-sm btn-primary" onclick="gsNewScale()">
+                                <i class="fas fa-plus me-1"></i>New Scale
+                            </button>
+                        </div>
+                        <div id="gsScaleList" class="list-group list-group-flush">
+                            {% for scale in grading_scales %}
+                            <button type="button"
+                                    class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                    onclick="gsLoadScale('{{ scale.id }}')"
+                                    id="gsScaleItem_{{ scale.id }}">
+                                <div>
+                                    <div class="fw-medium">{{ scale.name }}</div>
+                                    <small class="text-muted">{{ scale.code }} &middot; {{ scale.get_scale_type_display }}</small>
+                                </div>
+                                <div class="d-flex gap-1 align-items-center">
+                                    {% if scale.is_default %}<span class="badge bg-success">Default</span>{% endif %}
+                                    <span class="badge bg-light text-dark">{{ scale.grade_values.count }}</span>
+                                </div>
+                            </button>
+                            {% empty %}
+                            <div class="p-3 text-muted small text-center" id="gsEmptyMsg">No grade scales yet. Click "New Scale" to create one.</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <!-- Right: detail / form -->
+                    <div class="col-md-8 p-4" id="gsDetailPanel">
+                        <div class="text-center text-muted py-5" id="gsPlaceholder">
+                            <i class="fas fa-layer-group fa-2x mb-3 opacity-25 d-block"></i>
+                            Select a scale from the list or create a new one.
+                        </div>
+
+                        <!-- Scale form (hidden until New/Edit) -->
+                        <div id="gsScaleForm" class="d-none">
+                            <h6 class="fw-bold mb-3" id="gsFormTitle">New Grade Scale</h6>
+                            <input type="hidden" id="gsScaleId">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Scale Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="gsScaleName" placeholder="e.g. Term Grades">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-medium">Code <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="gsScaleCode" placeholder="TERM_GRD" style="text-transform:uppercase">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-medium">Type</label>
+                                    <select class="form-select form-select-sm" id="gsScaleType">
+                                        {% for val, label in scale_type_choices %}
+                                        <option value="{{ val }}">{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-medium">Description</label>
+                                    <input type="text" class="form-control form-control-sm" id="gsScaleDesc" placeholder="Optional description">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Report Layout</label>
+                                    <select class="form-select form-select-sm" id="gsScaleLayout">
+                                        <option value="">— none —</option>
+                                        {% for val, label in layout_choices %}
+                                        <option value="{{ val }}">{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6 d-flex align-items-end pb-1">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="gsScaleDefault">
+                                        <label class="form-check-label small" for="gsScaleDefault">Set as default scale</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-primary" onclick="gsSaveScale()" id="gsSaveScaleBtn">Save Scale</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="gsCancelScaleForm()">Cancel</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger ms-auto d-none" id="gsDeleteScaleBtn" onclick="gsDeleteScale()">
+                                    <i class="fas fa-trash me-1"></i>Delete Scale
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Grade values section (shown after scale is selected/saved) -->
+                        <div id="gsGradeValuesSection" class="d-none mt-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold mb-0">Grade Values</h6>
+                                <button type="button" class="btn btn-sm btn-outline-success" onclick="gsShowAddGradeRow()">
+                                    <i class="fas fa-plus me-1"></i>Add Grade
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Grade</th>
+                                            <th>Code</th>
+                                            <th style="width:80px">Min%</th>
+                                            <th style="width:80px">Max%</th>
+                                            <th style="width:70px">GPA</th>
+                                            <th style="width:50px">Pass</th>
+                                            <th style="width:60px">Color</th>
+                                            <th style="width:80px" class="text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="gsGradeValuesBody"></tbody>
+                                </table>
+                            </div>
+                            <!-- Add row -->
+                            <div id="gsAddGradeRow" class="d-none border rounded p-3 bg-light mt-2">
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-md-2"><label class="form-label small">Name *</label><input type="text" class="form-control form-control-sm" id="gsNewGvName" placeholder="A+"></div>
+                                    <div class="col-md-2"><label class="form-label small">Code *</label><input type="text" class="form-control form-control-sm" id="gsNewGvCode" placeholder="A_PLUS"></div>
+                                    <div class="col-md-1"><label class="form-label small">Min%</label><input type="number" class="form-control form-control-sm" id="gsNewGvMin" placeholder="90" min="0" max="100" step="0.01"></div>
+                                    <div class="col-md-1"><label class="form-label small">Max%</label><input type="number" class="form-control form-control-sm" id="gsNewGvMax" placeholder="100" min="0" max="100" step="0.01"></div>
+                                    <div class="col-md-1"><label class="form-label small">GPA</label><input type="number" class="form-control form-control-sm" id="gsNewGvGpa" placeholder="4.0" step="0.01"></div>
+                                    <div class="col-md-1 d-flex align-items-center pt-4"><input type="checkbox" class="form-check-input me-1" id="gsNewGvPass" checked><label class="form-check-label small" for="gsNewGvPass">Pass</label></div>
+                                    <div class="col-md-1"><label class="form-label small">Color</label><input type="color" class="form-control form-control-sm p-0" id="gsNewGvColor" value="#28a745" style="height:31px"></div>
+                                    <div class="col-md-3 d-flex gap-2 align-items-end">
+                                        <button type="button" class="btn btn-sm btn-primary" onclick="gsSaveNewGradeValue()">Save</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="gsHideAddGradeRow()">Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 1. GRADING PROFILES MODAL -->
+<div class="modal fade" id="gradingProfilesModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-tags me-2 text-success"></i>Grading Profiles</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-end mb-3">
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createGradingTypeModal">
+                        <i class="fas fa-plus me-1"></i>New Grading Type
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center" style="width:110px">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gtTbody">
+                            {% for gt in grading_types %}
+                            <tr id="gt-row-{{ gt.id }}">
+                                <td class="fw-medium">{{ gt.name }}</td>
+                                <td><span class="badge bg-secondary">{{ gt.get_code_display }}</span></td>
+                                <td class="text-muted small">{{ gt.description|default:"—" }}</td>
+                                <td class="text-center">
+                                    {% if gt.is_active %}<span class="badge bg-success">Active</span>
+                                    {% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-outline-secondary me-1"
+                                            onclick="openEditGradingType('{{ gt.id }}')" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger"
+                                            onclick="deleteGradingType('{{ gt.id }}','{{ gt.name|escapejs }}')" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr id="gt-empty"><td colspan="5" class="text-center text-muted py-4">No grading profiles yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Close</button></div>
+        </div>
+    </div>
+</div>
+
+<!-- 2. ACTIVITY PROFILES MODAL -->
+<div class="modal fade" id="activityProfilesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-star me-2 text-warning"></i>Activity Profiles</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-end mb-3">
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createCoscholasticModal">
+                        <i class="fas fa-plus me-1"></i>New Activity
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Max Score</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center" style="width:80px">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="caTbody">
+                            {% for ca in coscholastic_assessments %}
+                            <tr id="ca-row-{{ ca.id }}">
+                                <td class="fw-medium">{{ ca.name }}</td>
+                                <td class="small text-muted">{{ ca.get_code_display }}</td>
+                                <td>{{ ca.max_score|floatformat:0 }}</td>
+                                <td class="text-center">
+                                    {% if ca.is_active %}<span class="badge bg-success">Active</span>
+                                    {% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-outline-secondary me-1"
+                                            onclick="openEditCoscholastic('{{ ca.id }}')" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger"
+                                            onclick="deleteCoscholastic('{{ ca.id }}','{{ ca.name|escapejs }}')" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr id="ca-empty"><td colspan="5" class="text-center text-muted py-4">No activity profiles yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Close</button></div>
+        </div>
+    </div>
+</div>
+
+<!-- 3. ATTRIBUTE PROFILES MODAL (Subject Grading Settings) -->
+<div class="modal fade" id="attributeProfilesModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-sliders-h me-2 text-info"></i>Attribute Profiles</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">
+                    Configure per-subject assessment weightings. Internal + External must always sum to 100%.
+                </p>
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <label class="form-label small fw-medium mb-0">Filter by batch:</label>
+                    <select class="form-select form-select-sm w-auto" onchange="filterSubjectSettings(this.value)">
+                        <option value="">All batches</option>
+                        {% for b in batches %}
+                        <option value="{{ b.id }}">{{ b.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover" id="subjectSettingsTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Subject</th>
+                                <th>Grading Type</th>
+                                <th style="width:120px">Internal (%)</th>
+                                <th style="width:120px">External (%)</th>
+                                <th style="width:100px">Credits</th>
+                                <th class="text-center" style="width:70px">Save</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ss in subject_settings %}
+                            <tr data-batch="{{ ss.subject.batch_id|default:'' }}">
+                                <td class="fw-medium">{{ ss.subject.name }}</td>
+                                <td class="small text-muted">{{ ss.grading_type.name|default:"—" }}</td>
+                                <td><input type="number" class="form-control form-control-sm"
+                                           id="ss-int-{{ ss.id }}" value="{{ ss.internal_assessment_weight|floatformat:0 }}"
+                                           min="0" max="100"></td>
+                                <td><input type="number" class="form-control form-control-sm"
+                                           id="ss-ext-{{ ss.id }}" value="{{ ss.external_assessment_weight|floatformat:0 }}"
+                                           min="0" max="100"></td>
+                                <td><input type="number" class="form-control form-control-sm"
+                                           id="ss-cr-{{ ss.id }}" value="{{ ss.credit_hours|floatformat:2 }}"
+                                           min="0" step="0.5"></td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-outline-success"
+                                            onclick="saveSubjectSettings('{{ ss.id }}')" title="Save">
+                                        <i class="fas fa-save"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6" class="text-center text-muted py-4">
+                                No attribute profiles configured. Settings are created when subjects are assigned grading types.
+                            </td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Close</button></div>
+        </div>
+    </div>
+</div>
+
+<!-- 4. REMARK BANK MODAL -->
+<div class="modal fade" id="remarkBankModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-comment-dots me-2 text-success"></i>Remark Bank</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-5">
+                <i class="fas fa-comment-dots fa-3x text-muted opacity-25 mb-3 d-block"></i>
+                <h6 class="text-muted">Remark Bank — Coming Soon</h6>
+                <p class="text-muted small">Remark banks let you pre-define comment sets for different performance levels. This feature is being built.</p>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Close</button></div>
+        </div>
+    </div>
+</div>
+
+<!-- 5. GPA SETTINGS MODAL -->
+<div class="modal fade" id="gpaSettingsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-graduation-cap me-2 text-success"></i>GPA Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                {% with gpa_types=grading_types %}
+                {% for gt in gpa_types %}{% if gt.code == 'GPA' %}
+                <div class="card border-0 bg-light p-3 mb-3" id="gpa-card-{{ gt.id }}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <strong>{{ gt.name }}</strong>
+                            <span class="badge bg-secondary ms-2">GPA {{ gt.gpa_scale|default:"4.0" }} Scale</span>
+                            {% if gt.is_active %}<span class="badge bg-success ms-1">Active</span>
+                            {% else %}<span class="badge bg-secondary ms-1">Inactive</span>{% endif %}
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary me-1"
+                                    onclick="openEditGradingType('{{ gt.id }}')" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger"
+                                    onclick="deleteGradingType('{{ gt.id }}','{{ gt.name|escapejs }}')" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% if gt.description %}<p class="text-muted small mb-0">{{ gt.description }}</p>{% endif %}
+                </div>
+                {% endif %}{% endfor %}
+                {% if not grading_types %}
+                <p class="text-muted text-center py-4">No GPA grading profiles exist.</p>
+                {% else %}
+                {% with has_gpa=False %}
+                {% for gt in grading_types %}{% if gt.code == 'GPA' %}{% with has_gpa=True %}{% endwith %}{% endif %}{% endfor %}
+                {% endwith %}
+                {% endif %}
+                <div class="alert alert-info py-2 small mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    GPA profiles are managed via <strong>Grading Profiles</strong>.
+                    Click "New Grading Type" and select GPA to add one.
+                </div>
+                {% endwith %}
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-primary"
+                        onclick="bootstrap.Modal.getInstance(document.getElementById('gpaSettingsModal')).hide();
+                                 setTimeout(()=>bootstrap.Modal.getOrCreateInstance(document.getElementById('gradingProfilesModal')).show(),300)">
+                    <i class="fas fa-tags me-1"></i>Manage Grading Profiles
+                </button>
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Grading Type -->
+<div class="modal fade" id="createGradingTypeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Grading Type</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="createGradingTypeForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-section">
+                            <h5>Basic Information</h5>
+                            <div class="mb-3">
+                                <label class="form-label">Name *</label>
+                                <input type="text" class="form-control" name="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Type *</label>
+                                <select class="form-select" name="code" id="createGTCode"
+                                        onchange="toggleGradingOptions('create')" required>
+                                    <option value="">Select Type…</option>
+                                    <option value="NORMAL">Normal</option>
+                                    <option value="GPA">GPA</option>
+                                    <option value="CCE">CCE</option>
+                                    <option value="ICSE">ICSE</option>
+                                    <option value="CWA">CWA</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" name="description" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-section">
+                            <h5>Configuration</h5>
+                            <p class="text-muted small" id="createConfigHint">Select a type to see options.</p>
+                            <div id="createGpaSettings" class="d-none">
+                                <div class="mb-3">
+                                    <label class="form-label">GPA Scale</label>
+                                    <select class="form-select" name="gpa_scale">
+                                        <option value="4.0">4.0 Scale</option>
+                                        <option value="5.0">5.0 Scale</option>
+                                        <option value="10.0">10.0 Scale</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="createCceSettings" class="d-none">
+                                <div class="mb-3">
+                                    <label class="form-label">Scholastic Weight (%)</label>
+                                    <input type="number" class="form-control" name="cce_scholastic_weight" value="70" min="0" max="100">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Co-scholastic Weight (%)</label>
+                                    <input type="number" class="form-control" name="cce_coscholastic_weight" value="30" min="0" max="100">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Grading Type</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Grading Type -->
+<div class="modal fade" id="editGradingTypeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Grading Type</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editGradingTypeForm">
+                <input type="hidden" id="editGTId">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-section">
+                            <h5>Basic Information</h5>
+                            <div class="mb-3">
+                                <label class="form-label">Name *</label>
+                                <input type="text" class="form-control" name="name" id="editGTName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Type</label>
+                                <input type="text" class="form-control" id="editGTCodeDisplay" disabled>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" name="description" id="editGTDesc" rows="3"></textarea>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="editGTActive">
+                                <label class="form-check-label" for="editGTActive">Active</label>
+                            </div>
+                        </div>
+                        <div class="form-section">
+                            <h5>Configuration</h5>
+                            <div id="editGpaSettings" class="d-none mb-3">
+                                <label class="form-label">GPA Scale</label>
+                                <select class="form-select" name="gpa_scale" id="editGTGpaScale">
+                                    <option value="4.0">4.0 Scale</option>
+                                    <option value="5.0">5.0 Scale</option>
+                                    <option value="10.0">10.0 Scale</option>
+                                </select>
+                            </div>
+                            <div id="editCceSettings" class="d-none">
+                                <div class="mb-3">
+                                    <label class="form-label">Scholastic Weight (%)</label>
+                                    <input type="number" class="form-control" name="cce_scholastic_weight" id="editGTScholastic" min="0" max="100">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Co-scholastic Weight (%)</label>
+                                    <input type="number" class="form-control" name="cce_coscholastic_weight" id="editGTCoscholastic" min="0" max="100">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="editGTSaveBtn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Create Co-scholastic Assessment -->
+<div class="modal fade" id="createCoscholasticModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">New Activity Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="createCoscholasticForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Name *</label>
+                        <input type="text" class="form-control" name="name" required placeholder="e.g. Visual Arts">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type *</label>
+                        <select class="form-select" name="code" required>
+                            <option value="">Select type…</option>
+                            <option value="LIFE_SKILLS">Life Skills</option>
+                            <option value="WORK_EDUCATION">Work Education</option>
+                            <option value="VISUAL_ARTS">Visual Arts</option>
+                            <option value="PERFORMING_ARTS">Performing Arts</option>
+                            <option value="HEALTH_PHYSICAL">Health &amp; Physical Education</option>
+                            <option value="DISCIPLINE">Discipline</option>
+                            <option value="GAMES_SPORTS">Games &amp; Sports</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Max Score</label>
+                        <input type="number" class="form-control" name="max_score" value="100" min="1">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="description" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Co-scholastic Assessment -->
+<div class="modal fade" id="editCoscholasticModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Activity Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editCoscholasticForm">
+                {% csrf_token %}
+                <input type="hidden" id="editCaId">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Name *</label>
+                        <input type="text" class="form-control" id="editCaName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type</label>
+                        <input type="text" class="form-control" id="editCaCodeDisplay" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Max Score</label>
+                        <input type="number" class="form-control" id="editCaMaxScore" name="max_score" min="1">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="editCaDescription" name="description" rows="2"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="editCaActive" name="is_active">
+                        <label class="form-check-label" for="editCaActive">Active</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="editCaSaveBtn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- REPORT CARD CONFIGURATION DEFAULTS MODAL -->
+<div class="modal fade" id="reportCardDefaultsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-alt me-2 text-success"></i>Report Card Configuration Defaults
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="reportCardDefaultsForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        These defaults pre-populate new report templates. Existing templates are not affected.
+                    </p>
+
+                    <!-- School Branding -->
+                    <div class="form-section mb-3">
+                        <h5>School Branding</h5>
+                        <div class="form-grid">
+                            <div class="mb-2">
+                                <label class="form-label small fw-medium">School Name</label>
+                                <input type="text" class="form-control form-control-sm" name="school_name" id="rc_school_name"
+                                       value="{{ rc_defaults.rc_school_name|default:'' }}">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-medium">Address</label>
+                                <input type="text" class="form-control form-control-sm" name="school_address" id="rc_school_address"
+                                       value="{{ rc_defaults.rc_school_address|default:'' }}">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-medium">Contact / Phone</label>
+                                <input type="text" class="form-control form-control-sm" name="school_contact" id="rc_school_contact"
+                                       value="{{ rc_defaults.rc_school_contact|default:'' }}">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-medium">Email</label>
+                                <input type="email" class="form-control form-control-sm" name="school_email" id="rc_school_email"
+                                       value="{{ rc_defaults.rc_school_email|default:'' }}">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-medium">Website</label>
+                                <input type="url" class="form-control form-control-sm" name="school_website" id="rc_school_website"
+                                       value="{{ rc_defaults.rc_school_website|default:'' }}">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-medium">Brand Colour</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="color" class="form-control form-control-color" name="primary_color" id="rc_primary_color"
+                                           value="{{ rc_defaults.rc_primary_color|default:'#5a9e2f' }}" style="width:50px;height:34px">
+                                    <small class="text-muted">Accent colour for headers and tables in PDFs</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Report Text & Layout -->
+                    <div class="form-section mb-3">
+                        <h5>Report Text &amp; Layout</h5>
+                        <div class="form-grid">
+                            <div class="mb-2">
+                                <label class="form-label small fw-medium">Report Title</label>
+                                <input type="text" class="form-control form-control-sm" name="report_title" id="rc_report_title"
+                                       value="{{ rc_defaults.rc_report_title|default:'ASSESSMENT REPORT' }}">
+                            </div>
+                                <div class="mb-2">
+                                <label class="form-label small fw-medium">Default Report Layout</label>
+                                <select class="form-select form-select-sm" name="layout_type" id="rc_layout_type">
+                                    {% for value, label in layout_choices %}
+                                    <option value="{{ value }}"
+                                        {% if rc_defaults.rc_layout_type == value %}selected{% elif not rc_defaults.rc_layout_type and value == 'FULL_ACADEMIC' %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Determines the PDF structure for new templates</div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-medium">Default Grading Scale</label>
+                                <select class="form-select form-select-sm" name="grading_scale_id" id="rc_grading_scale_id">
+                                    <option value="">— Use batch default / layout default —</option>
+                                    {% for gs in grading_scales %}
+                                    <option value="{{ gs.id }}"
+                                        {% if rc_defaults.rc_grading_scale_id == gs.id|stringformat:'s' %}selected{% endif %}>
+                                        {{ gs.name }} ({{ gs.get_scale_type_display }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">
+                                    Overrides the per-batch and layout-default scale. Leave blank to auto-select
+                                    (4-point for Grade 1–2, 5-point for Grade 3–7, none for Skills Checklist).
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-2 mt-2">
+                            <label class="form-label small fw-medium">Footer Quote</label>
+                            <textarea class="form-control form-control-sm" name="footer_quote" id="rc_footer_quote"
+                                      rows="2">{{ rc_defaults.rc_footer_quote|default:'' }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- Include Sections -->
+                    <div class="form-section mb-3">
+                        <h5>Default Sections to Include</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="include_exam_scores" id="rc_include_exam_scores"
+                                           {% if rc_defaults.rc_include_exam_scores != 'false' %}checked{% endif %}>
+                                    <label class="form-check-label small" for="rc_include_exam_scores">Exam Scores</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="include_homework_assessment" id="rc_include_homework_assessment"
+                                           {% if rc_defaults.rc_include_homework_assessment != 'false' %}checked{% endif %}>
+                                    <label class="form-check-label small" for="rc_include_homework_assessment">Homework Assessment</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="include_project_work" id="rc_include_project_work"
+                                           {% if rc_defaults.rc_include_project_work != 'false' %}checked{% endif %}>
+                                    <label class="form-check-label small" for="rc_include_project_work">Project Work</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="include_attendance" id="rc_include_attendance"
+                                           {% if rc_defaults.rc_include_attendance != 'false' %}checked{% endif %}>
+                                    <label class="form-check-label small" for="rc_include_attendance">Attendance</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="include_clubs" id="rc_include_clubs"
+                                           {% if rc_defaults.rc_include_clubs != 'false' %}checked{% endif %}>
+                                    <label class="form-check-label small" for="rc_include_clubs">Clubs</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="include_sports" id="rc_include_sports"
+                                           {% if rc_defaults.rc_include_sports != 'false' %}checked{% endif %}>
+                                    <label class="form-check-label small" for="rc_include_sports">Sports</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="include_other_activities" id="rc_include_other_activities"
+                                           {% if rc_defaults.rc_include_other_activities != 'false' %}checked{% endif %}>
+                                    <label class="form-check-label small" for="rc_include_other_activities">Other Activities</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="include_grading_scale" id="rc_include_grading_scale"
+                                           {% if rc_defaults.rc_include_grading_scale != 'false' %}checked{% endif %}>
+                                    <label class="form-check-label small" for="rc_include_grading_scale">Grading Scale</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section Order -->
+                    <div class="form-section">
+                        <h5>Section Order in PDF</h5>
+                        <small class="text-muted d-block mb-2">Use the arrows to set the default section order for new report templates.</small>
+                        <ul class="list-group" id="rc_section_order_list" style="max-width:380px">
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 small" data-key="exam_scores">
+                                Exam Scores
+                                <span class="btn-group btn-group-sm ms-2">
+                                    <button type="button" class="btn btn-outline-secondary py-0 px-1" onclick="rcMoveSection(this,-1)">â–²</button>
+                                    <button type="button" class="btn btn-outline-secondary py-0 px-1" onclick="rcMoveSection(this,1)">â–¼</button>
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 small" data-key="homework_project">
+                                Homework &amp; Project Work
+                                <span class="btn-group btn-group-sm ms-2">
+                                    <button type="button" class="btn btn-outline-secondary py-0 px-1" onclick="rcMoveSection(this,-1)">â–²</button>
+                                    <button type="button" class="btn btn-outline-secondary py-0 px-1" onclick="rcMoveSection(this,1)">â–¼</button>
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 small" data-key="clubs_sports">
+                                Clubs &amp; Sports
+                                <span class="btn-group btn-group-sm ms-2">
+                                    <button type="button" class="btn btn-outline-secondary py-0 px-1" onclick="rcMoveSection(this,-1)">â–²</button>
+                                    <button type="button" class="btn btn-outline-secondary py-0 px-1" onclick="rcMoveSection(this,1)">â–¼</button>
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 small" data-key="other_activities">
+                                Other Activities
+                                <span class="btn-group btn-group-sm ms-2">
+                                    <button type="button" class="btn btn-outline-secondary py-0 px-1" onclick="rcMoveSection(this,-1)">â–²</button>
+                                    <button type="button" class="btn btn-outline-secondary py-0 px-1" onclick="rcMoveSection(this,1)">â–¼</button>
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 small" data-key="attendance_scale">
+                                Attendance &amp; Grading Scale
+                                <span class="btn-group btn-group-sm ms-2">
+                                    <button type="button" class="btn btn-outline-secondary py-0 px-1" onclick="rcMoveSection(this,-1)">â–²</button>
+                                    <button type="button" class="btn btn-outline-secondary py-0 px-1" onclick="rcMoveSection(this,1)">â–¼</button>
+                                </span>
+                            </li>
+                        </ul>
+                        <input type="hidden" id="rc_section_order" name="section_order">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="rcDefaultsSaveBtn">Save Defaults</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- CREATE REPORT TEMPLATE MODAL -->
+<div class="modal fade" id="gsCreateTemplateModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus-circle me-2 text-success"></i>Create Report Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="gsCreateTemplateForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {% include "core/reports/_template_form_fields.html" with prefix="gsc" %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="gsCreateSubmitBtn">Create Template</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT REPORT TEMPLATE MODAL -->
+<div class="modal fade" id="gsEditTemplateModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-edit me-2 text-success"></i>Edit Report Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="gsEditTemplateForm">
+                {% csrf_token %}
+                <input type="hidden" id="gs_edit_template_id">
+                <div class="modal-body">
+                    {% include "core/reports/_template_form_fields.html" with prefix="gse" %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="gsEditSubmitBtn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+const CSRF = document.cookie.split(';').reduce((v,c)=>{const[k,val]=c.trim().split('=');return k==='csrftoken'?decodeURIComponent(val):v;},'');
+
+// â"€â"€ Grading Type helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+
+function toggleGradingOptions(prefix) {
+    const code = document.getElementById(prefix + 'GTCode')?.value || '';
+    document.getElementById(prefix + 'GpaSettings')?.classList.toggle('d-none', code !== 'GPA');
+    document.getElementById(prefix + 'CceSettings')?.classList.toggle('d-none', code !== 'CCE');
+    const hint = document.getElementById(prefix + 'ConfigHint');
+    if (hint) hint.classList.toggle('d-none', code === 'GPA' || code === 'CCE');
+}
+
+document.getElementById('createGradingTypeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const btn = this.querySelector('[type=submit]');
+    btn.disabled = true; btn.textContent = 'Creating…';
+    fetch("{% url 'core:create_grading_type_api' %}", {
+        method: 'POST', body: new FormData(this), headers: {'X-CSRFToken': CSRF}
+    })
+    .then(r => r.json())
+    .then(d => {
+        btn.disabled = false; btn.textContent = 'Create Grading Type';
+        if (d.success) location.reload();
+        else showToast(d.error || 'Operation failed', 'danger');
+    });
+});
+
+function openEditGradingType(id) {
+    fetch(`/api/gradebook/grading-type/${id}/`)
+    .then(r => r.json())
+    .then(d => {
+        document.getElementById('editGTId').value          = d.id;
+        document.getElementById('editGTName').value        = d.name;
+        document.getElementById('editGTCodeDisplay').value = d.code;
+        document.getElementById('editGTDesc').value        = d.description;
+        document.getElementById('editGTActive').checked    = d.is_active;
+        document.getElementById('editGpaSettings').classList.toggle('d-none', d.code !== 'GPA');
+        document.getElementById('editCceSettings').classList.toggle('d-none', d.code !== 'CCE');
+        if (d.gpa_scale) document.getElementById('editGTGpaScale').value = d.gpa_scale;
+        if (d.code === 'CCE') {
+            document.getElementById('editGTScholastic').value   = d.cce_scholastic_weight;
+            document.getElementById('editGTCoscholastic').value = d.cce_coscholastic_weight;
+        }
+        new bootstrap.Modal(document.getElementById('editGradingTypeModal')).show();
+    })
+    .catch(() => showToast('Failed to load grading type.', 'danger'));
+}
+
+document.getElementById('editGradingTypeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const id  = document.getElementById('editGTId').value;
+    const btn = document.getElementById('editGTSaveBtn');
+    btn.disabled = true; btn.textContent = 'Saving...';
+    fetch(`/api/gradebook/grading-type/${id}/update/`, {
+        method: 'POST', body: new FormData(this), headers: {'X-CSRFToken': CSRF}
+    })
+    .then(r => r.json())
+    .then(d => {
+        btn.disabled = false; btn.textContent = 'Save Changes';
+        if (d.success) location.reload();
+        else showToast(d.error || 'Operation failed', 'danger');
+    });
+});
+
+function deleteGradingType(id, name) {
+    showConfirm(`Delete grading type "${name}"? This cannot be undone.`, function() {
+        fetch(`/api/gradebook/grading-type/${id}/delete/`, {
+            method: 'DELETE', headers: {'X-CSRFToken': CSRF}
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) { showToast('Grading type deleted', 'success'); document.getElementById(`gt-row-${id}`)?.remove(); }
+            else showToast(d.error || 'Operation failed', 'danger');
+        });
+    }, 'Delete', 'danger');
+}
+
+// â"€â"€ Activity Profile helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+
+document.getElementById('createCoscholasticForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const btn = this.querySelector('[type=submit]');
+    btn.disabled = true; btn.textContent = 'Creating…';
+    fetch("{% url 'core:create_coscholastic_api' %}", {
+        method: 'POST', body: new FormData(this), headers: {'X-CSRFToken': CSRF}
+    })
+    .then(r => r.json())
+    .then(d => {
+        btn.disabled = false; btn.textContent = 'Create';
+        if (!d.success) { showToast(d.error || 'Operation failed', 'danger'); return; }
+        bootstrap.Modal.getInstance(document.getElementById('createCoscholasticModal'))?.hide();
+        this.reset();
+        const a = d.assessment;
+        document.getElementById('ca-empty')?.remove();
+        document.getElementById('caTbody').insertAdjacentHTML('beforeend',
+            `<tr id="ca-row-${a.id}">
+               <td class="fw-medium">${a.name}</td>
+               <td class="small text-muted">${a.code}</td>
+               <td>${parseFloat(a.max_score).toFixed(0)}</td>
+               <td class="text-center"><span class="badge bg-success">Active</span></td>
+               <td class="text-center">
+                 <button class="btn btn-sm btn-outline-secondary me-1"
+                         onclick="openEditCoscholastic('${a.id}')" title="Edit">
+                   <i class="fas fa-edit"></i>
+                 </button>
+                 <button class="btn btn-sm btn-outline-danger"
+                         onclick="deleteCoscholastic('${a.id}','${a.name.replace(/'/g,"\\'")}')">
+                   <i class="fas fa-trash"></i>
+                 </button>
+               </td>
+             </tr>`
+        );
+    });
+});
+
+function deleteCoscholastic(id, name) {
+    showConfirm(`Delete activity “${name}”?`, function() {
+    fetch(`/api/gradebook/coscholastic/${id}/delete/`, {
+        method: 'POST', headers: {'X-CSRFToken': CSRF}
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) { showToast('Activity deleted', 'success'); document.getElementById(`ca-row-${id}`)?.remove(); }
+        else showToast(d.error || 'Operation failed', 'danger');
+    });
+    }, 'Delete', 'danger');
+}
+
+function openEditCoscholastic(id) {
+    fetch(`/api/gradebook/coscholastic/${id}/`)
+    .then(r => r.json())
+    .then(d => {
+        document.getElementById('editCaId').value          = d.id;
+        document.getElementById('editCaName').value        = d.name;
+        document.getElementById('editCaCodeDisplay').value = d.code;
+        document.getElementById('editCaMaxScore').value    = d.max_score;
+        document.getElementById('editCaDescription').value = d.description;
+        document.getElementById('editCaActive').checked    = d.is_active;
+        new bootstrap.Modal(document.getElementById('editCoscholasticModal')).show();
+    })
+    .catch(() => showToast('Failed to load activity profile.', 'danger'));
+}
+
+document.getElementById('editCoscholasticForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const id  = document.getElementById('editCaId').value;
+    const btn = document.getElementById('editCaSaveBtn');
+    btn.disabled = true; btn.textContent = 'Saving...';
+    fetch(`/api/gradebook/coscholastic/${id}/update/`, {
+        method: 'POST', body: new FormData(this), headers: {'X-CSRFToken': CSRF}
+    })
+    .then(r => r.json())
+    .then(d => {
+        btn.disabled = false; btn.textContent = 'Save Changes';
+        if (!d.success) { showToast(d.error || 'Operation failed', 'danger'); return; }
+        bootstrap.Modal.getInstance(document.getElementById('editCoscholasticModal'))?.hide();
+        const row = document.getElementById(`ca-row-${id}`);
+        if (row) {
+            row.innerHTML = `
+                <td class="fw-medium">${d.name}</td>
+                <td class="small text-muted">${row.cells[1].textContent}</td>
+                <td>${parseFloat(document.getElementById('editCaMaxScore').value).toFixed(0)}</td>
+                <td class="text-center"><span class="badge ${document.getElementById('editCaActive').checked ? 'bg-success' : 'bg-secondary'}">${document.getElementById('editCaActive').checked ? 'Active' : 'Inactive'}</span></td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-secondary me-1"
+                            onclick="openEditCoscholastic('${id}')" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger"
+                            onclick="deleteCoscholastic('${id}','${d.name.replace(/'/g,"\\'")}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+        }
+        showToast('Activity profile updated', 'success');
+    });
+});
+
+// ── Attribute Profile (Subject Settings) helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+
+function filterSubjectSettings(batchId) {
+    document.querySelectorAll('#subjectSettingsTable tbody tr').forEach(row => {
+        row.classList.toggle('d-none', !!(batchId && row.dataset.batch !== batchId));
+    });
+}
+
+function saveSubjectSettings(id) {
+    const internal     = parseFloat(document.getElementById(`ss-int-${id}`).value) || 0;
+    const external     = parseFloat(document.getElementById(`ss-ext-${id}`).value) || 0;
+    const credit_hours = parseFloat(document.getElementById(`ss-cr-${id}`).value)  || 1;
+    fetch(`/api/gradebook/subject-settings/${id}/update/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+        body: JSON.stringify({internal_assessment_weight: internal,
+                              external_assessment_weight: external,
+                              credit_hours})
+    })
+    .then(r => r.json())
+    .then(d => { if (!d.success) showToast(d.error || 'Operation failed', 'danger'); });
+}
+
+// â"€â"€ Report Card Grading Scale (unchanged) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+
+let _currentBatchId = null;
+
+function loadBatchScale(batchId) {
+    _currentBatchId = batchId;
+    const panel = document.getElementById('scalesPanel');
+    const placeholder = document.getElementById('scalesPlaceholder');
+    const resetBtn = document.getElementById('scalesResetBtn');
+    if (!batchId) {
+        panel.classList.add('d-none');
+        placeholder.classList.remove('d-none');
+        resetBtn.classList.add('d-none');
+        return;
+    }
+    fetch(`/api/gradebook/batch/${batchId}/grading-scale/`)
+    .then(r => r.json())
+    .then(data => {
+        placeholder.classList.add('d-none');
+        panel.classList.remove('d-none');
+        resetBtn.classList.toggle('d-none', data.using_default);
+        renderScaleTable(data.levels, data.using_default);
+    })
+    .catch(() => showToast('Failed to load grading scale.', 'danger'));
+}
+
+function renderScaleTable(levels, usingDefault) {
+    const tbody = document.getElementById('scalesBody');
+    if (usingDefault) {
+        tbody.innerHTML = levels.map(l =>
+            `<tr class="text-muted">
+               <td>${l.grade}</td><td>${l.min_score}</td><td>${l.description}</td>
+               <td class="text-center"><span class="badge bg-secondary">default</span></td>
+             </tr>`
+        ).join('');
+    } else {
+        tbody.innerHTML = levels.map(l =>
+            `<tr id="row-${l.id}">
+               <td><input class="form-control form-control-sm" value="${l.grade}" id="g-${l.id}" style="width:60px"></td>
+               <td><input class="form-control form-control-sm" type="number" value="${l.min_score}" id="s-${l.id}" style="width:80px"></td>
+               <td><input class="form-control form-control-sm" value="${l.description}" id="d-${l.id}"></td>
+               <td class="text-center">
+                 <button class="btn btn-xs btn-sm btn-outline-primary me-1" onclick="saveLevelRow('${l.id}')"><i class="fas fa-save"></i></button>
+                 <button class="btn btn-xs btn-sm btn-outline-danger" onclick="deleteLevelRow('${l.id}')"><i class="fas fa-trash"></i></button>
+               </td>
+             </tr>`
+        ).join('');
+    }
+}
+
+function showAddLevelRow() {
+    document.getElementById('addLevelRow').classList.remove('d-none');
+    document.getElementById('newGrade').focus();
+}
+
+function saveNewLevel() {
+    const grade = document.getElementById('newGrade').value.trim();
+    const minScore = document.getElementById('newMinScore').value;
+    const description = document.getElementById('newDescription').value.trim();
+    if (!grade || minScore === '') { showToast('Grade and Min Score are required', 'warning'); return; }
+    fetch(`/api/gradebook/batch/${_currentBatchId}/grading-scale/add/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+        body: JSON.stringify({grade, min_score: parseInt(minScore), description})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) { document.getElementById('addLevelRow').classList.add('d-none'); loadBatchScale(_currentBatchId); }
+        else showToast(data.error || 'Operation failed', 'danger');
+    });
+}
+
+function saveLevelRow(levelId) {
+    const grade = document.getElementById(`g-${levelId}`).value.trim();
+    const minScore = document.getElementById(`s-${levelId}`).value;
+    const description = document.getElementById(`d-${levelId}`).value.trim();
+    fetch(`/api/gradebook/grading-level/${levelId}/update/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+        body: JSON.stringify({grade, min_score: parseInt(minScore), description})
+    })
+    .then(r => r.json())
+    .then(data => { if (!data.success) showToast(data.error || 'Operation failed', 'danger'); });
+}
+
+function deleteLevelRow(levelId) {
+    showConfirm('Delete this grade level?', function() {
+        fetch(`/api/gradebook/grading-level/${levelId}/delete/`, {
+            method: 'POST', headers: {'X-CSRFToken': CSRF}
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) loadBatchScale(_currentBatchId);
+            else showToast(data.error || 'Operation failed', 'danger');
+        });
+    }, 'Delete', 'danger');
+}
+
+function resetBatchScale() {
+    showConfirm('Reset to default A–E scale? All custom grade levels for this batch will be removed.', function() {
+        fetch(`/api/gradebook/batch/${_currentBatchId}/grading-scale/reset/`, {
+            method: 'POST', headers: {'X-CSRFToken': CSRF}
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) loadBatchScale(_currentBatchId);
+            else showToast(data.error || 'Operation failed', 'danger');
+        });
+    }, 'Reset Scale', 'warning');
+}
+
+// ── Section-order helpers (used by _template_form_fields.html) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+
+function moveSection(prefix, btn, dir) {
+    const li = btn.closest('li');
+    const ul = document.getElementById(prefix + '_section_order_list');
+    if (!ul) return;
+    const items = Array.from(ul.children);
+    const idx = items.indexOf(li);
+    const target = items[idx + dir];
+    if (!target) return;
+    if (dir === -1) ul.insertBefore(li, target); else ul.insertBefore(target, li);
+}
+
+function serializeSectionOrder(prefix) {
+    const ul = document.getElementById(prefix + '_section_order_list');
+    if (!ul) return;
+    const order = Array.from(ul.children).map(li => li.dataset.key);
+    const hidden = document.getElementById(prefix + '_section_order');
+    if (hidden) hidden.value = JSON.stringify(order);
+}
+
+function applySectionOrder(prefix, order) {
+    if (!order || !order.length) return;
+    const ul = document.getElementById(prefix + '_section_order_list');
+    if (!ul) return;
+    const byKey = {};
+    Array.from(ul.children).forEach(li => { byKey[li.dataset.key] = li; });
+    order.forEach(key => { if (byKey[key]) ul.appendChild(byKey[key]); });
+}
+
+// â"€â"€ Report Template CRUD (inline on this page) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+
+function openGsCreateTemplate() {
+    document.getElementById('gsCreateTemplateForm').reset();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('gsCreateTemplateModal')).show();
+}
+
+function openGsEditTemplate(templateId) {
+    fetch(`/api/reports/templates/${templateId}/`, { headers: { 'X-CSRFToken': CSRF } })
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('gs_edit_template_id').value = data.id;
+        document.getElementById('gse_name').value = data.name || '';
+        document.getElementById('gse_term').value = data.term || '';
+        document.getElementById('gse_batch_id').value = data.batch_id || '';
+        document.getElementById('gse_academic_year_id').value = data.academic_year_id || '';
+        if (data.primary_color) document.getElementById('gse_primary_color').value = data.primary_color;
+        if (data.layout_type)   document.getElementById('gse_layout_type').value   = data.layout_type;
+        document.getElementById('gse_report_signature_id').value = data.report_signature_id || '';
+        if (data.grading_scale_id !== undefined) document.getElementById('gse_grading_scale_id').value = data.grading_scale_id;
+        const bools = ['include_exam_scores','include_homework_assessment','include_project_work',
+                       'include_clubs','include_sports','include_other_activities',
+                       'include_attendance','include_grading_scale'];
+        bools.forEach(k => {
+            const el = document.getElementById('gse_' + k);
+            if (el) el.checked = data[k];
+        });
+        if (data.section_order && data.section_order.length) applySectionOrder('gse', data.section_order);
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('gsEditTemplateModal')).show();
+    })
+    .catch(() => showToast('Failed to load template data.', 'danger'));
+}
+
+function gsDeleteTemplate(templateId, name) {
+    showConfirm(`Delete template "${name}"? This cannot be undone.`, function() {
+        fetch(`/api/reports/templates/${templateId}/delete/`, {
+            method: 'POST', headers: { 'X-CSRFToken': CSRF }
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) { showToast('Template deleted', 'success'); location.reload(); }
+            else showToast(d.error || 'Cannot delete', 'danger');
+        });
+    }, 'Delete', 'danger');
+}
+
+document.getElementById('gsCreateTemplateForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    serializeSectionOrder('gsc');
+    const btn = document.getElementById('gsCreateSubmitBtn');
+    btn.disabled = true; btn.textContent = 'Creating…';
+    fetch('/api/reports/templates/create/', {
+        method: 'POST', body: new FormData(this), headers: { 'X-CSRFToken': CSRF }
+    })
+    .then(r => r.json())
+    .then(d => {
+        btn.disabled = false; btn.textContent = 'Create Template';
+        if (d.success) location.reload();
+        else showToast(d.error || 'Operation failed', 'danger');
+    })
+    .catch(() => { btn.disabled = false; btn.textContent = 'Create Template'; showToast('An error occurred.', 'danger'); });
+});
+
+document.getElementById('gsEditTemplateForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    serializeSectionOrder('gse');
+    const templateId = document.getElementById('gs_edit_template_id').value;
+    const btn = document.getElementById('gsEditSubmitBtn');
+    btn.disabled = true; btn.textContent = 'Saving...';
+    fetch(`/api/reports/templates/${templateId}/update/`, {
+        method: 'POST', body: new FormData(this), headers: { 'X-CSRFToken': CSRF }
+    })
+    .then(r => r.json())
+    .then(d => {
+        btn.disabled = false; btn.textContent = 'Save Changes';
+        if (d.success) location.reload();
+        else showToast(d.error || 'Operation failed', 'danger');
+    })
+    .catch(() => { btn.disabled = false; btn.textContent = 'Save Changes'; showToast('An error occurred.', 'danger'); });
+});
+
+// ── Scholastic Grade Scales ───────────────────────────────────────────────────
+
+let gsActiveScaleId = null;
+
+function gsParseResponse(r) {
+    return r.json().catch(() => { throw new Error('Server returned ' + r.status + ' (no JSON body)'); });
+}
+
+function gsNewScale() {
+    try {
+        gsActiveScaleId = null;
+        document.getElementById('gsFormTitle').textContent = 'New Grade Scale';
+        document.getElementById('gsScaleId').value = '';
+        document.getElementById('gsScaleName').value = '';
+        document.getElementById('gsScaleCode').value = '';
+        const typeEl = document.getElementById('gsScaleType');
+        if (typeEl && typeEl.options.length > 0) typeEl.selectedIndex = 0;
+        document.getElementById('gsScaleDesc').value = '';
+        const layoutEl = document.getElementById('gsScaleLayout');
+        if (layoutEl) layoutEl.selectedIndex = 0;
+        document.getElementById('gsScaleDefault').checked = false;
+        document.getElementById('gsDeleteScaleBtn').classList.add('d-none');
+        document.getElementById('gsPlaceholder').classList.add('d-none');
+        document.getElementById('gsScaleForm').classList.remove('d-none');
+        document.getElementById('gsGradeValuesSection').classList.add('d-none');
+    } catch (e) {
+        showToast('Error opening form: ' + e.message, 'danger');
+        console.error('gsNewScale error:', e);
+    }
+}
+
+function gsLoadScale(scaleId) {
+    gsActiveScaleId = scaleId;
+    document.querySelectorAll('#gsScaleList .list-group-item-action').forEach(el => el.classList.remove('active'));
+    const item = document.getElementById('gsScaleItem_' + scaleId);
+    if (item) item.classList.add('active');
+    fetch(`/api/gradebook/grading-scale/${scaleId}/`)
+        .then(gsParseResponse)
+        .then(d => {
+            if (!d.success) { showToast(d.error || 'Failed to load scale', 'danger'); return; }
+            const s = d.scale;
+            document.getElementById('gsFormTitle').textContent = 'Edit Grade Scale';
+            document.getElementById('gsScaleId').value = s.id;
+            document.getElementById('gsScaleName').value = s.name;
+            document.getElementById('gsScaleCode').value = s.code;
+            document.getElementById('gsScaleType').value = s.scale_type;
+            document.getElementById('gsScaleDesc').value = s.description;
+            document.getElementById('gsScaleLayout').value = s.report_layout;
+            document.getElementById('gsScaleDefault').checked = s.is_default;
+            document.getElementById('gsDeleteScaleBtn').classList.remove('d-none');
+            document.getElementById('gsPlaceholder').classList.add('d-none');
+            document.getElementById('gsScaleForm').classList.remove('d-none');
+            gsRenderGradeValues(d.grade_values);
+            document.getElementById('gsGradeValuesSection').classList.remove('d-none');
+        })
+        .catch(err => showToast('Failed to load scale: ' + err.message, 'danger'));
+}
+
+function gsRenderGradeValues(values) {
+    const tbody = document.getElementById('gsGradeValuesBody');
+    tbody.innerHTML = '';
+    values.forEach(gv => {
+        const tr = document.createElement('tr');
+        tr.id = 'gsGvRow_' + gv.id;
+        tr.innerHTML = `
+            <td class="fw-medium">${gv.name}</td>
+            <td><small class="text-muted">${gv.code}</small></td>
+            <td class="text-center">${gv.min_percentage !== null ? gv.min_percentage : '&mdash;'}</td>
+            <td class="text-center">${gv.max_percentage !== null ? gv.max_percentage : '&mdash;'}</td>
+            <td class="text-center">${gv.gpa_value !== null ? gv.gpa_value : '&mdash;'}</td>
+            <td class="text-center">${gv.is_passing ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>'}</td>
+            <td class="text-center"><span style="display:inline-block;width:20px;height:20px;border-radius:3px;background:${gv.color_code || '#808080'};border:1px solid #ccc"></span></td>
+            <td class="text-center">
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary btn-sm" title="Edit" onclick="gsEditGradeValue('${gv.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-outline-danger btn-sm" title="Delete" onclick="gsDeleteGradeValue('${gv.id}', '${gv.name.replace(/'/g, "\\'")}')"><i class="fas fa-trash"></i></button>
+                </div>
+            </td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function gsSaveScale() {
+    const scaleId = document.getElementById('gsScaleId').value;
+    const payload = {
+        name: document.getElementById('gsScaleName').value.trim(),
+        code: document.getElementById('gsScaleCode').value.trim().toUpperCase(),
+        scale_type: document.getElementById('gsScaleType').value,
+        description: document.getElementById('gsScaleDesc').value.trim(),
+        report_layout: document.getElementById('gsScaleLayout').value,
+        is_default: document.getElementById('gsScaleDefault').checked,
+    };
+    if (!payload.name || !payload.code) { showToast('Name and code are required', 'warning'); return; }
+    const btn = document.getElementById('gsSaveScaleBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    const url = scaleId
+        ? `/api/gradebook/grading-scale/${scaleId}/update/`
+        : '/api/gradebook/grading-scale/create/';
+    fetch(url, { method: 'POST', body: JSON.stringify(payload), headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF} })
+        .then(gsParseResponse)
+        .then(d => {
+            btn.disabled = false; btn.textContent = 'Save Scale';
+            if (d.success) {
+                showToast(scaleId ? 'Scale updated' : 'Scale created', 'success');
+                if (!scaleId && d.scale) {
+                    gsActiveScaleId = d.scale.id;
+                    document.getElementById('gsScaleId').value = d.scale.id;
+                    document.getElementById('gsDeleteScaleBtn').classList.remove('d-none');
+                    document.getElementById('gsGradeValuesSection').classList.remove('d-none');
+                    gsRenderGradeValues([]);
+                    const emptyMsg = document.getElementById('gsEmptyMsg');
+                    if (emptyMsg) emptyMsg.remove();
+                    const listEl = document.getElementById('gsScaleList');
+                    const newBtn = document.createElement('button');
+                    newBtn.type = 'button';
+                    newBtn.className = 'list-group-item list-group-item-action active d-flex justify-content-between align-items-center';
+                    newBtn.id = 'gsScaleItem_' + d.scale.id;
+                    newBtn.setAttribute('onclick', `gsLoadScale('${d.scale.id}')`);
+                    newBtn.innerHTML = `<div><div class="fw-medium">${d.scale.name}</div><small class="text-muted">${d.scale.code}</small></div><span class="badge bg-light text-dark">0</span>`;
+                    listEl.appendChild(newBtn);
+                    document.getElementById('gsFormTitle').textContent = 'Edit Grade Scale';
+                } else {
+                    const item = document.getElementById('gsScaleItem_' + scaleId);
+                    if (item) item.querySelector('.fw-medium').textContent = payload.name;
+                }
+            } else {
+                showToast(d.error || 'Failed to save', 'danger');
+            }
+        })
+        .catch(() => { btn.disabled = false; btn.textContent = 'Save Scale'; showToast('An error occurred', 'danger'); });
+}
+
+function gsDeleteScale() {
+    if (!gsActiveScaleId) return;
+    if (!confirm('Delete this grade scale? This cannot be undone if the scale is not in use.')) return;
+    fetch(`/api/gradebook/grading-scale/${gsActiveScaleId}/delete/`, { method: 'POST', headers: {'X-CSRFToken': CSRF} })
+        .then(gsParseResponse)
+        .then(d => {
+            if (d.success) {
+                showToast('Scale deleted', 'success');
+                const item = document.getElementById('gsScaleItem_' + gsActiveScaleId);
+                if (item) item.remove();
+                document.getElementById('gsScaleForm').classList.add('d-none');
+                document.getElementById('gsGradeValuesSection').classList.add('d-none');
+                document.getElementById('gsPlaceholder').classList.remove('d-none');
+                gsActiveScaleId = null;
+            } else {
+                showToast(d.error || 'Cannot delete', 'danger');
+            }
+        })
+        .catch(err => showToast('Delete failed: ' + err.message, 'danger'));
+}
+
+function gsCancelScaleForm() {
+    if (!gsActiveScaleId) {
+        document.getElementById('gsScaleForm').classList.add('d-none');
+        document.getElementById('gsPlaceholder').classList.remove('d-none');
+    }
+}
+
+function gsShowAddGradeRow() {
+    document.getElementById('gsAddGradeRow').classList.remove('d-none');
+    document.getElementById('gsNewGvName').focus();
+}
+
+function gsHideAddGradeRow() {
+    document.getElementById('gsAddGradeRow').classList.add('d-none');
+    ['gsNewGvName', 'gsNewGvCode', 'gsNewGvMin', 'gsNewGvMax', 'gsNewGvGpa'].forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('gsNewGvPass').checked = true;
+    document.getElementById('gsNewGvColor').value = '#28a745';
+}
+
+function gsSaveNewGradeValue() {
+    if (!gsActiveScaleId) { showToast('Save the scale first', 'warning'); return; }
+    const name = document.getElementById('gsNewGvName').value.trim();
+    const code = document.getElementById('gsNewGvCode').value.trim();
+    if (!name || !code) { showToast('Name and code are required', 'warning'); return; }
+    const payload = {
+        name, code,
+        min_percentage: document.getElementById('gsNewGvMin').value || null,
+        max_percentage: document.getElementById('gsNewGvMax').value || null,
+        gpa_value: document.getElementById('gsNewGvGpa').value || null,
+        is_passing: document.getElementById('gsNewGvPass').checked,
+        color_code: document.getElementById('gsNewGvColor').value,
+    };
+    fetch(`/api/gradebook/grading-scale/${gsActiveScaleId}/grade-values/create/`, {
+        method: 'POST', body: JSON.stringify(payload),
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF}
+    })
+    .then(gsParseResponse)
+    .then(d => {
+        if (d.success) {
+            showToast('Grade added', 'success');
+            gsHideAddGradeRow();
+            gsLoadScale(gsActiveScaleId);
+        } else {
+            showToast(d.error || 'Failed to add grade', 'danger');
+        }
+    })
+    .catch(err => showToast('Failed to add grade: ' + err.message, 'danger'));
+}
+
+function gsEditGradeValue(valueId) {
+    const row = document.getElementById('gsGvRow_' + valueId);
+    if (!row) return;
+    const cells = row.querySelectorAll('td');
+    const name = cells[0].textContent.trim();
+    const code = cells[1].textContent.trim();
+    const minPct = cells[2].textContent.trim();
+    const maxPct = cells[3].textContent.trim();
+    const gpa = cells[4].textContent.trim();
+    const isPassing = cells[5].textContent.includes('Yes');
+    const colorEl = cells[6].querySelector('span');
+    const color = colorEl ? colorEl.style.background : '#808080';
+    row.innerHTML = `<td colspan="8"><div class="row g-2 align-items-end p-1">
+        <div class="col-auto"><label class="form-label small">Name</label><input type="text" class="form-control form-control-sm" id="gsEv_name_${valueId}" value="${name}" style="width:90px"></div>
+        <div class="col-auto"><label class="form-label small">Code</label><input type="text" class="form-control form-control-sm" id="gsEv_code_${valueId}" value="${code}" style="width:90px"></div>
+        <div class="col-auto"><label class="form-label small">Min%</label><input type="number" class="form-control form-control-sm" id="gsEv_min_${valueId}" value="${minPct === '—' ? '' : minPct}" style="width:75px" step="0.01"></div>
+        <div class="col-auto"><label class="form-label small">Max%</label><input type="number" class="form-control form-control-sm" id="gsEv_max_${valueId}" value="${maxPct === '—' ? '' : maxPct}" style="width:75px" step="0.01"></div>
+        <div class="col-auto"><label class="form-label small">GPA</label><input type="number" class="form-control form-control-sm" id="gsEv_gpa_${valueId}" value="${gpa === '—' ? '' : gpa}" style="width:65px" step="0.01"></div>
+        <div class="col-auto d-flex align-items-center mt-3"><input type="checkbox" class="form-check-input me-1" id="gsEv_pass_${valueId}" ${isPassing ? 'checked' : ''}><label class="form-check-label small" for="gsEv_pass_${valueId}">Pass</label></div>
+        <div class="col-auto"><label class="form-label small">Color</label><input type="color" class="form-control form-control-sm p-0" id="gsEv_color_${valueId}" value="${color}" style="width:38px;height:31px"></div>
+        <div class="col-auto d-flex gap-1 align-items-end">
+            <button class="btn btn-sm btn-primary" onclick="gsUpdateGradeValue('${valueId}')">Save</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="gsLoadScale('${gsActiveScaleId}')">Cancel</button>
+        </div>
+    </div></td>`;
+}
+
+function gsUpdateGradeValue(valueId) {
+    const payload = {
+        name: document.getElementById(`gsEv_name_${valueId}`).value.trim(),
+        code: document.getElementById(`gsEv_code_${valueId}`).value.trim(),
+        min_percentage: document.getElementById(`gsEv_min_${valueId}`).value || null,
+        max_percentage: document.getElementById(`gsEv_max_${valueId}`).value || null,
+        gpa_value: document.getElementById(`gsEv_gpa_${valueId}`).value || null,
+        is_passing: document.getElementById(`gsEv_pass_${valueId}`).checked,
+        color_code: document.getElementById(`gsEv_color_${valueId}`).value,
+    };
+    fetch(`/api/gradebook/grade-value/${valueId}/update/`, {
+        method: 'POST', body: JSON.stringify(payload),
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF}
+    })
+    .then(gsParseResponse)
+    .then(d => {
+        if (d.success) { showToast('Grade updated', 'success'); gsLoadScale(gsActiveScaleId); }
+        else showToast(d.error || 'Failed to update', 'danger');
+    })
+    .catch(err => showToast('Update failed: ' + err.message, 'danger'));
+}
+
+function gsDeleteGradeValue(valueId, name) {
+    if (!confirm(`Delete grade “${name}”?`)) return;
+    fetch(`/api/gradebook/grade-value/${valueId}/delete/`, { method: 'POST', headers: {'X-CSRFToken': CSRF} })
+        .then(gsParseResponse)
+        .then(d => {
+            if (d.success) { showToast('Grade deleted', 'success'); gsLoadScale(gsActiveScaleId); }
+            else showToast(d.error || 'Failed to delete', 'danger');
+        })
+        .catch(err => showToast('Delete failed: ' + err.message, 'danger'));
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const codeEl = document.getElementById('gsScaleCode');
+    if (codeEl) codeEl.addEventListener('input', function() { this.value = this.value.toUpperCase().replace(/\s/g, '_'); });
+});
+
+// â"€â"€ Report Card Configuration Defaults â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+
+function openReportCardDefaultsModal() {
+    const savedOrder = "{{ rc_defaults.rc_section_order|default:''|escapejs }}";
+    if (savedOrder) {
+        try { rcApplySectionOrder(JSON.parse(savedOrder)); } catch(e) {}
+    }
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('reportCardDefaultsModal')).show();
+}
+
+function rcMoveSection(btn, dir) {
+    const li  = btn.closest('li');
+    const ul  = document.getElementById('rc_section_order_list');
+    const items = Array.from(ul.children);
+    const idx = items.indexOf(li);
+    const target = items[idx + dir];
+    if (!target) return;
+    if (dir === -1) ul.insertBefore(li, target); else ul.insertBefore(target, li);
+}
+
+function rcSerializeSectionOrder() {
+    const ul = document.getElementById('rc_section_order_list');
+    const order = Array.from(ul.children).map(li => li.dataset.key);
+    document.getElementById('rc_section_order').value = JSON.stringify(order);
+}
+
+function rcApplySectionOrder(order) {
+    if (!order || !order.length) return;
+    const ul = document.getElementById('rc_section_order_list');
+    const byKey = {};
+    Array.from(ul.children).forEach(li => { byKey[li.dataset.key] = li; });
+    order.forEach(key => { if (byKey[key]) ul.appendChild(byKey[key]); });
+}
+
+document.getElementById('reportCardDefaultsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    rcSerializeSectionOrder();
+    const btn = document.getElementById('rcDefaultsSaveBtn');
+    btn.disabled = true; btn.textContent = 'Saving...';
+    fetch("{% url 'core:report_card_defaults_api' %}", {
+        method: 'POST',
+        body: new FormData(this),
+        headers: {'X-CSRFToken': CSRF}
+    })
+    .then(r => r.json())
+    .then(d => {
+        btn.disabled = false; btn.textContent = 'Save Defaults';
+        if (d.success) {
+            showToast('Report card defaults saved', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('reportCardDefaultsModal'))?.hide();
+        } else {
+            showToast(d.error || 'Unknown error', 'danger');
+        }
+    })
+    .catch(() => {
+        btn.disabled = false; btn.textContent = 'Save Defaults';
+        showToast('An error occurred while saving defaults.', 'danger');
+    });
+});
+</script>
+{% endblock %}
+

@@ -1,0 +1,44 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead><tr><th>Employee</th><th>Title</th><th>Type</th><th>Severity</th><th>Outcome</th><th>Status</th>{% if can_manage %}<th width="60"></th>{% endif %}</tr></thead>
+        <tbody>
+            {% for c in cases %}
+                <tr>
+                    <td><a href="{% url 'core:employee_detail' c.employee_id %}"><strong>{{ c.employee.first_name }} {{ c.employee.last_name }}</strong></a></td>
+                    <td>{{ c.title }}</td>
+                    <td>{{ c.get_case_type_display }}</td>
+                    <td>{{ c.get_severity_display }}</td>
+                    <td>{{ c.get_outcome_display }}</td>
+                    <td><span class="badge bg-secondary">{{ c.get_status_display }}</span></td>
+                    {% if can_manage %}
+                    <td><button class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#case-{{ c.id }}"><i class="fas fa-pen"></i></button></td>
+                    {% endif %}
+                </tr>
+                {% if can_manage %}
+                <tr class="collapse" id="case-{{ c.id }}">
+                    <td colspan="7">
+                        <form class="row g-2" onsubmit="updateCase(event, '{{ c.id }}')">
+                            <div class="col-md-3"><label class="form-label">Status</label>
+                                <select class="form-select form-select-sm" name="status">
+                                    {% for value, label in case_status_choices %}<option value="{{ value }}" {% if c.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                                </select></div>
+                            <div class="col-md-3"><label class="form-label">Outcome</label>
+                                <select class="form-select form-select-sm" name="outcome">
+                                    {% for value, label in outcome_choices %}<option value="{{ value }}" {% if c.outcome == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                                </select></div>
+                            <div class="col-md-3"><label class="form-label">Hearing date</label><input type="date" class="form-control form-control-sm" name="hearing_date" value="{{ c.hearing_date|date:'Y-m-d'|default:'' }}"></div>
+                            <div class="col-md-3"><label class="form-label">Action date</label><input type="date" class="form-control form-control-sm" name="action_date" value="{{ c.action_date|date:'Y-m-d'|default:'' }}"></div>
+                            <div class="col-md-3"><label class="form-label">Warning expiry</label><input type="date" class="form-control form-control-sm" name="warning_expiry_date" value="{{ c.warning_expiry_date|date:'Y-m-d'|default:'' }}"></div>
+                            <div class="col-md-9"><label class="form-label">Investigation notes</label><input type="text" class="form-control form-control-sm" name="investigation_notes" value="{{ c.investigation_notes }}"></div>
+                            <div class="col-md-9"><label class="form-label">Outcome notes</label><input type="text" class="form-control form-control-sm" name="outcome_notes" value="{{ c.outcome_notes }}"></div>
+                            <div class="col-12"><button type="submit" class="btn btn-primary btn-sm mt-1">Save</button></div>
+                        </form>
+                    </td>
+                </tr>
+                {% endif %}
+            {% empty %}
+                <tr class="empty-state"><td colspan="7">No disciplinary cases.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

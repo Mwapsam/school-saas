@@ -1,0 +1,328 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Academic Years" description="The active year is the default for admissions, exams, and batches. Only one year can be active at a time." icon='fa-calendar' back_url=back_url|default:back_fallback crumbs=crumbs %}
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-primary btn-sm" onclick="openAcademicYearModal()">
+        <i class="fas fa-plus me-1" aria-hidden="true"></i>New Academic Year
+    </button>
+</div>
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Academic Years{% endblock %}
+
+
+
+{% block layout_table %}
+{# ── Years table ── #}
+<div class="pw-card">
+    <div class="pw-card-header">
+        <span class="pw-card-title">
+            <i class="fas fa-list me-1" aria-hidden="true"></i>All Academic Years
+        </span>
+        <span class="pw-card-meta">{{ academic_years|length }} year{{ academic_years|length|pluralize }}</span>
+    </div>
+
+    {% if academic_years %}
+    <div class="pw-table-wrap">
+        <table class="pw-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Status</th>
+                    <th style="width:1px">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for year in academic_years %}
+                <tr>
+                    <td><strong>{{ year.name }}</strong></td>
+                    <td style="font-size:13px;color:var(--color-muted)">{{ year.start_date|date:"d M Y" }}</td>
+                    <td style="font-size:13px;color:var(--color-muted)">{{ year.end_date|date:"d M Y" }}</td>
+                    <td>
+                        {% if year.is_active %}
+                        <span class="ay-badge-active">
+                            <i class="fas fa-circle" style="font-size:7px" aria-hidden="true"></i> Active
+                        </span>
+                        {% else %}
+                        <span class="ay-badge-inactive">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="ay-dropdown dropdown">
+                            <button class="ay-menu-btn" type="button"
+                                    data-bs-toggle="dropdown" aria-expanded="false"
+                                    aria-label="Actions for {{ year.name }}">
+                                <i class="fas fa-ellipsis-v" aria-hidden="true"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <button class="dropdown-item" onclick="editAcademicYear('{{ year.id }}')">
+                                        <i class="fas fa-pencil-alt" aria-hidden="true"></i> Edit
+                                    </button>
+                                </li>
+                                {% if not year.is_active %}
+                                <li>
+                                    <button class="dropdown-item" onclick="activateYear('{{ year.id }}', '{{ year.name|escapejs }}')">
+                                        <i class="fas fa-check-circle" aria-hidden="true"></i> Set as Active
+                                    </button>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <button class="dropdown-item text-danger"
+                                            onclick="deleteAcademicYear('{{ year.id }}', '{{ year.name|escapejs }}')">
+                                        <i class="fas fa-trash-alt" aria-hidden="true"></i> Delete
+                                    </button>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="ay-empty">
+        <div class="ay-empty-icon" aria-hidden="true">
+            <i class="fas fa-calendar-alt"></i>
+        </div>
+        <h5>No academic years yet</h5>
+        <p>Start by adding your first academic year to organise your school calendar.</p>
+        <button class="btn btn-primary btn-sm" onclick="openAcademicYearModal()">
+            <i class="fas fa-plus me-1" aria-hidden="true"></i>New Academic Year
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+{# ── Create / Edit Modal ── #}
+<div class="modal fade" id="academicYearModal" tabindex="-1" aria-labelledby="academicYearModalLabel">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header pw-brand">
+                <h5 class="modal-title" id="academicYearModalLabel">
+                    <i class="fas fa-calendar-alt me-2" aria-hidden="true"></i>New Academic Year
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="academicYearForm">
+                {% csrf_token %}
+                <div class="modal-body">
+
+                    <p class="ay-modal-section">Year Details</p>
+
+                    <div class="mb-3">
+                        <label for="yearName" class="form-label">
+                            Academic Year Name <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="pw-form-control" id="yearName" name="name"
+                               placeholder='e.g. 2024-2025' required>
+                        <div class="ss-form-hint" style="font-size:12px;color:var(--color-muted);margin-top:4px">
+                            Use a format like "2024-2025" or "AY 2024-25"
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label for="startDate" class="form-label">
+                                Start Date <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" class="pw-form-control" id="startDate" name="start_date" required>
+                        </div>
+                        <div class="col-6">
+                            <label for="endDate" class="form-label">
+                                End Date <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" class="pw-form-control" id="endDate" name="end_date" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="isActive" name="is_active" checked>
+                            <label class="form-check-label" for="isActive">
+                                Set as the active academic year
+                            </label>
+                        </div>
+                        <div style="font-size:12px;color:var(--color-muted);margin-top:4px;padding-left:24px">
+                            Only one year can be active at a time — enabling this will deactivate the current one.
+                        </div>
+                    </div>
+
+                    <p class="ay-modal-section">Admission Period <small style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--color-muted)">(optional)</small></p>
+
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label for="admissionStartDate" class="form-label">Admission Start</label>
+                            <input type="date" class="pw-form-control" id="admissionStartDate" name="admission_start_date">
+                        </div>
+                        <div class="col-6">
+                            <label for="admissionEndDate" class="form-label">Admission End</label>
+                            <input type="date" class="pw-form-control" id="admissionEndDate" name="admission_end_date">
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="aySubmitBtn">
+                        <i class="fas fa-save me-1" aria-hidden="true"></i>
+                        <span id="aySubmitLabel">Save Academic Year</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let editingYearId = null;
+
+function openAcademicYearModal(yearData) {
+    const form = document.getElementById('academicYearForm');
+    const title = document.getElementById('academicYearModalLabel');
+    const label = document.getElementById('aySubmitLabel');
+
+    form.reset();
+    editingYearId = null;
+
+    if (yearData) {
+        title.innerHTML = '<i class="fas fa-pencil-alt me-2"></i>Edit Academic Year';
+        label.textContent = 'Save Changes';
+        editingYearId = yearData.id;
+        document.getElementById('yearName').value = yearData.name || '';
+        document.getElementById('startDate').value = yearData.start_date || '';
+        document.getElementById('endDate').value = yearData.end_date || '';
+        document.getElementById('admissionStartDate').value = yearData.admission_start_date || '';
+        document.getElementById('admissionEndDate').value = yearData.admission_end_date || '';
+        document.getElementById('isActive').checked = yearData.is_active || false;
+    } else {
+        title.innerHTML = '<i class="fas fa-calendar-alt me-2"></i>New Academic Year';
+        label.textContent = 'Save Academic Year';
+        const now = new Date();
+        document.getElementById('startDate').value = new Date(now.getFullYear(), 3, 1).toISOString().split('T')[0];
+        document.getElementById('endDate').value = new Date(now.getFullYear() + 1, 2, 31).toISOString().split('T')[0];
+        document.getElementById('yearName').value = `${now.getFullYear()}-${now.getFullYear() + 1}`;
+    }
+
+    new bootstrap.Modal(document.getElementById('academicYearModal')).show();
+}
+
+function editAcademicYear(yearId) {
+    fetch(`/api/academic/years/${yearId}/`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) openAcademicYearModal(data.academic_year);
+            else showToast('Failed to load academic year: ' + data.error, 'danger');
+        })
+        .catch(() => showToast('Failed to load academic year data.', 'danger'));
+}
+
+function activateYear(yearId, yearName) {
+    showConfirmModal(
+        `Set <strong>${yearName}</strong> as the active academic year? This will deactivate the current active year.`,
+        function () {
+            const fd = new FormData();
+            fd.append('academic_year_id', yearId);
+            fetch('/api/academic/set-active-year/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+                body: fd,
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) { showToast(data.message, 'success'); setTimeout(() => location.reload(), 800); }
+                else showToast(data.error, 'danger');
+            })
+            .catch(() => showToast('Failed to activate academic year.', 'danger'));
+        },
+        { heading: 'Set Active Year', okLabel: 'Set Active' }
+    );
+}
+
+function deleteAcademicYear(yearId, yearName) {
+    showDanger(
+        `Delete academic year <strong>${yearName}</strong>? This cannot be undone and will affect all related data.`,
+        function () {
+            fetch(`/api/academic/years/${yearId}/delete/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) { showToast(data.message, 'success'); setTimeout(() => location.reload(), 800); }
+                else showToast(data.error, 'danger');
+            })
+            .catch(() => showToast('Failed to delete academic year.', 'danger'));
+        },
+        { heading: 'Delete Academic Year', okLabel: 'Delete' }
+    );
+}
+
+document.getElementById('academicYearForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const startDate = new Date(document.getElementById('startDate').value);
+    const endDate   = new Date(document.getElementById('endDate').value);
+    const admStart  = document.getElementById('admissionStartDate').value;
+    const admEnd    = document.getElementById('admissionEndDate').value;
+
+    if (startDate >= endDate) {
+        showToast('End date must be after start date', 'warning');
+        return;
+    }
+    if (admStart && admEnd && new Date(admStart) >= new Date(admEnd)) {
+        showToast('Admission end date must be after admission start date', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('aySubmitBtn');
+    const label = document.getElementById('aySubmitLabel');
+    const origLabel = label.textContent;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading-spinner d-inline-block me-1"></span>Saving…';
+
+    const fd = new FormData(this);
+    fd.set('is_active', document.getElementById('isActive').checked ? 'true' : 'false');
+
+    const url = editingYearId
+        ? `/api/academic/years/${editingYearId}/update/`
+        : '/api/academic/create-year/';
+
+    fetch(url, { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('academicYearModal')).hide();
+                location.reload();
+            } else {
+                showToast(data.error, 'danger');
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fas fa-save me-1"></i><span>${origLabel}</span>`;
+            }
+        })
+        .catch(() => {
+            showToast('Request failed. Please try again.', 'danger');
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-save me-1"></i><span>${origLabel}</span>`;
+        });
+});
+
+document.getElementById('startDate').addEventListener('change', function () {
+    if (editingYearId) return;
+    const y = new Date(this.value).getFullYear();
+    document.getElementById('yearName').value = `${y}-${y + 1}`;
+    if (!document.getElementById('endDate').value) {
+        document.getElementById('endDate').value = new Date(y + 1, 2, 31).toISOString().split('T')[0];
+    }
+});
+</script>
+{% endblock %}

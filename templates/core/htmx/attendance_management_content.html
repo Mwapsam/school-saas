@@ -1,0 +1,135 @@
+{% load static %}
+
+{% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<div id="attendance-messages"></div>
+
+{% if attendance_data %}
+    <!-- Attendance Summary -->
+    <div class="attendance-summary">
+        <div class="summary-item">
+            <div class="summary-number text-primary">{{ attendance_data.total_students }}</div>
+            <div class="summary-label">Total Students</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-number text-success">{{ attendance_data.present_count }}</div>
+            <div class="summary-label">Present</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-number text-danger">{{ attendance_data.absent_count }}</div>
+            <div class="summary-label">Absent</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-number text-warning">{{ attendance_data.partial_count }}</div>
+            <div class="summary-label">Partial</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-number text-info">{{ attendance_data.attendance_percentage|floatformat:1 }}%</div>
+            <div class="summary-label">Attendance %</div>
+        </div>
+    </div>
+    
+    <!-- Attendance Table -->
+    <div class="attendance-card">
+        <div class="attendance-header">
+            <h4 class="mb-2">{{ attendance_data.batch.name }} - {{ selected_date }}</h4>
+            <small>Mark attendance for forenoon and afternoon sessions</small>
+        </div>
+        
+        <form id="attendanceForm">
+            <input type="hidden" name="batch_id" value="{{ selected_batch_id }}">
+            <input type="hidden" name="attendance_date" value="{{ selected_date }}">
+            
+            <table class="attendance-table">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Student ID</th>
+                        <th>
+                            Forenoon
+                            <br><small class="text-muted">
+                                <input type="checkbox" id="selectAllForenoon" class="attendance-checkbox" style="width: 16px; height: 16px;">
+                                All
+                            </small>
+                        </th>
+                        <th>
+                            Afternoon
+                            <br><small class="text-muted">
+                                <input type="checkbox" id="selectAllAfternoon" class="attendance-checkbox" style="width: 16px; height: 16px;">
+                                All
+                            </small>
+                        </th>
+                        <th>Status</th>
+                        <th>Reason (if absent)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student_data in attendance_data.students %}
+                        {% with attendance=student_data.attendance %}
+                            <tr class="student-row {% if attendance.forenoon and attendance.afternoon %}present{% elif not attendance.forenoon and not attendance.afternoon %}absent{% else %}partial{% endif %}" 
+                                data-student-id="{{ student_data.student.id }}">
+                                <td>
+                                    <strong>{{ student_data.student.first_name }} {{ student_data.student.last_name }}</strong>
+                                </td>
+                                <td>{{ student_data.student.student_id }}</td>
+                                <td class="text-center">
+                                    <input type="checkbox" name="forenoon_{{ student_data.student.id }}" 
+                                           class="attendance-checkbox forenoon-checkbox"
+                                           {% if attendance.forenoon %}checked{% endif %}>
+                                </td>
+                                <td class="text-center">
+                                    <input type="checkbox" name="afternoon_{{ student_data.student.id }}" 
+                                           class="attendance-checkbox afternoon-checkbox"
+                                           {% if attendance.afternoon %}checked{% endif %}>
+                                </td>
+                                <td>
+                                    <span class="status-indicator {% if attendance.forenoon and attendance.afternoon %}status-present{% elif not attendance.forenoon and not attendance.afternoon %}status-absent{% else %}status-partial{% endif %}"></span>
+                                    <span class="status-text">
+                                        {% if attendance.forenoon and attendance.afternoon %}
+                                            Present
+                                        {% elif not attendance.forenoon and not attendance.afternoon %}
+                                            Absent
+                                        {% else %}
+                                            Partial
+                                        {% endif %}
+                                    </span>
+                                </td>
+                                <td>
+                                    <input type="text" name="reason_{{ student_data.student.id }}" 
+                                           class="reason-input" placeholder="Reason for absence..."
+                                           value="{{ attendance.reason|default:'' }}">
+                                </td>
+                            </tr>
+                        {% endwith %}
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <div class="attendance-actions">
+                <div class="bulk-actions">
+                    <button type="button" class="btn btn-outline-success" onclick="markAllPresent()">
+                        Mark All Present
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" onclick="markAllAbsent()">
+                        Mark All Absent
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="clearAll()">
+                        Clear All
+                    </button>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        Save Attendance
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+{% else %}
+    <div class="no-data">
+        <h5>Select a batch and date to mark attendance</h5>
+        <p class="text-muted">Choose a class and date from the filters above to load the attendance sheet.</p>
+    </div>
+{% endif %}

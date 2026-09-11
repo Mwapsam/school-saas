@@ -1,0 +1,17 @@
+{% comment %}
+Pinewood loading state — a small spinner, typically placed inside an
+htmx-swapped container while `hx-indicator` is active, or as a standalone
+placeholder while content loads.
+
+Usage:
+  <div id="panel" hx-get="..." hx-trigger="load">
+    {% include 'core/components/loading_state.html' with message="Loading students…" %}
+  </div>
+
+Params:
+  message (optional) — text next to the spinner
+{% endcomment %}
+<div class="d-flex align-items-center gap-2 text-muted py-4 justify-content-center">
+  <span class="loading-spinner"></span>
+  {% if message %}<span>{{ message }}</span>{% endif %}
+</div>

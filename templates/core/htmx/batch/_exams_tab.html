@@ -1,0 +1,50 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <span class="pw-card-title"><i class="fas fa-graduation-cap me-2"></i>Examinations</span>
+    <a href="/gradebook/management/?batch_id={{ batch.id }}" class="pw-btn pw-btn-primary pw-btn-sm">
+        <i class="fas fa-plus"></i> Manage Exams
+    </a>
+</div>
+
+{% if exam_groups %}
+<div class="pw-table-wrap">
+    <table class="pw-table">
+        <thead>
+            <tr>
+                <th>Exam Plan</th>
+                <th>Type</th>
+                <th>Date</th>
+                <th style="width:90px">Subjects</th>
+                <th style="width:160px">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for group in exam_groups %}
+            <tr>
+                <td><strong>{{ group.name }}</strong></td>
+                <td>{{ group.exam_type|default:"—" }}</td>
+                <td>{{ group.exam_date|date:"d M Y" }}</td>
+                <td>{{ group.exams.count }}</td>
+                <td>
+                    {% if group.result_published %}
+                        <span class="pw-badge pw-badge-active">Results published</span>
+                    {% elif group.is_published %}
+                        <span class="pw-badge pw-badge-active">Published</span>
+                    {% else %}
+                        <span class="pw-badge pw-badge-zero">Draft</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="pw-empty">
+    <i class="fas fa-graduation-cap"></i>
+    <h5>No examinations yet</h5>
+    <p class="pw-card-meta mb-3">Create exam plans and schedules for {{ batch.name }}.</p>
+    <a href="/gradebook/management/?batch_id={{ batch.id }}" class="pw-btn pw-btn-primary pw-btn-sm">
+        <i class="fas fa-plus"></i> Create Exam
+    </a>
+</div>
+{% endif %}

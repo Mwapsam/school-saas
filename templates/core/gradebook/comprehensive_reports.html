@@ -1,0 +1,1758 @@
+{% extends 'core/layouts/form.html' %}
+
+{% load static %}
+
+
+
+{% block page_title %}Comprehensive Reports{% endblock %}
+
+
+
+
+
+{% block layout_header %}
+
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Comprehensive Reports" description="Generate student report cards and academic analytics." icon="fa-chart-bar" back_url=back_url|default:back_fallback crumbs=crumbs %}
+
+{% endblock %}
+
+
+
+{% block layout_form %}
+<div class="gb-comprehensive-reports">
+
+    <!-- Generate Report Form -->
+
+    <div class="card border-0 shadow-sm mb-4">
+
+        <div class="card-header bg-white fw-medium">Generate Student Report Cards</div>
+
+        <div class="card-body">
+
+            {% csrf_token %}
+
+            <div class="row g-3 mb-3">
+
+                <div class="col-md-4">
+
+                    <label class="form-label">Exam Group <span class="text-danger">*</span></label>
+
+                    <select class="form-select" id="examGroupSelect" onchange="filterTemplatesByExamGroup()">
+
+                        <option value="">— Select exam group —</option>
+
+                        {% for eg in exam_groups %}
+
+                        <option value="{{ eg.id }}" data-batch-id="{{ eg.batch_id }}">{{ eg.name }} ({{ eg.batch.name }})</option>
+
+                        {% empty %}
+
+                        <option disabled>No exam groups for active year</option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <label class="form-label">Report Template <span class="text-danger">*</span></label>
+
+                    <select class="form-select" id="templateSelect" onchange="onTemplateSelectChange()">
+
+                        <option value="">— Select template —</option>
+
+                        {% for t in report_templates %}
+
+                        <option value="{{ t.id }}" data-batch-id="{{ t.batch_id }}"
+
+                                data-layout="{{ t.layout_type }}">{{ t.name }}{% if t.layout_type == 'SKILLS' %} [Skills]{% elif t.layout_type == 'SIMPLE_ACADEMIC' %} [Simple]{% else %} [Full]{% endif %}</option>
+
+                        {% empty %}
+
+                        <option disabled>No templates found — create one at Reports › Templates</option>
+
+                        {% endfor %}
+
+                    </select>
+
+                    <div id="templateFormatBadge" class="form-text mt-1 d-none"></div>
+
+                    <div id="templateMismatchWarn" class="form-text text-warning d-none">
+
+                        This template belongs to a different batch — the layout may not match.
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <label class="form-label">Students</label>
+
+                    <div class="form-text mb-2">Leave blank to generate for all students in the batch.</div>
+
+                    <div id="studentCheckboxes" style="max-height:150px;overflow-y:auto;border:1px solid #dee2e6;border-radius:4px;padding:6px">
+
+                        <span class="text-muted small">Select an exam group to load students.</span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Advanced Options (section overrides) -->
+
+            <div class="mb-3">
+
+                <a class="small text-muted text-decoration-none" data-bs-toggle="collapse" href="#advancedOptions">
+
+                    <i class="fas fa-chevron-down me-1" style="font-size:.75rem"></i>Advanced Options
+
+                </a>
+
+                <div class="collapse mt-2" id="advancedOptions">
+
+                    <div class="border rounded p-3 bg-light">
+
+                        <div class="small fw-medium mb-2 text-muted">Override which sections to include for this generation run (does not change the saved template)</div>
+
+                        <div class="row g-2" id="sectionOverrideChecks">
+
+                            {% for key, label in section_flags %}
+
+                            <div class="col-md-3 col-6">
+
+                                <div class="form-check form-switch">
+
+                                    <input class="form-check-input section-override" type="checkbox"
+
+                                           id="so_{{ key }}" data-key="{{ key }}" checked>
+
+                                    <label class="form-check-label small" for="so_{{ key }}">{{ label }}</label>
+
+                                </div>
+
+                            </div>
+
+                            {% endfor %}
+
+                        </div>
+
+                        <button class="btn btn-sm btn-link text-muted p-0 mt-1" onclick="resetOverridesToTemplate()">
+
+                            Reset to template defaults
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="d-flex gap-2 align-items-center">
+
+                <button class="btn btn-primary" id="generateBtn" onclick="triggerGenerate()">
+
+                    <i class="fas fa-file-pdf me-1"></i> Generate Reports
+
+                </button>
+
+                <span id="generateStatus" class="small text-muted"></span>
+
+            </div>
+
+
+
+            <!-- Pre-flight checklist -->
+
+            <div id="preflightWrap" class="mt-3 d-none">
+
+                <div class="border rounded p-3 bg-light">
+
+                    <div class="fw-medium small mb-2"><i class="fas fa-clipboard-check me-1 text-primary"></i> Pre-generation checklist</div>
+
+                    <div id="preflightList" class="small"></div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- Live progress + results panel -->
+
+            <div id="genProgressWrap" class="mt-3 d-none">
+
+                <div class="d-flex justify-content-between align-items-center mb-1">
+
+                    <span class="small fw-medium" id="genProgressLabel">Generating reports…</span>
+
+                    <span class="small text-muted" id="genProgressCount"></span>
+
+                </div>
+
+                <div class="progress" style="height:8px;border-radius:4px;">
+
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+
+                         id="genProgressBar" style="width:0%"></div>
+
+                </div>
+
+                <div class="mt-2">
+
+                    <button class="btn btn-sm btn-outline-danger" id="cancelGenBtn" onclick="cancelGeneration()">
+
+                        <i class="fas fa-times me-1"></i> Cancel
+
+                    </button>
+
+                    <span class="small text-muted ms-2" id="genElapsed"></span>
+
+                </div>
+
+            </div>
+
+            <div id="genResults" class="mt-3 d-none"></div>
+
+        </div>
+
+    </div>
+
+
+
+</div>
+{% endblock %}
+
+
+
+{% block layout_validation %}
+
+{% endblock %}
+
+
+
+{% block layout_actions %}
+
+{% endblock %}
+
+
+
+{% block layout_extra %}
+<div class="gb-comprehensive-reports">
+
+    <!-- Quick links -->
+
+    <div class="row mt-4">
+
+        <div class="col-md-4 mb-3">
+
+            <div class="card h-100 border-0 shadow-sm">
+
+                <div class="card-body">
+
+                    <h5 class="text-success">Report Templates</h5>
+
+                    <p class="text-muted small">Configure layout, school details, and what to include in reports.</p>
+
+                    <a href="{% url 'core:report_template_list' %}" class="btn btn-sm btn-outline-success">Manage Templates</a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-4 mb-3">
+
+            <div class="card h-100 border-0 shadow-sm">
+
+                <div class="card-body">
+
+                    <h5 class="text-success">Marks Entry</h5>
+
+                    <p class="text-muted small">Enter student marks before generating reports.</p>
+
+                    <a href="{% url 'core:gradebook_management' %}" class="btn btn-sm btn-outline-success">Enter Marks</a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-4 mb-3">
+
+            <div class="card h-100 border-0 shadow-sm">
+
+                <div class="card-body">
+
+                    <h5 class="text-success">Exam Planners</h5>
+
+                    <p class="text-muted small">Create and manage exam groups and terms.</p>
+
+                    <a href="{% url 'core:exam_planners_list' %}" class="btn btn-sm btn-outline-success">Exam Planners</a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Template Library Modal -->
+
+<div class="modal fade" id="templateLibraryModal" tabindex="-1">
+
+    <div class="modal-dialog modal-xl">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <h5 class="modal-title">Report Template Library</h5>
+
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
+            </div>
+
+            <div class="modal-body">
+
+                <div class="row">
+
+                    <div class="col-md-8">
+
+                        <div class="row" id="templateLibraryGrid">
+
+                            <!-- Template library content will be loaded here -->
+
+                        </div>
+
+                    </div>
+
+                    <div class="col-md-4">
+
+                        <div class="template-details">
+
+                            <h6>Template Details</h6>
+
+                            <div id="templatePreviewDetails">
+
+                                <p class="text-muted">Select a template to view details</p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+
+                <button type="button" class="btn btn-primary" onclick="useSelectedTemplate()">
+
+                    Use Template
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+</div>
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+const CSRF = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
+
+
+
+function selectReportType(type) {
+
+    selectedReportType = type;
+
+
+
+    // Update UI
+
+    $('.report-type-card').removeClass('selected');
+
+    $(`[onclick="selectReportType('${type}')"]`).addClass('selected');
+
+
+
+    // Show configuration panel
+
+    $('#reportConfiguration').slideDown();
+
+
+
+    // Update advanced options visibility
+
+    $('#academicAdvancedOptions, #skillsAdvancedOptions').hide();
+
+    if (type === 'academic' || type === 'comprehensive') {
+
+        $('#academicAdvancedOptions').show();
+
+    }
+
+    if (type === 'skills' || type === 'comprehensive') {
+
+        $('#skillsAdvancedOptions').show();
+
+    }
+
+
+
+    // Update preview
+
+    updateReportPreview();
+
+    updateReportStats();
+
+}
+
+
+
+function updateSelectionMode() {
+
+    const mode = $('input[name="selectionScope"]:checked').val();
+
+
+
+    if (mode === 'class') {
+
+        $('#classSelectionSection').show();
+
+        $('#studentSelectionSection').hide();
+
+    } else {
+
+        $('#classSelectionSection').hide();
+
+        $('#studentSelectionSection').show();
+
+        loadStudentList();
+
+    }
+
+
+
+    updateReportStats();
+
+}
+
+
+
+function loadStudentList() {
+
+    const academicYear = $('#academicYearSelect').val();
+
+
+
+    $.get(`/api/gradebook/students/`, { academic_year: academicYear }, function(data) {
+
+        const studentList = $('#studentList');
+
+        studentList.empty();
+
+
+
+        data.students.forEach(student => {
+
+            const initials = student.first_name.charAt(0) +
+
+                           (student.last_name ? student.last_name.charAt(0) : '');
+
+
+
+            studentList.append(`
+
+                <div class="student-item">
+
+                    <input type="checkbox" class="form-check-input me-2"
+
+                           value="${student.id}" onchange="updateReportStats()">
+
+                    <div class="student-avatar">${initials}</div>
+
+                    <div class="student-info">
+
+                        <h6>${student.first_name} ${student.last_name || ''}</h6>
+
+                        <small>${student.admission_no} • ${student.batch_name}</small>
+
+                    </div>
+
+                </div>
+
+            `);
+
+        });
+
+    });
+
+}
+
+
+
+function filterStudents() {
+
+    const query = $('#studentSearch').val().toLowerCase();
+
+    $('.student-item').each(function() {
+
+        const text = $(this).text().toLowerCase();
+
+        $(this).toggle(text.includes(query));
+
+    });
+
+}
+
+
+
+function selectAllClasses() {
+
+    $('#classSelectionGrid input[type="checkbox"]').prop('checked', true);
+
+    updateStudentCount();
+
+}
+
+
+
+function clearAllClasses() {
+
+    $('#classSelectionGrid input[type="checkbox"]').prop('checked', false);
+
+    updateStudentCount();
+
+}
+
+
+
+function updateStudentCount() {
+
+    let totalStudents = 0;
+
+    $('#classSelectionGrid input[type="checkbox"]:checked').each(function() {
+
+        const studentCount = parseInt($(this).closest('.class-checkbox')
+
+            .find('small').text().match(/\d+/)[0]);
+
+        totalStudents += studentCount;
+
+    });
+
+
+
+    updateReportStats();
+
+}
+
+
+
+function updateReportStats() {
+
+    if (!selectedReportType) return;
+
+
+
+    const selectionMode = $('input[name="selectionScope"]:checked').val();
+
+    let studentCount = 0;
+
+    let classCount = 0;
+
+
+
+    if (selectionMode === 'class') {
+
+        classCount = $('#classSelectionGrid input[type="checkbox"]:checked').length;
+
+        $('#classSelectionGrid input[type="checkbox"]:checked').each(function() {
+
+            const count = parseInt($(this).closest('.class-checkbox')
+
+                .find('small').text().match(/\d+/)[0]);
+
+            studentCount += count;
+
+        });
+
+    } else {
+
+        studentCount = $('#studentList input[type="checkbox"]:checked').length;
+
+        classCount = new Set(Array.from($('#studentList input[type="checkbox"]:checked'))
+
+            .map(cb => $(cb).closest('.student-item').find('small').text().split('•')[1].trim())).size;
+
+    }
+
+
+
+    $('#totalStudents').text(studentCount);
+
+    $('#totalClasses').text(classCount);
+
+    $('#reportPages').text(Math.ceil(studentCount * 1.2)); // Rough estimate
+
+
+
+    if (studentCount > 0) {
+
+        $('#reportStats').show();
+
+    } else {
+
+        $('#reportStats').hide();
+
+    }
+
+}
+
+
+
+function updateReportPreview() {
+
+    if (!selectedReportType) return;
+
+
+
+    const preview = $('#reportPreview');
+
+    preview.addClass('has-content');
+
+
+
+    let content = '';
+
+    switch (selectedReportType) {
+
+        case 'academic':
+
+            content = `
+
+                <i class="fas fa-graduation-cap fa-2x text-primary mb-2"></i>
+
+                <h6>Academic Report Cards</h6>
+
+                <p class="text-muted small mb-0">Subject grades, percentages, and overall performance analysis</p>
+
+            `;
+
+            break;
+
+        case 'skills':
+
+            content = `
+
+                <i class="fas fa-child fa-2x text-success mb-2"></i>
+
+                <h6>Skills Assessment Reports</h6>
+
+                <p class="text-muted small mb-0">Developmental skills evaluation with progress indicators</p>
+
+            `;
+
+            break;
+
+        case 'comprehensive':
+
+            content = `
+
+                <i class="fas fa-chart-pie fa-2x text-info mb-2"></i>
+
+                <h6>Comprehensive Reports</h6>
+
+                <p class="text-muted small mb-0">Combined academic and skills assessment with holistic evaluation</p>
+
+            `;
+
+            break;
+
+        case 'comparative':
+
+            content = `
+
+                <i class="fas fa-chart-line fa-2x text-warning mb-2"></i>
+
+                <h6>Comparative Analytics</h6>
+
+                <p class="text-muted small mb-0">Performance trends, class comparisons, and statistical insights</p>
+
+            `;
+
+            break;
+
+    }
+
+
+
+    preview.html(content);
+
+}
+
+
+
+function selectTemplate(templateName) {
+
+    selectedTemplate = templateName;
+
+    $('.report-template-preview').removeClass('selected');
+
+    $(`[onclick="selectTemplate('${templateName}')"]`).addClass('selected');
+
+}
+
+
+
+function loadTerms() {
+
+    const academicYearId = $('#academicYearSelect').val();
+
+
+
+    $.get(`/api/gradebook/terms/`, { academic_year: academicYearId }, function(data) {
+
+        const termSelect = $('#termSelect');
+
+        termSelect.empty().append('<option value="">All Terms</option>');
+
+
+
+        data.terms.forEach(term => {
+
+            termSelect.append(`<option value="${term.id}">${term.name}</option>`);
+
+        });
+
+    });
+
+}
+
+
+
+function generateReports() {
+
+    if (!selectedReportType) {
+
+        showToast('Please select a report type first', 'warning');
+
+        return;
+
+    }
+
+
+
+    const selectionMode = $('input[name="selectionScope"]:checked').val();
+
+    let selectedItems = [];
+
+
+
+    if (selectionMode === 'class') {
+
+        selectedItems = Array.from($('#classSelectionGrid input[type="checkbox"]:checked'))
+
+            .map(cb => cb.value);
+
+        if (selectedItems.length === 0) {
+
+            showToast('Please select at least one class', 'warning');
+
+            return;
+
+        }
+
+    } else {
+
+        selectedItems = Array.from($('#studentList input[type="checkbox"]:checked'))
+
+            .map(cb => cb.value);
+
+        if (selectedItems.length === 0) {
+
+            showToast('Please select at least one student', 'warning');
+
+            return;
+
+        }
+
+    }
+
+
+
+    // Show progress
+
+    $('#generationProgress').show();
+
+    simulateProgress();
+
+
+
+    // Prepare report configuration
+
+    const config = {
+
+        report_type: selectedReportType,
+
+        selection_mode: selectionMode,
+
+        selected_items: selectedItems,
+
+        academic_year: $('#academicYearSelect').val(),
+
+        term: $('#termSelect').val(),
+
+        report_date: $('#reportDate').val(),
+
+        template: selectedTemplate,
+
+        output_format: $('#outputFormat').val(),
+
+        options: {
+
+            include_grades: $('#includeGrades').is(':checked'),
+
+            include_percentages: $('#includePercentages').is(':checked'),
+
+            include_class_average: $('#includeClassAverage').is(':checked'),
+
+            include_ranking: $('#includeRanking').is(':checked'),
+
+            include_coscholastic: $('#includeCoscholastic').is(':checked'),
+
+            include_progress_chart: $('#includeProgressChart').is(':checked'),
+
+            include_watermark: $('#includeWatermark').is(':checked'),
+
+            enable_digital_signature: $('#enableDigitalSignature').is(':checked')
+
+        },
+
+        customization: {
+
+            header_color: $('#headerColor').val(),
+
+            custom_footer: $('#customFooter').val()
+
+        }
+
+    };
+
+
+
+    // Submit generation request
+
+    $.ajax({
+
+        url: '/api/gradebook/generate-reports/',
+
+        type: 'POST',
+
+        data: JSON.stringify(config),
+
+        contentType: 'application/json',
+
+        headers: {
+
+            'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+
+        },
+
+        success: function(response) {
+
+            if (response.success) {
+
+                completeProgress();
+
+                $('#downloadButton, #emailButton').show();
+
+            } else {
+
+                showToast(response.error || 'Error generating reports', 'danger');
+
+                $('#generationProgress').hide();
+
+            }
+
+        },
+
+        error: function() {
+
+            showToast('Failed to generate reports', 'danger');
+
+            $('#generationProgress').hide();
+
+        }
+
+    });
+
+}
+
+
+
+function simulateProgress() {
+
+    let progress = 0;
+
+    const interval = setInterval(() => {
+
+        progress += Math.random() * 15;
+
+        if (progress > 95) progress = 95;
+
+
+
+        $('#progressFill').css('width', progress + '%');
+
+        $('#progressPercent').text(Math.round(progress) + '%');
+
+
+
+        if (progress < 30) {
+
+            $('#progressStatus').text('Preparing data...');
+
+        } else if (progress < 60) {
+
+            $('#progressStatus').text('Processing reports...');
+
+        } else if (progress < 90) {
+
+            $('#progressStatus').text('Formatting documents...');
+
+        } else {
+
+            $('#progressStatus').text('Finalizing...');
+
+        }
+
+    }, 500);
+
+
+
+    // Store interval ID for cleanup
+
+    window.progressInterval = interval;
+
+}
+
+
+
+function completeProgress() {
+
+    clearInterval(window.progressInterval);
+
+    $('#progressFill').css('width', '100%');
+
+    $('#progressPercent').text('100%');
+
+    $('#progressStatus').text('Complete!');
+
+}
+
+
+
+function previewReport() {
+
+    // Implementation for preview functionality
+
+    showToast('Preview functionality coming soon', 'info');
+
+}
+
+
+
+function downloadReports() {
+
+    // Implementation for download
+
+    window.open('/api/gradebook/download-reports/', '_blank');
+
+}
+
+
+
+function emailReports() {
+
+    // Implementation for email functionality
+
+    showToast('Email functionality coming soon', 'info');
+
+}
+
+
+
+function showTemplateLibrary() {
+
+    $('#templateLibraryModal').modal('show');
+
+    loadTemplateLibrary();
+
+}
+
+
+
+function loadTemplateLibrary() {
+
+    // Load template library content
+
+    const templates = [
+
+        { id: 'classic', name: 'Classic', description: 'Traditional academic report format' },
+
+        { id: 'modern', name: 'Modern', description: 'Clean contemporary design' },
+
+        { id: 'detailed', name: 'Detailed', description: 'Comprehensive information layout' },
+
+        { id: 'skills-focused', name: 'Skills Focused', description: 'Optimized for skills assessment' }
+
+    ];
+
+
+
+    const grid = $('#templateLibraryGrid');
+
+    grid.empty();
+
+
+
+    templates.forEach(template => {
+
+        grid.append(`
+
+            <div class="col-md-6 mb-3">
+
+                <div class="report-template-preview" onclick="selectLibraryTemplate('${template.id}')">
+
+                    <div class="template-preview-image">
+
+                        <i class="fas fa-file-alt fa-2x"></i>
+
+                    </div>
+
+                    <h6 class="mb-1">${template.name}</h6>
+
+                    <small class="text-muted">${template.description}</small>
+
+                </div>
+
+            </div>
+
+        `);
+
+    });
+
+}
+
+
+
+function selectLibraryTemplate(templateId) {
+
+    $('.report-template-preview').removeClass('selected');
+
+    $(`[onclick="selectLibraryTemplate('${templateId}')"]`).addClass('selected');
+
+}
+
+
+
+function useSelectedTemplate() {
+
+    const selected = $('.report-template-preview.selected').find('h6').text();
+
+    if (selected) {
+
+        selectedTemplate = selected.toLowerCase();
+
+        $('#templateLibraryModal').modal('hide');
+
+        showToast(`Template "${selected}" selected`, 'success');
+
+    }
+
+}
+
+
+
+// Section override helpers
+
+function collectSectionOverrides() {
+
+    const overrides = {};
+
+    document.querySelectorAll('.section-override').forEach(cb => {
+
+        overrides[cb.dataset.key] = cb.checked;
+
+    });
+
+    return overrides;
+
+}
+
+
+
+const FORMAT_LABELS_CR = {
+
+    'SKILLS': 'Skills Checklist',
+
+    'SIMPLE_ACADEMIC': 'Simple Academic',
+
+    'FULL_ACADEMIC': 'Full Academic',
+
+};
+
+const FORMAT_COLORS_CR = {
+
+    'SKILLS': '#2e7d32',
+
+    'SIMPLE_ACADEMIC': '#1565c0',
+
+    'FULL_ACADEMIC': '#880e4f',
+
+};
+
+
+
+function onTemplateSelectChange() {
+
+    _updateTemplateFormatBadge();
+
+    const sel = document.getElementById('templateSelect');
+
+    if (sel.value) resetOverridesToTemplate();
+
+    checkTemplateBatchMatch();
+
+    runPreflight();
+
+}
+
+
+
+function resetOverridesToTemplate() {
+
+    const templateId = document.getElementById('templateSelect').value;
+
+    if (!templateId) return;
+
+    fetch(`/api/reports/templates/${templateId}/`)
+
+    .then(r => r.json())
+
+    .then(data => {
+
+        document.querySelectorAll('.section-override').forEach(cb => {
+
+            if (data[cb.dataset.key] !== undefined) cb.checked = data[cb.dataset.key];
+
+        });
+
+    });
+
+}
+
+
+
+// onTemplateSelectChange handles all template select events via the onchange attribute above
+
+
+
+// When exam group changes: filter template dropdown to matching batch, then preflight
+
+function filterTemplatesByExamGroup() {
+
+    const egSel = document.getElementById('examGroupSelect');
+
+    const egOpt = egSel.options[egSel.selectedIndex];
+
+    const batchId = egOpt ? egOpt.dataset.batchId : '';
+
+    const tmplSel = document.getElementById('templateSelect');
+
+
+
+    // Show only templates for the same batch (keep placeholder + unmatched as hidden)
+
+    let firstMatch = '';
+
+    Array.from(tmplSel.options).forEach(opt => {
+
+        if (!opt.value) return; // keep placeholder
+
+        if (batchId && opt.dataset.batchId !== batchId) {
+
+            opt.hidden = true;
+
+            opt.disabled = true;
+
+            if (opt.selected) { tmplSel.value = ''; }
+
+        } else {
+
+            opt.hidden = false;
+
+            opt.disabled = false;
+
+            if (!firstMatch) firstMatch = opt.value;
+
+        }
+
+    });
+
+
+
+    // Auto-select the only/first matching template
+
+    if (!tmplSel.value && firstMatch) {
+
+        tmplSel.value = firstMatch;
+
+        resetOverridesToTemplate();
+
+    }
+
+
+
+    _updateTemplateFormatBadge();
+
+    checkTemplateBatchMatch();
+
+    runPreflight();
+
+}
+
+
+
+function _updateTemplateFormatBadge() {
+
+    const sel = document.getElementById('templateSelect');
+
+    const opt = sel.options[sel.selectedIndex];
+
+    const badge = document.getElementById('templateFormatBadge');
+
+    if (!badge) return;
+
+    if (opt && opt.value && opt.dataset.layout) {
+
+        const lbl = FORMAT_LABELS_CR[opt.dataset.layout] || opt.dataset.layout;
+
+        const col = FORMAT_COLORS_CR[opt.dataset.layout] || '#555';
+
+        badge.innerHTML = `Format: <strong style="color:${col}">${lbl}</strong>`;
+
+        badge.classList.remove('d-none');
+
+    } else {
+
+        badge.classList.add('d-none');
+
+    }
+
+}
+
+
+
+function checkTemplateBatchMatch() {
+
+    const egSel = document.getElementById('examGroupSelect');
+
+    const egOpt = egSel.options[egSel.selectedIndex];
+
+    const egBatchId = egOpt ? egOpt.dataset.batchId : '';
+
+    const tmplSel = document.getElementById('templateSelect');
+
+    const tmplOpt = tmplSel.options[tmplSel.selectedIndex];
+
+    const tmplBatchId = tmplOpt ? tmplOpt.dataset.batchId : '';
+
+    const warn = document.getElementById('templateMismatchWarn');
+
+    if (warn && egBatchId && tmplBatchId && egBatchId !== tmplBatchId) {
+
+        warn.classList.remove('d-none');
+
+    } else if (warn) {
+
+        warn.classList.add('d-none');
+
+    }
+
+}
+
+
+
+// Load students and run preflight when exam group changes
+
+function runPreflight() {
+
+    const templateId  = document.getElementById('templateSelect').value;
+
+    const examGroupId = document.getElementById('examGroupSelect').value;
+
+    const wrap = document.getElementById('preflightWrap');
+
+    const list = document.getElementById('preflightList');
+
+
+
+    if (!templateId || !examGroupId) { wrap.classList.add('d-none'); return; }
+
+
+
+    wrap.classList.remove('d-none');
+
+    list.innerHTML = '<span class="text-muted">Checking…</span>';
+
+
+
+    fetch(`/api/reports/preflight/?template_id=${templateId}&exam_group_id=${examGroupId}`)
+
+    .then(r => r.json())
+
+    .then(data => {
+
+        if (data.error) { list.innerHTML = `<span class="text-danger">${data.error}</span>`; return; }
+
+        const icons = {ok: '✅', warn: '⚠️', error: '❌'};
+
+        list.innerHTML = data.checks.map(c =>
+
+            `<div class="mb-1">${icons[c.status]} <strong>${c.label}</strong>` +
+
+            (c.detail ? ` <span class="text-muted">— ${c.detail}</span>` : '') +
+
+            `</div>`
+
+        ).join('');
+
+    })
+
+    .catch(() => { list.innerHTML = '<span class="text-muted small">Preflight check unavailable.</span>'; });
+
+}
+
+
+
+document.getElementById('examGroupSelect').addEventListener('change', function () {
+
+    const egId = this.value;
+
+    const box = document.getElementById('studentCheckboxes');
+
+    if (!egId) {
+
+        box.innerHTML = '<span class="text-muted small">Select an exam group to load students.</span>';
+
+        document.getElementById('preflightWrap').classList.add('d-none');
+
+        return;
+
+    }
+
+    box.innerHTML = '<span class="text-muted small">Loading…</span>';
+
+    fetch(`/api/gradebook/students/?exam_group_id=${egId}`)
+
+        .then(r => r.json())
+
+        .then(data => {
+
+            if (!data.students || !data.students.length) {
+
+                box.innerHTML = '<span class="text-muted small">No students found.</span>';
+
+                return;
+
+            }
+
+            box.innerHTML = data.students.map(s =>
+
+                `<label class="d-flex gap-2 align-items-center mb-1 small">
+
+                    <input type="checkbox" class="student-cb" value="${s.id}">
+
+                    ${s.first_name} ${s.last_name || ''} <span class="text-muted">(${s.admission_no})</span>
+
+                </label>`
+
+            ).join('');
+
+        })
+
+        .catch(() => { box.innerHTML = '<span class="text-danger small">Failed to load students.</span>'; });
+
+    runPreflight();
+
+});
+
+
+
+let _pollTimer = null;
+
+let _genStartTime = null;
+
+let _elapsedTimer = null;
+
+let _currentExamGroupId = null;
+
+let _currentTemplateId = null;
+
+
+
+function triggerGenerate() {
+
+    const templateId  = document.getElementById('templateSelect').value;
+
+    const examGroupId = document.getElementById('examGroupSelect').value;
+
+    if (!templateId || !examGroupId) { showToast('Please select both a report template and an exam group.', 'warning'); return; }
+
+
+
+    const studentIds = Array.from(document.querySelectorAll('.student-cb:checked')).map(c => c.value);
+
+    _currentExamGroupId = examGroupId;
+
+    _currentTemplateId  = templateId;
+
+
+
+    const btn      = document.getElementById('generateBtn');
+
+    const status   = document.getElementById('generateStatus');
+
+    const wrap     = document.getElementById('genProgressWrap');
+
+    const results  = document.getElementById('genResults');
+
+
+
+    btn.disabled = true;
+
+    status.textContent = '';
+
+    results.classList.add('d-none');
+
+    results.innerHTML = '';
+
+    wrap.classList.remove('d-none');
+
+    setProgress(5, 'Submitting…', '');
+
+    startElapsedTimer();
+
+
+
+    fetch('/api/gradebook/generate-reports/', {
+
+        method: 'POST',
+
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+
+        body: JSON.stringify({template_id: templateId, exam_group_id: examGroupId,
+
+                              student_ids: studentIds, section_overrides: collectSectionOverrides()})
+
+    })
+
+    .then(r => r.json())
+
+    .then(data => {
+
+        if (data.success) {
+
+            setProgress(15, 'Generating reports…', '');
+
+            startPolling(examGroupId, templateId, btn);
+
+        } else {
+
+            stopElapsedTimer();
+
+            wrap.classList.add('d-none');
+
+            btn.disabled = false;
+
+            status.textContent = 'Error: ' + (data.error || 'Unknown error');
+
+            status.className = 'small text-danger';
+
+        }
+
+    })
+
+    .catch(() => {
+
+        stopElapsedTimer();
+
+        wrap.classList.add('d-none');
+
+        btn.disabled = false;
+
+        status.textContent = 'Network error. Please try again.';
+
+        status.className = 'small text-danger';
+
+    });
+
+}
+
+
+
+function setProgress(pct, label, count) {
+
+    document.getElementById('genProgressBar').style.width = pct + '%';
+
+    if (label !== null) document.getElementById('genProgressLabel').textContent = label;
+
+    if (count !== null) document.getElementById('genProgressCount').textContent = count;
+
+}
+
+
+
+function startElapsedTimer() {
+
+    _genStartTime = Date.now();
+
+    _elapsedTimer = setInterval(() => {
+
+        const s = Math.floor((Date.now() - _genStartTime) / 1000);
+
+        document.getElementById('genElapsed').textContent = `${s}s elapsed`;
+
+    }, 1000);
+
+}
+
+
+
+function stopElapsedTimer() {
+
+    if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
+
+}
+
+
+
+function cancelGeneration() {
+
+    if (_pollTimer) { clearTimeout(_pollTimer); _pollTimer = null; }
+
+    stopElapsedTimer();
+
+    if (!_currentExamGroupId) return;
+
+
+
+    fetch('/api/reports/cancel-generation/', {
+
+        method: 'POST',
+
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+
+        body: JSON.stringify({exam_group_id: _currentExamGroupId, template_id: _currentTemplateId})
+
+    }).catch(() => {});
+
+
+
+    document.getElementById('genProgressWrap').classList.add('d-none');
+
+    document.getElementById('generateBtn').disabled = false;
+
+    document.getElementById('generateStatus').textContent = 'Generation cancelled.';
+
+    document.getElementById('generateStatus').className = 'small text-warning';
+
+}
+
+
+
+function startPolling(examGroupId, templateId, btn) {
+
+    if (_pollTimer) { clearTimeout(_pollTimer); _pollTimer = null; }
+
+    let delay = 1000;
+
+
+
+    function poll() {
+
+        fetch(`/api/reports/generation-poll/?exam_group_id=${examGroupId}&template_id=${templateId}`)
+
+        .then(r => r.json())
+
+        .then(data => {
+
+            const done = data.completed + data.failed;
+
+            const visual = Math.max(15, Math.min(99, 15 + data.pct * 0.84));
+
+            setProgress(visual, 'Generating reports…', `${done}/${data.total} done`);
+
+
+
+            if (data.all_done) {
+
+                stopElapsedTimer();
+
+                setProgress(100, 'Complete', `${data.completed}/${data.total} succeeded`);
+
+                showGenResults(data);
+
+                btn.disabled = false;
+
+                return;
+
+            }
+
+            // Exponential backoff: 1s → 2s → 4s → 8s → cap at 10s
+
+            delay = Math.min(delay * 2, 10000);
+
+            _pollTimer = setTimeout(poll, delay);
+
+        })
+
+        .catch(() => {
+
+            // On network error keep retrying at current interval
+
+            _pollTimer = setTimeout(poll, delay);
+
+        });
+
+    }
+
+
+
+    _pollTimer = setTimeout(poll, delay);
+
+}
+
+
+
+function showGenResults(data) {
+
+    const wrap    = document.getElementById('genProgressWrap');
+
+    const results = document.getElementById('genResults');
+
+
+
+    setTimeout(() => wrap.classList.add('d-none'), 600);
+
+
+
+    const ok   = (data.reports || []).filter(r => r.status === 'completed');
+
+    const fail = (data.reports || []).filter(r => r.status !== 'completed');
+
+
+
+    let html = '';
+
+    if (ok.length) {
+
+        html += `<div class="alert alert-success py-2 mb-2">
+
+                   <i class="fas fa-check-circle me-1"></i> ${ok.length} report${ok.length>1?'s':''} ready
+
+                 </div>
+
+                 <div class="list-group mb-2">`;
+
+        ok.forEach(r => {
+
+            html += `<a href="${r.pdf_url}" target="_blank" class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-2">
+
+                       <i class="fas fa-file-pdf text-danger"></i>
+
+                       <span class="flex-grow-1">${r.student_name}</span>
+
+                       <small class="text-muted">Download <i class="fas fa-download"></i></small>
+
+                     </a>`;
+
+        });
+
+        html += '</div>';
+
+    }
+
+    if (fail.length) {
+
+        html += `<div class="alert alert-warning py-2 mb-2">
+
+                   <i class="fas fa-exclamation-triangle me-1"></i> ${fail.length} failed
+
+                 </div><ul class="list-group">`;
+
+        fail.forEach(r => {
+
+            html += `<li class="list-group-item list-group-item-danger py-2">
+
+                       <strong>${r.student_name}</strong>
+
+                       <small class="d-block text-muted">${r.error || 'Generation failed'}</small>
+
+                     </li>`;
+
+        });
+
+        html += '</ul>';
+
+    }
+
+    html += `<a href="/reports/" class="btn btn-sm btn-outline-secondary mt-2">
+
+               <i class="fas fa-list me-1"></i> View all reports
+
+             </a>`;
+
+
+
+    results.innerHTML = html;
+
+    results.classList.remove('d-none');
+
+}
+
+</script>
+
+{% endblock %}

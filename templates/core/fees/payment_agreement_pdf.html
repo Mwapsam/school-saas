@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Payment Agreement</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @page {
+            size: A4;
+            margin: 1cm 1cm 1.8cm 1cm;
+
+            @bottom-center {
+                content: "Page " counter(page) " of " counter(pages);
+                font-size: 8.5pt;
+                color: #9a9a9a;
+                font-family: Georgia, 'Times New Roman', serif;
+            }
+        }
+
+        body {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 10.5pt;
+            line-height: 1.55;
+            color: #2b2b2b;
+        }
+
+        .page-break {
+            page-break-before: always;
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+
+        /* ---------- Header ---------- */
+        .hdr {
+            display: flex;
+            align-items: center;
+            gap: 12pt;
+            border-bottom: 1.5pt solid #17833f;
+            padding-bottom: 10pt;
+            margin-bottom: 16pt;
+        }
+
+        .hdr-logo {
+            width: 44pt;
+            height: 44pt;
+            object-fit: contain;
+        }
+
+        .hdr-name {
+            font-family: Arial, sans-serif;
+            font-size: 14pt;
+            font-weight: bold;
+            letter-spacing: 0.3pt;
+            color: #1a1a1a;
+        }
+
+        .hdr-sub {
+            font-family: Arial, sans-serif;
+            font-size: 8pt;
+            letter-spacing: 0.5pt;
+            text-transform: uppercase;
+            color: #17833f;
+            margin-top: 3pt;
+        }
+
+        .hdr-compact {
+            padding-bottom: 6pt;
+            margin-bottom: 12pt;
+        }
+
+        .hdr-compact .hdr-name {
+            font-size: 10.5pt;
+        }
+
+        /* ---------- Document title ---------- */
+        .doc-title {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            font-size: 10.5pt;
+            font-weight: bold;
+            letter-spacing: 1.5pt;
+            text-transform: uppercase;
+            color: #17833f;
+            padding-bottom: 5pt;
+            margin-bottom: 16pt;
+            border-bottom: 0.75pt solid #d7d7d7;
+        }
+
+        /* ---------- Sections ---------- */
+        .section {
+            margin-bottom: 0.7cm;
+        }
+
+        .section-title {
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            font-size: 9pt;
+            letter-spacing: 0.75pt;
+            text-transform: uppercase;
+            color: #17833f;
+            padding-bottom: 3pt;
+            margin-bottom: 0.35cm;
+            border-bottom: 0.75pt solid #d7d7d7;
+        }
+
+        /* ---------- Field rows (table-based label alignment, matches
+           .signature-row's approach since this renderer doesn't reliably
+           support CSS grid / display:contents) ---------- */
+        .field-row {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+            margin-bottom: 0.28cm;
+            font-size: 10pt;
+        }
+
+        .guardian-block {
+            margin-bottom: 0.35cm;
+        }
+
+        .guardian-block--secondary {
+            margin-top: 0.35cm;
+            padding-top: 0.3cm;
+            border-top: 0.75pt solid #d7d7d7;
+        }
+
+        .field-label {
+            display: table-cell;
+            width: 140px;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            font-size: 8.5pt;
+            letter-spacing: 0.3pt;
+            text-transform: uppercase;
+            color: #666;
+            vertical-align: top;
+            padding-top: 0.5pt;
+        }
+
+        .field-value {
+            display: table-cell;
+            color: #1a1a1a;
+            vertical-align: top;
+        }
+
+        /* ---------- Callout for key agreement terms ---------- */
+        .agreement-callout {
+            background: #f7faf7;
+            border-left: 2.5pt solid #17833f;
+            padding: 10pt 12pt;
+            margin-bottom: 0.4cm;
+            font-size: 10.5pt;
+        }
+
+        /* ---------- Tables ---------- */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 0.5cm;
+            font-size: 10pt;
+        }
+
+        th, td {
+            padding: 0.28cm 0.3cm;
+            text-align: left;
+            border-bottom: 0.75pt solid #e5e5e5;
+        }
+
+        th {
+            font-family: Arial, sans-serif;
+            font-size: 8pt;
+            letter-spacing: 0.4pt;
+            text-transform: uppercase;
+            font-weight: bold;
+            color: #444;
+            border-bottom: 1.5pt solid #17833f;
+            background: none;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .total-row td {
+            font-weight: bold;
+            font-size: 10.5pt;
+            border-top: 1.5pt solid #1a1a1a;
+            border-bottom: none;
+        }
+
+        /* ---------- Signatures (single inline row per signatory,
+           matching the original paper form's line format) ---------- */
+        .sig-row {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+            margin-bottom: 0.65cm;
+            page-break-inside: avoid;
+        }
+
+        .sig-cell {
+            display: table-cell;
+            vertical-align: bottom;
+            padding-right: 0.6cm;
+        }
+
+        .sig-cell:last-child {
+            padding-right: 0;
+        }
+
+        .sig-cell-name { width: 42%; }
+        .sig-cell-sig { width: 33%; }
+        .sig-cell-date { width: 25%; }
+
+        .sig-label {
+            font-family: Arial, sans-serif;
+            font-size: 8.5pt;
+            font-weight: bold;
+            letter-spacing: 0.3pt;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 0.15cm;
+        }
+
+        .sig-fill {
+            border-bottom: 0.75pt solid #1a1a1a;
+            min-height: 0.4cm;
+            padding-bottom: 0.1cm;
+            font-weight: bold;
+            font-size: 10pt;
+        }
+
+        .signature-img {
+            max-height: 1cm;
+            width: auto;
+            display: block;
+            margin-bottom: 0.15cm;
+        }
+
+        /* ---------- Misc ---------- */
+        .generated-note {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            font-size: 8pt;
+            color: #aaa;
+            margin-top: 1cm;
+        }
+    </style>
+</head>
+<body>
+
+<!-- PAGE 1: DEBT ACKNOWLEDGEMENT -->
+<div>
+    {% include "core/includes/pdf_letterhead.html" with subtitle="DEBT ACKNOWLEDGEMENT AND PAYMENT AGREEMENT" %}
+
+    <div class="section">
+        <div class="section-title">Names of Debtors</div>
+        {% if all_guardians %}
+            {% for guardian_info in all_guardians %}
+            <div class="guardian-block{% if not forloop.first %} guardian-block--secondary{% endif %}">
+                <div class="field-row">
+                    <div class="field-label">{{ guardian_info.relation|default:"Guardian" }}</div>
+                    <div class="field-value">
+                        {% if guardian_info.is_debtor and agreement.debtor_name %}{{ agreement.debtor_name }}{% else %}{{ guardian_info.full_name }}{% endif %}
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field-label">Address</div>
+                    <div class="field-value">
+                        {% if guardian_info.is_debtor and agreement.debtor_address %}{{ agreement.debtor_address }}{% else %}{{ guardian_info.address|default:"___________________" }}{% endif %}
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field-label">Telephone</div>
+                    <div class="field-value">{{ guardian_info.phone|default:"___________________" }}</div>
+                </div>
+                <div class="field-row">
+                    <div class="field-label">Email</div>
+                    <div class="field-value">{{ guardian_info.email|default:"___________________" }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="field-row">
+                <div class="field-label">Father</div>
+                <div class="field-value">{{ agreement.debtor_name }}</div>
+            </div>
+            <div class="field-row">
+                <div class="field-label">Address</div>
+                <div class="field-value">{{ agreement.debtor_address|default:"___________________" }}</div>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <div class="section-title">Student Information</div>
+        <div class="field-row">
+                <div class="field-label">Student Name</div>
+                <div class="field-value">{{ agreement.student.full_name }}</div>
+            </div>
+        <div class="field-row">
+                <div class="field-label">Admission No</div>
+                <div class="field-value">{{ agreement.student.admission_no }}</div>
+            </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Agreement</div>
+        <div class="agreement-callout">
+            I, <strong>{{ agreement.debtor_name }}</strong> NRC No. <strong>{{ agreement.nrc_number|default:"___________" }}</strong> of
+            <strong>{{ agreement.debtor_address|default:"___________" }}</strong> agree that I have a debt of
+            <strong>{{ currency_symbol }}{{ agreement.total_amount|floatformat:2 }}</strong> which I owe to {{ school.name }}{% if school_full_address %}, {{ school_full_address }}{% endif %}.
+        </div>
+        <p style="margin-bottom: 0.2cm;">The debt is comprised of:</p>
+        <ul style="margin-left: 1cm; margin-bottom: 0.3cm;">
+            <li>{{ currency_symbol }}{{ agreement.unpaid_fees_amount|floatformat:2 }} of unpaid school fees{% if agreement.other_amount > 0 %} and,{% else %}.{% endif %}</li>
+            {% if agreement.other_amount > 0 %}
+            <li>{{ currency_symbol }}{{ agreement.other_amount|floatformat:2 }} {{ agreement.other_description }}.</li>
+            {% endif %}
+        </ul>
+        <div style="text-align: right; font-weight: bold; font-size: 11pt; margin-top: 0.3cm; border-top: 0.75pt solid #d7d7d7; padding-top: 0.25cm;">
+            Total {{ currency_symbol }}{{ agreement.total_amount|floatformat:2 }}
+        </div>
+    </div>
+
+    <div class="section">
+        <p style="margin-top: 0.5cm;">
+            I agree to repay the total sum stated above in instalments beginning on
+            <strong>{{ agreement.start_date|date:"d/m/Y" }}</strong> and ending on
+            <strong>{{ agreement.end_date|date:"d/m/Y" }}</strong>.
+        </p>
+    </div>
+</div>
+
+<!-- PAGE 2: PAYMENT SCHEDULE & TERMS -->
+<div class="page-break">
+    {% include "core/includes/pdf_letterhead.html" with subtitle="PAYMENT SCHEDULE & TERMS" compact=True %}
+
+    <div class="section">
+        <div class="section-title">Payment Schedule</div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 20%;">Payment #</th>
+                    <th style="width: 40%;">Due Date</th>
+                    <th style="width: 40%;" class="text-right">Amount ({{ currency_symbol }})</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for installment in installments %}
+                <tr>
+                    <td>{{ installment.sequence }}</td>
+                    <td>{{ installment.due_date|date:"d/m/Y" }}</td>
+                    <td class="text-right">{{ installment.amount|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+                <tr class="total-row">
+                    <td colspan="2" style="text-align: right;">TOTAL</td>
+                    <td class="text-right">{{ currency_symbol }}{{ agreement.total_amount|floatformat:2 }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <p style="font-size: 9.5pt; margin-bottom: 0.4cm;">
+            Any outstanding balance due to sundry costs will be paid along with the final instalment.
+        </p>
+        <p style="margin-bottom: 0.2cm;">I understand and agree that:</p>
+        <ol style="margin-left: 1cm;">
+            <li style="margin-bottom: 0.15cm;">Failure to make payment by the date stated above will lead to legal action being taken to recover the value of the debt.</li>
+            <li style="margin-bottom: 0.15cm;">Interest of {{ agreement.interest_rate }}% per month will be added to late payments.</li>
+            <li style="margin-bottom: 0.15cm;">Legal fees will be added to the amount stated above.</li>
+            <li>The contra proferentum rule of construction shall not apply to this agreement.</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <div class="sig-row">
+            <div class="sig-cell sig-cell-name">
+                <div class="sig-label">Name of Debtor</div>
+                <div class="sig-fill">{{ agreement.debtor_name|default:"&nbsp;" }}</div>
+            </div>
+            <div class="sig-cell sig-cell-sig">
+                <div class="sig-label">Signature</div>
+                <div class="sig-fill">&nbsp;</div>
+            </div>
+            <div class="sig-cell sig-cell-date">
+                <div class="sig-label">Date</div>
+                <div class="sig-fill">{{ agreement.debtor_signed_date|date:"d/m/Y"|default:"&nbsp;" }}</div>
+            </div>
+        </div>
+
+        <div class="sig-row">
+            <div class="sig-cell sig-cell-name">
+                <div class="sig-label">Name of Witness</div>
+                <div class="sig-fill">{{ agreement.witness_name|default:"&nbsp;" }}</div>
+            </div>
+            <div class="sig-cell sig-cell-sig">
+                <div class="sig-label">Signature</div>
+                <div class="sig-fill">&nbsp;</div>
+            </div>
+            <div class="sig-cell sig-cell-date">
+                <div class="sig-label">Date</div>
+                <div class="sig-fill">{{ agreement.witness_signed_date|date:"d/m/Y"|default:"&nbsp;" }}</div>
+            </div>
+        </div>
+
+        <div class="sig-row">
+            <div class="sig-cell sig-cell-name">
+                <div class="sig-label">Name of Director</div>
+                <div class="sig-fill">{{ director_display_name|default:"&nbsp;" }}</div>
+            </div>
+            <div class="sig-cell sig-cell-sig">
+                <div class="sig-label">Signature</div>
+                <div class="sig-fill">&nbsp;</div>
+            </div>
+            <div class="sig-cell sig-cell-date">
+                <div class="sig-label">Date</div>
+                <div class="sig-fill">{{ agreement.director_signed_date|date:"d/m/Y"|default:"&nbsp;" }}</div>
+            </div>
+        </div>
+
+        <div class="sig-row">
+            <div class="sig-cell sig-cell-name">
+                <div class="sig-label">Name of Witness</div>
+                <div class="sig-fill">{{ agreement.director_witness_name|default:operations_manager_name|default:"&nbsp;" }}</div>
+            </div>
+            <div class="sig-cell sig-cell-sig">
+                <div class="sig-label">Signature</div>
+                <div class="sig-fill">&nbsp;</div>
+            </div>
+            <div class="sig-cell sig-cell-date">
+                <div class="sig-label">Date</div>
+                <div class="sig-fill">{{ agreement.director_witness_signed_date|date:"d/m/Y"|default:"&nbsp;" }}</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- PAGE 3: PAYMENT RECORD -->
+<div class="page-break">
+    {% include "core/includes/pdf_letterhead.html" with subtitle="PAYMENT RECORD" compact=True %}
+
+    <div class="section">
+        <div class="field-row">
+                <div class="field-label">Student</div>
+                <div class="field-value">{{ agreement.student.full_name }}</div>
+            </div>
+        <div class="field-row">
+                <div class="field-label">Debtor</div>
+                <div class="field-value">{{ agreement.debtor_name }}</div>
+            </div>
+        <div class="field-row">
+                <div class="field-label">Total Due</div>
+                <div class="field-value">{{ currency_symbol }}{{ agreement.total_amount|floatformat:2 }}</div>
+            </div>
+        <div class="field-row">
+                <div class="field-label">Paid to Date</div>
+                <div class="field-value">{{ currency_symbol }}{{ paid_total|floatformat:2 }}</div>
+            </div>
+        <div class="field-row">
+            <div class="field-label">Outstanding</div>
+            <div class="field-value" style="font-weight: bold;">{{ currency_symbol }}{{ running_balance|floatformat:2 }}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 18%;">Instalments</th>
+                    <th style="width: 15%;">Date</th>
+                    <th style="width: 20%;">Amount Paid ({{ currency_symbol }})</th>
+                    <th style="width: 20%;">Balance ({{ currency_symbol }})</th>
+                    <th style="width: 27%;">PPS Sign</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pair in installments_with_records %}
+                <tr>
+                    <td>{{ pair.installment.ordinal_label }}</td>
+                    {% if pair.payment_record %}
+                    <td>{{ pair.payment_record.payment_date|date:"d/m/Y" }}</td>
+                    <td class="text-right">{{ pair.payment_record.amount_paid|floatformat:2 }}</td>
+                    <td class="text-right">{{ pair.payment_record.balance_after|floatformat:2 }}</td>
+                    {% else %}
+                    <td style="color:#ccc;">___________</td>
+                    <td class="text-right" style="color:#ccc;">___________</td>
+                    <td class="text-right" style="color:#ccc;">___________</td>
+                    {% endif %}
+                    <td style="color:#ccc;">___________</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="generated-note">
+        Generated on {% now "d/m/Y" %}
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,33 @@
+{% comment %}
+Pinewood card — opening markup with an optional titled header.
+Pair with card_close.html and put your body content between them.
+(This is "card" in the component inventory — Django's {% include %} can't
+pass block content to a template, so the open/close pair is the native way
+to wrap arbitrary content in one component's markup.)
+
+Usage:
+  {% include 'core/components/card_open.html' with title="Exam Overview" meta="Batch A & B · AY2025" actions=actions %}
+      … your content …
+  {% include 'core/components/card_close.html' %}
+
+Params:
+  title   (optional) — card header title (serif). If omitted, no header is rendered.
+  meta    (optional) — small muted text on the right of the header.
+  actions (optional) — list of dicts passed straight to components/button.html,
+                       rendered on the right of the header (forces a header
+                       even if `title` is omitted).
+{% endcomment %}
+<div class="pw-card">
+  {% if title or actions %}
+  <div class="pw-card-header">
+    <span class="pw-card-title">{{ title }}</span>
+    {% if meta %}<span class="pw-card-meta">{{ meta }}</span>{% endif %}
+    {% if actions %}
+    <div class="d-flex gap-2">
+      {% for action in actions %}
+        {% include 'core/components/button.html' with label=action.label url=action.url variant=action.variant icon=action.icon type=action.type size=action.size|default:'sm' disabled=action.disabled attrs=action.attrs %}
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}

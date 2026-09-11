@@ -1,0 +1,50 @@
+<div class="pinewood-table-responsive">
+  <table class="pinewood-table">
+    <thead>
+      <tr>
+        <th>No.</th><th>Vehicle</th><th class="d-none d-md-table-cell">Type / Model</th>
+        <th class="d-none d-md-table-cell">Capacity</th><th>Status</th>
+        <th class="d-none d-lg-table-cell">Compliance</th><th width="140">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+        <tr>
+          <td class="text-center">{{ forloop.counter0|add:page_obj.start_index }}</td>
+          <td><strong>{{ item.vehicle_number }}</strong></td>
+          <td class="d-none d-md-table-cell">{{ item.vehicle_type }}{% if item.make_model %} · {{ item.make_model }}{% endif %}</td>
+          <td class="d-none d-md-table-cell">{{ item.seating_capacity }}</td>
+          <td>
+            {% if item.status == 'active' %}<span class="badge bg-success">Active</span>
+            {% elif item.status == 'maintenance' %}<span class="badge bg-warning">Maintenance</span>
+            {% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}
+          </td>
+          <td class="d-none d-lg-table-cell">
+            {% for field, state in item.compliance_flags.items %}
+              <span class="badge {% if state == 'expired' %}bg-danger{% else %}bg-warning{% endif %}">{{ field }}</span>
+            {% empty %}<span class="text-muted">OK</span>{% endfor %}
+          </td>
+          <td class="table-actions">
+            <div class="btn-group btn-group-sm" role="group">
+              <button type="button" class="btn btn-outline-secondary btn-sm" title="Edit"
+                data-entity="vehicles"
+                data-row='{"id":"{{ item.id }}","vehicle_number":"{{ item.vehicle_number|escapejs }}","vehicle_type":"{{ item.vehicle_type|escapejs }}","seating_capacity":"{{ item.seating_capacity }}","make_model":"{{ item.make_model|escapejs }}","manufacture_year":"{{ item.manufacture_year|default_if_none:'' }}","insurance_provider":"{{ item.insurance_provider|escapejs }}","insurance_expiry":"{{ item.insurance_expiry|date:'Y-m-d' }}","roadworthiness_expiry":"{{ item.roadworthiness_expiry|date:'Y-m-d' }}","registration_expiry":"{{ item.registration_expiry|date:'Y-m-d' }}","status":"{{ item.status }}","odometer_km":"{{ item.odometer_km|default_if_none:'' }}"}'
+                onclick="transportOpenEdit(this)"><i class="fas fa-edit"></i></button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" title="Toggle active"
+                onclick="transportAction('vehicles','toggle','{{ item.id }}',null,{current:'{{ item.status }}'})">
+                <i class="fas fa-power-off"></i></button>
+              <button type="button" class="btn btn-outline-danger btn-sm" title="Delete"
+                onclick="transportAction('vehicles','delete','{{ item.id }}','Delete vehicle {{ item.vehicle_number|escapejs }}?')">
+                <i class="fas fa-trash"></i></button>
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4">
+          No vehicles yet. <a href="#" onclick="transportOpenAdd('vehicles');return false;">Add the first one</a>.
+        </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include 'core/htmx/transport/_pager.html' with list_url='/transport/vehicles/list/' entity='vehicles' %}

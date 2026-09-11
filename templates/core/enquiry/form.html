@@ -1,0 +1,237 @@
+{% extends 'core/layouts/form.html' %}
+
+{% block layout_header %}
+{% url 'core:enquiry_list' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-envelope' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}{% if object %}Edit Enquiry{% else %}New Enquiry{% endif %}{% endblock %}
+
+
+
+{% block layout_form %}
+{# ── Breadcrumb ── #}
+
+
+{# ── Page header ── #}
+<div class="enq-header">
+    <div class="enq-header-icon" aria-hidden="true">
+        <i class="fas fa-{% if object %}edit{% else %}user-plus{% endif %}"></i>
+    </div>
+    <div class="enq-header-body">
+        <h1>{% if object %}Edit Enquiry{% else %}New Enquiry{% endif %}</h1>
+        <p>{% if object %}Update details for this enquiry record{% else %}Capture a new admission enquiry from a prospective student{% endif %}</p>
+    </div>
+    <a href="{% url 'core:enquiry_list' %}" class="btn btn-outline-secondary btn-sm flex-shrink-0">
+        <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Back to Enquiries
+    </a>
+</div>
+
+<form method="post" enctype="multipart/form-data" novalidate id="enquiry-form">
+    {% csrf_token %}
+
+    {# ── Student Information ── #}
+    <div class="pw-card" style="margin-bottom:16px">
+        <div class="pw-card-header">
+            <span class="pw-card-title">
+                <i class="fas fa-user me-2" style="color:var(--color-brand)" aria-hidden="true"></i>Student Information
+            </span>
+        </div>
+        <div style="padding:20px">
+            <div class="row g-3">
+
+                <div class="col-md-4">
+                    <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                        First Name <span class="req" aria-hidden="true">*</span>
+                    </label>
+                    {{ form.first_name }}
+                    {% if form.first_name.errors %}
+                    <div class="invalid-feedback d-block">{{ form.first_name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-4">
+                    <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                        Last Name <span class="req" aria-hidden="true">*</span>
+                    </label>
+                    {{ form.last_name }}
+                    {% if form.last_name.errors %}
+                    <div class="invalid-feedback d-block">{{ form.last_name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-4">
+                    <label for="{{ form.date_of_birth.id_for_label }}" class="form-label">
+                        Date of Birth
+                    </label>
+                    {{ form.date_of_birth }}
+                    {% if form.date_of_birth.errors %}
+                    <div class="invalid-feedback d-block">{{ form.date_of_birth.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    {# ── Academic Information ── #}
+    <div class="pw-card" style="margin-bottom:16px">
+        <div class="pw-card-header">
+            <span class="pw-card-title">
+                <i class="fas fa-graduation-cap me-2" style="color:var(--color-brand)" aria-hidden="true"></i>Academic Information
+            </span>
+        </div>
+        <div style="padding:20px">
+            <div class="row g-3">
+
+                <div class="col-md-6">
+                    <label for="{{ form.course.id_for_label }}" class="form-label">
+                        Course <span class="req" aria-hidden="true">*</span>
+                    </label>
+                    {{ form.course }}
+                    {% if form.course.errors %}
+                    <div class="invalid-feedback d-block">{{ form.course.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label for="{{ form.academic_year.id_for_label }}" class="form-label">
+                        Academic Year <span class="req" aria-hidden="true">*</span>
+                    </label>
+                    {{ form.academic_year }}
+                    {% if form.academic_year.errors %}
+                    <div class="invalid-feedback d-block">{{ form.academic_year.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    {# ── Guardian Information ── #}
+    <div class="pw-card" style="margin-bottom:16px">
+        <div class="pw-card-header">
+            <span class="pw-card-title">
+                <i class="fas fa-users me-2" style="color:var(--color-brand)" aria-hidden="true"></i>Guardian Information
+            </span>
+            <span class="pw-card-meta">optional — contact details for the student's parent or guardian</span>
+        </div>
+        <div style="padding:20px">
+            <div class="row g-3">
+
+                <div class="col-md-4">
+                    <label for="{{ form.guardian_first_name.id_for_label }}" class="form-label">First Name</label>
+                    {{ form.guardian_first_name }}
+                    {% if form.guardian_first_name.errors %}
+                    <div class="invalid-feedback d-block">{{ form.guardian_first_name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-4">
+                    <label for="{{ form.guardian_last_name.id_for_label }}" class="form-label">Last Name</label>
+                    {{ form.guardian_last_name }}
+                    {% if form.guardian_last_name.errors %}
+                    <div class="invalid-feedback d-block">{{ form.guardian_last_name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-4">
+                    <label for="{{ form.guardian_relation.id_for_label }}" class="form-label">Relation</label>
+                    {{ form.guardian_relation }}
+                    {% if form.guardian_relation.errors %}
+                    <div class="invalid-feedback d-block">{{ form.guardian_relation.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-4">
+                    <label for="{{ form.guardian_address_line1.id_for_label }}" class="form-label">Address Line 1</label>
+                    {{ form.guardian_address_line1 }}
+                    {% if form.guardian_address_line1.errors %}
+                    <div class="invalid-feedback d-block">{{ form.guardian_address_line1.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-4">
+                    <label for="{{ form.guardian_address_line2.id_for_label }}" class="form-label">Address Line 2</label>
+                    {{ form.guardian_address_line2 }}
+                    {% if form.guardian_address_line2.errors %}
+                    <div class="invalid-feedback d-block">{{ form.guardian_address_line2.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-4">
+                    <label for="{{ form.guardian_phone.id_for_label }}" class="form-label">Mobile Phone</label>
+                    {{ form.guardian_phone }}
+                    {% if form.guardian_phone.errors %}
+                    <div class="invalid-feedback d-block">{{ form.guardian_phone.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label for="{{ form.guardian_email.id_for_label }}" class="form-label">Email</label>
+                    {{ form.guardian_email }}
+                    {% if form.guardian_email.errors %}
+                    <div class="invalid-feedback d-block">{{ form.guardian_email.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    {# ── Actions ── #}
+    <div class="enq-actions">
+        <button type="submit" class="btn btn-primary btn-sm">
+            <i class="fas fa-save me-1" aria-hidden="true"></i>
+            {% if object %}Update Enquiry{% else %}Create Enquiry{% endif %}
+        </button>
+        <a href="{% url 'core:enquiry_list' %}" class="btn btn-outline-secondary btn-sm">
+            Cancel
+        </a>
+        {% if object %}
+        <a href="{% url 'core:enquiry_detail' pk=object.pk %}" class="btn btn-outline-secondary btn-sm ms-auto">
+            <i class="fas fa-eye me-1" aria-hidden="true"></i>View Details
+        </a>
+        {% endif %}
+    </div>
+
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('enquiry-form');
+    var requiredFields = form.querySelectorAll('[required]');
+
+    requiredFields.forEach(function (field) {
+        field.addEventListener('input', function () {
+            if (this.value.trim()) this.classList.remove('is-invalid');
+        });
+    });
+
+    form.addEventListener('submit', function (e) {
+        var invalid = [];
+        requiredFields.forEach(function (field) {
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                invalid.push(field);
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+
+        if (invalid.length) {
+            e.preventDefault();
+            invalid[0].focus();
+            showConfirmModal(
+                'Please fill in all required fields before submitting.',
+                null,
+                { title: 'Required Fields Missing', okLabel: 'OK', heading: '' }
+            );
+        }
+    });
+});
+</script>
+{% endblock %}

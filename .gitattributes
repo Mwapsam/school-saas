@@ -1,0 +1,5 @@
+# Normalize line endings. Shell scripts and Docker entrypoints MUST stay LF —
+# the container's /bin/sh (dash) fails to parse CRLF (`set: Illegal option -`).
+* text=auto eol=lf
+*.sh text eol=lf
+docker/entrypoint.sh text eol=lf

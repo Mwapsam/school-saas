@@ -1,0 +1,524 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}Batch Transfer{% endblock %}
+
+{% block extra_css %}
+<style>
+    .transfer-container {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+
+    .batch-selectors {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .batch-selector {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .batch-selector label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .batch-selector select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        font-size: 1rem;
+    }
+
+    .batch-selector select:focus {
+        outline: none;
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+
+    .selector-icon {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .batch-info {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        font-size: 0.95rem;
+    }
+
+    .batch-info .label {
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .batch-info .value {
+        color: #007bff;
+        font-weight: 500;
+    }
+
+    .students-section {
+        border-top: 1px solid #e9ecef;
+        padding-top: 2rem;
+        margin-top: 2rem;
+    }
+
+    .students-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .students-header h5 {
+        margin: 0;
+        color: #495057;
+        font-weight: 600;
+    }
+
+    .students-count {
+        background: #e7f3ff;
+        color: #007bff;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .students-table {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+
+    .students-table .table {
+        margin: 0;
+    }
+
+    .students-table .table th {
+        background: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        font-weight: 600;
+        color: #495057;
+        padding: 1rem 0.75rem;
+        text-align: center;
+    }
+
+    .students-table .table td {
+        padding: 1rem 0.75rem;
+        text-align: center;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f3f4;
+    }
+
+    .students-table .table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .students-table .table tbody tr:hover {
+        background: #f8f9fa;
+    }
+
+    .student-name {
+        text-align: left !important;
+        font-weight: 500;
+        color: #495057;
+    }
+
+    .transfer-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .btn-transfer {
+        background: #007bff;
+        border-color: #007bff;
+        color: white;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-transfer:hover:not(:disabled) {
+        background: #0056b3;
+        border-color: #0056b3;
+    }
+
+    .btn-transfer:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .btn-cancel {
+        background: #6c757d;
+        border-color: #6c757d;
+        color: white;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.2s;
+    }
+
+    .btn-cancel:hover {
+        background: #545b62;
+        border-color: #545b62;
+        text-decoration: none;
+        color: white;
+    }
+
+    .info-alert {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-alert i {
+        margin-right: 0.5rem;
+    }
+
+    @media (max-width: 768px) {
+        .batch-selectors {
+            grid-template-columns: 1fr;
+        }
+
+        .transfer-actions {
+            flex-direction: column;
+        }
+
+        .btn-transfer, .btn-cancel {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block layout_header %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Home</a></li>
+        <li class="breadcrumb-item">Configuration</li>
+        <li class="breadcrumb-item">Class</li>
+        <li class="breadcrumb-item active" aria-current="page">Batch transfer</li>
+    </ol>
+</nav>
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Batch transfer" icon="fa-exchange-alt" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_table %}
+<div class="container-fluid">
+    {% if all_batches %}
+    <!-- Transfer Container -->
+    <div class="row">
+        <div class="col-12">
+            <div class="transfer-container">
+                <!-- Info Alert -->
+                <div class="info-alert">
+                    <i class="fas fa-info-circle"></i>
+                    Select source and destination batches, then choose students to transfer
+                </div>
+
+                <!-- Batch Selectors -->
+                <div class="batch-selectors">
+                    <!-- Source Batch -->
+                    <div class="batch-selector">
+                        <label for="sourceBatch">
+                            <i class="fas fa-arrow-down selector-icon"></i>
+                            Source batch <span style="color: #dc3545;">*</span>
+                        </label>
+                        <select id="sourceBatch" class="form-select" onchange="updateSourceBatch()">
+                            <option value="">Select source batch...</option>
+                            {% for batch in all_batches %}
+                            <option value="{{ batch.id }}" {% if batch == source_batch %}selected{% endif %}>
+                                {{ batch.course.course_name }} - {{ batch.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Destination Batch -->
+                    <div class="batch-selector">
+                        <label for="destBatch">
+                            <i class="fas fa-arrow-up selector-icon"></i>
+                            Destination batch <span style="color: #dc3545;">*</span>
+                        </label>
+                        <select id="destBatch" class="form-select" onchange="updateDestBatch()">
+                            <option value="">Select destination batch...</option>
+                            {% for batch in all_batches %}
+                            <option value="{{ batch.id }}" {% if batch == dest_batch %}selected{% endif %}>
+                                {{ batch.course.course_name }} - {{ batch.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Batch Info Display -->
+                {% if source_batch and dest_batch %}
+                <div class="batch-info">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                        <div>
+                            <div class="label">From</div>
+                            <div class="value">{{ source_batch.course.course_name }} - {{ source_batch.name }}</div>
+                        </div>
+                        <div>
+                            <div class="label">To</div>
+                            <div class="value">{{ dest_batch.course.course_name }} - {{ dest_batch.name }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Students Section -->
+                {% if batch_students %}
+                <div class="students-section">
+                    <div class="students-header">
+                        <h5>Students in source batch</h5>
+                        <span class="students-count">{{ batch_students|length }} total</span>
+                    </div>
+
+                    <!-- Search Filter -->
+                    <div style="margin-bottom: 1rem;">
+                        <input type="text" id="studentSearch" class="form-control" placeholder="Search students by name or admission number..." onkeyup="filterStudents()">
+                    </div>
+
+                    <div class="students-table">
+                        {% include 'core/components/table_open.html' %}
+                            <thead>
+                                <tr>
+                                    <th scope="col" style="width: 48px;">
+                                        <input type="checkbox" id="selectAllStudents" onclick="toggleSelectAll(this)">
+                                    </th>
+                                    <th scope="col">Student Name</th>
+                                    <th scope="col">Admission Number</th>
+                                    <th scope="col">Email</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for batch_student in batch_students %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" class="student-checkbox" value="{{ batch_student.student.id }}" onchange="updateSelectAll()">
+                                    </td>
+                                    <td class="student-name">{{ batch_student.student.first_name }} {{ batch_student.student.last_name }}</td>
+                                    <td>{{ batch_student.student.admission_no|default:"-" }}</td>
+                                    <td>{{ batch_student.student.email|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        {% include 'core/components/table_close.html' %}
+                    </div>
+
+                    <!-- Transfer Actions -->
+                    <div class="transfer-actions">
+                        <button type="button" class="btn btn-transfer" id="transferBtn" onclick="performTransfer()" disabled>
+                            <i class="fas fa-exchange-alt"></i>
+                            Transfer <span id="selectedCount" style="display: none;">(0)</span> Students
+                        </button>
+                        <a href="{% url 'core:batch_transfer_list' %}" class="btn btn-cancel">
+                            <i class="fas fa-times"></i> Clear
+                        </a>
+                    </div>
+                </div>
+                {% elif source_batch %}
+                <div class="students-section">
+                    {% include 'core/components/empty_state.html' with title="No Students Found" message=no_students_message icon="fa-user-graduate" %}
+                </div>
+                {% else %}
+                <div class="students-section">
+                    {% include 'core/components/empty_state.html' with title="Select a Source Batch" message="Choose a source batch to view and transfer students." icon="fa-mouse-pointer" %}
+                </div>
+                {% endif %}
+                {% else %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- No Batches State -->
+    <div class="row">
+        <div class="col-12">
+            <div class="transfer-container">
+                {% include 'core/components/empty_state.html' with title="No Active Batches Found" message="Please create and activate batches first to manage student transfers." icon="fa-graduation-cap" action_url=batch_list_url action_label="Create Batch" %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateSourceBatch() {
+    const sourceBatchId = document.getElementById('sourceBatch').value;
+    const destBatchId = document.getElementById('destBatch').value;
+
+    const url = new URL(window.location);
+    if (sourceBatchId) {
+        url.searchParams.set('source_batch_id', sourceBatchId);
+    } else {
+        url.searchParams.delete('source_batch_id');
+    }
+    if (destBatchId) {
+        url.searchParams.set('dest_batch_id', destBatchId);
+    }
+    window.location.href = url.toString();
+}
+
+function updateDestBatch() {
+    const sourceBatchId = document.getElementById('sourceBatch').value;
+    const destBatchId = document.getElementById('destBatch').value;
+
+    const url = new URL(window.location);
+    if (sourceBatchId) {
+        url.searchParams.set('source_batch_id', sourceBatchId);
+    } else {
+        url.searchParams.delete('source_batch_id');
+    }
+    if (destBatchId) {
+        url.searchParams.set('dest_batch_id', destBatchId);
+    }
+    window.location.href = url.toString();
+}
+
+function toggleSelectAll(master) {
+    document.querySelectorAll('.student-checkbox').forEach(cb => {
+        cb.checked = master.checked;
+    });
+    updateSelectAll();
+}
+
+function updateSelectAll() {
+    const visibleCheckboxes = Array.from(document.querySelectorAll('.student-checkbox')).filter(cb => {
+        return cb.closest('tr').style.display !== 'none';
+    });
+    const checked = document.querySelectorAll('.student-checkbox:checked');
+    const masterCheckbox = document.getElementById('selectAllStudents');
+    const transferBtn = document.getElementById('transferBtn');
+    const selectedCount = document.getElementById('selectedCount');
+
+    // Update master checkbox state
+    if (masterCheckbox) {
+        masterCheckbox.checked = visibleCheckboxes.length > 0 && visibleCheckboxes.every(cb => cb.checked);
+    }
+
+    // Update transfer button state and count
+    if (checked.length > 0) {
+        transferBtn.disabled = false;
+        selectedCount.textContent = '(' + checked.length + ')';
+        selectedCount.style.display = 'inline';
+    } else {
+        transferBtn.disabled = true;
+        selectedCount.style.display = 'none';
+    }
+}
+
+function filterStudents() {
+    const searchInput = document.getElementById('studentSearch').value.toLowerCase();
+    const rows = document.querySelectorAll('.students-table tbody tr');
+
+    rows.forEach(row => {
+        const nameCell = row.querySelector('.student-name');
+        const admissionCell = row.querySelectorAll('td')[2];
+
+        if (nameCell && admissionCell) {
+            const name = nameCell.textContent.toLowerCase();
+            const admission = admissionCell.textContent.toLowerCase();
+
+            if (name.includes(searchInput) || admission.includes(searchInput)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        }
+    });
+
+    updateSelectAll();
+}
+
+function performTransfer() {
+    const sourceBatchId = document.getElementById('sourceBatch').value;
+    const destBatchId = document.getElementById('destBatch').value;
+    const studentIds = Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => cb.value);
+
+    if (!sourceBatchId || !destBatchId) {
+        alert('Please select both source and destination batches');
+        return;
+    }
+
+    if (studentIds.length === 0) {
+        alert('Please select at least one student to transfer');
+        return;
+    }
+
+    if (!confirm('Transfer ' + studentIds.length + ' student(s) from source to destination batch?')) {
+        return;
+    }
+
+    const transferBtn = document.getElementById('transferBtn');
+    const originalText = transferBtn.innerHTML;
+    transferBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Transferring...';
+    transferBtn.disabled = true;
+
+    $.ajax({
+        url: '{% url "core:batch_transfer_api" %}',
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val(),
+            'Content-Type': 'application/json',
+        },
+        data: JSON.stringify({
+            source_batch_id: sourceBatchId,
+            target_batch_id: destBatchId,
+            student_ids: studentIds
+        }),
+        success: function(response) {
+            if (response.success) {
+                alert(response.message || 'Students transferred successfully!');
+                // Clear selections and reload
+                window.location.href = '{% url "core:batch_transfer_list" %}';
+            } else {
+                alert('Error: ' + (response.error || 'Failed to transfer students'));
+                transferBtn.innerHTML = originalText;
+                transferBtn.disabled = false;
+            }
+        },
+        error: function() {
+            alert('Error transferring students. Please try again.');
+            transferBtn.innerHTML = originalText;
+            transferBtn.disabled = false;
+        }
+    });
+}
+</script>
+{% endblock %}

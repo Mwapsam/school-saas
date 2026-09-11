@@ -1,0 +1,65 @@
+{% extends 'core/layouts/form.html' %}
+{% block page_title %}Document Categories{% endblock %}
+
+{% block layout_header %}
+{% url 'core:configuration' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Document Categories" description="Categories for student documents (birth certificate, medical record, transfer letter, ...)" icon="fa-folder-open" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_form %}
+<form method="post" class="pw-card p-3 mb-3" style="max-width:720px">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="create">
+  <div class="row g-2">
+    <div class="col-md-5"><label class="form-label">Name</label>
+      <input type="text" name="name" class="form-control" required></div>
+    <div class="col-md-3"><label class="form-label">Code</label>
+      <input type="text" name="code" class="form-control"></div>
+    <div class="col-md-2"><label class="form-label">Order</label>
+      <input type="number" name="display_order" class="form-control" value="0"></div>
+    <div class="col-md-2 d-flex align-items-end">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="is_required" id="dc_req">
+        <label class="form-check-label" for="dc_req">Required</label>
+      </div>
+    </div>
+    <div class="col-12"><label class="form-label">Description</label>
+      <input type="text" name="description" class="form-control"></div>
+  </div>
+  <button class="btn btn-primary mt-3"><i class="fas fa-plus me-1"></i>Add category</button>
+</form>
+
+<div class="pw-card p-0" style="max-width:720px">
+  <table class="table mb-0 align-middle">
+    <thead><tr><th>Name</th><th>Code</th><th>Required</th><th>Active</th><th></th></tr></thead>
+    <tbody>
+      {% for c in categories %}
+      <tr>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="update">
+          <input type="hidden" name="id" value="{{ c.id }}">
+          <td><input name="name" value="{{ c.name }}" class="form-control form-control-sm"></td>
+          <td><input name="code" value="{{ c.code }}" class="form-control form-control-sm" style="width:90px"></td>
+          <td><input type="checkbox" name="is_required" {% if c.is_required %}checked{% endif %}></td>
+          <td><input type="checkbox" name="is_active" {% if c.is_active %}checked{% endif %}></td>
+          <td class="text-end text-nowrap">
+            <input type="hidden" name="display_order" value="{{ c.display_order }}">
+            <input type="hidden" name="description" value="{{ c.description }}">
+            <button class="btn btn-sm btn-outline-secondary">Save</button>
+        </form>
+        <form method="post" class="d-inline" onsubmit="return confirm('Delete this category?')">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="id" value="{{ c.id }}">
+          <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+        </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="text-muted p-3">No document categories yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

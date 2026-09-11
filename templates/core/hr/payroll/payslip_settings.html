@@ -1,0 +1,80 @@
+{% extends 'core/layouts/form.html' %}
+
+{% block layout_header %}
+{% url 'core:hr_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-cog' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block page_title %}Payslip Settings{% endblock %}
+
+{% block layout_form %}
+<div class="card">
+    <div class="card-header"><h5 class="mb-0">What appears on a generated payslip</h5></div>
+    <div class="card-body">
+        <div id="payslip-settings-errors" class="alert alert-danger d-none"></div>
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="show-company-logo" {% if settings.show_company_logo %}checked{% endif %}>
+            <label class="form-check-label" for="show-company-logo">Show company logo/name</label>
+        </div>
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="show-bank-details" {% if settings.show_bank_details %}checked{% endif %}>
+            <label class="form-check-label" for="show-bank-details">Show employee bank details</label>
+        </div>
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="show-leave-balance" {% if settings.show_leave_balance %}checked{% endif %}>
+            <label class="form-check-label" for="show-leave-balance">Show leave balance</label>
+        </div>
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="show-ytd-earnings" {% if settings.show_ytd_earnings %}checked{% endif %}>
+            <label class="form-check-label" for="show-ytd-earnings">Show year-to-date earnings</label>
+        </div>
+        <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="show-employee-photo" {% if settings.show_employee_photo %}checked{% endif %}>
+            <label class="form-check-label" for="show-employee-photo">Show employee photo</label>
+        </div>
+        <div class="mb-3">
+            <label for="footer-text" class="form-label">Footer Text</label>
+            <textarea class="form-control" id="footer-text" rows="2">{{ settings.footer_text|default:'' }}</textarea>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="savePayslipSettings()">Save Settings</button>
+    </div>
+</div>
+
+{% csrf_token %}
+<script>
+function savePayslipSettings() {
+    const body = new FormData();
+    ['show_company_logo', 'show_bank_details', 'show_leave_balance', 'show_ytd_earnings', 'show_employee_photo'].forEach((field) => {
+        const el = document.getElementById(field.replace(/_/g, '-'));
+        if (el.checked) body.append(field, 'on');
+    });
+    body.append('footer_text', document.getElementById('footer-text').value);
+
+    fetch("{% url 'core:hr_payslip_settings_update' %}", {
+        method: 'POST',
+        headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+        body: body,
+    })
+        .then((r) => r.json())
+        .then((data) => {
+            const errorDiv = document.getElementById('payslip-settings-errors');
+            if (data.success) {
+                errorDiv.classList.add('d-none');
+                showAlert('Payslip settings saved', 'success');
+            } else {
+                errorDiv.textContent = data.error || 'An error occurred';
+                errorDiv.classList.remove('d-none');
+            }
+        });
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+    alertDiv.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => { if (alertDiv.parentNode) alertDiv.parentNode.removeChild(alertDiv); }, 3000);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,920 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:admission_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Admission Management" description="Manage and review extended admission applications" icon="fa-file-alt" back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Admission Management{% endblock %}
+
+
+
+{% block layout_table %}
+<div class="d-flex justify-content-end gap-2 mb-3">
+    <a href="{% url 'core:batch_assignment_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-layer-group me-1"></i> Batch Assignment
+    </a>
+    <a href="{% url 'core:admission_register' %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus me-1"></i> New Application
+    </a>
+</div>
+
+<div class="container-lg" style="padding:0">
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="status" class="form-label">Status Filter</label>
+                    <select name="status" id="status" class="form-select">
+                        <option value="">All Statuses</option>
+                        <option value="draft" {% if request.GET.status == 'draft' %}selected{% endif %}>Draft</option>
+                        <option value="submitted" {% if request.GET.status == 'submitted' %}selected{% endif %}>Submitted</option>
+                        <option value="under_review" {% if request.GET.status == 'under_review' %}selected{% endif %}>Under Review</option>
+                        <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>Approved</option>
+                        <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                        <option value="waitlisted" {% if request.GET.status == 'waitlisted' %}selected{% endif %}>Waitlisted</option>
+                        <option value="admitted" {% if request.GET.status == 'admitted' %}selected{% endif %}>Admitted</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="academic_year" class="form-label">Academic Year</label>
+                    <select name="academic_year" id="academic_year" class="form-select">
+                        <option value="">All Academic Years</option>
+                        {% for year in academic_years %}
+                        <option value="{{ year.id }}" {% if request.GET.academic_year == year.id|stringformat:'s' %}selected{% endif %}>
+                            {{ year.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-success w-100">
+                        <i class="fas fa-filter me-1"></i> Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Export Button -->
+    <div class="d-flex justify-content-end mb-3">
+        <a href="?export=csv" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-download me-1"></i> Export CSV
+        </a>
+    </div>
+
+    <!-- Applications List -->
+    <div class="pinewood-table-container">
+        <div class="pinewood-table-header">
+            <h5 class="mb-0">Extended Admission Applications</h5>
+            {% if applications.paginator %}
+            <span class="table-info">
+                Page {{ applications.number }} of {{ applications.paginator.num_pages }}
+                ({{ applications.paginator.count }} total results)
+            </span>
+            {% elif applications %}
+            <span class="table-info">{{ applications|length }} results</span>
+            {% endif %}
+        </div>
+        
+        <div class="pinewood-table-responsive">
+            {% if applications %}
+            <table class="pinewood-table">
+                <thead>
+                    <tr>
+                        <th class="d-none d-md-table-cell">No.</th>
+                        <th>Applicant Name</th>
+                        <th class="d-none d-md-table-cell">Course Applied</th>
+                        <th class="d-none d-md-table-cell">Academic Year</th>
+                        <th class="d-none d-md-table-cell">Application Date</th>
+                        <th>Status</th>
+                        <th class="d-none d-lg-table-cell">Guardian Contact</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for application in applications %}
+                    <tr>
+                        <td class="text-center d-none d-md-table-cell">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div>
+                                    <div class="fw-semibold">
+                                        {% if application.full_name %}
+                                            {{ application.full_name }}
+                                        {% else %}
+                                            <span class="text-muted">Name not provided</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="d-none d-md-table-cell">
+                            {% if application.course_applied %}
+                                {{ application.course_applied.course_name }}
+                            {% else %}
+                                <span class="text-muted">Not selected</span>
+                            {% endif %}
+                        </td>
+                        <td class="d-none d-md-table-cell">
+                            {% if application.academic_year %}
+                                {{ application.academic_year.name }}
+                            {% else %}
+                                <span class="text-muted">Not selected</span>
+                            {% endif %}
+                        </td>
+                        <td class="d-none d-md-table-cell">{{ application.application_date|date:"d M Y" }}</td>
+                        <td>
+                            {% if application.status == 'draft' %}
+                                <span class="badge bg-secondary">Draft</span>
+                            {% elif application.status == 'submitted' %}
+                                <span class="badge bg-info">Submitted</span>
+                            {% elif application.status == 'under_review' %}
+                                <span class="badge bg-warning text-dark">Under Review</span>
+                            {% elif application.status == 'approved' %}
+                                <span class="badge bg-success">Approved</span>
+                            {% elif application.status == 'rejected' %}
+                                <span class="badge bg-danger">Rejected</span>
+                            {% elif application.status == 'waitlisted' %}
+                                <span class="badge bg-warning">Waitlisted</span>
+                            {% elif application.status == 'admitted' %}
+                                <span class="badge bg-primary">Admitted</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">{{ application.status|title }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="d-none d-lg-table-cell">
+                            {% if application.guardian1_first_name and application.guardian1_last_name %}
+                                <div>{{ application.guardian1_first_name }} {{ application.guardian1_last_name }}</div>
+                            {% endif %}
+                            {% if application.guardian1_mobile %}
+                                <small class="text-muted">{{ application.guardian1_mobile }}</small>
+                            {% elif application.mobile %}
+                                <small class="text-muted">{{ application.mobile }}</small>
+                            {% endif %}
+                        </td>
+                        <td class="table-actions">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" 
+                                        data-bs-toggle="dropdown" title="More Actions" aria-expanded="false">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                    More
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <!-- View Action -->
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'core:admission_detail' application.id %}">
+                                            <i class="fas fa-eye me-2"></i>View Details
+                                        </a>
+                                    </li>
+                                    
+                                    <!-- Edit Actions -->
+                                    {% if application.status == 'draft' %}
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'core:admission_register' %}?continue={{ application.id }}">
+                                                <i class="fas fa-edit me-2"></i>Continue Application
+                                            </a>
+                                        </li>
+                                    {% else %}
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'core:admission_register' %}?continue={{ application.id }}">
+                                                <i class="fas fa-edit me-2"></i>Edit Application
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    <li><hr class="dropdown-divider"></li>
+                                    
+                                    <!-- Status Actions -->
+                                    {% if application.status == 'submitted' or application.status == 'under_review' %}
+                                        <li>
+                                            <a class="dropdown-item text-success" href="#" onclick="reviewApplication('{{ application.id }}', 'approve')">
+                                                <i class="fas fa-check me-2"></i>Approve Application
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item text-warning" href="#" onclick="reviewApplication('{{ application.id }}', 'reject')">
+                                                <i class="fas fa-times me-2"></i>Reject Application
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    {% endif %}
+                                    
+                                    {% if application.status == 'submitted' or application.status == 'under_review' or application.status == 'approved' %}
+                                        <li>
+                                            <a class="dropdown-item text-primary" href="#" onclick="admitStudent('{{ application.id }}', '{{ application.course_applied_id|default:'' }}')">
+                                                <i class="fas fa-user-graduate me-2"></i>Admit Student
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    {% endif %}
+                                    
+                                    <!-- Utility Actions -->
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="duplicateApplication('{{ application.id }}')">
+                                            <i class="fas fa-copy me-2"></i>Duplicate
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="exportApplicationPDF('{{ application.id }}')">
+                                            <i class="fas fa-file-pdf me-2"></i>Export PDF
+                                        </a>
+                                    </li>
+                                    
+                                    <li><hr class="dropdown-divider"></li>
+                                    
+                                    <!-- Delete Action -->
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#" onclick="deleteApplication('{{ application.id }}', '{{ application.application_number }}')">
+                                            <i class="fas fa-trash me-2"></i>Delete Application
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="card-body text-center py-5">
+                <div class="text-muted mb-3">
+                    <i class="fas fa-inbox fa-3x"></i>
+                </div>
+                <h5 class="text-muted">No Applications Found</h5>
+                <p class="text-muted">There are no admission applications matching your criteria.</p>
+                <a href="{% url 'core:admission_register' %}" class="btn btn-success">
+                    <i class="fas fa-plus me-1"></i> Create New Application
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Pagination Controls -->
+        {% if is_paginated %}
+        <nav class="mt-4">
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if current_status %}&status={{ current_status }}{% endif %}{% if current_academic_year %}&academic_year={{ current_academic_year }}{% endif %}" title="First page">
+                        <i class="fas fa-step-backward"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_academic_year %}&academic_year={{ current_academic_year }}{% endif %}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="fas fa-step-backward"></i></span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                </li>
+                {% endif %}
+
+                <!-- Page Numbers -->
+                {% for num in paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">
+                            {{ num }}
+                            <span class="visually-hidden">(current)</span>
+                        </span>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_academic_year %}&academic_year={{ current_academic_year }}{% endif %}">
+                            {{ num }}
+                        </a>
+                    </li>
+                    {% elif num == 1 or num == paginator.num_pages %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_academic_year %}&academic_year={{ current_academic_year }}{% endif %}">
+                            {{ num }}
+                        </a>
+                    </li>
+                    {% elif num == 2 or num == paginator.num_pages|add:'-1' %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_academic_year %}&academic_year={{ current_academic_year }}{% endif %}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ paginator.num_pages }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_academic_year %}&academic_year={{ current_academic_year }}{% endif %}" title="Last page">
+                        <i class="fas fa-step-forward"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="fas fa-step-forward"></i></span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block layout_extra %}
+<!-- Quick Review Modal -->
+<div class="modal fade" id="quickReviewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Quick Review</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="quickReviewForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <input type="hidden" id="reviewApplicationId">
+                    <input type="hidden" id="reviewAction">
+                    
+                    <div class="mb-3" id="admissionNoField" style="display: none;">
+                        <label for="admissionNo" class="form-label">Admission Number</label>
+                        <input type="text" class="form-control" id="admissionNo" 
+                               placeholder="Leave blank to auto-generate">
+                        <div class="form-text">Leave blank to auto-generate admission number</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="remarks" class="form-label">Remarks</label>
+                        <textarea class="form-control" id="remarks" rows="3" 
+                                  placeholder="Enter remarks or reason for decision"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="confirmAction">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+function reviewApplication(applicationId, action) {
+    document.getElementById('reviewApplicationId').value = applicationId;
+    document.getElementById('reviewAction').value = action;
+    
+    const modal = new bootstrap.Modal(document.getElementById('quickReviewModal'));
+    const title = document.querySelector('#quickReviewModal .modal-title');
+    const confirmBtn = document.getElementById('confirmAction');
+    const admissionField = document.getElementById('admissionNoField');
+    const remarksField = document.getElementById('remarks');
+    
+    if (action === 'approve') {
+        title.textContent = 'Approve Application';
+        confirmBtn.textContent = 'Approve';
+        confirmBtn.className = 'btn btn-success';
+        admissionField.style.display = 'block';
+        remarksField.placeholder = 'Enter approval remarks (optional)';
+        remarksField.required = false;
+    } else {
+        title.textContent = 'Reject Application';
+        confirmBtn.textContent = 'Reject';
+        confirmBtn.className = 'btn btn-danger';
+        admissionField.style.display = 'none';
+        remarksField.placeholder = 'Enter reason for rejection';
+        remarksField.required = true;
+    }
+    
+    modal.show();
+}
+
+document.getElementById('quickReviewForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const applicationId = document.getElementById('reviewApplicationId').value;
+    const action = document.getElementById('reviewAction').value;
+    const remarks = document.getElementById('remarks').value;
+    const admissionNo = document.getElementById('admissionNo').value;
+    
+    if (action === 'reject' && !remarks.trim()) {
+        showAlert('Please provide a reason for rejection', 'warning');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    formData.append('action', action);
+    formData.append('remarks', remarks);
+    if (action === 'approve' && admissionNo) {
+        formData.append('admission_no', admissionNo);
+    }
+    
+    // Call the appropriate API endpoint
+    const endpoint = action === 'approve' ? 'approve' : 'reject';
+    const url = `/management/${applicationId}/${endpoint}/`;
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            remarks: remarks,
+            admission_no: admissionNo
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('quickReviewModal')).hide();
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showAlert(data.error || `Failed to ${action} application`, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert(`An error occurred while ${action === 'approve' ? 'approving' : 'rejecting'} the application`, 'danger');
+    });
+    
+    // Reset form
+    document.getElementById('quickReviewForm').reset();
+});
+
+// Delete application with confirmation
+function deleteApplication(applicationId, applicationNumber) {
+    // Create delete confirmation modal
+    const deleteModal = document.createElement('div');
+    deleteModal.innerHTML = `
+        <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header pw-danger">
+                        <h5 class="modal-title">Confirm Deletion</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-exclamation-triangle text-warning fa-2x me-3"></i>
+                            <div>
+                                <p class="mb-1"><strong>Are you sure you want to delete this application?</strong></p>
+                                <p class="mb-0 text-muted">Application #: ${applicationNumber}</p>
+                            </div>
+                        </div>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle me-2"></i>
+                            This action cannot be undone. All application data will be permanently removed.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" onclick="confirmDelete('${applicationId}', '${applicationNumber}')">
+                            <i class="fas fa-trash me-2"></i>Delete Application
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(deleteModal);
+    const modalInstance = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    modalInstance.show();
+    
+    // Clean up modal when hidden
+    document.getElementById('deleteConfirmModal').addEventListener('hidden.bs.modal', function() {
+        deleteModal.remove();
+    });
+}
+
+function confirmDelete(applicationId, applicationNumber) {
+    // Close the delete modal first
+    bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();
+    
+    fetch(`/management/${applicationId}/delete/`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Application deleted successfully!', 'success');
+            // Refresh the page after a short delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showAlert(data.error || 'Failed to delete application', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('An error occurred while deleting the application', 'danger');
+    });
+}
+
+// Admit student and assign to batch
+function admitStudent(applicationId, courseId) {
+    // Open batch assignment modal
+    const modal = document.createElement('div');
+    modal.innerHTML = `
+        <div class="modal fade" id="batchAssignmentModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Admit Student & Assign Batch</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="batchAssignmentForm">
+                            <div class="mb-3">
+                                <label for="batchSelect" class="form-label">Select Batch <span class="text-danger">*</span></label>
+                                <select class="form-select" id="batchSelect" required onchange="clearAdmissionNumber()">
+                                    <option value="">Loading batches...</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="admissionNumber" class="form-label">
+                                    Admission Number 
+                                    <button type="button" class="btn btn-sm btn-outline-primary ms-2" 
+                                            onclick="generateAdmissionNumber()"
+                                            title="Generate Admission Number">
+                                        <i class="fas fa-magic"></i> Generate
+                                    </button>
+                                </label>
+                                <input type="text" class="form-control" id="admissionNumber" 
+                                       name="admission_number"
+                                       placeholder="Click 'Generate' or enter manually"
+                                       onblur="validateAdmissionNumber(this.value)">
+                                <div id="admissionNumberFeedback" class="form-text"></div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="admissionDate" class="form-label">Admission Date</label>
+                                <input type="date" class="form-control" id="admissionDate" 
+                                       value="${new Date().toISOString().split('T')[0]}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="admissionRemarks" class="form-label">Remarks</label>
+                                <textarea class="form-control" id="admissionRemarks" rows="3" 
+                                          placeholder="Additional notes about admission..."></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-success" onclick="confirmAdmission('${applicationId}')">
+                            <i class="fas fa-user-graduate me-2"></i>Admit Student
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    const modalInstance = new bootstrap.Modal(document.getElementById('batchAssignmentModal'));
+    
+    // Load batches filtered to the applied course/grade
+    const batchUrl = '{% url "core:active_batches_api" %}' + (courseId ? `?course_id=${courseId}` : '');
+    fetch(batchUrl)
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('batchSelect');
+            if (!data.batches || data.batches.length === 0) {
+                select.innerHTML = '<option value="">No active batches for this grade</option>';
+            } else {
+                select.innerHTML = '<option value="">Select a batch...</option>';
+                data.batches.forEach(batch => {
+                    select.innerHTML += `<option value="${batch.id}">${batch.name} — ${batch.course_name}</option>`;
+                });
+            }
+        })
+        .catch(() => {
+            document.getElementById('batchSelect').innerHTML = '<option value="">Error loading batches</option>';
+        });
+    
+    modalInstance.show();
+    
+    // Clean up modal when closed
+    document.getElementById('batchAssignmentModal').addEventListener('hidden.bs.modal', function() {
+        modal.remove();
+    });
+}
+
+// Confirm admission with batch assignment
+function confirmAdmission(applicationId) {
+    const batchId = document.getElementById('batchSelect').value;
+    const admissionNumber = document.getElementById('admissionNumber').value;
+    const admissionDate = document.getElementById('admissionDate').value;
+    const remarks = document.getElementById('admissionRemarks').value;
+    
+    if (!batchId) {
+        showAlert('Please select a batch for the student', 'warning');
+        return;
+    }
+    
+    const data = {
+        batch_id: batchId,
+        admission_number: admissionNumber,
+        admission_date: admissionDate,
+        remarks: remarks
+    };
+    
+    fetch(`/management/${applicationId}/admit/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('batchAssignmentModal')).hide();
+            const account = data.parent_account || {};
+            if (account.status === 'created') {
+                // The password is shown only once — hold the reload until the
+                // admin dismisses the credentials modal.
+                showAlert('Student admitted and assigned to batch successfully!', 'success');
+                showParentAccountModal(account);
+            } else if (account.status === 'reused') {
+                showAlert(`Student admitted. Linked to existing parent account "${account.username}".`, 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showAlert('Student admitted and assigned to batch successfully!', 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            }
+        } else {
+            showAlert(data.error || 'Failed to admit student', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('An error occurred while admitting the student', 'danger');
+    });
+}
+
+// Show the one-time parent portal credentials after admission
+function showParentAccountModal(account) {
+    const esc = (value) => String(value || '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+    const container = document.createElement('div');
+    container.innerHTML = `
+        <div class="modal fade" id="parentAccountModal" tabindex="-1" data-bs-backdrop="static">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header pw-brand">
+                        <h5 class="modal-title"><i class="fas fa-user-shield me-2"></i>Parent Portal Account Created</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>A portal account was created for <strong>${esc(account.guardian_name)}</strong>.</p>
+                        <div class="mb-2">
+                            <label class="form-label mb-0">Username</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" value="${esc(account.username)}" readonly id="parentAccountUsername">
+                                <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('parentAccountUsername').value)"><i class="fas fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label mb-0">Password</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" value="${esc(account.password)}" readonly id="parentAccountPassword">
+                                <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('parentAccountPassword').value)"><i class="fas fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div class="alert alert-warning mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Save these credentials now and share them with the parent — the password is shown only once and cannot be recovered.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Done</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(container);
+    const modalEl = container.querySelector('#parentAccountModal');
+    const modal = new bootstrap.Modal(modalEl);
+    modalEl.addEventListener('hidden.bs.modal', function() {
+        container.remove();
+        window.location.reload();
+    });
+    modal.show();
+}
+
+// Duplicate application
+function duplicateApplication(applicationId) {
+    // Create duplicate confirmation modal
+    const duplicateModal = document.createElement('div');
+    duplicateModal.innerHTML = `
+        <div class="modal fade" id="duplicateConfirmModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header pw-brand">
+                        <h5 class="modal-title">Confirm Duplication</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-copy text-info fa-2x me-3"></i>
+                            <div>
+                                <p class="mb-1"><strong>Create a copy of this application?</strong></p>
+                                <p class="mb-0 text-muted">A new draft application will be created with the same details.</p>
+                            </div>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            The duplicate will have a new application number and draft status.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-info" onclick="confirmDuplicate('${applicationId}')">
+                            <i class="fas fa-copy me-2"></i>Create Copy
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(duplicateModal);
+    const modalInstance = new bootstrap.Modal(document.getElementById('duplicateConfirmModal'));
+    modalInstance.show();
+    
+    // Clean up modal when hidden
+    document.getElementById('duplicateConfirmModal').addEventListener('hidden.bs.modal', function() {
+        duplicateModal.remove();
+    });
+}
+
+function confirmDuplicate(applicationId) {
+    // Close the duplicate modal first
+    bootstrap.Modal.getInstance(document.getElementById('duplicateConfirmModal')).hide();
+    
+    fetch(`/management/${applicationId}/duplicate/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Application duplicated successfully!', 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showAlert(data.error || 'Failed to duplicate application', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('An error occurred while duplicating the application', 'danger');
+    });
+}
+
+// Export application as PDF
+function exportApplicationPDF(applicationId) {
+    const link = document.createElement('a');
+    link.href = `/management/${applicationId}/export-pdf/`;
+    link.target = '_blank';
+    link.download = `application-${applicationId}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function showAlert(message, type) {
+    if (type === 'success') showSuccess(message);
+    else if (type === 'danger') showDanger(message);
+    else showToast(message);
+}
+
+// Generate admission number
+function generateAdmissionNumber() {
+    const batchSelect = document.getElementById('batchSelect');
+    const admissionNumberInput = document.getElementById('admissionNumber');
+    const feedbackDiv = document.getElementById('admissionNumberFeedback');
+    
+    // Show loading state
+    admissionNumberInput.value = '';
+    admissionNumberInput.placeholder = 'Generating...';
+    admissionNumberInput.disabled = true;
+    feedbackDiv.innerHTML = '<small class="text-muted"><i class="fas fa-spinner fa-spin"></i> Generating admission number...</small>';
+    
+    // Get selected batch ID
+    const batchId = batchSelect ? batchSelect.value : '';
+    const params = batchId ? `?batchSelect=${batchId}` : '';
+    
+    fetch(`/api/generate-admission-number/${params}`)
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            return response.json().then(data => {
+                throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
+            });
+        })
+        .then(data => {
+            console.log('API Response:', data); // Debug log
+            
+            if (data.success && data.admission_number) {
+                admissionNumberInput.value = data.admission_number;
+                admissionNumberInput.className = 'form-control is-valid';
+                feedbackDiv.innerHTML = '<small class="text-success"><i class="fas fa-check-circle"></i> Admission number generated</small>';
+                console.log('Generated admission number:', data.admission_number);
+            } else {
+                console.error('API returned error:', data);
+                throw new Error(data.error || 'Unknown error occurred');
+            }
+        })
+        .catch(error => {
+            console.error('Error generating admission number:', error);
+            admissionNumberInput.className = 'form-control is-invalid';
+            feedbackDiv.innerHTML = '<small class="text-danger"><i class="fas fa-exclamation-circle"></i> Failed to generate admission number</small>';
+        })
+        .finally(() => {
+            admissionNumberInput.disabled = false;
+            admissionNumberInput.placeholder = 'Click "Generate" or enter manually';
+        });
+}
+
+// Validate admission number
+function validateAdmissionNumber(admissionNumber) {
+    const admissionNumberInput = document.getElementById('admissionNumber');
+    const feedbackDiv = document.getElementById('admissionNumberFeedback');
+    
+    if (!admissionNumber || !admissionNumber.trim()) {
+        feedbackDiv.innerHTML = '<small class="text-muted">Enter an admission number</small>';
+        admissionNumberInput.className = 'form-control';
+        return;
+    }
+    
+    // Show loading state
+    feedbackDiv.innerHTML = '<small class="text-muted"><i class="fas fa-spinner fa-spin"></i> Validating...</small>';
+    
+    fetch(`/api/validate-admission-number/?admission_number=${encodeURIComponent(admissionNumber.trim())}`)
+        .then(response => response.text())
+        .then(htmlContent => {
+            feedbackDiv.innerHTML = htmlContent;
+            
+            // Update input styling based on validation result
+            if (htmlContent.includes('text-success')) {
+                admissionNumberInput.className = 'form-control is-valid';
+            } else if (htmlContent.includes('text-danger')) {
+                admissionNumberInput.className = 'form-control is-invalid';
+            } else {
+                admissionNumberInput.className = 'form-control';
+            }
+        })
+        .catch(error => {
+            console.error('Error validating admission number:', error);
+            feedbackDiv.innerHTML = '<small class="text-warning"><i class="fas fa-exclamation-triangle"></i> Unable to validate admission number</small>';
+            admissionNumberInput.className = 'form-control';
+        });
+}
+
+// Clear admission number when batch selection changes
+function clearAdmissionNumber() {
+    const admissionNumberInput = document.getElementById('admissionNumber');
+    const feedbackDiv = document.getElementById('admissionNumberFeedback');
+    
+    if (admissionNumberInput) {
+        admissionNumberInput.value = '';
+        admissionNumberInput.className = 'form-control';
+        feedbackDiv.innerHTML = '<small class="text-muted">Select a batch and click "Generate" for auto-generation</small>';
+    }
+}
+</script>
+{% endblock %}

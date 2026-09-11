@@ -1,0 +1,352 @@
+{% load core_extras %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ data.student.full_name }} – {{ template.report_title }}</title>
+<style>
+/* ── Page ── */
+@page { size: A4 portrait; margin: 12mm 12mm; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; font-size: 8pt; line-height: 1.3; color: #1a1a1a; }
+
+table { width: 100%; border-collapse: collapse; }
+.green-text { color: {{ data.template.primary_color }}; }
+.bold { font-weight: bold; }
+
+/* ── Header ── */
+.hdr-table { margin-bottom: 4pt; }
+.hdr-table td { vertical-align: middle; }
+.hdr-logo-l { width: 60pt; text-align: left; }
+.hdr-logo-r { width: 60pt; text-align: right; }
+.hdr-logo-l img, .hdr-logo-r img { max-height: 48pt; max-width: 56pt; width: auto; height: auto; }
+.hdr-mid { text-align: center; }
+.hdr-name { font-size: 17pt; font-weight: bold; color: {{ data.template.primary_color_dark }}; line-height: 1.1; }
+.hdr-sub  { font-size: 7pt; color: #555; margin-top: 2pt; }
+
+/* ── Assessment report banner ── */
+.banner {
+    background: {{ data.template.primary_color_light }}; color: {{ data.template.primary_color_dark }};
+    text-align: center; font-weight: bold; font-size: 10pt;
+    padding: 5pt; margin: 6pt 0 8pt 0; border: 0.4pt solid {{ data.template.primary_color_dark }};
+    letter-spacing: 0.5pt;
+}
+
+/* ── Student info (horizontal) ── */
+.si-table { margin-bottom: 8pt; break-inside: avoid; }
+.si-table td { vertical-align: top; padding: 1pt 4pt 4pt 0; }
+.si-lbl { font-size: 7.5pt; color: #444; }
+.si-val { font-size: 8.5pt; font-weight: bold; color: {{ data.template.primary_color_dark }}; }
+
+/* ── Exam results table ── */
+.et { margin-bottom: 8pt; break-inside: avoid; }
+.et th, .et td { border: 0.4pt solid #9c9c9c; padding: 3pt 3pt; text-align: center; vertical-align: middle; }
+.et th { background: {{ data.template.primary_color_light }}; color: #1a1a1a; font-weight: bold; font-size: 7.5pt; }
+.et td { font-size: 7.5pt; }
+.et .subj { text-align: left; }
+.et .muted { color: #999; }
+
+/* ── Generic bordered box (homework/project/clubs/etc.) ── */
+.box { width: 100%; border-collapse: collapse; break-inside: avoid; }
+.box th, .box td { border: 0.4pt solid #9c9c9c; padding: 3pt 5pt; font-size: 7.5pt; }
+.box th { background: #fff; font-weight: bold; text-align: center; }
+.box .row-lbl { text-align: left; }
+.box .row-val { text-align: left; }
+
+/* ── Side-by-side layout (table-based for WeasyPrint) ── */
+.cols { margin-bottom: 6pt; break-inside: avoid; }
+.cols > tbody > tr > td { vertical-align: top; width: 50%; }
+.cols > tbody > tr > td:first-child { padding-right: 5pt; }
+.cols > tbody > tr > td:last-child  { padding-left:  5pt; }
+
+/* ── Grading scale ── */
+.scale { width: 100%; border-collapse: collapse; }
+.scale th, .scale td { border: 0.4pt solid #9c9c9c; padding: 3pt 4pt; text-align: center; font-size: 7.5pt; }
+.scale .scale-title { background: #fff; font-weight: bold; text-align: center; }
+.scale .row-lbl { background: {{ data.template.primary_color_light }}; text-align: left; font-weight: bold; white-space: nowrap; }
+
+/* ── Footer ── */
+.footer { margin-top: 22pt; }
+.sig-table { break-inside: avoid; }
+.sig-table td { vertical-align: bottom; }
+.sig-img { max-height: 46pt; }
+.sig-line { border-top: 0.5pt solid #333; width: 170pt; margin-left: auto; padding-top: 3pt; text-align: center; font-weight: bold; font-size: 8pt; }
+.verse { text-align: center; font-style: italic; font-size: 7.5pt; color: {{ data.template.primary_color_dark }}; margin-top: 14pt; }
+
+/* ── Forced pagination hook — apply to an element to start a fresh page before it.
+   Inert by default; see report_generation_service for when it's toggled on. ── */
+.page-break { break-before: page; }
+
+/* ── Dense mode — additive compaction for long content, toggled via is_dense. ── */
+body.dense { font-size: 7.5pt; line-height: 1.2; }
+body.dense .hdr-name { font-size: 16pt; }
+body.dense .banner { font-size: 9.5pt; padding: 4pt; margin: 5pt 0 6pt 0; }
+body.dense .si-table td { padding: 1pt 3pt 3pt 0; }
+body.dense .si-val { font-size: 8pt; }
+body.dense .et th, body.dense .et td { padding: 2pt 2pt; font-size: 7pt; }
+body.dense .box th, body.dense .box td { padding: 2pt 4pt; font-size: 7pt; }
+body.dense .scale th, body.dense .scale td { padding: 2pt 3pt; font-size: 7pt; }
+body.dense .cols { margin-bottom: 4pt; }
+body.dense .footer { margin-top: 16pt; }
+body.dense .verse { margin-top: 10pt; font-size: 7pt; }
+</style>
+</head>
+<body{% if is_dense %} class="dense"{% endif %}>
+
+{# ══════════════ HEADER ══════════════ #}
+{# Logo cells are only rendered when an image is actually available, so the
+   school name expands naturally on single-logo setups. #}
+<table class="hdr-table">
+  <tr>
+    {% if data.school.logo_url %}
+    <td class="hdr-logo-l">
+      <img src="{{ data.school.logo_url }}" alt="">
+    </td>
+    {% endif %}
+    <td class="hdr-mid">
+      <div class="hdr-name">{{ data.school.name }}</div>
+      <div class="hdr-sub">{{ data.school.address }}</div>
+      <div class="hdr-sub">
+        {{ data.school.contact }}{% if data.school.email %} | {{ data.school.email }}{% endif %}{% if data.school.website %} | {{ data.school.website }}{% endif %}
+      </div>
+    </td>
+    {% if data.school.logo_secondary_url %}
+    <td class="hdr-logo-r">
+      <img src="{{ data.school.logo_secondary_url }}" alt="">
+    </td>
+    {% endif %}
+  </tr>
+</table>
+
+{# ══════════════ BANNER ══════════════ #}
+<div class="banner">{{ template.report_title }}</div>
+
+{# ══════════════ STUDENT INFO ══════════════ #}
+<table class="si-table">
+  <tr>
+    <td style="width:24%"><div class="si-lbl">Name of pupil</div><div class="si-val">{{ data.student.full_name }}</div></td>
+    <td style="width:14%"><div class="si-lbl">Class</div><div class="si-val">{{ data.student.class_name|default:"—" }}</div></td>
+    <td style="width:12%"><div class="si-lbl">Admn No.</div><div class="si-val">{{ data.student.admission_number|default:"—" }}</div></td>
+    <td style="width:16%"><div class="si-lbl">Age</div><div class="si-val">{{ data.student.age|default:"—" }}</div></td>
+    <td style="width:16%"><div class="si-lbl">Average age of grade</div><div class="si-val">{{ data.student.average_age_of_grade|default:"—" }}</div></td>
+    <td style="width:18%"><div class="si-lbl">Class teacher(s)</div><div class="si-val">{% for t in data.student.class_teachers %}{{ t }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</div></td>
+  </tr>
+  <tr>
+    <td><div class="si-lbl">Term</div><div class="si-val">{{ data.term_info.term|default:"—" }}</div></td>
+    <td colspan="4"></td>
+    <td><div class="si-lbl">Next term commences</div><div class="si-val">{{ data.term_info.next_term_start|date:"d/m/Y"|default:"—" }}</div></td>
+  </tr>
+</table>
+
+{# ══════════════ SECTIONS — rendered in configurable order ══════════════ #}
+{% for section in data.template.section_order %}
+
+  {# ── Exam results ── #}
+  {% if section == 'exam_scores' %}
+  {% if template.include_exam_scores and data.exam_results %}
+  <table class="et">
+    <thead>
+      <tr>
+        <th rowspan="2" class="subj" style="width:30%">SUBJECTS</th>
+        <th colspan="3">EXAMINATION/TEST</th>
+        <th colspan="2">TERM</th>
+      </tr>
+      <tr>
+        <th style="width:13%">MARKS (%)</th>
+        <th style="width:11%">GRADE</th>
+        <th style="width:15%">CLASS AV. (%)</th>
+        <th style="width:15%">ATTAINMENT</th>
+        <th style="width:11%">EFFORT</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in data.exam_results %}
+      <tr>
+        <td class="subj">{{ r.subject }}</td>
+        {% if r.is_absent %}
+          <td class="muted">—</td>
+          <td class="bold">{{ r.grade|default:"—" }}</td>
+        {% else %}
+          <td>{{ r.percentage|floatformat:0 }}</td>
+          <td class="bold">{{ r.grade|default:"—" }}</td>
+        {% endif %}
+        <td>{% with ca=data.class_averages|get_item:r.subject %}{% if ca is not None %}{{ ca|floatformat:0 }}{% else %}—{% endif %}{% endwith %}</td>
+        <td>{{ r.attainment|default:"—" }}</td>
+        <td>{{ r.effort|default:"—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% endif %}
+
+  {# ── Homework + Project Work ── #}
+  {% if section == 'homework_project' %}
+  {% if template.include_homework_assessment and template.include_project_work %}
+  <table class="cols">
+    <tr>
+      <td>
+        <table class="box">
+          <tr><th style="width:55%">HOMEWORK</th><th>{{ data.term_info.term|default:"" }}</th></tr>
+          <tr><td class="row-lbl">Submission</td><td class="row-val">{{ data.homework.submission|default:"—" }}</td></tr>
+          <tr><td class="row-lbl">Presentation</td><td class="row-val">{{ data.homework.presentation|default:"—" }}</td></tr>
+          <tr><td class="row-lbl">Effort</td><td class="row-val">{{ data.homework.effort|default:"—" }}</td></tr>
+        </table>
+      </td>
+      <td>
+        <table class="box">
+          <tr><th style="width:55%">PROJECT WORK</th><th>{{ data.term_info.term|default:"" }}</th></tr>
+          <tr><td class="row-lbl">Submission</td><td class="row-val">{{ data.project_work.submission|default:"—" }}</td></tr>
+          <tr><td class="row-lbl">Presentation</td><td class="row-val">{{ data.project_work.presentation|default:"—" }}</td></tr>
+          <tr><td class="row-lbl">Effort</td><td class="row-val">{{ data.project_work.effort|default:"—" }}</td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+  {% elif template.include_homework_assessment %}
+  <table class="box">
+    <tr><th style="width:55%">HOMEWORK</th><th>{{ data.term_info.term|default:"" }}</th></tr>
+    <tr><td class="row-lbl">Submission</td><td class="row-val">{{ data.homework.submission|default:"—" }}</td></tr>
+    <tr><td class="row-lbl">Presentation</td><td class="row-val">{{ data.homework.presentation|default:"—" }}</td></tr>
+    <tr><td class="row-lbl">Effort</td><td class="row-val">{{ data.homework.effort|default:"—" }}</td></tr>
+  </table>
+  {% elif template.include_project_work %}
+  <table class="box">
+    <tr><th style="width:55%">PROJECT WORK</th><th>{{ data.term_info.term|default:"" }}</th></tr>
+    <tr><td class="row-lbl">Submission</td><td class="row-val">{{ data.project_work.submission|default:"—" }}</td></tr>
+    <tr><td class="row-lbl">Presentation</td><td class="row-val">{{ data.project_work.presentation|default:"—" }}</td></tr>
+    <tr><td class="row-lbl">Effort</td><td class="row-val">{{ data.project_work.effort|default:"—" }}</td></tr>
+  </table>
+  {% endif %}
+  {% endif %}
+
+  {# ── Clubs + Sports ── #}
+  {% if section == 'clubs_sports' %}
+  {% if template.include_clubs or template.include_sports %}
+  {% with has_clubs=data.activities.clubs|length has_sports=data.activities.sports|length %}
+  {% if template.include_clubs and has_clubs and template.include_sports and has_sports %}
+  <table class="cols">
+    <tr>
+      <td>
+        <table class="box">
+          <tr><th>CLUBS</th></tr>
+          {% for c in data.activities.clubs %}<tr><td class="row-lbl">{{ c }}</td></tr>{% endfor %}
+        </table>
+      </td>
+      <td>
+        <table class="box">
+          <tr><th>SPORTS</th></tr>
+          {% for s in data.activities.sports %}<tr><td class="row-lbl">{{ s }}</td></tr>{% endfor %}
+        </table>
+      </td>
+    </tr>
+  </table>
+  {% elif template.include_clubs and has_clubs %}
+  <table class="box">
+    <tr><th>CLUBS</th></tr>
+    {% for c in data.activities.clubs %}<tr><td class="row-lbl">{{ c }}</td></tr>{% endfor %}
+  </table>
+  {% elif template.include_sports and has_sports %}
+  <table class="box">
+    <tr><th>SPORTS</th></tr>
+    {% for s in data.activities.sports %}<tr><td class="row-lbl">{{ s }}</td></tr>{% endfor %}
+  </table>
+  {% endif %}
+  {% endwith %}
+  {% endif %}
+  {% endif %}
+
+  {# ── Other Activities ── #}
+  {% if section == 'other_activities' %}
+  {% if template.include_other_activities and data.activities.other %}
+  <table class="box">
+    <tr><th>OTHER ACTIVITIES</th></tr>
+    {% for o in data.activities.other %}<tr><td class="row-lbl">{{ o }}</td></tr>{% endfor %}
+  </table>
+  {% endif %}
+  {% endif %}
+
+  {# ── Attendance + Grading Scale ── #}
+  {% if section == 'attendance_scale' %}
+  {% if template.include_attendance and template.include_grading_scale and data.grading_scale %}
+  <table class="cols" style="break-inside: avoid;">
+    <tr>
+      <td style="width:40%">
+        <table class="box">
+          <tr><th style="width:65%">Attendance</th><th>{{ data.term_info.term|default:"" }}</th></tr>
+          <tr><td class="row-lbl">No. of days present</td><td style="text-align:center">{{ data.attendance.days_present|floatformat:1 }}</td></tr>
+          <tr><td class="row-lbl">No. of days absent</td><td style="text-align:center">{{ data.attendance.days_absent|floatformat:1 }}</td></tr>
+        </table>
+      </td>
+      <td style="width:60%">
+        <table class="scale">
+          <tr>
+            <td class="scale-title" colspan="{{ data.grading_scale|length|add:1 }}">
+              Scholastic Grade Scale: Grades are awarded on a 5 point grading scale as follows
+            </td>
+          </tr>
+          <tr>
+            <td class="row-lbl">Grade</td>
+            {% for g in data.grading_scale %}<td class="bold">{{ g.grade }}</td>{% endfor %}
+          </tr>
+          <tr>
+            <td class="row-lbl">Minimum score</td>
+            {% for g in data.grading_scale %}<td>{{ g.minimum_score|floatformat:1 }}</td>{% endfor %}
+          </tr>
+          <tr>
+            <td class="row-lbl">Description</td>
+            {% for g in data.grading_scale %}<td>{{ g.description|default:"—" }}</td>{% endfor %}
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+  {% elif template.include_attendance %}
+  <table class="box" style="break-inside: avoid;">
+    <tr><th style="width:65%">Attendance</th><th>{{ data.term_info.term|default:"" }}</th></tr>
+    <tr><td class="row-lbl">No. of days present</td><td style="text-align:center">{{ data.attendance.days_present|floatformat:1 }}</td></tr>
+    <tr><td class="row-lbl">No. of days absent</td><td style="text-align:center">{{ data.attendance.days_absent|floatformat:1 }}</td></tr>
+  </table>
+  {% elif template.include_grading_scale and data.grading_scale %}
+  <table class="scale" style="break-inside: avoid;">
+    <tr>
+      <td class="scale-title" colspan="{{ data.grading_scale|length|add:1 }}">
+        Scholastic Grade Scale: Grades are awarded on a 5 point grading scale as follows
+      </td>
+    </tr>
+    <tr>
+      <td class="row-lbl">Grade</td>
+      {% for g in data.grading_scale %}<td class="bold">{{ g.grade }}</td>{% endfor %}
+    </tr>
+    <tr>
+      <td class="row-lbl">Minimum score</td>
+      {% for g in data.grading_scale %}<td>{{ g.minimum_score|floatformat:1 }}</td>{% endfor %}
+    </tr>
+    <tr>
+      <td class="row-lbl">Description</td>
+      {% for g in data.grading_scale %}<td>{{ g.description|default:"—" }}</td>{% endfor %}
+    </tr>
+  </table>
+  {% endif %}
+  {% endif %}
+
+{% endfor %}
+
+{# ══════════════ FOOTER ══════════════ #}
+<div class="footer">
+  <table class="sig-table">
+    <tr>
+      <td style="width:60%"></td>
+      <td style="width:40%; text-align:center">
+        {% if data.school.signature_url %}<img src="{{ data.school.signature_url }}" class="sig-img" alt="Signature"><br>{% endif %}
+        <div class="sig-line">Head of School</div>
+      </td>
+    </tr>
+  </table>
+</div>
+
+{% if template.footer_quote %}
+<div class="verse">{{ template.footer_quote }}</div>
+{% endif %}
+
+</body>
+</html>

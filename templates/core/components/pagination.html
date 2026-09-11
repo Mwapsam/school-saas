@@ -1,0 +1,106 @@
+{% load core_extras %}
+{% comment %}
+Pinewood pagination — renders Django Page controls, preserving the current
+querystring (search/filter params) across page changes. Consolidates the
+~15-line manual pagination loop duplicated across list pages.
+
+Usage (plain navigation):
+  {% include 'core/components/pagination.html' with page_obj=page_obj %}
+
+Usage (htmx-swapped list, e.g. inside an htmx fragment whose parent page
+targets a container with search/filter results):
+  {% include 'core/components/pagination.html' with page_obj=page_obj hx_target="#student-list-content" %}
+
+Params:
+  page_obj       (required) — a Django Page object
+  preserve_query (optional) — set False to link with only `?page=N` and drop
+                              existing GET params (default: preserve them)
+  hx_target      (optional) — CSS selector; when given, page links render as
+                              hx-get/hx-target/data-loading instead of plain
+                              href navigation
+  show_first_last (optional) — set False to hide the First/Last links
+                               (default: shown)
+  numbered       (optional) — render a windowed page-number list (Previous,
+                              current ±2, Next) instead of the First/Prev/
+                              Page-X-of-Y/Next/Last controls above. Used by
+                              pages that had their own hand-rolled numeric
+                              pager (courses.html and 8 similar templates)
+                              before this was pulled out as a shared variant.
+{% endcomment %}
+{% if numbered %}
+{% if page_obj.paginator.num_pages > 1 %}
+<div class="d-flex justify-content-center mt-4">
+  <nav aria-label="pagination">
+    <ul class="pagination">
+      {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?{% query_transform page=page_obj.previous_page_number %}">Previous</a></li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">Previous</span></li>
+      {% endif %}
+      {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+          <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+          <li class="page-item"><a class="page-link" href="?{% query_transform page=num %}">{{ num }}</a></li>
+        {% endif %}
+      {% endfor %}
+      {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?{% query_transform page=page_obj.next_page_number %}">Next</a></li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">Next</span></li>
+      {% endif %}
+    </ul>
+  </nav>
+</div>
+{% endif %}
+{% elif page_obj.paginator.num_pages > 1 %}
+<div class="pinewood-table-pagination">
+  <nav aria-label="pagination">
+    <ul class="pagination justify-content-center mb-0">
+      {% if page_obj.has_previous %}
+        {% if show_first_last == False %}{% else %}
+        <li class="page-item">
+          {% if hx_target %}
+            <a class="page-link" href="#" hx-get="?{% if preserve_query == False %}page=1{% else %}{% query_transform page=1 %}{% endif %}" hx-target="{{ hx_target }}" data-loading>First</a>
+          {% else %}
+            <a class="page-link" href="?{% if preserve_query == False %}page=1{% else %}{% query_transform page=1 %}{% endif %}">First</a>
+          {% endif %}
+        </li>
+        {% endif %}
+        <li class="page-item">
+          {% if hx_target %}
+            <a class="page-link" href="#" hx-get="?{% if preserve_query == False %}page={{ page_obj.previous_page_number }}{% else %}{% query_transform page=page_obj.previous_page_number %}{% endif %}" hx-target="{{ hx_target }}" data-loading>Previous</a>
+          {% else %}
+            <a class="page-link" href="?{% if preserve_query == False %}page={{ page_obj.previous_page_number }}{% else %}{% query_transform page=page_obj.previous_page_number %}{% endif %}">Previous</a>
+          {% endif %}
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">Previous</span></li>
+      {% endif %}
+
+      <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+
+      {% if page_obj.has_next %}
+        <li class="page-item">
+          {% if hx_target %}
+            <a class="page-link" href="#" hx-get="?{% if preserve_query == False %}page={{ page_obj.next_page_number }}{% else %}{% query_transform page=page_obj.next_page_number %}{% endif %}" hx-target="{{ hx_target }}" data-loading>Next</a>
+          {% else %}
+            <a class="page-link" href="?{% if preserve_query == False %}page={{ page_obj.next_page_number }}{% else %}{% query_transform page=page_obj.next_page_number %}{% endif %}">Next</a>
+          {% endif %}
+        </li>
+        {% if show_first_last == False %}{% else %}
+        <li class="page-item">
+          {% if hx_target %}
+            <a class="page-link" href="#" hx-get="?{% if preserve_query == False %}page={{ page_obj.paginator.num_pages }}{% else %}{% query_transform page=page_obj.paginator.num_pages %}{% endif %}" hx-target="{{ hx_target }}" data-loading>Last</a>
+          {% else %}
+            <a class="page-link" href="?{% if preserve_query == False %}page={{ page_obj.paginator.num_pages }}{% else %}{% query_transform page=page_obj.paginator.num_pages %}{% endif %}">Last</a>
+          {% endif %}
+        </li>
+        {% endif %}
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">Next</span></li>
+      {% endif %}
+    </ul>
+  </nav>
+</div>
+{% endif %}

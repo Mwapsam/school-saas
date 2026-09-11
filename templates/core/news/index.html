@@ -1,0 +1,194 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-newspaper' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}News & Announcements{% endblock %}
+
+
+
+{% block layout_table %}
+<div class="news-header">
+    <div class="news-header-icon"><i class="fas fa-newspaper"></i></div>
+    <div style="flex:1">
+        <h2>News &amp; Announcements</h2>
+        <p>Publish and manage articles for your school community</p>
+    </div>
+    <button class="btn btn-primary btn-sm"
+            data-bs-toggle="modal" data-bs-target="#createNewsModal">
+        <i class="fas fa-plus me-1"></i> New Article
+    </button>
+</div>
+
+{% if news_list %}
+<div class="row g-3">
+    {% for article in news_list %}
+    <div class="col-md-6">
+        <div class="news-card">
+            <div class="news-card-body">
+                <div class="d-flex align-items-start gap-3">
+                    <div style="flex:1">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <p class="news-card-title mb-0">{{ article.title }}</p>
+                            {% if not article.is_active %}
+                            <span class="badge bg-secondary" style="font-size:11px">Hidden</span>
+                            {% endif %}
+                        </div>
+                        <p class="news-card-meta">
+                            By {{ article.author }} &middot; {{ article.created_at|date:"N j, Y" }}
+                        </p>
+                        <div class="news-card-content">{{ article.content|truncatewords_html:50|safe }}</div>
+                    </div>
+                    <div class="news-actions">
+                        <form method="post" action="{% url 'core:news' %}" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="toggle">
+                            <input type="hidden" name="news_id" value="{{ article.id }}">
+                            <button type="submit" class="btn btn-sm {% if article.is_active %}btn-outline-success{% else %}btn-outline-secondary{% endif %}"
+                                    title="{% if article.is_active %}Active — click to hide{% else %}Hidden — click to publish{% endif %}">
+                                <i class="fas {% if article.is_active %}fa-eye{% else %}fa-eye-slash{% endif %}"></i>
+                            </button>
+                        </form>
+                        <button class="btn btn-sm btn-outline-primary"
+                                data-bs-toggle="modal"
+                                data-bs-target="#editModal{{ article.id }}"
+                                title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <form method="post" action="{% url 'core:news' %}" class="d-inline"
+                              onsubmit="event.preventDefault(); showDanger('Delete this article?', () => this.submit());">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="news_id" value="{{ article.id }}">
+                            <button class="btn btn-sm btn-outline-danger" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal fade" id="editModal{{ article.id }}" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <form method="post" action="{% url 'core:news' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="news_id" value="{{ article.id }}">
+                <div class="modal-content" style="border-radius:0">
+                    <div class="modal-header pw-brand">
+                        <h5 class="modal-title">Edit Article</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="title" value="{{ article.title }}" required style="border-radius:0">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Content <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="content" rows="6" required style="border-radius:0">{{ article.content }}</textarea>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Author</label>
+                                <input type="text" class="form-control" name="author" value="{{ article.author }}" style="border-radius:0">
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input" type="checkbox" name="is_active"
+                                           id="editActive{{ article.id }}" {% if article.is_active %}checked{% endif %}>
+                                    <label class="form-check-label" for="editActive{{ article.id }}">
+                                        Visible to students/parents
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Newsletter PDF (optional)</label>
+                            {% if article.document %}
+                            <div class="mb-2 p-2 bg-light border rounded d-flex align-items-center justify-content-between">
+                                <div>
+                                    <i class="fas fa-file-pdf text-danger me-2"></i>
+                                    <a href="{{ article.document.url }}" target="_blank" rel="noopener">View/Download current PDF</a>
+                                </div>
+                            </div>
+                            {% endif %}
+                            <input type="file" class="form-control" name="document" accept=".pdf" style="border-radius:0">
+                            <small class="text-muted d-block mt-1">PDF only, max 5MB. Upload a new file to replace the current one.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="news-empty">
+    <div class="news-empty-icon"><i class="fas fa-newspaper"></i></div>
+    <h5 class="text-muted" style="font-size:15px">No articles yet</h5>
+    <p class="text-muted" style="font-size:13px">Create your first article to inform your school community.</p>
+    <button class="btn btn-primary btn-sm"
+            data-bs-toggle="modal" data-bs-target="#createNewsModal">
+        <i class="fas fa-plus me-1"></i> Create First Article
+    </button>
+</div>
+{% endif %}
+
+<!-- Create Article Modal -->
+<div class="modal fade" id="createNewsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form method="post" action="{% url 'core:news' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+            <div class="modal-content" style="border-radius:0">
+                <div class="modal-header pw-brand">
+                    <h5 class="modal-title">New Article</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Title <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="title" required style="border-radius:0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Content <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="content" rows="6" required style="border-radius:0"></textarea>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Author</label>
+                            <input type="text" class="form-control" name="author" placeholder="Admin" style="border-radius:0">
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="createActive" checked>
+                                <label class="form-check-label" for="createActive">Publish immediately</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Newsletter PDF (optional)</label>
+                        <input type="file" class="form-control" name="document" accept=".pdf" style="border-radius:0">
+                        <small class="text-muted d-block mt-1">PDF only, max 5MB</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Publish</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

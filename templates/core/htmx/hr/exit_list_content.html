@@ -1,0 +1,35 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead><tr><th>Employee</th><th>Type</th><th>Last day</th><th>Final pay</th><th>Clearance</th><th>Status</th></tr></thead>
+        <tbody>
+            {% for x in exits %}
+                <tr>
+                    <td>
+                        <a href="{% url 'core:employee_detail' x.employee_id %}"><strong>{{ x.employee.first_name }} {{ x.employee.last_name }}</strong></a>
+                        <div><small class="text-muted">{{ x.employee.employee_number }}</small></div>
+                    </td>
+                    <td>{{ x.get_exit_type_display }}</td>
+                    <td><small>{{ x.last_working_date|date:"M j, Y"|default:"—" }}</small></td>
+                    <td>{{ x.get_final_payment_status_display }}</td>
+                    <td>{% with p=x.clearance_progress %}{{ p.done }}/{{ p.total }}{% endwith %}</td>
+                    <td>
+                        {% if x.status == 'completed' %}<span class="badge bg-secondary">Completed</span>
+                        {% else %}<span class="badge bg-warning">In progress</span>{% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr class="empty-state"><td colspan="6">No exit records.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if is_paginated %}
+<div class="pinewood-table-pagination">
+    <nav><ul class="pagination pagination-sm justify-content-center mb-0">
+        {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" hx-get="{% url 'core:hr_exit_list' %}?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" hx-target="#exit-list-content">Previous</a></li>{% endif %}
+        <li class="page-item active"><span class="page-link">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}<li class="page-item"><a class="page-link" hx-get="{% url 'core:hr_exit_list' %}?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" hx-target="#exit-list-content">Next</a></li>{% endif %}
+    </ul></nav>
+</div>
+{% endif %}

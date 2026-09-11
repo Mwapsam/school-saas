@@ -1,0 +1,26 @@
+{% include 'core/components/modal.html' with id="transportModal-vehicles" title="Vehicle details" icon="fa-bus" size="lg" %}
+  <form id="tform-vehicles" onsubmit="transportSubmit(event,'vehicles')">
+    {% csrf_token %}
+    <input type="hidden" name="pk">
+    <p class="tform-error text-danger small" hidden></p>
+    <div class="row g-2">
+      <div class="col-md-6">{% include 'core/components/form_field.html' with name="vehicle_number" label="Vehicle number" required=True %}</div>
+      <div class="col-md-6">{% include 'core/components/form_field.html' with name="vehicle_type" label="Type (e.g. Bus, Van)" required=True %}</div>
+      <div class="col-md-6">{% include 'core/components/form_field.html' with name="make_model" label="Make / model" %}</div>
+      <div class="col-md-3">{% include 'core/components/form_field.html' with name="seating_capacity" label="Capacity" type="number" required=True %}</div>
+      <div class="col-md-3">{% include 'core/components/form_field.html' with name="manufacture_year" label="Year" type="number" %}</div>
+      <div class="col-md-6">{% include 'core/components/form_field.html' with name="insurance_provider" label="Insurance provider" %}</div>
+      <div class="col-md-3">{% include 'core/components/form_field.html' with name="insurance_expiry" label="Insurance expiry" type="date" %}</div>
+      <div class="col-md-3">{% include 'core/components/form_field.html' with name="roadworthiness_expiry" label="Roadworthiness expiry" type="date" %}</div>
+      <div class="col-md-3">{% include 'core/components/form_field.html' with name="registration_expiry" label="Registration expiry" type="date" %}</div>
+      <div class="col-md-3">{% include 'core/components/form_field.html' with name="odometer_km" label="Odometer (km)" type="number" %}</div>
+      <div class="col-md-6">
+        {% include 'core/components/form_field.html' with name="status" label="Status" type="select" options=vehicle_status_options value="active" %}
+      </div>
+    </div>
+    <div class="d-flex justify-content-end gap-2 mt-3">
+      <button type="button" class="pw-btn pw-btn-outline" data-bs-dismiss="modal">Cancel</button>
+      <button type="submit" class="pw-btn pw-btn-primary">Save</button>
+    </div>
+  </form>
+{% include 'core/components/modal_close.html' with no_footer=True %}

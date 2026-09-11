@@ -1,0 +1,403 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block page_title %}Students{% endblock %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title='Students' icon='fa-users' back_url=back_url|default:back_fallback crumbs=crumbs %}
+<div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
+<div class="btn-toolbar" role="toolbar">
+    <div class="btn-group me-2" role="group">
+        <button type="button" class="btn btn-primary" @click="showAddStudent">
+            <i class="fas fa-plus"></i> Add Student
+        </button>
+        <button type="button" class="btn btn-outline-secondary" id="bulk-actions-btn"
+                :disabled="selectedStudents.length === 0" @click="showBulkActions">
+            <i class="fas fa-tasks"></i> Bulk Actions
+            <span x-show="selectedStudents.length > 0" class="badge bg-primary ms-1" x-text="selectedStudents.length"></span>
+        </button>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+
+{% block layout_filters %}
+<div x-data="studentListApp()" x-init="init()">
+    <!-- Search and Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Search Students</label>
+                    <input type="text" class="form-control" id="search" 
+                           x-model="filters.search" 
+                           @input.debounce.500ms="loadStudents(1)"
+                           placeholder="Name or admission number...">
+                </div>
+                <div class="col-md-3">
+                    <label for="batch" class="form-label">Filter by Batch</label>
+                    <select class="form-select" id="batch" 
+                            x-model="filters.batch" 
+                            @change="loadStudents(1)">
+                        <option value="">All Batches</option>
+                        <template x-for="batch in batches" :key="batch.id">
+                            <option :value="batch.id" x-text="`${batch.name} (${batch.course?.course_name || 'No Course'})`"></option>
+                        </template>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" 
+                            x-model="filters.status" 
+                            @change="loadStudents(1)">
+                        <option value="">All Status</option>
+                        <option value="true">Active</option>
+                        <option value="false">Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-primary w-100" 
+                            @click="loadStudents(1)" 
+                            :disabled="loading">
+                        <div x-show="!loading">
+                            <i class="fas fa-search"></i> Search
+                        </div>
+                        <div x-show="loading" class="loading-spinner d-inline-block"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block layout_table %}
+    <!-- Student List -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                Students 
+                <small class="text-muted" x-show="pagination.count > 0">
+                    (<span x-text="pagination.count"></span> total)
+                </small>
+            </h5>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="selectAll" 
+                       @change="toggleSelectAll" :checked="allSelected">
+                <label class="form-check-label" for="selectAll">
+                    Select All
+                </label>
+            </div>
+        </div>
+        
+        <div class="card-body p-0">
+            <!-- Loading State -->
+            <div x-show="loading && students.length === 0" class="text-center py-4">
+                <div class="loading-spinner d-inline-block"></div>
+                <p class="mt-2">Loading students...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div x-show="!loading && students.length === 0" class="text-center py-4">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No students found</p>
+            </div>
+
+            <!-- Student Table -->
+            <div x-show="students.length > 0">
+                {% include 'core/components/table_open.html' with caption="List of students with admission number, name, batch, date of birth, status, and actions" %}
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" width="40"><span class="visually-hidden">Select</span></th>
+                            <th scope="col">Admission No</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Batch</th>
+                            <th scope="col">Date of Birth</th>
+                            <th scope="col">Status</th>
+                            <th scope="col" width="100">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="student in students" :key="student.id">
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="form-check-input student-checkbox" 
+                                           :value="student.id" 
+                                           x-model="selectedStudents">
+                                </td>
+                                <td>
+                                    <strong x-text="student.admission_no"></strong>
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong x-text="`${student.first_name} ${student.last_name}`"></strong>
+                                        <div x-show="student.middle_name" class="text-muted small" x-text="student.middle_name"></div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span x-show="student.current_batch" x-text="student.current_batch?.name || 'No Batch'"></span>
+                                    <span x-show="!student.current_batch" class="text-muted">No Batch</span>
+                                </td>
+                                <td>
+                                    <span x-text="formatDate(student.date_of_birth)"></span>
+                                </td>
+                                <td>
+                                    <span class="badge" 
+                                          :class="student.is_active ? 'bg-success' : 'bg-secondary'"
+                                          x-text="student.is_active ? 'Active' : 'Inactive'"></span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group" :aria-label="`Actions for ${student.first_name} ${student.last_name}`">
+                                        <button class="btn btn-outline-primary"
+                                                @click="viewStudent(student.id)"
+                                                :aria-label="`View details for ${student.first_name} ${student.last_name}`">
+                                            <i class="fas fa-eye" aria-hidden="true"></i>
+                                        </button>
+                                        <button class="btn btn-outline-secondary"
+                                                @click="editStudent(student.id)"
+                                                :aria-label="`Edit ${student.first_name} ${student.last_name}`">
+                                            <i class="fas fa-edit" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                {% include 'core/components/table_close.html' %}
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="card-footer" x-show="pagination.count > 0">
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    Showing <span x-text="((currentPage - 1) * pageSize) + 1"></span> 
+                    to <span x-text="Math.min(currentPage * pageSize, pagination.count)"></span> 
+                    of <span x-text="pagination.count"></span> entries
+                </small>
+                
+                <nav x-show="totalPages > 1">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item" :class="{ 'disabled': !pagination.previous }">
+                            <button class="page-link" @click="loadStudents(currentPage - 1)" 
+                                    :disabled="!pagination.previous">Previous</button>
+                        </li>
+                        
+                        <template x-for="page in visiblePages" :key="page">
+                            <li class="page-item"
+                                :class="{ 'active': page === currentPage, 'disabled': page === '...' }">
+                                <button class="page-link"
+                                        @click="typeof page === 'number' && loadStudents(page)"
+                                        :disabled="page === '...'"
+                                        :aria-current="page === currentPage ? 'page' : false"
+                                        x-text="page"></button>
+                            </li>
+                        </template>
+                        
+                        <li class="page-item" :class="{ 'disabled': !pagination.next }">
+                            <button class="page-link" @click="loadStudents(currentPage + 1)" 
+                                    :disabled="!pagination.next">Next</button>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block layout_extra %}
+    <!-- Bulk Actions Modal -->
+    {% include 'core/components/modal.html' with id="bulkActionsModal" title="Bulk Actions" %}
+                    <p>Select an action to perform on <span x-text="selectedStudents.length"></span> selected student(s):</p>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-warning" @click="performBulkAction('deactivate')"
+                                :disabled="bulkActionLoading">
+                            <i class="fas fa-user-slash"></i> Deactivate Students
+                        </button>
+                        <button class="btn btn-success" @click="performBulkAction('activate')"
+                                :disabled="bulkActionLoading">
+                            <i class="fas fa-user-check"></i> Activate Students
+                        </button>
+                    </div>
+    {% include 'core/components/modal_close.html' with no_footer=True %}
+</div>
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function studentListApp() {
+    return {
+        students: [],
+        batches: [],
+        selectedStudents: [],
+        loading: false,
+        bulkActionLoading: false,
+        
+        // Pagination
+        pagination: {},
+        currentPage: 1,
+        pageSize: 20,
+        
+        // Filters
+        filters: {
+            search: '',
+            batch: '',
+            status: ''
+        },
+        
+        async init() {
+            await this.loadBatches();
+            await this.loadStudents(1);
+        },
+        
+        async loadBatches() {
+            try {
+                const data = await api.batches.list();
+                this.batches = data.results || data;
+            } catch (error) {
+                UIHelpers.handleAPIError(error, 'Failed to load batches');
+            }
+        },
+        
+        async loadStudents(page = 1) {
+            this.loading = true;
+            this.currentPage = page;
+            
+            try {
+                const params = {
+                    page: page,
+                    page_size: this.pageSize,
+                    ...this.filters
+                };
+                
+                // Remove empty filters
+                Object.keys(params).forEach(key => {
+                    if (params[key] === '' || params[key] === null || params[key] === undefined) {
+                        delete params[key];
+                    }
+                });
+                
+                const data = await api.students.list(params);
+                this.students = data.results || [];
+                this.pagination = {
+                    count: data.count || 0,
+                    next: data.next,
+                    previous: data.previous
+                };
+                
+                // Clear selections when loading new data
+                this.selectedStudents = [];
+                
+            } catch (error) {
+                UIHelpers.handleAPIError(error, 'Failed to load students');
+                this.students = [];
+                this.pagination = {};
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        toggleSelectAll(event) {
+            if (event.target.checked) {
+                this.selectedStudents = this.students.map(s => s.id);
+            } else {
+                this.selectedStudents = [];
+            }
+        },
+        
+        showBulkActions() {
+            if (this.selectedStudents.length > 0) {
+                new bootstrap.Modal(document.getElementById('bulkActionsModal')).show();
+            }
+        },
+        
+        async performBulkAction(action) {
+            if (this.selectedStudents.length === 0) return;
+            
+            this.bulkActionLoading = true;
+            
+            try {
+                const updates = this.selectedStudents.map(id => ({
+                    id: id,
+                    is_active: action === 'activate'
+                }));
+                
+                await api.students.bulkUpdate({ students: updates });
+                
+                // Refresh the list
+                await this.loadStudents(this.currentPage);
+                
+                // Hide modal
+                bootstrap.Modal.getInstance(document.getElementById('bulkActionsModal')).hide();
+                
+                UIHelpers.showAlert(`Successfully ${action}d ${this.selectedStudents.length} student(s)`, 'success');
+                this.selectedStudents = [];
+                
+            } catch (error) {
+                UIHelpers.handleAPIError(error, `Failed to ${action} students`);
+            } finally {
+                this.bulkActionLoading = false;
+            }
+        },
+        
+        viewStudent(studentId) {
+            window.location.href = `/students/${studentId}/`;
+        },
+        
+        editStudent(studentId) {
+            window.location.href = `/students/${studentId}/edit/`;
+        },
+        
+        showAddStudent() {
+            window.location.href = '/students/add/';
+        },
+        
+        formatDate(dateString) {
+            return UIHelpers.formatDate(dateString);
+        },
+        
+        // Computed properties
+        get allSelected() {
+            return this.students.length > 0 && this.selectedStudents.length === this.students.length;
+        },
+        
+        get totalPages() {
+            return Math.ceil(this.pagination.count / this.pageSize);
+        },
+        
+        get visiblePages() {
+            const total = this.totalPages;
+            const current = this.currentPage;
+            const delta = 2;
+            
+            const range = [];
+            const rangeWithDots = [];
+            
+            for (let i = Math.max(2, current - delta); i <= Math.min(total - 1, current + delta); i++) {
+                range.push(i);
+            }
+            
+            if (current - delta > 2) {
+                rangeWithDots.push(1, '...');
+            } else {
+                rangeWithDots.push(1);
+            }
+            
+            rangeWithDots.push(...range);
+            
+            if (current + delta < total - 1) {
+                rangeWithDots.push('...', total);
+            } else {
+                rangeWithDots.push(total);
+            }
+            
+            return rangeWithDots.filter((v, i, arr) => arr.indexOf(v) === i && v > 0);
+        }
+    }
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}{% endblock %}

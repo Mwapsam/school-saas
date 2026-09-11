@@ -1,0 +1,136 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Pinewood Preparatory School{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'css/pinewood-ui.css' %}" rel="stylesheet">
+    <style>
+        :root {
+            --p-green:       #1a7a3c;
+            --p-green-dark:  #145f2e;
+            --p-green-light: #e8f5ed;
+            --p-white:       #ffffff;
+            --p-text:        #1a1a1a;
+            --p-muted:       #555f6d;
+            --p-border:      #dee2e6;
+            --p-font:        'Georgia', 'Times New Roman', serif;
+            --p-font-ui:     'Trebuchet MS', 'Helvetica Neue', sans-serif;
+        }
+        body {
+            font-family: var(--p-font-ui);
+            font-size: 14px;
+            color: var(--p-text);
+            background: #f5f7f5;
+            min-height: 100vh;
+        }
+        .public-header {
+            background: var(--p-green);
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,.15);
+        }
+        .public-header .school-name {
+            font-family: var(--p-font);
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: .02em;
+            color: #fff;
+            text-decoration: none;
+        }
+        .public-header .school-tagline {
+            font-size: 0.78rem;
+            opacity: .85;
+        }
+        .public-header .header-logo {
+            height: 48px;
+            width: 48px;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+        .public-nav {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .public-nav a {
+            color: rgba(255,255,255,.85);
+            font-size: 0.85rem;
+            text-decoration: none;
+            padding: 0.35rem 0.75rem;
+            border-radius: 4px;
+            transition: background .15s;
+        }
+        .public-nav a:hover { background: rgba(255,255,255,.15); color: #fff; }
+        .public-nav a.active { background: rgba(255,255,255,.2); color: #fff; font-weight: 600; }
+        .public-main {
+            padding: 2rem 0 3rem;
+        }
+        .public-footer {
+            background: var(--p-green-dark);
+            color: rgba(255,255,255,.7);
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.8rem;
+            margin-top: auto;
+        }
+        .public-footer a { color: rgba(255,255,255,.85); }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+    <!-- Public Header -->
+    <header class="public-header">
+        <div class="container-lg d-flex align-items-center justify-content-between">
+            <a href="{% url 'core:portal_landing' %}" class="d-flex align-items-center gap-3 text-decoration-none">
+                {% if school.logo %}
+                    <img src="{{ school.logo.url }}" alt="{{ school.name }}" class="header-logo">
+                {% else %}
+                    <img src="{% static 'img/logo.png' %}" alt="Pinewood" class="header-logo">
+                {% endif %}
+                <div>
+                    <div class="school-name">{{ school.name|default:"Pinewood Preparatory School" }}</div>
+                    <div class="school-tagline">Parent &amp; Student Portal</div>
+                </div>
+            </a>
+            <nav class="public-nav">
+                <a href="{% url 'core:portal_landing' %}"><i class="fas fa-home me-1"></i>Home</a>
+                <a href="{% url 'core:portal_admission_register' %}" {% block apply_active %}{% endblock %}>
+                    <i class="fas fa-file-alt me-1"></i>Apply
+                </a>
+                <a href="{% url 'core:portal_status_check' %}" {% block status_active %}{% endblock %}>
+                    <i class="fas fa-search me-1"></i>Track Application
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Page Content -->
+    <main class="public-main flex-grow-1">
+        <div class="container-lg">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="public-footer">
+        <div>
+            &copy; {% now "Y" %} {{ school.name|default:"Pinewood Preparatory School" }} &mdash;
+            <a href="mailto:{{ school.email|default:'office@pinewoodschoolzambia.com' }}">
+                {{ school.email|default:"office@pinewoodschoolzambia.com" }}
+            </a>
+            &mdash; {{ school.phone|default:"0211 291167 / 291461 / 294802" }}
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

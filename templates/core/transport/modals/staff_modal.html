@@ -1,0 +1,25 @@
+{% include 'core/components/modal.html' with id="transportModal-staff" title="Driver / attendant details" icon="fa-id-card" size="lg" %}
+  <form id="tform-staff" onsubmit="transportSubmit(event,'staff')">
+    {% csrf_token %}
+    <input type="hidden" name="pk">
+    <p class="tform-error text-danger small" hidden></p>
+    <div class="row g-2">
+      <div class="col-md-6">
+        {% include 'core/components/form_field.html' with name="staff_type" label="Role" type="select" options=staff_type_options required=True %}
+      </div>
+      <div class="col-md-6">{% include 'core/components/form_field.html' with name="full_name" label="Full name" required=True %}</div>
+      <div class="col-md-6">{% include 'core/components/form_field.html' with name="phone" label="Phone" required=True %}</div>
+      <div class="col-md-6">{% include 'core/components/form_field.html' with name="alt_phone" label="Alternate phone" %}</div>
+      <div class="col-md-6">{% include 'core/components/form_field.html' with name="email" label="Email" type="email" %}</div>
+      <div class="col-md-6">{% include 'core/components/form_field.html' with name="national_id" label="National ID" %}</div>
+      <div class="col-md-6">{% include 'core/components/form_field.html' with name="license_number" label="Licence number" %}</div>
+      <div class="col-md-6">{% include 'core/components/form_field.html' with name="license_expiry" label="Licence expiry" type="date" %}</div>
+      <div class="col-md-6">{% include 'core/components/form_field.html' with name="emergency_contact_name" label="Emergency contact name" %}</div>
+      <div class="col-md-6">{% include 'core/components/form_field.html' with name="emergency_contact_phone" label="Emergency contact phone" %}</div>
+    </div>
+    <div class="d-flex justify-content-end gap-2 mt-3">
+      <button type="button" class="pw-btn pw-btn-outline" data-bs-dismiss="modal">Cancel</button>
+      <button type="submit" class="pw-btn pw-btn-primary">Save</button>
+    </div>
+  </form>
+{% include 'core/components/modal_close.html' with no_footer=True %}

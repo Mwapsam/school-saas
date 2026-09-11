@@ -1,0 +1,183 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:hr_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-home' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block page_title %}HR Settings{% endblock %}
+
+{% block layout_table %}
+<div x-data="{}">
+    <ul class="nav nav-tabs" id="hrSettingsTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-category" data-bs-toggle="tab" data-bs-target="#pane-category" data-lookup-key="category" type="button" role="tab">Categories</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-position" data-bs-toggle="tab" data-bs-target="#pane-position" data-lookup-key="position" type="button" role="tab">Positions</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-department" data-bs-toggle="tab" data-bs-target="#pane-department" data-lookup-key="department" type="button" role="tab">Departments</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-grade" data-bs-toggle="tab" data-bs-target="#pane-grade" data-lookup-key="grade" type="button" role="tab">Grades</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-leave_type" data-bs-toggle="tab" data-bs-target="#pane-leave_type" data-lookup-key="leave_type" type="button" role="tab">Leave Types</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-working_days" data-bs-toggle="tab" data-bs-target="#pane-working_days" type="button" role="tab">Working Days</button>
+        </li>
+    </ul>
+
+    <div class="tab-content border border-top-0 rounded-bottom p-3 mb-3" id="hrSettingsTabsContent">
+        {% for key, label in lookup_labels.items %}
+        <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" id="pane-{{ key }}" role="tabpanel" data-lookup-key="{{ key }}" data-loaded="0">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="input-group" style="max-width: 320px;">
+                    <input type="text" class="form-control" placeholder="Search {{ label }}..."
+                           oninput="searchHRLookup('{{ key }}', this.value)">
+                </div>
+                <button type="button" class="btn btn-primary" onclick="openAddHRLookup('{{ key }}')">
+                    <i class="fas fa-plus"></i> Add {{ label }}
+                </button>
+            </div>
+            <div id="hr-lookup-content-{{ key }}">
+                <div class="text-muted small">Loading...</div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="tab-pane fade" id="pane-working_days" role="tabpanel">
+            <form id="working-days-form" onsubmit="submitWorkingDaySettings(event)">
+                {% csrf_token %}
+                <div class="card mb-3">
+                    <div class="card-header"><h6 class="mb-0">Working Days</h6></div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for value, label in weekday_choices %}
+                            <div class="col-md-3 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="working_days" value="{{ value }}"
+                                           id="working-day-{{ value }}"
+                                           {% if value in working_day_settings.working_days %}checked{% endif %}>
+                                    <label class="form-check-label" for="working-day-{{ value }}">{{ label }}</label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-4">
+                                <label for="default-daily-hours" class="form-label">Default Daily Hours</label>
+                                <input type="number" step="0.25" min="0" class="form-control" id="default-daily-hours"
+                                       name="default_daily_hours" value="{{ working_day_settings.default_daily_hours|default:'' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="half-day-threshold" class="form-label">Half-Day Hours Threshold</label>
+                                <input type="number" step="0.25" min="0" class="form-control" id="half-day-threshold"
+                                       name="half_day_hours_threshold" value="{{ working_day_settings.half_day_hours_threshold|default:'' }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" data-loading>
+                    Save Working Day Settings
+                    <div class="htmx-indicator loading-spinner d-inline-block ms-2"></div>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% include 'core/htmx/hr/lookup_form_modal.html' %}
+
+<script>
+const HR_LOOKUP_URLS = {
+    list: (key) => `/hr/settings/${key}/`,
+    create: (key) => `/hr/settings/${key}/create/`,
+    update: (key, id) => `/hr/settings/${key}/${id}/update/`,
+    toggle: (key, id) => `/hr/settings/${key}/${id}/toggle-status/`,
+    delete: (key, id) => `/hr/settings/${key}/${id}/delete/`,
+};
+function csrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function loadHRLookupTab(key) {
+    htmx.ajax('GET', HR_LOOKUP_URLS.list(key), { target: `#hr-lookup-content-${key}` });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    loadHRLookupTab('category');
+    document.querySelectorAll('#hrSettingsTabs button[data-lookup-key]').forEach(function (tabButton) {
+        tabButton.addEventListener('shown.bs.tab', function () {
+            const key = tabButton.getAttribute('data-lookup-key');
+            const pane = document.getElementById(`pane-${key}`);
+            if (pane.getAttribute('data-loaded') === '0') {
+                pane.setAttribute('data-loaded', '1');
+                loadHRLookupTab(key);
+            }
+        });
+    });
+});
+
+let searchDebounce = null;
+function searchHRLookup(key, value) {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(function () {
+        htmx.ajax('GET', `${HR_LOOKUP_URLS.list(key)}?search=${encodeURIComponent(value)}`, {
+            target: `#hr-lookup-content-${key}`,
+        });
+    }, 400);
+}
+
+function toggleHRLookupStatus(key, id) {
+    fetch(HR_LOOKUP_URLS.toggle(key, id), {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken() },
+    })
+        .then((r) => r.text())
+        .then((html) => { document.getElementById(`hr-lookup-content-${key}`).innerHTML = html; })
+        .catch(() => showAlert('An error occurred', 'danger'));
+}
+
+function deleteHRLookup(key, id, name) {
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    fetch(HR_LOOKUP_URLS.delete(key, id), {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken() },
+    })
+        .then((r) => r.text())
+        .then((html) => { document.getElementById(`hr-lookup-content-${key}`).innerHTML = html; })
+        .catch(() => showAlert('An error occurred', 'danger'));
+}
+
+function submitWorkingDaySettings(event) {
+    event.preventDefault();
+    const form = document.getElementById('working-days-form');
+    fetch("{% url 'core:hr_working_days_update' %}", {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken() },
+        body: new FormData(form),
+    })
+        .then((r) => r.json())
+        .then((data) => {
+            if (data.success) {
+                showAlert('Working day settings saved', 'success');
+            } else {
+                showAlert(data.error || 'An error occurred', 'danger');
+            }
+        })
+        .catch(() => showAlert('An error occurred', 'danger'));
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+    alertDiv.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => { if (alertDiv.parentNode) alertDiv.parentNode.removeChild(alertDiv); }, 3000);
+}
+</script>
+{% endblock %}

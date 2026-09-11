@@ -1,0 +1,128 @@
+{% extends 'core/layouts/detail.html' %}
+
+{% block layout_header %}
+{% url 'core:configuration' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-user' back_url=back_url|default:back_fallback crumbs=crumbs %}
+<div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
+<a href="{% url 'core:role_list' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-left"></i> All Roles
+</a>
+</div>
+{% endblock %}
+
+{% block page_title %}{{ role.name }}{% endblock %}
+
+
+{% block layout_sections %}
+<div class="row">
+    <div class="col-lg-4 mb-3">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Details</h6>
+                {% if role.is_system %}<span class="badge bg-secondary">System role</span>{% endif %}
+            </div>
+            <div class="card-body">
+                <form id="roleMetaForm" onsubmit="saveMeta(event)">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" name="name" class="form-control" value="{{ role.name }}"
+                               {% if role.is_system %}readonly{% endif %} required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <input type="text" name="description" class="form-control" value="{{ role.description }}">
+                    </div>
+                    {% if not role.is_system %}
+                    <button type="submit" class="btn btn-outline-primary btn-sm">Save details</button>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8 mb-3">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Permissions <span class="text-muted" id="permCount">({{ granted_count }})</span></h6>
+                <div>
+                    <button type="button" class="btn btn-link btn-sm" onclick="toggleAll(true)">Select all</button>
+                    <button type="button" class="btn btn-link btn-sm" onclick="toggleAll(false)">Clear</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <form id="rolePermForm" onsubmit="savePerms(event)">
+                    {% csrf_token %}
+                    {% for module in modules %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-1 mb-2">
+                            <strong>{{ module.label }}</strong>
+                            <button type="button" class="btn btn-link btn-sm p-0"
+                                    onclick="toggleModule('{{ module.key }}', this)">toggle</button>
+                        </div>
+                        <div class="row">
+                            {% for item in module.items %}
+                            <div class="col-md-6 mb-1">
+                                <div class="form-check">
+                                    <input class="form-check-input perm-cb" type="checkbox" name="codenames"
+                                           value="{{ item.codename }}" id="cb-{{ item.codename }}"
+                                           data-module="{{ module.key }}" {% if item.granted %}checked{% endif %}>
+                                    <label class="form-check-label" for="cb-{{ item.codename }}">
+                                        {{ item.label }}
+                                        <br><code class="small text-muted">{{ item.codename }}</code>
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary">Save permissions</button>
+                    <span id="permSaved" class="text-success ms-2" style="display:none;">Saved</span>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function csrfToken() { return document.querySelector('[name=csrfmiddlewaretoken]').value; }
+
+function toggleAll(state) {
+    document.querySelectorAll('.perm-cb').forEach(cb => cb.checked = state);
+}
+function toggleModule(key, btn) {
+    const cbs = document.querySelectorAll(`.perm-cb[data-module="${key}"]`);
+    const target = ![...cbs].every(cb => cb.checked);
+    cbs.forEach(cb => cb.checked = target);
+}
+
+function savePerms(event) {
+    event.preventDefault();
+    fetch("{% url 'core:role_set_permissions' role.id %}", {
+        method: 'POST', headers: { 'X-CSRFToken': csrfToken() },
+        body: new FormData(document.getElementById('rolePermForm')),
+    }).then(async (r) => {
+        const data = await r.json();
+        if (r.ok) {
+            document.getElementById('permCount').textContent = `(${data.count})`;
+            const s = document.getElementById('permSaved');
+            s.style.display = 'inline'; setTimeout(() => s.style.display = 'none', 2000);
+        } else {
+            alert(data.error || 'Could not save');
+        }
+    });
+}
+
+function saveMeta(event) {
+    event.preventDefault();
+    fetch("{% url 'core:role_update' role.id %}", {
+        method: 'POST', headers: { 'X-CSRFToken': csrfToken() },
+        body: new FormData(document.getElementById('roleMetaForm')),
+    }).then(async (r) => {
+        const data = await r.json();
+        if (r.ok) { location.reload(); } else { alert(data.error || 'Could not save'); }
+    });
+}
+</script>
+{% endblock %}

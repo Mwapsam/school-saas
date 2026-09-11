@@ -1,0 +1,30 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Target</th><th>Field</th><th>From</th><th>To</th></tr></thead>
+        <tbody>
+            {% for e in entries %}
+                <tr>
+                    <td><small>{{ e.created_at|date:"M j, Y H:i" }}</small></td>
+                    <td><small>{{ e.actor_label|default:"—" }}</small></td>
+                    <td><code>{{ e.action }}</code></td>
+                    <td><small class="text-muted">{{ e.target_type }}{% if e.target_id %} · {{ e.target_id|slice:":8" }}{% endif %}</small></td>
+                    <td><small>{{ e.field|default:"" }}</small></td>
+                    <td><small class="text-muted">{{ e.old_value|default:"—"|truncatechars:40 }}</small></td>
+                    <td><small>{{ e.new_value|default:"—"|truncatechars:40 }}</small></td>
+                </tr>
+            {% empty %}
+                <tr class="empty-state"><td colspan="7">No audit entries.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if is_paginated %}
+<div class="pinewood-table-pagination">
+    <nav><ul class="pagination pagination-sm justify-content-center mb-0">
+        {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" hx-get="{% url 'core:hr_audit_list' %}?page={{ page_obj.previous_page_number }}{% if request.GET.action %}&action={{ request.GET.action }}{% endif %}{% if request.GET.target_id %}&target_id={{ request.GET.target_id }}{% endif %}" hx-target="#audit-list-content">Previous</a></li>{% endif %}
+        <li class="page-item active"><span class="page-link">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}<li class="page-item"><a class="page-link" hx-get="{% url 'core:hr_audit_list' %}?page={{ page_obj.next_page_number }}{% if request.GET.action %}&action={{ request.GET.action }}{% endif %}{% if request.GET.target_id %}&target_id={{ request.GET.target_id }}{% endif %}" hx-target="#audit-list-content">Next</a></li>{% endif %}
+    </ul></nav>
+</div>
+{% endif %}

@@ -1,0 +1,356 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:admission_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Batch Assignment" description="Review approved and admitted applications that need batch assignment" icon="fa-layer-group" back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Batch Assignment{% endblock %}
+
+
+
+{% block layout_table %}
+<div class="d-flex justify-content-end gap-2 mb-3">
+    <a href="{% url 'core:admission_manage' %}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Management
+    </a>
+    <button type="button" class="btn btn-sm ba-btn-primary" onclick="showBulkAssignmentModal()" {% if not applications %}disabled{% endif %}>
+        <i class="fas fa-users me-1"></i> Bulk Assign
+    </button>
+</div>
+
+<!-- Statistics -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="ba-stat">
+            <div class="ba-stat-icon" style="background:var(--color-brand-bg);color:var(--color-brand)">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div>
+                <div class="ba-stat-num">{{ stats.total_approved }}</div>
+                <div class="ba-stat-lbl">Total Eligible</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="ba-stat">
+            <div class="ba-stat-icon" style="background:#fff8e1;color:#d97706">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div>
+                <div class="ba-stat-num">{{ stats.pending_assignment }}</div>
+                <div class="ba-stat-lbl">Pending Assignment</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="ba-stat">
+            <div class="ba-stat-icon" style="background:#e8f0fe;color:#3b5eea">
+                <i class="fas fa-users"></i>
+            </div>
+            <div>
+                <div class="ba-stat-num">{{ stats.already_assigned }}</div>
+                <div class="ba-stat-lbl">Already Assigned</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Applications List -->
+<div class="pinewood-table-container">
+    <div class="pinewood-table-header">
+        <h5 class="mb-0">Applications Ready for Batch Assignment</h5>
+        {% if applications %}
+        <span class="table-info">{{ applications|length }} students</span>
+        {% endif %}
+    </div>
+
+    {% if applications %}
+    {% include 'core/components/table_open.html' %}
+        <thead>
+            <tr>
+                <th><input type="checkbox" id="selectAll" class="form-check-input"></th>
+                <th>Application #</th>
+                <th>Student Name</th>
+                <th>Status</th>
+                <th>Course Applied</th>
+                <th class="d-none d-md-table-cell">Academic Year</th>
+                <th class="d-none d-md-table-cell">Date of Birth</th>
+                <th class="d-none d-lg-table-cell">Guardian</th>
+                <th>Batch Assignment</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+            <tbody>
+                {% for application in applications %}
+                <tr data-application-id="{{ application.id }}">
+                    <td>
+                        <input type="checkbox" class="form-check-input application-checkbox"
+                               value="{{ application.id }}">
+                    </td>
+                    <td><strong style="color:var(--color-brand)">{{ application.application_number }}</strong></td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="stu-avatar">
+                                {% if application.first_name and application.last_name %}
+                                    {{ application.first_name.0 }}{{ application.last_name.0 }}
+                                {% else %}--{% endif %}
+                            </div>
+                            <div>
+                                <div class="fw-semibold" style="font-size:13px">{{ application.full_name }}</div>
+                                <small class="text-muted">{{ application.gender|title }}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        {% if application.status == 'approved' %}
+                            <span class="badge bg-success">Approved</span>
+                        {% elif application.status == 'admitted' %}
+                            <span class="badge bg-warning text-dark">Admitted</span>
+                            <br><small class="text-muted">Needs batch</small>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ application.status|title }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if application.course_applied %}
+                            <span class="badge bg-info">{{ application.course_applied.course_name }}</span>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="d-none d-md-table-cell" style="font-size:12px">{{ application.academic_year.name }}</td>
+                    <td class="d-none d-md-table-cell" style="font-size:12px">
+                        {% if application.date_of_birth %}
+                            {{ application.date_of_birth|date:"d/m/Y" }}
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="d-none d-lg-table-cell" style="font-size:12px">
+                        {% if application.guardian1_first_name and application.guardian1_last_name %}
+                            <div>{{ application.guardian1_first_name }} {{ application.guardian1_last_name }}</div>
+                        {% endif %}
+                        {% if application.guardian1_mobile %}
+                            <small class="text-muted">{{ application.guardian1_mobile }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm batch-select"
+                                data-application-id="{{ application.id }}" style="min-width:140px">
+                            <option value="">Select Batch</option>
+                            {% for course in courses_with_batches %}
+                                {% if course.id == application.course_applied.id %}
+                                    <optgroup label="{{ course.course_name }}">
+                                        {% for batch in course.batches.all %}
+                                            <option value="{{ batch.id }}">{{ batch.name }}</option>
+                                        {% endfor %}
+                                    </optgroup>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <input type="text" class="form-control form-control-sm mt-1 roll-number"
+                               placeholder="Roll No. (Optional)"
+                               data-application-id="{{ application.id }}">
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <button type="button" class="btn btn-sm btn-outline-success assign-btn"
+                                    onclick="assignSingleApplication('{{ application.id }}')"
+                                    title="Assign">
+                                <i class="fas fa-user-plus"></i>
+                            </button>
+                            <a href="{% url 'core:batch_assignment_detail' application.id %}"
+                               class="btn btn-sm btn-outline-secondary" title="View">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+    {% include 'core/components/table_close.html' %}
+    {% else %}
+    {% include 'core/components/empty_state.html' with title="No Applications Ready for Assignment" message="All approved applications have been assigned, or there are no approved applications yet." icon="fa-graduation-cap" %}
+    {% endif %}
+</div>
+{% endblock %}
+
+<!-- Bulk Assignment Modal -->
+{% block layout_extra %}
+<div class="modal fade" id="bulkAssignmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="border-radius:0">
+            <div class="modal-header pw-brand">
+                <h5 class="modal-title"><i class="fas fa-users me-2"></i>Bulk Batch Assignment</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info" style="font-size:13px">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Select students and their batches, then click "Assign All" to process.
+                </div>
+                <div id="bulkAssignmentList"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm ba-btn-primary" onclick="processBulkAssignment()">
+                    <i class="fas fa-users me-1"></i> Assign All Selected
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedApplications = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('selectAll').addEventListener('change', function() {
+        document.querySelectorAll('.application-checkbox').forEach(cb => { cb.checked = this.checked; });
+        updateSelectedApplications();
+    });
+    document.querySelectorAll('.application-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateSelectedApplications);
+    });
+
+    function updateSelectedApplications() {
+        selectedApplications = Array.from(document.querySelectorAll('.application-checkbox:checked')).map(cb => cb.value);
+        const all = document.querySelectorAll('.application-checkbox');
+        const checked = document.querySelectorAll('.application-checkbox:checked');
+        const sa = document.getElementById('selectAll');
+        sa.indeterminate = checked.length > 0 && checked.length < all.length;
+        sa.checked = checked.length === all.length && all.length > 0;
+    }
+});
+
+function assignSingleApplication(applicationId) {
+    const batchSelect = document.querySelector(`select[data-application-id="${applicationId}"]`);
+    const rollInput = document.querySelector(`input[data-application-id="${applicationId}"]`);
+    const batchId = batchSelect.value;
+    if (!batchId) { showDanger('Please select a batch for this student.'); return; }
+
+    const assignBtn = document.querySelector(`button[onclick="assignSingleApplication('${applicationId}')"]`);
+    assignBtn.disabled = true;
+    assignBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    formData.append('action', 'assign_single');
+    formData.append('application_id', applicationId);
+    formData.append('batch_id', batchId);
+    formData.append('roll_number', rollInput.value);
+
+    fetch('{% url "core:batch_assignment" %}', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showSuccess(data.message);
+                const row = document.querySelector(`tr[data-application-id="${applicationId}"]`);
+                if (row) row.remove();
+                setTimeout(() => window.location.reload(), 1800);
+            } else {
+                showDanger(data.error || 'Assignment failed');
+                assignBtn.disabled = false;
+                assignBtn.innerHTML = '<i class="fas fa-user-plus"></i>';
+            }
+        })
+        .catch(() => {
+            showDanger('Network error occurred');
+            assignBtn.disabled = false;
+            assignBtn.innerHTML = '<i class="fas fa-user-plus"></i>';
+        });
+}
+
+function showBulkAssignmentModal() {
+    if (selectedApplications.length === 0) { showDanger('Please select at least one student.'); return; }
+
+    const listContainer = document.getElementById('bulkAssignmentList');
+    listContainer.innerHTML = '';
+
+    selectedApplications.forEach(applicationId => {
+        const row = document.querySelector(`tr[data-application-id="${applicationId}"]`);
+        const studentName = row.querySelector('.fw-semibold').textContent;
+        const badge = row.querySelector('.badge');
+        const courseName = badge ? badge.textContent : '';
+        const batchSelect = row.querySelector('.batch-select');
+        const rollInput = row.querySelector('.roll-number');
+
+        const div = document.createElement('div');
+        div.className = 'border p-3 mb-3';
+        div.style.borderRadius = '0';
+        div.innerHTML = `
+            <div class="row align-items-center g-2">
+                <div class="col-md-4">
+                    <strong style="font-size:13px">${studentName}</strong>
+                    <br><small class="text-muted">${courseName}</small>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select form-select-sm bulk-batch-select" data-application-id="${applicationId}">
+                        <option value="">Select Batch</option>
+                        ${batchSelect.innerHTML}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control form-control-sm bulk-roll-number"
+                           placeholder="Roll Number" data-application-id="${applicationId}"
+                           value="${rollInput.value}">
+                </div>
+            </div>`;
+        listContainer.appendChild(div);
+    });
+
+    new bootstrap.Modal(document.getElementById('bulkAssignmentModal')).show();
+}
+
+function processBulkAssignment() {
+    const assignments = [];
+    selectedApplications.forEach(applicationId => {
+        const batchSelect = document.querySelector(`.bulk-batch-select[data-application-id="${applicationId}"]`);
+        const rollInput = document.querySelector(`.bulk-roll-number[data-application-id="${applicationId}"]`);
+        if (batchSelect.value) {
+            assignments.push({ application_id: applicationId, batch_id: batchSelect.value, roll_number: rollInput.value });
+        }
+    });
+
+    if (assignments.length === 0) { showDanger('Please select batches for at least one student.'); return; }
+
+    const assignBtn = document.querySelector('button[onclick="processBulkAssignment()"]');
+    assignBtn.disabled = true;
+    assignBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Processing...';
+
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    formData.append('action', 'assign_bulk');
+    formData.append('assignments', JSON.stringify(assignments));
+
+    fetch('{% url "core:batch_assignment" %}', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showSuccess(data.message);
+                assignments.forEach(a => {
+                    const row = document.querySelector(`tr[data-application-id="${a.application_id}"]`);
+                    if (row) row.remove();
+                });
+                bootstrap.Modal.getInstance(document.getElementById('bulkAssignmentModal')).hide();
+                selectedApplications = [];
+                document.getElementById('selectAll').checked = false;
+                setTimeout(() => window.location.reload(), 1800);
+            } else {
+                showDanger(data.error || 'Bulk assignment failed');
+            }
+        })
+        .catch(() => showDanger('Network error occurred'))
+        .finally(() => {
+            assignBtn.disabled = false;
+            assignBtn.innerHTML = '<i class="fas fa-users me-1"></i> Assign All Selected';
+        });
+}
+</script>
+
+{% csrf_token %}
+{% endblock %}

@@ -1,0 +1,67 @@
+<div class="d-flex justify-content-between align-items-center mb-3 px-1">
+    <h6 class="mb-0 fw-semibold"><i class="fas fa-book text-success me-2"></i>Subjects &amp; Teachers</h6>
+    <a href="{% url 'core:class_subjects' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-up-right-from-square me-1"></i>Manage in Subjects Center
+    </a>
+</div>
+
+{% if subjects %}
+<div class="table-responsive">
+    <table class="table table-hover align-middle mb-0" id="subjectsTable">
+        <thead class="table-light">
+            <tr style="font-size:.75rem;letter-spacing:.05em;">
+                <th class="fw-medium text-muted text-uppercase ps-3">Subject</th>
+                <th class="fw-medium text-muted text-uppercase" style="width:140px;">Code</th>
+                <th class="fw-medium text-muted text-uppercase">Assigned Teacher</th>
+                <th style="width:120px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for subject in subjects %}
+            <tr>
+                <td class="ps-3"><strong>{{ subject.name }}</strong></td>
+                <td>
+                    {% if subject.code %}
+                        <span class="badge bg-light text-secondary border" style="font-size:.75rem;">{{ subject.code }}</span>
+                    {% else %}
+                        <span class="text-muted small">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if subject.employee %}
+                        <span class="d-flex align-items-center gap-2">
+                            <span class="avatar-sm rounded-circle bg-success-subtle text-success d-inline-flex align-items-center justify-content-center fw-semibold" style="font-size:.7rem;">
+                                {{ subject.employee.first_name|first }}{{ subject.employee.last_name|first }}
+                            </span>
+                            {{ subject.employee.first_name }} {{ subject.employee.last_name }}
+                        </span>
+                    {% else %}
+                        <span class="text-muted small">Not assigned</span>
+                    {% endif %}
+                </td>
+                <td class="text-end pe-3">
+                    <button class="btn btn-light btn-sm me-1"
+                            onclick="editSubject('{{ subject.id }}', '{{ subject.name|escapejs }}', '{{ subject.employee.id|default_if_none:'' }}', '{{ subject.code|escapejs }}')">
+                        <i class="fas fa-pen text-muted" style="font-size:.75rem;"></i>
+                    </button>
+                    <button class="btn btn-light btn-sm"
+                            onclick="removeSubject('{{ subject.id }}', '{{ subject.name|escapejs }}')"
+                            title="Remove from batch">
+                        <i class="fas fa-trash text-danger" style="font-size:.75rem;"></i>
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="fas fa-book fa-2x text-muted mb-3 d-block" style="opacity:.35;"></i>
+    <p class="fw-semibold text-muted mb-1">No subjects assigned</p>
+    <p class="text-muted small mb-3">Subjects are managed per class in the Subjects Center and apply to every batch in the course.</p>
+    <a href="{% url 'core:class_subjects' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-up-right-from-square me-1"></i>Go to Subjects Center
+    </a>
+</div>
+{% endif %}

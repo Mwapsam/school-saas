@@ -1,0 +1,535 @@
+{% extends 'core/layouts/list.html' %}
+{% load currency_tags %}
+{% block page_title %}Fee Collections{% endblock %}
+
+{% block layout_header %}
+{% url 'core:finance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Fee Collections" description="Term-wise billing runs. Each collection generates fee obligations for every student in the batch." icon="fa-calendar-check" actions=header_actions back_url=back_url|default:back_fallback %}
+{% include 'core/finance/_workflow_nav.html' %}
+{% endblock %}
+
+{% block layout_filters %}
+<div class="card mb-4">
+    <div class="card-header bg-light border-0">
+        <h6 class="mb-0"><i class="fas fa-filter me-2 text-primary"></i>Filter by Academic Year</h6>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-6">
+                <label for="academic_year" class="form-label fw-500">Academic Year</label>
+                <select name="academic_year" id="academic_year" class="form-select" onchange="this.form.submit()">
+                    {% for y in academic_years %}
+                    <option value="{{ y.id }}" {% if y == selected_year %}selected{% endif %}>{{ y.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block layout_table %}
+    <div class="card-body p-0">
+        {% if grouped_collections %}
+        <form id="publishForm" method="post" action="{% url 'core:fee_collection_bulk_publish' %}">
+            {% csrf_token %}
+            <div class="accordion" id="termAccordion">
+                {% for group in grouped_collections %}
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#term-{{ forloop.counter }}">
+                            <i class="fas fa-folder me-2 text-warning"></i>
+                            {% if group.term %}
+                                {{ group.term.exam_group.name }} — {{ group.term.name }}
+                            {% else %}
+                                Unassigned to a Term
+                            {% endif %}
+                            <span class="badge bg-light text-dark ms-2">{{ group.collections|length }}</span>
+                        </button>
+                    </h2>
+                    <div id="term-{{ forloop.counter }}"
+                        class="accordion-collapse collapse"
+                        data-bs-parent="#termAccordion">
+                        <div class="accordion-body p-0">
+                            {% include 'core/components/table_open.html' %}
+                                    <thead>
+                                        <tr>
+                                            <th scope="col" style="width: 3%;" onclick="event.stopPropagation();">
+                                                <input type="checkbox" class="select-group" onchange="toggleGroup(this)">
+                                            </th>
+                                            <th scope="col">Collection Name</th>
+                                            <th scope="col">Fee Category</th>
+                                            <th scope="col">Batch</th>
+                                            <th scope="col" class="text-center" style="width: 10%;">Status</th>
+                                            <th scope="col" class="text-center" style="width: 10%;">Due Date</th>
+                                            <th scope="col" class="text-end" style="width: 8%;">Students</th>
+                                            <th scope="col" class="text-end" style="width: 10%;">Total Amount</th>
+                                            <th scope="col" class="text-end" style="width: 10%;">Outstanding</th>
+                                            <th scope="col" class="text-end" style="width: 8%;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for c in group.collections %}
+                                        <tr class="align-middle" onclick="window.location.href='{% url 'core:fee_collection_detail' c.id %}'" style="cursor: pointer;">
+                                            <td onclick="event.stopPropagation();">
+                                                <input type="checkbox" name="collection_ids" value="{{ c.id }}" class="collection-checkbox" onchange="updatePublishButton()">
+                                            </td>
+                                            <td><strong class="text-primary">{{ c.name }}</strong></td>
+                                            <td><span class="badge bg-light text-dark">{{ c.fee_category.name }}</span></td>
+                                            <td><small>{{ c.batch.name }}</small></td>
+                                            <td class="text-center">
+                                                {% if c.status == 'published' %}
+                                                    <span class="badge bg-success">Published</span>
+                                                {% elif c.status == 'draft' %}
+                                                    <span class="badge bg-secondary">Draft</span>
+                                                {% else %}
+                                                    <span class="badge bg-light text-dark">{{ c.get_status_display }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center"><small>{{ c.due_date|date:"d M, Y" }}</small></td>
+                                            <td class="text-end fw-500">{{ c.student_count }}</td>
+                                            <td class="text-end"><strong>{% currency_format c.total_amount %}</strong></td>
+                                            <td class="text-end">
+                                                {% if c.outstanding_amount > 0 %}
+                                                    <span class="badge bg-warning text-dark">{% currency_format c.outstanding_amount %}</span>
+                                                {% else %}
+                                                    <span class="badge bg-success">Collected</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end" onclick="event.stopPropagation();">
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <button type="button" class="btn btn-outline-info" title="Add Particular"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#addParticularModal"
+                                                            data-collection-id="{{ c.id }}"
+                                                            data-collection-name="{{ c.name|escapejs }}"
+                                                            data-category-name="{{ c.fee_category.name|escapejs }}"
+                                                            data-term="{{ c.term|default:''|escapejs }}"
+                                                            data-due="{{ c.due_date|date:'Y-m-d' }}"
+                                                            onclick="setParticularModal(this)">
+                                                        <i class="fas fa-plus"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-danger" title="Delete"
+                                                            onclick="deleteCollection('{{ c.id }}', '{{ c.name|escapejs }}')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                            {% include 'core/components/table_close.html' %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </form>
+        {% else %}
+        {% include 'core/components/empty_state.html' with title="No Collections Yet" message="Create your first fee collection to get started." icon="fa-calendar-check" %}
+        {% endif %}
+    </div>
+    <form id="csrfForm">{% csrf_token %}</form>
+{% endblock %}
+
+{% block layout_extra %}
+<!-- Bulk Edit Modal -->
+{% include 'core/components/modal.html' with id="bulkEditModal" title="Edit Selected Collections" icon="fa-edit" %}
+    <form id="bulkEditForm">
+        <div class="mb-3">
+            <label for="bulkEditTerm" class="form-label">Term</label>
+            <select class="form-select" id="bulkEditTerm" name="term">
+                <option value="">Leave unchanged</option>
+                {% for term in terms %}
+                <option value="{{ term }}">{{ term }}</option>
+                {% endfor %}
+            </select>
+            <small class="text-muted d-block mt-1">Select a term or leave blank to keep current term</small>
+        </div>
+        <div class="mb-3">
+            <label for="bulkEditStartDate" class="form-label">Start Date</label>
+            <input type="date" class="form-control" id="bulkEditStartDate" name="start_date">
+            <small class="text-muted d-block mt-1">Leave blank to keep unchanged</small>
+        </div>
+        <div class="mb-3">
+            <label for="bulkEditEndDate" class="form-label">End Date</label>
+            <input type="date" class="form-control" id="bulkEditEndDate" name="end_date">
+            <small class="text-muted d-block mt-1">Leave blank to keep unchanged</small>
+        </div>
+        <div class="mb-3">
+            <label for="bulkEditDueDate" class="form-label">Due Date</label>
+            <input type="date" class="form-control" id="bulkEditDueDate" name="due_date">
+            <small class="text-muted d-block mt-1">Leave blank to keep unchanged</small>
+        </div>
+        <div class="mb-3">
+            <label for="bulkEditStatus" class="form-label">Status</label>
+            <select class="form-select" id="bulkEditStatus" name="status">
+                <option value="">Leave unchanged</option>
+                {% for value, label in status_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+            <small class="text-muted d-block mt-1">Select a status or leave blank to keep current status</small>
+        </div>
+    </form>
+{% include 'core/components/modal_close.html' with footer=bulk_edit_footer %}
+
+<!-- Add Particular To Collection Modal -->
+<form id="quickAddParticularForm">
+{% include 'core/components/modal.html' with id="addParticularModal" title="Add Particular" icon="fa-plus" size="lg" %}
+    {% csrf_token %}
+    <input type="hidden" id="particularCollectionId">
+    <p class="text-muted mb-3" id="particularScopeLine"></p>
+
+    <div class="mb-3">
+        <label for="masterParticularSelect" class="form-label">
+            <strong>Master Particular</strong> <span class="text-danger">*</span>
+        </label>
+        <select class="form-select" id="masterParticularSelect" name="master_particular_id" required>
+            <option value="">-- Select a particular --</option>
+            {% for mp in master_particulars %}
+            <option value="{{ mp.id }}" data-description="{{ mp.description|default:''|escapejs }}">{{ mp.name }}</option>
+            {% endfor %}
+        </select>
+        <small class="text-muted d-block mt-1">
+            Pick from the shared library (e.g. PTA). Not there?
+            <a href="#" id="toggleNewMasterBtn">Create a new master particular</a>.
+        </small>
+    </div>
+
+    <!-- Inline: create a new master particular -->
+    <div class="border rounded p-3 mb-3 bg-light" id="newMasterBlock" style="display:none;">
+        <div class="mb-2">
+            <label for="newMasterName" class="form-label mb-1">New master particular name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" id="newMasterName" placeholder="e.g., PTA">
+        </div>
+        <div class="mb-2">
+            <label for="newMasterDesc" class="form-label mb-1">Description</label>
+            <input type="text" class="form-control form-control-sm" id="newMasterDesc" placeholder="Optional">
+        </div>
+        <button type="button" class="btn btn-sm btn-primary" id="createMasterBtn">
+            <i class="fas fa-save me-1"></i>Save to library
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="cancelNewMasterBtn">Cancel</button>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="quickAddAmount" class="form-label">Amount <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <span class="input-group-text">{{ currency_symbol|default:'₹' }}</span>
+                    <input type="number" class="form-control" id="quickAddAmount" name="amount"
+                           placeholder="0.00" step="0.01" min="0" required>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="quickAddDueDate" class="form-label">Due Date</label>
+                <input type="date" class="form-control" id="quickAddDueDate" name="due_date">
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label for="quickAddFineSlab" class="form-label">Fine Slab (optional)</label>
+        <select class="form-select" id="quickAddFineSlab" name="fine_slab">
+            <option value="">No fine slab</option>
+            {% for slab_name in fine_slabs %}
+            <option value="{{ slab_name }}">{{ slab_name }}</option>
+            {% endfor %}
+        </select>
+        <small class="text-muted d-block mt-1">Applies after due date for overdue fees</small>
+    </div>
+
+    <div class="mb-3">
+        <label for="quickAddDescription" class="form-label">Description</label>
+        <textarea class="form-control" id="quickAddDescription" name="description"
+                  rows="2" placeholder="Optional description"></textarea>
+    </div>
+
+    <div class="alert alert-light mb-0">
+        <small><i class="fas fa-info-circle me-1"></i>Added to the selected collection(s) only, and applied to every student already billed in them.</small>
+    </div>
+{% include 'core/components/modal_close.html' with footer=add_particular_footer %}
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleSelectAll(checkbox) {
+    document.querySelectorAll('.collection-checkbox').forEach(cb => cb.checked = checkbox.checked);
+    updatePublishButton();
+}
+
+function updatePublishButton() {
+    const anyChecked = document.querySelectorAll('.collection-checkbox:checked').length > 0;
+    document.getElementById('publishInvoicesBtn').disabled = !anyChecked;
+    document.getElementById('bulkEditBtn').disabled = !anyChecked;
+    document.getElementById('deleteSelectedBtn').disabled = !anyChecked;
+    const bulkAddBtn = document.getElementById('bulkAddParticularBtn');
+    if (bulkAddBtn) bulkAddBtn.disabled = !anyChecked;
+}
+
+function publishSelected() {
+    const count = document.querySelectorAll('.collection-checkbox:checked').length;
+    if (count === 0) return;
+    if (!confirm(`Publish invoices for ${count} selected collection(s)? This makes them visible on the parent portal.`)) {
+        return;
+    }
+    const form = document.getElementById('publishForm');
+    form.action = "{% url 'core:fee_collection_bulk_publish' %}";
+    form.submit();
+}
+
+function deleteCollection(id, name) {
+    showDanger(
+        `Delete "${name}"? This removes all its student obligations. Collections with recorded payments cannot be deleted.`,
+        async () => {
+            const csrfToken = document.querySelector('#csrfForm [name=csrfmiddlewaretoken]').value;
+            try {
+                const response = await fetch(`/finance/collections/${id}/delete/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken },
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Collection deleted successfully', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(result.error || 'Failed to delete collection', 'danger');
+                }
+            } catch (error) {
+                showToast('Failed to delete collection', 'danger');
+            }
+        }
+    );
+}
+
+function submitBulkEdit() {
+    const checked = document.querySelectorAll('.collection-checkbox:checked');
+    if (checked.length === 0) {
+        showToast('No collections selected', 'warning');
+        return;
+    }
+
+    const collectionIds = Array.from(checked).map(cb => cb.value);
+    const term = document.getElementById('bulkEditTerm').value;
+    const startDate = document.getElementById('bulkEditStartDate').value;
+    const endDate = document.getElementById('bulkEditEndDate').value;
+    const dueDate = document.getElementById('bulkEditDueDate').value;
+    const status = document.getElementById('bulkEditStatus').value;
+
+    const payload = { collection_ids: collectionIds };
+    if (term) payload.term = term;
+    if (startDate) payload.start_date = startDate;
+    if (endDate) payload.end_date = endDate;
+    if (dueDate) payload.due_date = dueDate;
+    if (status) payload.status = status;
+
+    const csrfToken = document.querySelector('#csrfForm [name=csrfmiddlewaretoken]').value;
+    fetch('/finance/collections/bulk-edit/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast(`Updated ${result.updated} collection(s)`, 'success');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('bulkEditModal'));
+            modal.hide();
+            document.getElementById('bulkEditForm').reset();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            const message = result.message || result.error || 'Failed to update collections';
+            showToast(message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error updating collections', 'danger');
+    });
+}
+
+function deleteSelected() {
+    const checked = document.querySelectorAll('.collection-checkbox:checked');
+    if (checked.length === 0) return;
+
+    const count = checked.length;
+    showDanger(
+        `Delete ${count} collection(s)? Collections with recorded payments will be skipped. This action cannot be undone.`,
+        async () => {
+            const collectionIds = Array.from(checked).map(cb => cb.value);
+            const csrfToken = document.querySelector('#csrfForm [name=csrfmiddlewaretoken]').value;
+            try {
+                const response = await fetch('/finance/collections/bulk-delete-json/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ collection_ids: collectionIds })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    let msg = `Deleted ${result.deleted} collection(s)`;
+                    if (result.skipped && result.skipped.length > 0) {
+                        msg += `. Skipped ${result.skipped.length} with recorded payments.`;
+                    }
+                    showToast(msg, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(result.message || result.error || 'Failed to delete collections', 'danger');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error deleting collections', 'danger');
+            }
+        }
+    );
+}
+
+function toggleGroup(checkbox) {
+    const table = checkbox.closest('table');
+    table.querySelectorAll('.collection-checkbox').forEach(cb => cb.checked = checkbox.checked);
+    updatePublishButton();
+}
+
+// Add-particular-to-collection modal — works for a single collection (row
+// button) or many at once (bulk header action).
+let currentParticularCollectionId = null;
+let particularBulkIds = null;
+
+function resetParticularModal() {
+    document.getElementById('quickAddParticularForm').reset();
+    document.getElementById('masterParticularSelect').value = '';
+    document.getElementById('newMasterBlock').style.display = 'none';
+}
+
+function setParticularModal(button) {
+    particularBulkIds = null;
+    currentParticularCollectionId = button.dataset.collectionId;
+    document.getElementById('particularCollectionId').value = currentParticularCollectionId;
+    const meta = [button.dataset.categoryName, button.dataset.term].filter(Boolean).join(' · ');
+    document.getElementById('particularScopeLine').innerHTML =
+        `Adding to <strong>${button.dataset.collectionName || ''}</strong>` +
+        (meta ? `<span class="d-block small">${meta}</span>` : '');
+    resetParticularModal();
+    if (button.dataset.due) {
+        document.getElementById('quickAddDueDate').value = button.dataset.due;
+    }
+}
+
+function openBulkAddParticular() {
+    const ids = Array.from(document.querySelectorAll('.collection-checkbox:checked')).map(cb => cb.value);
+    if (ids.length === 0) { showToast('Select at least one collection', 'warning'); return; }
+    particularBulkIds = ids;
+    currentParticularCollectionId = null;
+    document.getElementById('particularScopeLine').innerHTML =
+        `Applying to <strong>${ids.length}</strong> selected collection(s)`;
+    resetParticularModal();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('addParticularModal')).show();
+}
+
+// Prefill the description from the chosen master particular
+document.getElementById('masterParticularSelect').addEventListener('change', function() {
+    const opt = this.selectedOptions[0];
+    const desc = opt ? (opt.dataset.description || '') : '';
+    const descField = document.getElementById('quickAddDescription');
+    if (desc && !descField.value) descField.value = desc;
+});
+
+// Inline "create new master particular"
+document.getElementById('toggleNewMasterBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    const block = document.getElementById('newMasterBlock');
+    block.style.display = block.style.display === 'none' ? 'block' : 'none';
+});
+document.getElementById('cancelNewMasterBtn').addEventListener('click', function() {
+    document.getElementById('newMasterBlock').style.display = 'none';
+});
+document.getElementById('createMasterBtn').addEventListener('click', function() {
+    const name = document.getElementById('newMasterName').value.trim();
+    if (!name) { showToast('Enter a name for the master particular', 'warning'); return; }
+    const csrfToken = document.querySelector('#csrfForm [name=csrfmiddlewaretoken]').value;
+    fetch('{% url "core:fee_master_particular_save" %}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({
+            name: name,
+            description: document.getElementById('newMasterDesc').value.trim(),
+            is_active: true,
+        })
+    })
+    .then(r => r.json())
+    .then(result => {
+        if (result.success || result.id) {
+            const id = result.id || (result.particular && result.particular.id);
+            const sel = document.getElementById('masterParticularSelect');
+            const opt = new Option(name, id, true, true);
+            opt.dataset.description = document.getElementById('newMasterDesc').value.trim();
+            sel.add(opt);
+            document.getElementById('newMasterBlock').style.display = 'none';
+            document.getElementById('newMasterName').value = '';
+            document.getElementById('newMasterDesc').value = '';
+            showToast(`"${name}" added to the library`, 'success');
+        } else {
+            showToast(result.error || 'Failed to create master particular', 'danger');
+        }
+    })
+    .catch(() => showToast('Failed to create master particular', 'danger'));
+});
+
+// Submit: apply the particular to one collection or to all selected ones
+document.getElementById('quickAddParticularForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (!currentParticularCollectionId && !(particularBulkIds && particularBulkIds.length)) return;
+    if (!document.getElementById('masterParticularSelect').value) {
+        showToast('Select a master particular', 'warning');
+        return;
+    }
+
+    const formData = new FormData(this);
+    const csrfToken = document.querySelector('#csrfForm [name=csrfmiddlewaretoken]').value;
+
+    let url;
+    if (particularBulkIds && particularBulkIds.length) {
+        url = '{% url "core:fee_collection_bulk_add_particular" %}';
+        particularBulkIds.forEach(id => formData.append('collection_ids', id));
+    } else {
+        url = `/finance/collections/${currentParticularCollectionId}/particulars/add/`;
+    }
+
+    fetch(url, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast(result.message, 'success');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addParticularModal'));
+            modal.hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(result.error || 'Failed to add particular', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error adding particular', 'danger');
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+{% include 'core/finance/_finance_ui_styles.html' %}
+{% endblock %}

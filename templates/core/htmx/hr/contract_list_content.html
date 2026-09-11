@@ -1,0 +1,63 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead>
+            <tr>
+                <th>Employee</th>
+                <th>Type</th>
+                <th>Start</th>
+                <th>End</th>
+                <th class="text-end">Days left</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in contracts %}
+                <tr>
+                    <td>
+                        <a href="{% url 'core:employee_detail' c.employee_id %}">
+                            <strong>{{ c.employee.first_name }} {{ c.employee.last_name }}</strong>
+                        </a>
+                        <div><small class="text-muted">{{ c.employee.employee_number }}</small></div>
+                    </td>
+                    <td>{{ c.get_contract_type_display }}</td>
+                    <td><small>{{ c.start_date|date:"M j, Y" }}</small></td>
+                    <td><small>{{ c.end_date|date:"M j, Y"|default:"—" }}</small></td>
+                    <td class="text-end">{{ c.days_remaining|default:"—" }}</td>
+                    <td>
+                        {% if c.renewal_status == 'expired' or c.renewal_status == 'not_renewed' %}
+                            <span class="badge bg-danger">{{ c.get_renewal_status_display }}</span>
+                        {% elif c.renewal_status == 'expiring_soon' or c.renewal_status == 'renewal_pending' %}
+                            <span class="badge bg-warning">{{ c.get_renewal_status_display }}</span>
+                        {% elif c.renewal_status == 'renewed' %}
+                            <span class="badge bg-info">Renewed</span>
+                        {% else %}
+                            <span class="badge bg-success">Active</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr class="empty-state"><td colspan="6">No contracts found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if is_paginated %}
+<div class="pinewood-table-pagination">
+    <nav>
+        <ul class="pagination pagination-sm justify-content-center mb-0">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" hx-get="{% url 'core:hr_contract_list' %}?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" hx-target="#contract-list-content">Previous</a>
+            </li>
+            {% endif %}
+            <li class="page-item active"><span class="page-link">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span></li>
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" hx-get="{% url 'core:hr_contract_list' %}?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" hx-target="#contract-list-content">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endif %}

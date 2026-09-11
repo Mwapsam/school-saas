@@ -1,0 +1,42 @@
+{# Persistent finance workflow navigation. Uses semantic route names + aria-current for a11y #}
+{% with current_route=request.resolver_match.url_name %}
+<div class="finance-workflow-nav mb-4">
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'core:finance_dashboard' %}"
+           class="btn btn-sm {% if current_route == 'finance_dashboard' %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+           {% if current_route == 'finance_dashboard' %}aria-current="page"{% endif %}>
+            Overview
+        </a>
+        <a href="{% url 'core:fee_structure' %}"
+           class="btn btn-sm {% if current_route == 'fee_structure' %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+           {% if current_route == 'fee_structure' %}aria-current="page"{% endif %}>
+            1 · Fee Structure
+        </a>
+        <a href="{% url 'core:fee_collections' %}"
+           class="btn btn-sm {% if current_route == 'fee_collections' %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+           {% if current_route == 'fee_collections' %}aria-current="page"{% endif %}>
+            2 · Collections
+        </a>
+        <a href="{% url 'core:collect_fees' %}"
+           class="btn btn-sm {% if current_route == 'collect_fees' %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+           {% if current_route == 'collect_fees' %}aria-current="page"{% endif %}>
+            3 · Collect Fees
+        </a>
+        <a href="{% url 'core:finance_track' %}"
+           class="btn btn-sm {% if current_route == 'finance_track' %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+           {% if current_route == 'finance_track' %}aria-current="page"{% endif %}>
+            4 · Track &amp; Monitor
+        </a>
+        <a href="{% url 'core:finance_reports' %}"
+           class="btn btn-sm {% if current_route == 'finance_reports' %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+           {% if current_route == 'finance_reports' %}aria-current="page"{% endif %}>
+            5 · Reports
+        </a>
+        <a href="{% url 'core:finance_settings' %}"
+           class="btn btn-sm ms-auto {% if current_route == 'finance_settings' %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+           {% if current_route == 'finance_settings' %}aria-current="page"{% endif %}>
+            <i class="fas fa-cog"></i> Settings
+        </a>
+    </div>
+</div>
+{% endwith %}

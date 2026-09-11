@@ -1,0 +1,36 @@
+{% comment %}
+Pinewood button — renders either a <button> or an <a> depending on whether
+`url` is given.
+
+Usage:
+  {% include 'core/components/button.html' with label="Add Student" variant="primary" url=create_url icon="fa-plus" %}
+  {% include 'core/components/button.html' with label="Delete" variant="danger" type="submit" size="sm" %}
+
+Params:
+  label     (required) — button text
+  variant   (optional) — "primary" (default) | "outline" | "danger"
+  url       (optional) — renders an <a href="..."> instead of a <button>
+  type      (optional) — button[type], e.g. "submit" (ignored when url is set)
+  icon      (optional) — Font Awesome class, e.g. "fa-plus"
+  size      (optional) — "sm" for the compact variant
+  disabled  (optional) — boolean
+  loading   (optional) — boolean; shows a spinner instead of the icon
+  attrs     (optional) — raw extra attribute string, e.g. 'data-bs-toggle="modal" data-bs-target="#x"'
+{% endcomment %}
+{% if url %}
+<a href="{% if disabled %}#{% else %}{{ url }}{% endif %}"
+   class="pw-btn pw-btn-{{ variant|default:'primary' }}{% if size == 'sm' %} pw-btn-sm{% endif %}"
+   {% if disabled %}aria-disabled="true" tabindex="-1"{% endif %}
+   {% if attrs %}{{ attrs|safe }}{% endif %}>
+  {% if loading %}<span class="loading-spinner"></span>{% elif icon %}<i class="fas {{ icon }}"></i>{% endif %}
+  <span>{{ label }}</span>
+</a>
+{% else %}
+<button type="{{ type|default:'button' }}"
+        class="pw-btn pw-btn-{{ variant|default:'primary' }}{% if size == 'sm' %} pw-btn-sm{% endif %}"
+        {% if disabled %}disabled{% endif %}
+        {% if attrs %}{{ attrs|safe }}{% endif %}>
+  {% if loading %}<span class="loading-spinner"></span>{% elif icon %}<i class="fas {{ icon }}"></i>{% endif %}
+  <span>{{ label }}</span>
+</button>
+{% endif %}

@@ -1,0 +1,194 @@
+/* Django Admin Table Styling Override - Pinewood Style */
+
+/* Override the default admin table styling */
+#changelist-table,
+.results table,
+.form-row table {
+    border-collapse: collapse !important;
+    font-size: 0.9rem !important;
+    width: 100% !important;
+    margin-bottom: 1rem !important;
+}
+
+/* Header styling to match Pinewood green theme */
+#changelist-table thead th,
+.results table thead th,
+.form-row table thead th {
+    background-color: #28a745 !important;
+    color: white !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    font-size: 0.85rem !important;
+    letter-spacing: 0.5px !important;
+    border: 1px solid #1e7e34 !important;
+    padding: 0.75rem !important;
+    position: relative !important;
+}
+
+#changelist-table thead th::after,
+.results table thead th::after,
+.form-row table thead th::after {
+    content: '' !important;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 2px !important;
+    background: linear-gradient(to right, #1e7e34, #28a745) !important;
+}
+
+/* Body row styling - alternating colors */
+#changelist-table tbody tr,
+.results table tbody tr,
+.form-row table tbody tr {
+    transition: background-color 0.15s ease-in-out !important;
+}
+
+#changelist-table tbody tr:nth-child(odd),
+.results table tbody tr:nth-child(odd),
+.form-row table tbody tr:nth-child(odd) {
+    background-color: #ffffff !important;
+}
+
+#changelist-table tbody tr:nth-child(even),
+.results table tbody tr:nth-child(even),
+.form-row table tbody tr:nth-child(even) {
+    background-color: #f8f9fa !important;
+}
+
+#changelist-table tbody tr:hover,
+.results table tbody tr:hover,
+.form-row table tbody tr:hover {
+    background-color: #e8f5e8 !important;
+}
+
+/* Cell styling */
+#changelist-table td,
+.results table td,
+.form-row table td {
+    border: 1px solid #dee2e6 !important;
+    padding: 0.75rem !important;
+    vertical-align: middle !important;
+    color: #495057 !important;
+}
+
+/* Action column styling */
+#changelist-table .action-column,
+.results table .action-column {
+    white-space: nowrap !important;
+}
+
+/* Checkbox styling */
+#changelist-table input[type="checkbox"],
+.results table input[type="checkbox"] {
+    transform: scale(1.1) !important;
+    margin: 0 !important;
+}
+
+/* Links in tables */
+#changelist-table a,
+.results table a {
+    color: #28a745 !important;
+    text-decoration: none !important;
+}
+
+#changelist-table a:hover,
+.results table a:hover {
+    color: #1e7e34 !important;
+    text-decoration: underline !important;
+}
+
+/* Admin specific styling */
+.django-admin-style .module table {
+    border-collapse: collapse !important;
+}
+
+.django-admin-style .module table th {
+    background-color: #28a745 !important;
+    color: white !important;
+}
+
+/* Pagination styling in admin */
+.paginator {
+    background-color: #f8f9fa !important;
+    border-top: 1px solid #dee2e6 !important;
+    padding: 1rem !important;
+}
+
+.paginator a {
+    color: #28a745 !important;
+    border-color: #28a745 !important;
+}
+
+.paginator .this-page {
+    background-color: #28a745 !important;
+    border-color: #28a745 !important;
+    color: white !important;
+}
+
+.paginator a:hover {
+    color: #1e7e34 !important;
+    background-color: #e8f5e8 !important;
+    border-color: #1e7e34 !important;
+}
+
+/* Remove border radius - following the design */
+#changelist-table,
+.results table,
+#changelist-table th,
+#changelist-table td,
+.results table th,
+.results table td,
+.paginator a,
+.paginator .this-page {
+    border-radius: 0 !important;
+}
+
+/* Form tables in admin */
+.form-row table th,
+.form-row table td {
+    border: 1px solid #dee2e6 !important;
+    padding: 0.5rem !important;
+}
+
+.form-row table th {
+    background-color: #28a745 !important;
+    color: white !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #changelist-table,
+    .results table {
+        font-size: 0.8rem !important;
+    }
+    
+    #changelist-table th,
+    #changelist-table td,
+    .results table th,
+    .results table td {
+        padding: 0.5rem 0.3rem !important;
+    }
+}
+
+/* Print styles for admin */
+@media print {
+    #changelist-table,
+    .results table {
+        border-collapse: collapse !important;
+    }
+    
+    #changelist-table th,
+    #changelist-table td,
+    .results table th,
+    .results table td {
+        border: 1px solid #000 !important;
+        padding: 0.5rem !important;
+    }
+    
+    #changelist-table thead th,
+    .results table thead th {
+        background-color: #000 !important;
+        color: white !important;
+    }
+}

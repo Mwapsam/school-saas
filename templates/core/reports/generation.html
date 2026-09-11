@@ -1,0 +1,331 @@
+{% extends 'core/layouts/form.html' %}
+
+{% block layout_header %}
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-plus-circle' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Generate Reports{% endblock %}
+
+{% block layout_form %}
+<div class="report-generation-container">
+    <!-- Breadcrumb -->
+    
+
+    <!-- Page Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-cog fa-2x text-primary me-3"></i>
+            <div>
+                <h2 class="mb-0">Generate Reports</h2>
+                <p class="text-muted mb-0">Generate student report cards in batch</p>
+            </div>
+        </div>
+        <div class="btn-group">
+            <a href="{% url 'core:report_template_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Templates
+            </a>
+        </div>
+    </div>
+
+    <!-- Generation Form -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-file-pdf me-2"></i>Report Generation</h5>
+                </div>
+                <div class="card-body">
+                    <form id="generateReportsForm">
+                        <div class="mb-4">
+                            <label for="template_id" class="form-label">Report Template *</label>
+                            <select class="form-select form-select-lg" id="template_id" name="template_id" required>
+                                <option value="">Select a template...</option>
+                                {% for template in templates %}
+                                <option value="{{ template.id }}" 
+                                        data-batch="{{ template.batch.name }}" 
+                                        data-term="{{ template.term }}" 
+                                        data-year="{{ template.academic_year.name }}">
+                                    {{ template.name }} ({{ template.batch.name }} - {{ template.term }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Choose the template that defines the report layout and sections.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="exam_group_id" class="form-label">Exam Results *</label>
+                            <select class="form-select form-select-lg" id="exam_group_id" name="exam_group_id" required>
+                                <option value="">Select exam results...</option>
+                                {% for exam_group in exam_groups %}
+                                <option value="{{ exam_group.id }}" 
+                                        data-batch="{{ exam_group.batch.name }}" 
+                                        data-type="{{ exam_group.exam_type }}" 
+                                        data-date="{{ exam_group.exam_date|date:'M d, Y' }}">
+                                    {{ exam_group.name }} - {{ exam_group.batch.name }} ({{ exam_group.exam_date|date:"M d, Y" }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Select the published exam results to include in the reports.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Generation Options</label>
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="student_selection" id="all_students" value="all" checked>
+                                        <label class="form-check-label" for="all_students">
+                                            <strong>Generate for all students</strong>
+                                            <br><small class="text-muted">Generate reports for all students in the selected batch</small>
+                                        </label>
+                                    </div>
+                                    <div class="form-check mt-3">
+                                        <input class="form-check-input" type="radio" name="student_selection" id="selected_students" value="selected">
+                                        <label class="form-check-label" for="selected_students">
+                                            <strong>Generate for selected students</strong>
+                                            <br><small class="text-muted">Choose specific students (select option will appear below)</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="student_selection_area" class="mb-4" style="display: none;">
+                            <label class="form-label">Select Students</label>
+                            <div class="card" style="max-height: 300px; overflow-y: auto;">
+                                <div class="card-body">
+                                    <div id="students_list">
+                                        <div class="text-center text-muted py-3">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            Please select a template and exam group first
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-play me-2"></i>
+                                <span id="generate_button_text">Generate Reports</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Preview/Info Panel -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Generation Info</h6>
+                </div>
+                <div class="card-body">
+                    <div id="generation_info">
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-file-pdf fa-2x mb-2"></i>
+                            <p class="mb-0">Select template and exam group to see details</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Generations -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-history me-2"></i>Generation Status</h6>
+                </div>
+                <div class="card-body">
+                    <div id="generation_status">
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-clock fa-2x mb-2"></i>
+                            <p class="mb-0">No recent generations</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Generation Progress Modal -->
+<div class="modal fade" id="generationProgressModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-cog fa-spin me-2"></i>
+                    Generating Reports
+                </h5>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <div class="progress mb-3" style="height: 20px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <p class="mb-0" id="progress_message">Initializing report generation...</p>
+                    <small class="text-muted" id="progress_details"></small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="close_progress" style="display: none;">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const templateSelect = document.getElementById('template_id');
+    const examGroupSelect = document.getElementById('exam_group_id');
+    const studentSelectionRadios = document.querySelectorAll('input[name="student_selection"]');
+    const studentSelectionArea = document.getElementById('student_selection_area');
+    const generateForm = document.getElementById('generateReportsForm');
+    
+    // Handle student selection type change
+    studentSelectionRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'selected') {
+                studentSelectionArea.style.display = 'block';
+                loadStudentsList();
+            } else {
+                studentSelectionArea.style.display = 'none';
+            }
+        });
+    });
+
+    // Handle template/exam group selection changes
+    templateSelect.addEventListener('change', updateGenerationInfo);
+    examGroupSelect.addEventListener('change', updateGenerationInfo);
+
+    // Handle form submission
+    generateForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        // Add selected students if applicable
+        const selectedStudents = document.querySelectorAll('input[name="student_ids[]"]:checked');
+        if (selectedStudents.length > 0) {
+            selectedStudents.forEach(checkbox => {
+                formData.append('student_ids[]', checkbox.value);
+            });
+        }
+
+        startReportGeneration(formData);
+    });
+
+    function updateGenerationInfo() {
+        const templateOption = templateSelect.selectedOptions[0];
+        const examGroupOption = examGroupSelect.selectedOptions[0];
+        
+        let infoHtml = '<div class="text-center text-muted py-3"><i class="fas fa-file-pdf fa-2x mb-2"></i><p class="mb-0">Select template and exam group</p></div>';
+        
+        if (templateOption && templateOption.value && examGroupOption && examGroupOption.value) {
+            infoHtml = `
+                <div class="mb-3">
+                    <h6><i class="fas fa-file-alt me-2"></i>Template</h6>
+                    <p class="mb-1">${templateOption.text}</p>
+                    <small class="text-muted">Batch: ${templateOption.dataset.batch} | Term: ${templateOption.dataset.term}</small>
+                </div>
+                <div class="mb-3">
+                    <h6><i class="fas fa-clipboard-list me-2"></i>Exam Results</h6>
+                    <p class="mb-1">${examGroupOption.text}</p>
+                    <small class="text-muted">Date: ${examGroupOption.dataset.date}</small>
+                </div>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Ready to generate!</strong><br>
+                    Reports will be generated in the background.
+                </div>
+            `;
+        }
+        
+        document.getElementById('generation_info').innerHTML = infoHtml;
+    }
+
+    function loadStudentsList() {
+        // TODO: Load students based on selected template/exam group
+        const studentsListHtml = `
+            <div class="text-center text-muted py-3">
+                <i class="fas fa-users me-2"></i>
+                Student selection will be available in the next update
+            </div>
+        `;
+        document.getElementById('students_list').innerHTML = studentsListHtml;
+    }
+
+    function startReportGeneration(formData) {
+        // Show progress modal
+        const progressModal = new bootstrap.Modal(document.getElementById('generationProgressModal'));
+        progressModal.show();
+        
+        // Start generation
+        fetch("{% url 'core:generate_reports_api' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateProgress(50, 'Report generation started...', `Task ID: ${data.task_id}`);
+                // Poll for completion (simplified - in production, use WebSockets)
+                setTimeout(() => {
+                    updateProgress(100, 'Reports generated successfully!', 'You can now download the reports.');
+                    document.getElementById('close_progress').style.display = 'block';
+                }, 5000);
+            } else {
+                updateProgress(0, 'Generation failed', data.error);
+                document.getElementById('close_progress').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            updateProgress(0, 'Network error', 'Please try again later.');
+            document.getElementById('close_progress').style.display = 'block';
+        });
+    }
+
+    function updateProgress(percentage, message, details) {
+        const progressBar = document.querySelector('.progress-bar');
+        const messageEl = document.getElementById('progress_message');
+        const detailsEl = document.getElementById('progress_details');
+        
+        progressBar.style.width = percentage + '%';
+        messageEl.textContent = message;
+        detailsEl.textContent = details || '';
+        
+        if (percentage === 100) {
+            progressBar.classList.remove('progress-bar-animated');
+            progressBar.classList.add('bg-success');
+        }
+    }
+
+    document.getElementById('close_progress').addEventListener('click', function() {
+        location.reload();
+    });
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

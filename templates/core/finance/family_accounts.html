@@ -1,0 +1,315 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}Family Accounts{% endblock %}
+
+{% block layout_header %}
+{% url 'core:finance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Family Accounts" description="Consolidated dues and payments per guardian" icon='fa-users' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+
+{% block layout_filters %}
+<!-- Filters will be extracted and moved here -->
+{% endblock %}
+
+{% block layout_table %}
+<div class="container-lg py-4">
+    {% include 'core/finance/_workflow_nav.html' %}
+
+    <!-- Search Card -->
+    <div class="card mb-4">
+        <div class="card-header bg-light border-0">
+            <h6 class="mb-0"><i class="fas fa-search me-2 text-primary"></i>Search Guardians</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <label for="searchGuardian" class="form-label fw-500">Guardian Name, Phone or Email</label>
+                    <input type="text" id="searchGuardian" name="q" value="{{ q }}" class="form-control" placeholder="Search by name, phone or email…">
+                </div>
+                <div class="col-md-6">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>Search
+                    </button>
+                    {% if q %}
+                    <a href="{% url 'core:family_accounts' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-2"></i>Clear
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Guardians List -->
+    {% if guardians %}
+    <div class="card mb-4">
+        <div class="card-header bg-light border-0">
+            <h6 class="mb-0">
+                <i class="fas fa-list me-2 text-primary"></i>
+                {% if q %}
+                    Search Results ({{ guardians|length }})
+                {% else %}
+                    Guardians ({{ guardians|length }})
+                {% endif %}
+            </h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Relation</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th class="text-center" style="width: 12%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for g in guardians %}
+                    <tr class="align-middle">
+                        <td>
+                            <div class="fw-500">{{ g.first_name }} {{ g.last_name }}</div>
+                        </td>
+                        <td><small class="text-muted">{{ g.relation }}</small></td>
+                        <td><small class="text-muted">{{ g.mobile_phone|default:"—" }}</small></td>
+                        <td><small class="text-muted">{{ g.email|default:"—" }}</small></td>
+                        <td class="text-center">
+                            <a class="btn btn-sm btn-outline-primary" href="{% url 'core:family_accounts' %}?guardian={{ g.id }}">
+                                <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Guardian Detail -->
+    {% if guardian %}
+    <div class="mb-4">
+        <div class="d-flex align-items-start justify-content-between">
+            <div>
+                <h3 class="mb-1">{{ guardian.first_name }} {{ guardian.last_name }}</h3>
+                <div class="text-muted small">
+                    <span>{{ guardian.relation }}</span>
+                    {% if guardian.mobile_phone %}<span class="mx-2">·</span><span>{{ guardian.mobile_phone }}</span>{% endif %}
+                    {% if guardian.email %}<span class="mx-2">·</span><span>{{ guardian.email }}</span>{% endif %}
+                </div>
+            </div>
+            <a href="{% url 'core:family_accounts' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-times me-1"></i>Back
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-coins fa-lg text-primary"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <small class="text-muted d-block">Total Due</small>
+                            <h5 class="mb-0">₭{{ family_total|floatformat:2 }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-check-circle fa-lg text-success"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <small class="text-muted d-block">Total Paid</small>
+                            <h5 class="mb-0 text-success">₭{{ family_paid|floatformat:2 }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle fa-lg text-warning"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <small class="text-muted d-block">Outstanding</small>
+                            <h5 class="mb-0">₭{{ family_balance|floatformat:2 }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Children/Students Table -->
+    <div class="card">
+        <div class="card-header bg-light border-0">
+            <h6 class="mb-0">
+                <i class="fas fa-list me-2 text-primary"></i>
+                {% if children %}
+                    Children ({{ children|length }})
+                {% else %}
+                    No Children
+                {% endif %}
+            </h6>
+        </div>
+        <div class="card-body p-0">
+            {% if children %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Student</th>
+                            <th>Relation</th>
+                            <th class="text-end">Total Due</th>
+                            <th class="text-end">Paid</th>
+                            <th class="text-end">Outstanding</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for c in children %}
+                    <tr class="align-middle">
+                        <td>
+                            <div class="fw-500">{{ c.student.first_name }} {{ c.student.last_name }}</div>
+                            <small class="text-muted">{{ c.student.admission_no|default:"—" }}</small>
+                        </td>
+                        <td><small class="text-muted">{{ c.relation }}</small></td>
+                        <td class="text-end fw-500">₭{{ c.total|floatformat:2 }}</td>
+                        <td class="text-end text-success fw-500">₭{{ c.paid|floatformat:2 }}</td>
+                        <td class="text-end">
+                            {% if c.balance > 0 %}
+                                <span class="badge bg-warning text-dark">₭{{ c.balance|floatformat:2 }}</span>
+                            {% else %}
+                                <span class="badge bg-success">Settled</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a class="btn btn-sm btn-outline-secondary" title="View Ledger" href="{% url 'core:fee_student_statement' %}?student_id={{ c.student.id }}">
+                                <i class="fas fa-list"></i>
+                            </a>
+                            <a class="btn btn-sm btn-outline-primary" title="Collect Payment" href="{% url 'core:collect_fees' %}?student={{ c.student.id }}">
+                                <i class="fas fa-plus"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <!-- Empty State -->
+            <div class="p-5 text-center">
+                <div class="mb-3">
+                    <i class="fas fa-users fa-3x text-muted opacity-25"></i>
+                </div>
+                <h6 class="text-muted">No Children Linked</h6>
+                <p class="text-muted small">This guardian has no children linked to their account.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% elif not guardians and q %}
+    <!-- No Results -->
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="fas fa-search me-2"></i><strong>No Results</strong> No guardians match "{{ q }}". Try adjusting your search.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% elif not guardians %}
+    <!-- Empty State -->
+    <div class="card">
+        <div class="card-body p-5 text-center">
+            <div class="mb-3">
+                <i class="fas fa-search fa-3x text-muted opacity-25"></i>
+            </div>
+            <h6 class="text-muted">Search for a Guardian</h6>
+            <p class="text-muted small">Enter a guardian's name, phone number, or email to view their family account and children's dues.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block layout_pagination %}{% endblock %}
+
+{% block layout_extra %}{% endblock %}
+
+{% block extra_css %}
+{% include 'core/finance/_finance_ui_styles.html' %}
+<style>
+.card {
+    border: 1px solid #e9ecef;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    padding: 1rem;
+}
+
+.card-header h6 {
+    font-weight: 600;
+    color: #212529;
+    margin: 0;
+}
+
+.card-body {
+    padding: 1rem;
+}
+
+.card h3,
+.card h5 {
+    font-weight: 600;
+    color: #212529;
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+    background-color: #f8f9fa;
+    border-top: none;
+}
+
+.table tbody tr {
+    vertical-align: middle;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.form-label.fw-500 {
+    font-weight: 500;
+    color: #212529;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.6rem;
+    font-weight: 500;
+}
+
+.opacity-25 {
+    opacity: 0.25;
+}
+
+.alert {
+    border: none;
+}
+</style>
+{% endblock %}

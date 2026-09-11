@@ -1,0 +1,407 @@
+{% extends 'core/layouts/detail.html' %}
+{% load static %}
+
+{% block page_title %}Skills Progress Tracking{% endblock %}
+
+{% block layout_header %}
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Skills Progress Tracking" description="Monitor student developmental progress across all classes" icon="fa-chart-line" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_sections %}
+<div class="gb-skills">
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Filter Options</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="classFilter" class="form-label">Class/Batch</label>
+                        <select class="form-select" id="classFilter">
+                            <option value="">All Classes</option>
+                            {% for batch in batches %}
+                            <option value="{{ batch.id }}">{{ batch.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="periodFilter" class="form-label">Period</label>
+                        <select class="form-select" id="periodFilter">
+                            <option value="current">Current Term</option>
+                            <option value="term1">Term 1</option>
+                            <option value="term2">Term 2</option>
+                            <option value="term3">Term 3</option>
+                            <option value="annual">Academic Year</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="skillCategoryFilter" class="form-label">Skill Category</label>
+                        <select class="form-select" id="skillCategoryFilter">
+                            <option value="">All Categories</option>
+                            <option value="language">Language Development</option>
+                            <option value="motor">Motor Skills</option>
+                            <option value="social">Social Development</option>
+                            <option value="cognitive">Cognitive Skills</option>
+                            <option value="creative">Creative Arts</option>
+                        </select>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="button" class="btn btn-primary" id="applyFilters">
+                            <i class="fas fa-filter"></i> Apply Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Export Options</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-file-excel"></i> Export to Excel
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-file-pdf"></i> Export to PDF
+                        </button>
+                        <button type="button" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-chart-bar"></i> Generate Charts
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Progress Overview</h5>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary btn-sm active" data-view="summary">Summary</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-view="detailed">Detailed</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-view="trends">Trends</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary View -->
+                    <div id="summaryView" class="view-content">
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body text-center">
+                                        <h3>156</h3>
+                                        <p class="mb-0">Total Students</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body text-center">
+                                        <h3>89%</h3>
+                                        <p class="mb-0">Assessed</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body text-center">
+                                        <h3>4.2</h3>
+                                        <p class="mb-0">Avg. Progress</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-warning text-white">
+                                    <div class="card-body text-center">
+                                        <h3>12</h3>
+                                        <p class="mb-0">Need Support</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Skills Categories Performance</h6>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Language Development</span>
+                                        <span class="fw-bold text-success">88%</span>
+                                    </div>
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar bg-success" style="width: 88%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Motor Skills</span>
+                                        <span class="fw-bold text-success">92%</span>
+                                    </div>
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar bg-success" style="width: 92%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Social Development</span>
+                                        <span class="fw-bold text-warning">76%</span>
+                                    </div>
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar bg-warning" style="width: 76%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Cognitive Skills</span>
+                                        <span class="fw-bold text-info">84%</span>
+                                    </div>
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar bg-info" style="width: 84%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Class Performance Comparison</h6>
+                                {% include 'core/components/table_open.html' %}
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Class</th>
+                                            <th scope="col">Students</th>
+                                            <th scope="col">Avg. Progress</th>
+                                            <th scope="col">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                            <tr>
+                                                <td>Nursery A</td>
+                                                <td>24</td>
+                                                <td>4.5</td>
+                                                <td><span class="badge bg-success">Excellent</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Nursery B</td>
+                                                <td>22</td>
+                                                <td>4.2</td>
+                                                <td><span class="badge bg-success">Good</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>KG A</td>
+                                                <td>26</td>
+                                                <td>3.8</td>
+                                                <td><span class="badge bg-warning">Average</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>KG B</td>
+                                                <td>25</td>
+                                                <td>4.1</td>
+                                                <td><span class="badge bg-success">Good</span></td>
+                                            </tr>
+                                        </tbody>
+                                {% include 'core/components/table_close.html' %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed View -->
+                    <div id="detailedView" class="view-content d-none">
+                        {% include 'core/components/table_open.html' %}
+                            <thead>
+                                <tr>
+                                    <th scope="col">Student</th>
+                                    <th scope="col">Class</th>
+                                    <th scope="col">Language</th>
+                                    <th scope="col">Motor</th>
+                                    <th scope="col">Social</th>
+                                    <th scope="col">Cognitive</th>
+                                    <th scope="col">Overall</th>
+                                    <th scope="col">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-sm bg-primary rounded-circle text-white me-2 d-flex align-items-center justify-content-center">AJ</div>
+                                                <span>Alice Johnson</span>
+                                            </div>
+                                        </td>
+                                        <td>Nursery A</td>
+                                        <td><span class="badge bg-success">Secure</span></td>
+                                        <td><span class="badge bg-success">Exceeding</span></td>
+                                        <td><span class="badge bg-warning">Developing</span></td>
+                                        <td><span class="badge bg-success">Secure</span></td>
+                                        <td>
+                                            <div class="progress" style="width: 60px; height: 6px;">
+                                                <div class="progress-bar bg-success" style="width: 85%"></div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-outline-primary btn-sm" onclick="viewStudentProgress('1')">
+                                                <i class="fas fa-chart-line"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <!-- More student rows would be here -->
+                                </tbody>
+                        {% include 'core/components/table_close.html' %}
+                    </div>
+
+                    <!-- Trends View -->
+                    <div id="trendsView" class="view-content d-none">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h6>Progress Trends Over Time</h6>
+                                <div class="chart-placeholder bg-light rounded p-5 text-center">
+                                    <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">Progress trends chart will be displayed here</p>
+                                    <button class="btn btn-primary">Load Chart</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block layout_extra %}
+<div class="gb-skills">
+<!-- Student Progress Modal -->
+{% include 'core/components/modal.html' with id="studentProgressModal" title="Student Progress Details" size="lg" %}
+    <div id="studentProgressContent"></div>
+{% include 'core/components/modal_close.html' with no_footer=True %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const viewButtons = document.querySelectorAll('[data-view]');
+    const viewContents = document.querySelectorAll('.view-content');
+
+    // View switching
+    viewButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const viewType = this.dataset.view;
+
+            // Update active button
+            viewButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+
+            // Show/hide content
+            viewContents.forEach(content => {
+                content.classList.add('d-none');
+            });
+            document.getElementById(`${viewType}View`).classList.remove('d-none');
+        });
+    });
+
+    // Apply filters
+    document.getElementById('applyFilters').addEventListener('click', function() {
+        const classFilter = document.getElementById('classFilter').value;
+        const periodFilter = document.getElementById('periodFilter').value;
+        const categoryFilter = document.getElementById('skillCategoryFilter').value;
+
+        // Show loading state
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
+        this.disabled = true;
+
+        // Simulate filter application
+        setTimeout(() => {
+            alert('Filters applied successfully!');
+            this.innerHTML = '<i class="fas fa-filter"></i> Apply Filters';
+            this.disabled = false;
+        }, 1500);
+    });
+});
+
+function viewStudentProgress(studentId) {
+    const modal = new bootstrap.Modal(document.getElementById('studentProgressModal'));
+
+    document.getElementById('studentProgressContent').innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading student progress...</p>
+        </div>
+    `;
+
+    modal.show();
+
+    // Simulate loading progress data
+    setTimeout(() => {
+        document.getElementById('studentProgressContent').innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Progress Timeline</h6>
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <h6>Term 2 Assessment</h6>
+                                <p class="text-muted small">Completed June 2024</p>
+                                <p>Significant improvement in language skills</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-info"></div>
+                            <div class="timeline-content">
+                                <h6>Term 1 Assessment</h6>
+                                <p class="text-muted small">Completed March 2024</p>
+                                <p>Good foundation in motor skills</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h6>Current Skill Levels</h6>
+                    <div class="skill-levels">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Language Development</span>
+                                <span class="badge bg-success">Secure</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Motor Skills</span>
+                                <span class="badge bg-success">Exceeding</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Social Development</span>
+                                <span class="badge bg-warning">Developing</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6>Next Steps</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check-circle text-success"></i> Continue language enrichment activities</li>
+                        <li><i class="fas fa-exclamation-triangle text-warning"></i> Focus on social interaction skills</li>
+                        <li><i class="fas fa-info-circle text-info"></i> Maintain current motor skill activities</li>
+                    </ul>
+                </div>
+            </div>
+        `;
+    }, 1000);
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+{% endblock %}

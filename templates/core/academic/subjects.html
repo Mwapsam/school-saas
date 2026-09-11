@@ -1,0 +1,431 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title=terms.subject|add:" Management" description="Define subjects and assign them to classes and batches." icon='fa-book' back_url=back_url|default:back_fallback crumbs=crumbs %}
+<div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-primary btn-sm" onclick="openSubjectModal()">
+        <i class="fas fa-plus"></i> Add Subject
+    </button>
+    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="exportSubjects()">
+        <i class="fas fa-download"></i> Export
+    </button>
+</div>
+</div>
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Subject Management{% endblock %}
+
+
+{% block layout_table %}
+<div class="academic-management-container">
+    <!-- Search and Filter Section -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="search-box">
+                <form method="get" class="d-flex">
+                    <input type="text" class="form-control" name="search" placeholder="Search subjects..." 
+                           value="{{ request.GET.search }}" />
+                    <button class="btn btn-outline-primary ms-2" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <form method="get">
+                <select class="form-select" name="batch" onchange="this.form.submit()">
+                    <option value="">All Batches</option>
+                    {% for batch in batches %}
+                        <option value="{{ batch.id }}" {% if selected_batch == batch.id|stringformat:"s" %}selected{% endif %}>
+                            {{ batch.name }} - {{ batch.course.course_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if request.GET.search %}
+                    <input type="hidden" name="search" value="{{ request.GET.search }}">
+                {% endif %}
+            </form>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-summary">
+                <small class="text-muted">Total Subjects: {{ page_obj.paginator.count }}</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Button -->
+    <div class="d-flex justify-content-end mb-3">
+        <a href="?export=csv" class="table-export-btn">
+            <i class="fas fa-download me-2"></i>Export as CSV
+        </a>
+    </div>
+
+    <!-- Subjects Table -->
+    <div class="pinewood-table-container">
+        <div class="pinewood-table-header">
+            <h5 class="mb-0">Subjects</h5>
+            <span class="table-info">{{ page_obj.paginator.count }} total</span>
+        </div>
+        <div class="pinewood-table-responsive">
+            <table class="pinewood-table">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Code</th>
+                        <th>Subject Name</th>
+                        <th>Batch</th>
+                        <th>Course</th>
+                        <th>Weekly Classes</th>
+                        <th>Type</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for subject in subjects %}
+                    <tr>
+                        <td class="text-center">{{ forloop.counter0|add:page_obj.start_index }}</td>
+                        <td>
+                                <span class="badge bg-primary">{{ subject.code }}</span>
+                            </td>
+                            <td>
+                                <strong>{{ subject.name }}</strong>
+                                {% if subject.language %}
+                                    <span class="badge bg-info ms-1">Language</span>
+                                {% endif %}
+                                {% if subject.no_exams %}
+                                    <span class="badge bg-warning ms-1">No Exams</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ subject.batch.name }}</td>
+                            <td>{{ subject.batch.course.course_name }}</td>
+                            <td>
+                                {% if subject.max_weekly_classes %}
+                                    {{ subject.max_weekly_classes }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if subject.elective_group %}
+                                    <span class="badge bg-success">Elective</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Mandatory</span>
+                                {% endif %}
+                            </td>
+                        <td class="table-actions">
+                            <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-outline-primary" 
+                                            onclick="editSubject('{{ subject.id }}')" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-info" 
+                                            onclick="viewTimetable('{{ subject.id }}')" title="View Timetable">
+                                        <i class="fas fa-calendar"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" 
+                                            onclick="deleteSubject('{{ subject.id }}')" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                    <tr class="empty-state">
+                        <td colspan="8">
+                            <div class="text-center py-5">
+                                <i class="fas fa-book-open text-muted fa-3x mb-3"></i>
+                                <h5 class="text-muted">No Subjects Found</h5>
+                                <p class="text-muted">
+                                    {% if selected_batch %}
+                                        No subjects found for the selected batch.
+                                    {% else %}
+                                        Start by adding subjects to your courses.
+                                    {% endif %}
+                                </p>
+                                <button class="btn btn-primary" onclick="openSubjectModal()">
+                                    <i class="fas fa-plus"></i> Add Subject
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="d-flex justify-content-center mt-4">
+        <nav>
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">Previous</a>
+                    </li>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Next</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Subject Modal -->
+<div class="modal fade" id="subjectModal" tabindex="-1" aria-labelledby="subjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="subjectModalLabel">Add New Subject</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="subjectForm">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="subjectName" class="form-label">Subject Name *</label>
+                            <input type="text" class="form-control" id="subjectName" name="name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="subjectCode" class="form-label">Subject Code *</label>
+                            <input type="text" class="form-control" id="subjectCode" name="code" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="subjectBatch" class="form-label">Batch *</label>
+                            <select class="form-control" id="subjectBatch" name="batch" required>
+                                <option value="">Select Batch</option>
+                                {% for batch in batches %}
+                                    <option value="{{ batch.id }}">{{ batch.name }} - {{ batch.course.course_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="maxWeeklyClasses" class="form-label">Max Weekly Classes</label>
+                            <input type="number" class="form-control" id="maxWeeklyClasses" name="max_weekly_classes" min="1" max="20">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="creditHours" class="form-label">Credit Hours</label>
+                            <input type="number" class="form-control" id="creditHours" name="credit_hours" step="0.5" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="amount" class="form-label">Amount</label>
+                            <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <div class="form-check-group">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="noExams" name="no_exams">
+                                    <label class="form-check-label" for="noExams">
+                                        No Exams Required
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="isLanguage" name="language">
+                                    <label class="form-check-label" for="isLanguage">
+                                        Language Subject
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="preferConsecutive" name="prefer_consecutive">
+                                    <label class="form-check-label" for="preferConsecutive">
+                                        Prefer Consecutive Classes
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span id="saveButtonText">Save Subject</span>
+                        <span id="saveButtonSpinner" class="loading-spinner d-none"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+{% block extra_js %}
+<script>
+let editingSubjectId = null;
+const CSRF = document.cookie.split(';').reduce((v,c)=>{const[k,val]=c.trim().split('=');return k==='csrftoken'?decodeURIComponent(val):v;},'');
+
+function openSubjectModal(subjectData = null) {
+    const modal = new bootstrap.Modal(document.getElementById('subjectModal'));
+    const form = document.getElementById('subjectForm');
+    const title = document.getElementById('subjectModalLabel');
+
+    // Reset form
+    form.reset();
+    editingSubjectId = null;
+
+    if (subjectData) {
+        // Edit mode
+        title.textContent = 'Edit Subject';
+        document.getElementById('saveButtonText').textContent = 'Update Subject';
+        editingSubjectId = subjectData.id;
+
+        // Populate form fields (map API field names to form field names)
+        document.getElementById('subjectName').value = subjectData.name || '';
+        document.getElementById('subjectCode').value = subjectData.code || '';
+        document.getElementById('subjectBatch').value = subjectData.batch || '';
+        document.getElementById('maxWeeklyClasses').value = subjectData.max_weekly_classes || '';
+        document.getElementById('creditHours').value = subjectData.credit_hours || '';
+        document.getElementById('amount').value = subjectData.amount || '';
+        document.getElementById('noExams').checked = subjectData.no_exams || false;
+        document.getElementById('isLanguage').checked = subjectData.language || false;
+        document.getElementById('preferConsecutive').checked = subjectData.prefer_consecutive || false;
+    } else {
+        // Add mode
+        title.textContent = 'Add New Subject';
+        document.getElementById('saveButtonText').textContent = 'Save Subject';
+
+        // Pre-select batch if filtered
+        const selectedBatch = '{{ selected_batch }}';
+        if (selectedBatch) {
+            document.getElementById('subjectBatch').value = selectedBatch;
+        }
+    }
+
+    modal.show();
+}
+
+function editSubject(subjectId) {
+    fetch(`/api/subjects/${subjectId}/`, {
+        method: 'GET',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            openSubjectModal(d);
+        } else {
+            alert('Failed to load subject: ' + (d.error || 'Unknown error'));
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('Failed to load subject');
+    });
+}
+
+function viewTimetable(subjectId) {
+    window.location.href = `{% url 'core:timetable_list' %}?subject=${subjectId}`;
+}
+
+function deleteSubject(subjectId) {
+    if (confirm('Are you sure you want to delete this subject? This action cannot be undone.')) {
+        fetch('/api/delete-subject/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+            body: JSON.stringify({subject_id: subjectId})
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                alert('Subject deleted successfully');
+                window.location.reload();
+            } else {
+                alert('Failed to delete subject: ' + (d.error || 'Unknown error'));
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('Failed to delete subject');
+        });
+    }
+}
+
+function exportSubjects() {
+    // Redirect to CSV export
+    window.location.href = '?export=csv';
+}
+
+// Handle form submission
+document.getElementById('subjectForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const submitButton = this.querySelector('button[type="submit"]');
+    const buttonText = document.getElementById('saveButtonText');
+    const spinner = document.getElementById('saveButtonSpinner');
+
+    // Show loading state
+    buttonText.classList.add('d-none');
+    spinner.classList.remove('d-none');
+    submitButton.disabled = true;
+
+    // Map form fields to API field names
+    const formData = new FormData();
+    formData.append('subject_name', document.getElementById('subjectName').value);
+    formData.append('subject_code', document.getElementById('subjectCode').value);
+    formData.append('batch_id', document.getElementById('subjectBatch').value);
+    formData.append('weekly_classes', document.getElementById('maxWeeklyClasses').value || '');
+    formData.append('no_exams', document.getElementById('noExams').checked ? 'on' : '');
+    formData.append('csrfmiddlewaretoken', CSRF);
+
+    // Add subject_id if editing
+    if (editingSubjectId) {
+        formData.append('subject_id', editingSubjectId);
+    }
+
+    const url = editingSubjectId ? '/api/update-subject/' : '/api/create-subject/';
+
+    fetch(url, {
+        method: 'POST',
+        body: formData,
+        headers: {'X-CSRFToken': CSRF}
+    })
+    .then(r => r.json())
+    .then(d => {
+        buttonText.classList.remove('d-none');
+        spinner.classList.add('d-none');
+        submitButton.disabled = false;
+
+        if (d.success) {
+            bootstrap.Modal.getInstance(document.getElementById('subjectModal')).hide();
+            window.location.reload();
+        } else {
+            alert('Error: ' + (d.error || 'Operation failed'));
+        }
+    })
+    .catch(err => {
+        buttonText.classList.remove('d-none');
+        spinner.classList.add('d-none');
+        submitButton.disabled = false;
+        console.error('Error:', err);
+        alert('Failed to save subject');
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,846 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-users' back_url=back_url|default:back_fallback crumbs=crumbs %}
+<div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
+<div class="d-flex gap-2 flex-wrap">
+    <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#createTeacherModal">
+        <i class="fas fa-chalkboard-teacher"></i> Add Teacher
+    </button>
+    <button class="btn btn-info btn-sm text-white" data-bs-toggle="modal" data-bs-target="#createParentModal">
+        <i class="fas fa-user-friends"></i> Add Parent
+    </button>
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createUserModal">
+        <i class="fas fa-user-plus"></i> Add User
+    </button>
+</div>
+</div>
+{% endblock %}
+{% load static %}
+
+{% block page_title %}User Management{% endblock %}
+
+
+{% block layout_table %}
+<!-- Stats -->
+<div class="row mb-4 g-3">
+    <div class="col-6 col-md">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body">
+                <h4 class="fw-bold mb-0" style="color:#1a7a3c">{{ teachers }}</h4>
+                <small class="text-muted">Teachers</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body">
+                <h4 class="text-info fw-bold mb-0">{{ parents }}</h4>
+                <small class="text-muted">Parents</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body">
+                <h4 class="text-success fw-bold mb-0">{{ with_login }}</h4>
+                <small class="text-muted">With Portal Login</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body">
+                <h4 class="text-danger fw-bold mb-0">{{ admins }}</h4>
+                <small class="text-muted">Administrators</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body">
+                <h4 class="text-primary fw-bold mb-0">{{ total }}</h4>
+                <small class="text-muted">Total People</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="card text-center border-0 shadow-sm" id="duplicatesStatCard"
+             role="{% if duplicates %}button{% endif %}"
+             style="{% if duplicates %}cursor:pointer{% endif %}">
+            <div class="card-body">
+                <h4 class="text-warning fw-bold mb-0">{{ duplicates }}</h4>
+                <small class="text-muted">Possible Duplicates</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- People Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-0 pt-3">
+        <div class="d-flex flex-wrap align-items-center gap-3">
+            <div class="input-group input-group-sm" style="max-width: 360px;">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" id="peopleSearch"
+                       placeholder="Search name, username or email…" autocomplete="off">
+            </div>
+            {% if duplicates %}
+            <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="duplicatesOnlyToggle">
+                <label class="form-check-label small text-muted" for="duplicatesOnlyToggle">
+                    Show duplicates only ({{ duplicates }})
+                </label>
+            </div>
+            <button type="button" class="btn btn-outline-danger btn-sm ms-auto" id="bulkDeleteBtn" disabled>
+                <i class="fas fa-trash-alt me-1"></i> Delete Selected (<span id="bulkDeleteCount">0</span>)
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        {% if duplicates %}<th style="width: 2rem;"></th>{% endif %}
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Roles</th>
+                        <th>Detail</th>
+                        <th>Students</th>
+                        <th>Portal Login</th>
+                        <th>Last Login</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="peopleTableBody">
+                    {% for p in people %}
+                    <tr class="person-row {% if not p.is_active %}table-secondary{% elif p.is_duplicate %}table-warning{% endif %}"
+                        data-search="{{ p.name|lower }} {{ p.username|default:''|lower }} {{ p.email|default:''|lower }} {{ p.detail|default:''|lower }}"
+                        data-duplicate="{% if p.is_duplicate %}1{% else %}0{% endif %}">
+                        {% if duplicates %}
+                        <td>
+                            {% if p.role == 'parent' and p.is_duplicate %}
+                            <input type="checkbox" class="form-check-input dup-select-checkbox"
+                                   value="{{ p.profile_id }}" data-name="{{ p.name }}">
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                        <td class="fw-medium">
+                            {% if p.role == 'parent' %}
+                                <a href="{% url 'core:parent_detail' p.profile_id %}">{{ p.name }}</a>
+                            {% else %}
+                                {{ p.name }}
+                            {% endif %}
+                            {% if p.is_duplicate %}
+                            <span class="badge bg-warning text-dark ms-1" title="Shares a name, email, or username with another person below">
+                                <i class="fas fa-clone me-1"></i>Duplicate
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if p.role == 'teacher' %}
+                            <span class="badge bg-success"><i class="fas fa-chalkboard-teacher me-1"></i>Teacher</span>
+                            {% elif p.role == 'parent' %}
+                            <span class="badge bg-info text-white"><i class="fas fa-user-friends me-1"></i>Parent</span>
+                            {% elif p.role == 'admin' %}
+                            <span class="badge bg-danger">Admin</span>
+                            {% else %}
+                            <span class="badge bg-light text-dark">Staff</span>
+                            {% endif %}
+                            {% for pr in p.portal_roles %}
+                                {% if pr != p.role %}<span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle me-1 text-capitalize" title="Also accesses the {{ pr }} portal with this login">+ {{ pr }}</span>{% endif %}
+                            {% endfor %}
+                        </td>
+                        <td class="small">
+                            {% if p.has_login %}
+                                {% for r in p.roles %}<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle me-1">{{ r.name }}</span>{% empty %}<span class="text-muted">No roles</span>{% endfor %}
+                                <a href="#" class="small ms-1" data-bs-toggle="modal" data-bs-target="#rolesModal{{ p.user_id }}" title="Manage roles"><i class="fas fa-pen"></i></a>
+                                {% if unlinked_profiles %}<a href="#" class="small ms-1" data-bs-toggle="modal" data-bs-target="#linkRoleModal{{ p.user_id }}" title="Give this login another role"><i class="fas fa-link"></i></a>{% endif %}
+                            {% else %}
+                                <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="small text-muted">{{ p.detail|default:"—" }}</td>
+                        <td class="small">
+                            {% if p.role == 'parent' %}
+                                {% if p.student_count %}
+                                <span class="text-body" title="{{ p.student_names|join:', ' }}">
+                                    <i class="fas fa-child text-muted me-1"></i>{{ p.student_count }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">No students</span>
+                                {% endif %}
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if p.has_login %}
+                            <code>{{ p.username }}</code>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">No login</span>
+                            {% endif %}
+                        </td>
+                        <td class="small text-muted">
+                            {% if p.last_login %}{{ p.last_login|date:"N j, Y g:i A" }}{% elif p.has_login %}Never{% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if p.has_login %}
+                                {% if p.is_active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary" type="button"
+                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    {% if p.has_login %}
+                                    <!-- Reset Password -->
+                                    <li>
+                                        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#resetPwModal{{ p.user_id }}">
+                                            <i class="fas fa-key me-2 text-warning"></i>Reset password
+                                        </a>
+                                    </li>
+                                    <!-- Toggle Active -->
+                                    {% if p.is_active %}
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#"
+                                        onclick="event.preventDefault(); var f = this.closest('li').querySelector('form'); showDanger('Deactivate {{ p.username }}?', () => f.submit());">
+                                            <i class="fas fa-user-slash me-2"></i>Deactivate
+                                        </a>
+                                        <form method="post" action="{% url 'core:user_management' %}" class="d-none">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="deactivate">
+                                            <input type="hidden" name="user_id" value="{{ p.user_id }}">
+                                        </form>
+                                    </li>
+                                    {% else %}
+                                    <li>
+                                        <a class="dropdown-item text-success" href="#"
+                                        onclick="event.preventDefault(); this.closest('li').querySelector('form').submit();">
+                                            <i class="fas fa-user-check me-2"></i>Activate
+                                        </a>
+                                        <form method="post" action="{% url 'core:user_management' %}" class="d-none">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="activate">
+                                            <input type="hidden" name="user_id" value="{{ p.user_id }}">
+                                        </form>
+                                    </li>
+                                    {% endif %}
+                                    {% if p.is_duplicate %}
+                                    <li>
+                                        <a class="dropdown-item text-warning" href="#"
+                                        onclick="event.preventDefault(); var f = this.closest('li').querySelector('form'); showDanger('Mark {{ p.name }} inactive as a duplicate?', () => f.submit());">
+                                            <i class="fas fa-clone me-2"></i>Mark duplicate inactive
+                                        </a>
+                                        <form method="post" action="{% url 'core:user_management' %}" class="d-none">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="deactivate_duplicate">
+                                            <input type="hidden" name="profile_type" value="{{ p.profile_type }}">
+                                            <input type="hidden" name="profile_id" value="{{ p.profile_id }}">
+                                            <input type="hidden" name="user_id" value="{{ p.user_id|default:'' }}">
+                                        </form>
+                                    </li>
+                                    {% endif %}
+                                    {% if p.role == 'parent' %}
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#"
+                                        onclick="event.preventDefault(); var f = this.closest('li').querySelector('form'); var msg = 'Permanently delete {{ p.name }}?'; {% if p.student_count %}msg += ' This parent is linked to {{ p.student_count }} student(s): {{ p.student_names|join:', ' }}.'; {% endif %}showDanger(msg, () => f.submit());">
+                                            <i class="fas fa-trash-alt me-2"></i>Delete guardian record
+                                        </a>
+                                        <form method="post" action="{% url 'core:user_management' %}" class="d-none">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="delete_guardian">
+                                            <input type="hidden" name="guardian_id" value="{{ p.profile_id }}">
+                                        </form>
+                                    </li>
+                                    {% endif %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item text-danger fw-medium" href="#"
+                                        onclick="event.preventDefault(); var f = this.closest('li').querySelector('form'); showDanger('Permanently delete {{ p.username }}? This will DELETE the account and cannot be undone. Associated admission notes, status history, and messages will also be deleted.', () => f.submit());">
+                                            <i class="fas fa-skull-crossbones me-2"></i>Permanently delete account
+                                        </a>
+                                        <form method="post" action="{% url 'core:user_management' %}" class="d-none">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="permanently_delete_user">
+                                            <input type="hidden" name="user_id" value="{{ p.user_id }}">
+                                        </form>
+                                    </li>
+                                    {% else %}
+                                    <li>
+                                        <a class="dropdown-item grant-access-btn" href="#"
+                                        data-profile-type="{{ p.profile_type }}"
+                                        data-profile-id="{{ p.profile_id }}"
+                                        data-name="{{ p.name }}"
+                                        data-mobile-phone="{{ p.mobile_phone|default:'' }}">
+                                            <i class="fas fa-id-badge me-2 text-primary"></i>Enable portal login
+                                        </a>
+                                    </li>
+                                    {% if p.is_duplicate and p.is_active %}
+                                    <li>
+                                        <a class="dropdown-item text-warning" href="#"
+                                        onclick="event.preventDefault(); var f = this.closest('li').querySelector('form'); showDanger('Mark {{ p.name }} inactive as a duplicate?', () => f.submit());">
+                                            <i class="fas fa-clone me-2"></i>Mark duplicate inactive
+                                        </a>
+                                        <form method="post" action="{% url 'core:user_management' %}" class="d-none">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="deactivate_duplicate">
+                                            <input type="hidden" name="profile_type" value="{{ p.profile_type }}">
+                                            <input type="hidden" name="profile_id" value="{{ p.profile_id }}">
+                                            <input type="hidden" name="user_id" value="{{ p.user_id|default:'' }}">
+                                        </form>
+                                    </li>
+                                    {% endif %}
+                                    {% if p.role == 'parent' %}
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#"
+                                        onclick="event.preventDefault(); var f = this.closest('li').querySelector('form'); var msg = 'Permanently delete {{ p.name }}?'; {% if p.student_count %}msg += ' This parent is linked to {{ p.student_count }} student(s): {{ p.student_names|join:', ' }}.'; {% endif %}showDanger(msg, () => f.submit());">
+                                            <i class="fas fa-trash-alt me-2"></i>Delete guardian record
+                                        </a>
+                                        <form method="post" action="{% url 'core:user_management' %}" class="d-none">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="delete_guardian">
+                                            <input type="hidden" name="guardian_id" value="{{ p.profile_id }}">
+                                        </form>
+                                    </li>
+                                    {% endif %}
+                                    {% endif %}
+                                </ul>
+                            </div>
+
+                            {% if p.has_login %}
+                            <!-- Reset Password Modal per login (unchanged) -->
+                            <div class="modal fade" id="resetPwModal{{ p.user_id }}" tabindex="-1">
+                                <div class="modal-dialog modal-sm">
+                                    <form method="post" action="{% url 'core:user_management' %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="reset_password">
+                                        <input type="hidden" name="user_id" value="{{ p.user_id }}">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h6 class="modal-title">Reset Password — {{ p.username }}</h6>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body text-start">
+                                                <label class="form-label small">New Password</label>
+                                                <input type="password" class="form-control form-control-sm" name="new_password" required minlength="8">
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-warning btn-sm">Reset</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Manage Roles Modal -->
+                            <div class="modal fade" id="rolesModal{{ p.user_id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <form method="post" action="{% url 'core:user_management' %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="set_roles">
+                                        <input type="hidden" name="user_id" value="{{ p.user_id }}">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h6 class="modal-title">Roles — {{ p.name }}</h6>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body text-start">
+                                                <p class="text-muted small">Tick every role this person should have. Their access is the combined permissions of all ticked roles.</p>
+                                                {% for r in all_roles %}
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="role_ids" value="{{ r.id }}"
+                                                           id="role-{{ p.user_id }}-{{ r.id }}"
+                                                           {% for pr in p.roles %}{% if pr.id == r.id %}checked{% endif %}{% endfor %}>
+                                                    <label class="form-check-label" for="role-{{ p.user_id }}-{{ r.id }}">
+                                                        {{ r.name }}{% if r.description %} <span class="text-muted small">— {{ r.description }}</span>{% endif %}
+                                                    </label>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-primary btn-sm">Save roles</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            {% if unlinked_profiles %}
+                            <div class="modal fade" id="linkRoleModal{{ p.user_id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <form method="post" action="{% url 'core:user_management' %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="link_portal_role">
+                                        <input type="hidden" name="user_id" value="{{ p.user_id }}">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h6 class="modal-title">Add a portal role — {{ p.name }}</h6>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body text-start">
+                                                <p class="text-muted small">Attach an existing staff or parent record that has no login of its own to <strong>{{ p.username }}</strong>. They then reach both areas of the portal with this one login — no new credentials.</p>
+                                                <select name="__combo" class="form-select form-select-sm" onchange="this.form.profile_type.value=this.value.split('|')[0];this.form.profile_id.value=this.value.split('|')[1];" required>
+                                                    <option value="">Select a record…</option>
+                                                    {% for t in unlinked_profiles %}
+                                                    <option value="{{ t.profile_type }}|{{ t.profile_id }}">{{ t.name }} ({{ t.kind }})</option>
+                                                    {% endfor %}
+                                                </select>
+                                                <input type="hidden" name="profile_type" value="">
+                                                <input type="hidden" name="profile_id" value="">
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-primary btn-sm">Link role</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="text-center text-muted py-5">
+                            No teachers, parents or users yet. Use the buttons above to add one.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr id="peopleNoMatch" class="d-none">
+                        <td colspan="10" class="text-center text-muted py-4">No people match your search.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" action="{% url 'core:user_management' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create User Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col">
+                            <label class="form-label">First Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="first_name" required>
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="last_name" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Username <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" name="password" required minlength="8">
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="is_admin" id="isAdminCheck">
+                        <label class="form-check-label" for="isAdminCheck">Grant administrator access</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create User</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Create Teacher Modal -->
+<div class="modal fade" id="createTeacherModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form method="post" action="{% url 'core:user_management' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_teacher">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-chalkboard-teacher text-success me-2"></i>Add Teacher</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">
+                        Creates a staff record <strong>and</strong> a portal login so the
+                        teacher can sign in to the Teacher Portal.
+                    </p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">First Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="first_name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="last_name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Employee Number <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="employee_number" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Gender <span class="text-danger">*</span></label>
+                            <select class="form-select" name="gender" required>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Job Title</label>
+                            <input type="text" class="form-control" name="job_title" placeholder="e.g. Class Teacher">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Joining Date</label>
+                            <input type="date" class="form-control" name="joining_date">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mobile Phone</label>
+                            <input type="text" class="form-control" name="mobile_phone">
+                        </div>
+                        <hr class="mt-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Portal Username <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="username" required minlength="3" autocomplete="off">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Temporary Password <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="password" required minlength="8" autocomplete="off">
+                            <small class="text-muted">Share securely; the teacher can change it later.</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Create Teacher</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Create Parent Modal -->
+<div class="modal fade" id="createParentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form method="post" action="{% url 'core:user_management' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_parent">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-user-friends text-info me-2"></i>Add Parent / Guardian</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">
+                        Creates a guardian record <strong>and</strong> a portal login, and
+                        links the selected children so the parent sees their results and
+                        attendance. If the email or phone matches an existing parent,
+                        the selected children are linked to that account instead of
+                        creating a duplicate.
+                    </p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">First Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="first_name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="last_name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Relationship</label>
+                            <select class="form-select" name="relation">
+                                <option value="Father">Father</option>
+                                <option value="Mother">Mother</option>
+                                <option value="Guardian" selected>Guardian</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mobile Phone</label>
+                            <input type="text" class="form-control" name="mobile_phone">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label d-flex justify-content-between align-items-center">
+                                <span>Link Children</span>
+                                <span class="badge bg-info text-white" id="parentSelectedCount">0 selected</span>
+                            </label>
+                            <div class="input-group input-group-sm mb-2">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" class="form-control" id="parentStudentSearch"
+                                       placeholder="Search by name or admission number…" autocomplete="off">
+                            </div>
+                            <div class="border rounded" style="max-height: 220px; overflow-y: auto;" id="parentStudentList">
+                                {% for s in students %}
+                                <label class="d-flex align-items-center gap-2 px-3 py-2 border-bottom parent-student-row"
+                                       style="cursor: pointer;"
+                                       data-search="{{ s.full_name|lower }} {{ s.admission_no|lower }}">
+                                    <input class="form-check-input mt-0 parent-student-check" type="checkbox"
+                                           name="student_ids" value="{{ s.id }}">
+                                    <span>
+                                        {{ s.full_name }}
+                                        <small class="text-muted">({{ s.admission_no }})</small>
+                                    </span>
+                                </label>
+                                {% empty %}
+                                <p class="text-muted small mb-0 px-3 py-3">No active students found.</p>
+                                {% endfor %}
+                                <p class="text-muted small mb-0 px-3 py-3 d-none" id="parentStudentNoMatch">
+                                    No students match your search.
+                                </p>
+                            </div>
+                            <small class="text-muted">Search, then tick each child to link.</small>
+                        </div>
+                        <hr class="mt-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Portal Username <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="username" required minlength="3" autocomplete="off">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Temporary Password <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="password" required minlength="8" autocomplete="off">
+                            <small class="text-muted">Share securely; the parent can change it later.</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info text-white">Create Parent</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    var search = document.getElementById('parentStudentSearch');
+    var list = document.getElementById('parentStudentList');
+    var countBadge = document.getElementById('parentSelectedCount');
+    var noMatch = document.getElementById('parentStudentNoMatch');
+    if (!list) return;
+
+    var rows = Array.prototype.slice.call(list.querySelectorAll('.parent-student-row'));
+
+    function updateCount() {
+        var n = list.querySelectorAll('.parent-student-check:checked').length;
+        if (countBadge) countBadge.textContent = n + ' selected';
+    }
+
+    function filter() {
+        var q = (search.value || '').trim().toLowerCase();
+        var visible = 0;
+        rows.forEach(function (row) {
+            var match = !q || row.getAttribute('data-search').indexOf(q) !== -1;
+            row.classList.toggle('d-none', !match);
+            if (match) visible++;
+        });
+        if (noMatch) noMatch.classList.toggle('d-none', visible !== 0);
+    }
+
+    if (search) search.addEventListener('input', filter);
+    list.addEventListener('change', function (e) {
+        if (e.target && e.target.classList.contains('parent-student-check')) updateCount();
+    });
+    updateCount();
+})();
+</script>
+
+<!-- Enable Portal Login Modal (shared) -->
+<div class="modal fade" id="grantAccessModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" action="{% url 'core:user_management' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="grant_portal_access">
+            <input type="hidden" name="profile_type" id="grantProfileType">
+            <input type="hidden" name="profile_id" id="grantProfileId">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-id-badge text-primary me-2"></i>Enable Portal Login</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        Creating a portal login for <strong id="grantPersonName"></strong>.
+                        They'll be able to sign in to the portal with these credentials.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label">Username <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="username" required minlength="3" autocomplete="off">
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label">Temporary Password <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="password" required minlength="8" autocomplete="off">
+                        <small class="text-muted">Share securely; they can change it later.</small>
+                    </div>
+                    <div class="mb-1 mt-3 d-none" id="grantSmsOption">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="send_sms" id="grantSendSms" value="1">
+                            <label class="form-check-label" for="grantSendSms">
+                                Send login details via SMS to <span id="grantSmsPhone"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-1 mt-3 d-none" id="grantSmsNoPhone">
+                        <small class="text-muted"><i class="fas fa-info-circle me-1"></i>No phone number on file — can't send login details via SMS.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Enable Login</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Bulk delete selected duplicate parent records — permanent, includes their
+     portal login. Hidden inputs are populated from the checked rows by JS
+     right before submit. -->
+<form method="post" action="{% url 'core:user_management' %}" id="bulkDeleteDuplicatesForm">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="bulk_delete_duplicate_guardians">
+    <div id="bulkDeleteIdsContainer"></div>
+</form>
+
+<script>
+(function () {
+    // People table search + duplicates-only filter.
+    var pSearch = document.getElementById('peopleSearch');
+    var dupToggle = document.getElementById('duplicatesOnlyToggle');
+    var dupCard = document.getElementById('duplicatesStatCard');
+    var body = document.getElementById('peopleTableBody');
+    if (body) {
+        var rows = Array.prototype.slice.call(body.querySelectorAll('.person-row'));
+        var noMatch = document.getElementById('peopleNoMatch');
+
+        function applyFilters() {
+            var q = (pSearch && pSearch.value || '').trim().toLowerCase();
+            var dupOnly = !!(dupToggle && dupToggle.checked);
+            var visible = 0;
+            rows.forEach(function (row) {
+                var matchesSearch = !q || row.getAttribute('data-search').indexOf(q) !== -1;
+                var matchesDup = !dupOnly || row.getAttribute('data-duplicate') === '1';
+                var match = matchesSearch && matchesDup;
+                row.classList.toggle('d-none', !match);
+                if (match) visible++;
+            });
+            if (noMatch) noMatch.classList.toggle('d-none', !((q || dupOnly) && visible === 0));
+        }
+
+        if (pSearch) pSearch.addEventListener('input', applyFilters);
+        if (dupToggle) dupToggle.addEventListener('change', applyFilters);
+        if (dupCard) {
+            dupCard.addEventListener('click', function () {
+                if (!dupToggle) return;
+                dupToggle.checked = !dupToggle.checked;
+                applyFilters();
+            });
+        }
+
+        // Bulk-delete selected duplicate parent rows.
+        var dupCheckboxes = Array.prototype.slice.call(body.querySelectorAll('.dup-select-checkbox'));
+        var bulkBtn = document.getElementById('bulkDeleteBtn');
+        var bulkCount = document.getElementById('bulkDeleteCount');
+        var bulkForm = document.getElementById('bulkDeleteDuplicatesForm');
+        var bulkIdsContainer = document.getElementById('bulkDeleteIdsContainer');
+
+        function updateBulkButton() {
+            if (!bulkBtn) return;
+            var checked = dupCheckboxes.filter(function (cb) { return cb.checked; });
+            bulkBtn.disabled = checked.length === 0;
+            if (bulkCount) bulkCount.textContent = checked.length;
+        }
+        dupCheckboxes.forEach(function (cb) { cb.addEventListener('change', updateBulkButton); });
+        updateBulkButton();
+
+        if (bulkBtn && bulkForm && bulkIdsContainer) {
+            bulkBtn.addEventListener('click', function () {
+                var checked = dupCheckboxes.filter(function (cb) { return cb.checked; });
+                if (!checked.length) return;
+                var names = checked.map(function (cb) { return cb.getAttribute('data-name'); }).join(', ');
+                showDanger(
+                    'Permanently delete ' + checked.length + ' selected duplicate parent record(s) — ' +
+                    names + ' — and their portal logins? This cannot be undone.',
+                    function () {
+                        bulkIdsContainer.innerHTML = '';
+                        checked.forEach(function (cb) {
+                            var input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = 'guardian_ids';
+                            input.value = cb.value;
+                            bulkIdsContainer.appendChild(input);
+                        });
+                        bulkForm.submit();
+                    }
+                );
+            });
+        }
+    }
+
+    // Populate the shared "Enable login" modal from the clicked row.
+    var grantModalEl = document.getElementById('grantAccessModal');
+    if (grantModalEl) {
+        var smsOption = document.getElementById('grantSmsOption');
+        var smsNoPhone = document.getElementById('grantSmsNoPhone');
+        var smsPhoneLabel = document.getElementById('grantSmsPhone');
+        var smsCheckbox = document.getElementById('grantSendSms');
+        document.querySelectorAll('.grant-access-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var profileType = btn.getAttribute('data-profile-type');
+                var mobilePhone = btn.getAttribute('data-mobile-phone') || '';
+                document.getElementById('grantProfileType').value = profileType;
+                document.getElementById('grantProfileId').value = btn.getAttribute('data-profile-id');
+                document.getElementById('grantPersonName').textContent = btn.getAttribute('data-name');
+
+                var showSmsCheckbox = profileType === 'guardian' && mobilePhone;
+                smsOption.classList.toggle('d-none', !showSmsCheckbox);
+                smsNoPhone.classList.toggle('d-none', !(profileType === 'guardian' && !mobilePhone));
+                smsCheckbox.checked = false;
+                if (showSmsCheckbox) smsPhoneLabel.textContent = mobilePhone;
+
+                var modal = bootstrap.Modal.getOrCreateInstance(grantModalEl);
+                modal.show();
+            });
+        });
+    }
+})();
+</script>
+{% endblock %}

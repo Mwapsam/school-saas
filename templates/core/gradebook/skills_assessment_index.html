@@ -1,0 +1,18 @@
+{% extends 'core/layouts/dashboard.html' %}
+
+{% block page_title %}Skills Assessment{% endblock %}
+
+{% block layout_header %}
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Skills Assessment" description="Select a category to manage its activities" icon="fa-star" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_primary %}
+<div class="row g-3">
+    {% for tile in dashboard_tiles %}
+    <div class="col-md-4">
+        {% include 'core/components/nav_tile.html' with icon=tile.icon title=tile.title description=tile.description url=tile.url %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

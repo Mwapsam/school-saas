@@ -1,0 +1,76 @@
+{% extends 'core/layouts/form.html' %}
+
+{% block layout_header %}
+{% url 'core:hr_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-cog' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block page_title %}Cashier Settings{% endblock %}
+
+{% block layout_form %}
+<div class="card">
+    <div class="card-header"><h5 class="mb-0">Cashier shown on fee receipts</h5></div>
+    <div class="card-body">
+        <div id="cashier-settings-errors" class="alert alert-danger d-none"></div>
+        <p class="text-muted">This employee's name always prints as "Cashier" on every generated fee receipt, regardless of who recorded each individual payment.</p>
+        <div class="mb-3">
+            <label for="cashier-employee" class="form-label">Cashier</label>
+            <select class="form-select" id="cashier-employee">
+                <option value="">-- None --</option>
+                {% for employee in employees %}
+                <option value="{{ employee.id }}" {% if settings.cashier_id == employee.id %}selected{% endif %}>{{ employee.full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <hr>
+        <p class="text-muted">Payments that aren't given a manual reference number are auto-numbered sequentially using the prefix and next number below (e.g. "PW7022").</p>
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label for="receipt-prefix" class="form-label">Receipt prefix</label>
+                <input type="text" class="form-control" id="receipt-prefix" maxlength="10" value="{{ settings.receipt_prefix }}">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="receipt-next-number" class="form-label">Next receipt number</label>
+                <input type="number" class="form-control" id="receipt-next-number" min="1" value="{{ settings.next_receipt_number }}">
+            </div>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="saveCashierSettings()">Save Settings</button>
+    </div>
+</div>
+
+{% csrf_token %}
+<script>
+function saveCashierSettings() {
+    const body = new FormData();
+    body.append('cashier_employee_id', document.getElementById('cashier-employee').value);
+    body.append('receipt_prefix', document.getElementById('receipt-prefix').value);
+    body.append('next_receipt_number', document.getElementById('receipt-next-number').value);
+
+    fetch("{% url 'core:hr_cashier_settings_update' %}", {
+        method: 'POST',
+        headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+        body: body,
+    })
+        .then((r) => r.json())
+        .then((data) => {
+            const errorDiv = document.getElementById('cashier-settings-errors');
+            if (data.success) {
+                errorDiv.classList.add('d-none');
+                showAlert('Cashier settings saved', 'success');
+            } else {
+                errorDiv.textContent = data.error || 'An error occurred';
+                errorDiv.classList.remove('d-none');
+            }
+        });
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+    alertDiv.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => { if (alertDiv.parentNode) alertDiv.parentNode.removeChild(alertDiv); }, 3000);
+}
+</script>
+{% endblock %}

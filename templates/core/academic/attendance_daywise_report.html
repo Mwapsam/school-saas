@@ -1,0 +1,224 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:attendance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Day-wise Attendance Report" description="View attendance for a specific date showing all batches, their statistics, and details of absent students." icon='fa-chart-bar' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Day-wise Attendance Report{% endblock %}
+
+{% block layout_table %}
+<div class="mb-4">
+    {% if attendance_settings %}
+        <div class="alert alert-info">
+            <small>
+                <strong>Attendance Configuration:</strong>
+                Calculation Method: {{ attendance_settings.get_calculation_method_display }} |
+                Mark Frequency: {{ attendance_settings.get_mark_frequency_display }} |
+                Custom Attendance: {% if attendance_settings.enable_custom_attendance %}Enabled{% else %}Disabled{% endif %}
+            </small>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Filter Form -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Filter Options</h5>
+    </div>
+    <div class="card-body">
+        <form id="daywise-report-form" method="get">
+            <div class="row g-3 align-items-end">
+                <!-- Date -->
+                <div class="col-md-3">
+                    <label for="report-date" class="form-label">Date</label>
+                    <div class="input-group">
+                        <input type="date" class="form-control" id="report-date" name="date" value="{{ selected_date }}">
+                        <button type="button" class="btn btn-outline-secondary" id="change-date">
+                            <i class="fas fa-calendar-alt"></i>
+                        </button>
+                    </div>
+                    <!-- <small class="text-muted">Today: {{ today_date }}</small> -->
+                </div>
+
+                <!-- Attendance Type -->
+                <div class="col-md-2">
+                    <label for="attendance-type" class="form-label">Attendance Type</label>
+                    <select class="form-select" id="attendance-type" name="attendance_type">
+                        <option value="all" {% if selected_attendance_type == 'all' %}selected{% endif %}>All Type</option>
+                        {% for label in attendance_labels %}
+                            <option value="{{ label.code|lower }}" {% if selected_attendance_type == label.code|lower %}selected{% endif %}>
+                                {{ label.name }}
+                            </option>
+                        {% empty %}
+                            <!-- Fallback options if no labels configured -->
+                            <option value="present" {% if selected_attendance_type == 'present' %}selected{% endif %}>Present</option>
+                            <option value="absent" {% if selected_attendance_type == 'absent' %}selected{% endif %}>Absent</option>
+                            <option value="late" {% if selected_attendance_type == 'late' %}selected{% endif %}>Late</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Select Class -->
+                <div class="col-md-3">
+                    <label for="class-select" class="form-label">Select class</label>
+                    <select class="form-select" id="class-select" name="batch_id">
+                        <option value="">Select class</option>
+                        {% for batch in batches %}
+                            <option value="{{ batch.id }}" {% if batch.id == selected_batch_id %}selected{% endif %}>
+                                {{ batch.course.course_name }} - {{ batch.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Generate Report</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Report Results -->
+{% if report_data %}
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Attendance Report</h5>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-bordered mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th width="80">Sl.No.</th>
+                        <th>Course-Batch</th>
+                        <th width="100">Total</th>
+                        <th width="100">Late</th>
+                        <th>Absent</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for course_name, course_data in report_data.items %}
+                        {% if course_data.batches %}
+                            <tr class="table-secondary">
+                                <td>{{ forloop.counter }}</td>
+                                <td><strong>{{ course_name }}</strong></td>
+                                <td><strong>{{ course_data.total_students }}</strong></td>
+                                <td><strong>{{ course_data.total_late }}</strong></td>
+                                <td><strong>{{ course_data.total_absent }}</strong></td>
+                            </tr>
+                            {% for batch in course_data.batches %}
+                                <tr>
+                                    <td></td>
+                                    <td class="ps-4">{{ batch.name }}</td>
+                                    <td>{{ batch.total_students }}</td>
+                                    <td>{{ batch.late_count }}</td>
+                                    <td>
+                                        {{ batch.absent_count }}
+                                        {% if batch.absent_students %}
+                                            <div class="mt-1">
+                                                <small class="text-muted">
+                                                    {% for student in batch.absent_students %}
+                                                        {{ student.full_name }}{% if not forloop.last %}, {% endif %}
+                                                    {% endfor %}
+                                                </small>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Summary Section -->
+    <div class="mt-4">
+        <div class="row">
+            <div class="col-md-8">
+                <p><strong>Summary:</strong></p>
+                <p>
+                    <strong>Total - {{ summary.total_students }}</strong> &nbsp;&nbsp;
+                    <strong>Present: {{ summary.present_count }}</strong> &nbsp;&nbsp;
+                    <strong>Late: {{ summary.late_count }}</strong> &nbsp;&nbsp;
+                    <strong>Absent: {{ summary.absent_count }}</strong>
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="d-flex justify-content-end gap-2">
+                    <span class="text-muted">« previous</span>
+                    <span class="bg-primary text-white px-2 py-1 rounded">1</span>
+                    <a href="#" class="text-decoration-none">2</a>
+                    <a href="#" class="text-decoration-none">next »</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Button -->
+    <div class="d-flex justify-content-center mt-4">
+        <button class="btn btn-outline-secondary" id="export-csv">
+            <i class="fas fa-file-csv me-1"></i>
+            CSV report
+        </button>
+    </div>
+{% endif %}
+
+<!-- Empty State -->
+{% if not report_data %}
+    <div class="text-center py-5">
+        <i class="fas fa-calendar-times text-muted fa-3x mb-3"></i>
+        <h5 class="text-muted">No Attendance Data Found</h5>
+        <p class="text-muted">Please select a date to view the day-wise attendance report.</p>
+    </div>
+{% endif %}
+{% endblock %}
+
+
+
+{% block extra_js %}
+<script>
+// Set today's date as default
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('report-date');
+    if (!dateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+    }
+});
+
+// Handle change date button
+document.getElementById('change-date').addEventListener('click', function() {
+    document.getElementById('report-date').focus();
+});
+
+// Handle form submission
+document.getElementById('daywise-report-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    // Get form data
+    const formData = new FormData(this);
+    const params = new URLSearchParams(formData);
+
+    // Show loading state
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Loading...';
+    submitBtn.disabled = true;
+
+    // Reload page with new parameters
+    window.location.href = window.location.pathname + '?' + params.toString();
+});
+
+// Export CSV functionality
+document.getElementById('export-csv').addEventListener('click', function() {
+    const params = new URLSearchParams(window.location.search);
+    params.set('export', 'csv');
+    window.location.href = window.location.pathname + '?' + params.toString();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends 'core/layouts/form.html' %}
+{% block page_title %}Manage Clients{% endblock %}
+
+{% block layout_header %}
+{% url 'core:configuration' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Manage Clients" description="First-party apps that connect to this school (parent app, staff app)" icon="fa-briefcase" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_form %}
+<form method="post" class="pw-card p-3 mb-3" style="max-width:720px">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="create">
+  <div class="row g-2">
+    <div class="col-md-4"><label class="form-label">Name</label>
+      <input type="text" name="name" class="form-control" required></div>
+    <div class="col-md-3"><label class="form-label">Platform</label>
+      <select name="platform" class="form-select">
+        {% for val, label in platforms %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+      </select></div>
+    <div class="col-md-3"><label class="form-label">Min version</label>
+      <input type="text" name="min_supported_version" class="form-control" placeholder="1.4.0"></div>
+    <div class="col-md-2 d-flex align-items-end">
+      <div class="form-check"><input class="form-check-input" type="checkbox" name="is_enabled" id="c_en" checked>
+        <label class="form-check-label" for="c_en">Enabled</label></div>
+    </div>
+    <div class="col-12"><label class="form-label">Notes</label>
+      <input type="text" name="notes" class="form-control"></div>
+  </div>
+  <button class="btn btn-primary mt-3"><i class="fas fa-plus me-1"></i>Add client</button>
+</form>
+
+<div class="pw-card p-0" style="max-width:720px">
+  <table class="table mb-0 align-middle">
+    <thead><tr><th>Name</th><th>Platform</th><th>Min ver.</th><th>Status</th><th>Last seen</th><th></th></tr></thead>
+    <tbody>
+      {% for c in clients %}
+      <tr>
+        <td>{{ c.name }}</td>
+        <td class="small text-muted">{{ c.get_platform_display }}</td>
+        <td class="small">{{ c.min_supported_version|default:"—" }}</td>
+        <td>
+          {% if c.is_enabled %}<span class="badge bg-success">Enabled</span>
+          {% else %}<span class="badge bg-secondary">Disabled</span>{% endif %}
+        </td>
+        <td class="small text-muted">{{ c.last_seen_at|default:"—" }}</td>
+        <td class="text-end text-nowrap">
+          <form method="post" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="toggle">
+            <input type="hidden" name="id" value="{{ c.id }}">
+            <button class="btn btn-sm btn-outline-secondary">{% if c.is_enabled %}Disable{% else %}Enable{% endif %}</button>
+          </form>
+          <form method="post" class="d-inline" onsubmit="return confirm('Delete this client?')">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="id" value="{{ c.id }}">
+            <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-muted p-3">No clients registered.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

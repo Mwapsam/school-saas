@@ -1,0 +1,225 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="School Calendar" description="Manage academic events, holidays, and term dates for the active academic year." icon='fa-calendar-alt' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}School Calendar{% endblock %}
+
+{% block layout_table %}
+<div class="container-fluid py-4">
+    {% if messages %}
+    <div class="row mb-4">
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if active_year %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Active Academic Year: {{ active_year.name }} ({{ active_year.start_date|date:"Y-m-d" }} to {{ active_year.end_date|date:"Y-m-d" }})</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Working Days</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_working_days">
+                        <div class="mb-3">
+                            <label class="form-label">Select working days:</label>
+                            {% for weekday_num, weekday_name in all_weekdays %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="working_days" value="{{ weekday_num }}" id="weekday_{{ weekday_num }}" {% if weekday_num in settings.working_days %}checked{% endif %}>
+                                <label class="form-check-label" for="weekday_{{ weekday_num }}">
+                                    {{ weekday_name }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Working Days</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Current Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Working Days:</strong> {{ working_days_display }}</p>
+                    <p><strong>Total Holidays:</strong> {{ holidays.count }}</p>
+                    <p><strong>Total Events:</strong> {{ events.count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Create New Event/Holiday</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="create_event">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="event_title" class="form-label">Event Title <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="event_title" name="title" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="event_start" class="form-label">Start Date <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="event_start" name="start_date" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="event_end" class="form-label">End Date <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="event_end" name="end_date" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="event_description" class="form-label">Description</label>
+                            <textarea class="form-control" id="event_description" name="description" rows="2"></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="event_is_holiday" name="is_holiday">
+                                    <label class="form-check-label" for="event_is_holiday">
+                                        Is Holiday (affects attendance calculation)
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="event_is_common" name="is_common">
+                                    <label class="form-check-label" for="event_is_common">
+                                        Is Common Event
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="event_is_exam" name="is_exam">
+                                    <label class="form-check-label" for="event_is_exam">
+                                        Is Exam Day
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Create Event</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        Events & Holidays ({{ events.count }})
+                    </h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Title</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for event in events %}
+                            <tr>
+                                <td>
+                                    <strong>{{ event.title }}</strong>
+                                    {% if event.is_holiday %}
+                                    <span class="badge bg-danger">Holiday</span>
+                                    {% endif %}
+                                    {% if event.is_exam %}
+                                    <span class="badge bg-warning">Exam</span>
+                                    {% endif %}
+                                    {% if event.is_common %}
+                                    <span class="badge bg-info">Common</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ event.start_date|date:"M d, Y" }}</td>
+                                <td>{{ event.end_date|date:"M d, Y" }}</td>
+                                <td>
+                                    {% if event.is_holiday %}Holiday{% elif event.is_exam %}Exam{% elif event.is_common %}Event{% else %}Other{% endif %}
+                                </td>
+                                <td>{{ event.description|truncatewords:10 }}</td>
+                                <td>
+                                    <form method="post" style="display: inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete_event">
+                                        <input type="hidden" name="event_id" value="{{ event.id }}">
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">No events created yet.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-warning" role="alert">
+                <strong>No Active Academic Year</strong>
+                <p>Please create and activate an academic year first before managing the school calendar.</p>
+                <a href="{% url 'core:academic_year_list' %}" class="btn btn-primary">Go to Academic Years</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

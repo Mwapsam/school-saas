@@ -1,0 +1,43 @@
+<div class="pinewood-table-responsive">
+  <table class="pinewood-table">
+    <thead>
+      <tr>
+        <th>No.</th><th>Route</th><th class="d-none d-md-table-cell">Code</th><th>Fare</th>
+        <th class="d-none d-md-table-cell">Stops</th><th class="d-none d-lg-table-cell">Vehicle</th>
+        <th class="d-none d-lg-table-cell">Crew</th><th>Students</th><th width="140">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+        <tr>
+          <td class="text-center">{{ forloop.counter0|add:page_obj.start_index }}</td>
+          <td><strong>{{ item.route_name }}</strong>{% if not item.is_active %} <span class="badge bg-secondary">inactive</span>{% endif %}</td>
+          <td class="d-none d-md-table-cell">{{ item.code }}</td>
+          <td>{{ item.fare }}</td>
+          <td class="d-none d-md-table-cell">{{ item.stop_count }}</td>
+          <td class="d-none d-lg-table-cell">{{ item.vehicle.vehicle_number|default:"—" }}</td>
+          <td class="d-none d-lg-table-cell">
+            {{ item.driver.full_name|default:"—" }}{% if item.attendant %} / {{ item.attendant.full_name }}{% endif %}
+          </td>
+          <td>{{ item.student_count }}</td>
+          <td class="table-actions">
+            <div class="btn-group btn-group-sm" role="group">
+              <button type="button" class="btn btn-outline-secondary btn-sm" title="Edit"
+                data-entity="routes"
+                data-row='{"id":"{{ item.id }}","route_name":"{{ item.route_name|escapejs }}","code":"{{ item.code|escapejs }}","fare":"{{ item.fare }}","description":"{{ item.description|escapejs }}","estimated_duration_minutes":"{{ item.estimated_duration_minutes|default_if_none:'' }}","vehicle":"{{ item.vehicle_id|default_if_none:'' }}","driver":"{{ item.driver_id|default_if_none:'' }}","attendant":"{{ item.attendant_id|default_if_none:'' }}"}'
+                onclick="transportOpenEdit(this)"><i class="fas fa-edit"></i></button>
+              <button type="button" class="btn btn-outline-danger btn-sm" title="Delete"
+                onclick="transportAction('routes','delete','{{ item.id }}','Delete route {{ item.route_name|escapejs }}?')">
+                <i class="fas fa-trash"></i></button>
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="9" class="text-center text-muted py-4">
+          No routes yet. <a href="#" onclick="transportOpenAdd('routes');return false;">Add the first one</a>.
+        </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include 'core/htmx/transport/_pager.html' with list_url='/transport/routes/list/' entity='routes' %}

@@ -1,0 +1,96 @@
+<div id="employee-qualifications-content">
+    <div id="employee-qualifications-errors" class="alert alert-danger d-none"></div>
+
+    {% if 'hr.employee.manage' in perms %}
+    <div class="pw-card mb-3">
+        <h2 class="h6 fw-bold">Add qualification</h2>
+        <form onsubmit="submitQualificationAdd(event, '{{ employee.id }}')">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <label class="form-label">Type</label>
+                    <select class="form-select form-select-sm" name="qualification_type">
+                        {% for value, label in qualification_type_choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-control form-control-sm" name="name" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Institution</label>
+                    <input type="text" class="form-control form-control-sm" name="institution">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Year</label>
+                    <input type="number" class="form-control form-control-sm" name="year_obtained">
+                </div>
+                <div class="col-12 form-check ms-1">
+                    <input type="checkbox" class="form-check-input" id="qual-highest" name="is_highest">
+                    <label class="form-check-label" for="qual-highest">This is the highest qualification</label>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm mt-2">Add</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <div class="pinewood-table-responsive">
+        <table class="pinewood-table">
+            <thead>
+                <tr>
+                    <th>Type</th><th>Name</th><th>Institution</th><th>Year</th><th>Highest</th>
+                    {% if 'hr.employee.manage' in perms %}<th width="80">Actions</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for q in qualifications %}
+                    <tr>
+                        <td>{{ q.get_qualification_type_display }}</td>
+                        <td>{{ q.name }}</td>
+                        <td>{{ q.institution|default:"—" }}</td>
+                        <td>{{ q.year_obtained|default:"—" }}</td>
+                        <td>{% if q.is_highest %}<i class="fas fa-check text-success"></i>{% else %}—{% endif %}</td>
+                        {% if 'hr.employee.manage' in perms %}
+                        <td class="table-actions">
+                            <button type="button" class="btn btn-outline-danger btn-sm" title="Delete"
+                                onclick="deleteQualification('{{ q.id }}')"><i class="fas fa-trash"></i></button>
+                        </td>
+                        {% endif %}
+                    </tr>
+                {% empty %}
+                    <tr class="empty-state"><td colspan="6">No qualifications recorded.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function _qualCsrf() { return document.querySelector('[name=csrfmiddlewaretoken]').value; }
+function _swapQuals(status, text) {
+    if (status === 200) {
+        document.getElementById('employee-qualifications-content').outerHTML = text;
+        if (typeof showAlert === 'function') showAlert('Saved', 'success');
+    } else {
+        const box = document.getElementById('employee-qualifications-errors');
+        try { box.textContent = JSON.parse(text).error || 'An error occurred'; }
+        catch (e) { box.textContent = 'An error occurred'; }
+        box.classList.remove('d-none');
+    }
+}
+function submitQualificationAdd(event, employeeId) {
+    event.preventDefault();
+    fetch(`/hr/employees/${employeeId}/qualifications/add/`, {
+        method: 'POST', headers: { 'X-CSRFToken': _qualCsrf() },
+        body: new FormData(event.target),
+    }).then(r => r.text().then(t => _swapQuals(r.status, t)));
+}
+function deleteQualification(qualificationId) {
+    if (!confirm('Delete this qualification?')) return;
+    fetch(`/hr/qualifications/${qualificationId}/delete/`, {
+        method: 'POST', headers: { 'X-CSRFToken': _qualCsrf() },
+    }).then(r => r.text().then(t => _swapQuals(r.status, t)));
+}
+</script>

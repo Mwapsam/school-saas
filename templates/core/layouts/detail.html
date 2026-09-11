@@ -1,0 +1,39 @@
+{% extends 'core/base.html' %}
+{% comment %}
+Detail page pattern — a single record's full view (drafted against
+templates/core/admission/detail.html and templates/core/htmx/batch_detail_content.html).
+
+Fixed region order: Header + actions → Summary → Tabs → Sections → Extra.
+`layout_extra` is empty by default — use it for page-specific modals or extra
+markup that doesn't fit the named regions (mirrors layouts/list.html).
+`layout_tabs`
+is empty by default — omit it entirely for a page with no tabs (e.g. a single
+stacked-sections page like admission/detail.html); fill it for a tabbed page
+(e.g. a batch detail page with Overview/Timetable/Attendance/Exams tabs via
+components/tabs.html, each tab's content swapped in via htmx). This layout
+only provides structure — fill each block with components from
+templates/core/components/. See docs/UI_COMPONENTS.md.
+
+Usage:
+  {% extends 'core/layouts/detail.html' %}
+  {% block page_title %}Application {{ application.application_number }}{% endblock %}
+  {% block layout_header %}
+    {% include 'core/components/page_header.html' with title="Admission Application" description=application.application_number icon="fa-file-alt" actions=actions back_url=list_url %}
+  {% endblock %}
+  {% block layout_summary %}
+    {% include 'core/components/alert.html' with message=status_message variant=status_variant %}
+  {% endblock %}
+  {% block layout_sections %}
+    <div class="row g-4">
+      <div class="col-lg-8">... detail sections ...</div>
+      <div class="col-lg-4">... sidebar ...</div>
+    </div>
+  {% endblock %}
+{% endcomment %}
+{% block content %}
+{% block layout_header %}{% endblock %}
+{% block layout_summary %}{% endblock %}
+{% block layout_tabs %}{% endblock %}
+{% block layout_sections %}{% endblock %}
+{% block layout_extra %}{% endblock %}
+{% endblock %}

@@ -1,0 +1,203 @@
+name: Deploy BACKEND
+
+on:
+  workflow_run:
+    workflows: ["PYTEST"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  deploy:
+    environment: env
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.10.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Configure known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H 193.203.163.30 >> ~/.ssh/known_hosts
+
+      - name: Validate connection
+        run: ssh root@193.203.163.30 "hostname"
+
+      - name: Fix permissions on server
+        run: |
+          ssh root@193.203.163.30 "
+            sudo chown -R ubuntu:ubuntu /root/pinewood/ && \
+            chmod -R u+rwX /root/pinewood/
+          "
+
+      - name: Sync code
+        run: |
+          rsync -avz --delete \
+            --exclude=.git \
+            --exclude=.github \
+            --exclude='__pycache__' \
+            --exclude=staticfiles \
+            --exclude='utils/logging.log' \
+            ./ root@193.203.163.30:/root/pinewood/
+
+      - name: Validate secrets
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          DATABASE_ENGINE: ${{ secrets.DATABASE_ENGINE }}
+          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+          DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+          DATABASE_USER: ${{ secrets.DATABASE_USER }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          DATABASE_PORT: ${{ secrets.DATABASE_PORT }}
+          DEBUG: ${{ secrets.DEBUG }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          AWS_PUBLIC_BUCKET_NAME: ${{ secrets.AWS_PUBLIC_BUCKET_NAME }}
+          AWS_PRIVATE_BUCKET_NAME: ${{ secrets.AWS_PRIVATE_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_PUBLIC_CLOUDFRONT_DOMAIN: ${{ secrets.AWS_PUBLIC_CLOUDFRONT_DOMAIN }}
+          AWS_PRIVATE_CLOUDFRONT_DOMAIN: ${{ secrets.AWS_PRIVATE_CLOUDFRONT_DOMAIN }}
+          CLOUDFRONT_KEY_ID: ${{ secrets.CLOUDFRONT_KEY_ID }}
+          CLOUDFRONT_PRIVATE_KEY_B64: ${{ secrets.CLOUDFRONT_PRIVATE_KEY_B64 }}
+          AWS_S3_REGION_NAME: ${{ secrets.AWS_S3_REGION_NAME }}
+          QUICKBOOKS_CLIENT_ID: ${{ secrets.QUICKBOOKS_CLIENT_ID }}
+          QUICKBOOKS_CLIENT_SECRET: ${{ secrets.QUICKBOOKS_CLIENT_SECRET }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          BASE_DOMAIN: ${{ secrets.BASE_DOMAIN }}
+          TENANT_USERS_DOMAIN: ${{ secrets.TENANT_USERS_DOMAIN }}
+          ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
+          DJANGO_ENV: ${{ secrets.DJANGO_ENV }}
+          FIELD_ENCRYPTION_KEY: ${{ secrets.FIELD_ENCRYPTION_KEY }}
+
+        run: |
+          required_secrets=(
+            "SSH_PRIVATE_KEY" "DATABASE_ENGINE" "DATABASE_HOST" "DATABASE_NAME"
+            "DATABASE_USER" "DATABASE_PASSWORD" "DATABASE_PORT" "DEBUG"
+            "SECRET_KEY" "AWS_PUBLIC_BUCKET_NAME" "AWS_PRIVATE_BUCKET_NAME"
+            "AWS_ACCESS_KEY_ID" "AWS_SECRET_ACCESS_KEY" "AWS_PUBLIC_CLOUDFRONT_DOMAIN"
+            "AWS_PRIVATE_CLOUDFRONT_DOMAIN" "CLOUDFRONT_KEY_ID" "CLOUDFRONT_PRIVATE_KEY_B64"
+            "AWS_S3_REGION_NAME" "QUICKBOOKS_CLIENT_ID" "QUICKBOOKS_CLIENT_SECRET"
+            "POSTGRES_PASSWORD" "POSTGRES_USER" "POSTGRES_DB"
+            "BASE_DOMAIN" "TENANT_USERS_DOMAIN" "ALLOWED_HOSTS" "DJANGO_ENV" "FIELD_ENCRYPTION_KEY"
+          )
+          
+          missing_secrets=()
+          for secret in "${required_secrets[@]}"; do
+            secret_value=$(eval echo "\$$secret")
+            if [ -z "$secret_value" ]; then
+              missing_secrets+=("$secret")
+            fi
+          done
+          
+          if [ ${#missing_secrets[@]} -gt 0 ]; then
+            echo "Missing secrets: ${missing_secrets[@]}"
+            exit 1
+          fi
+          echo "All required secrets are configured"
+
+      - name: Create .env on server
+        run: |
+          ssh root@193.203.163.30 "cat <<EOF > /root/pinewood/.env
+          DATABASE_ENGINE=${{ secrets.DATABASE_ENGINE }}
+          DATABASE_HOST=${{ secrets.DATABASE_HOST }}
+          DATABASE_NAME=${{ secrets.DATABASE_NAME }}
+          DATABASE_USER=${{ secrets.DATABASE_USER }}
+          DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}
+          DATABASE_PORT=${{ secrets.DATABASE_PORT }}
+          DEBUG=${{ secrets.DEBUG }}
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+          AWS_PUBLIC_BUCKET_NAME=${{ secrets.AWS_PUBLIC_BUCKET_NAME }}
+          AWS_PRIVATE_BUCKET_NAME=${{ secrets.AWS_PRIVATE_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_PUBLIC_CLOUDFRONT_DOMAIN=${{ secrets.AWS_PUBLIC_CLOUDFRONT_DOMAIN }}
+          AWS_PRIVATE_CLOUDFRONT_DOMAIN=${{ secrets.AWS_PRIVATE_CLOUDFRONT_DOMAIN }}
+          CLOUDFRONT_KEY_ID=${{ secrets.CLOUDFRONT_KEY_ID }}
+          CLOUDFRONT_PRIVATE_KEY_B64=${{ secrets.CLOUDFRONT_PRIVATE_KEY_B64 }}
+
+          AWS_S3_REGION_NAME=${{ secrets.AWS_S3_REGION_NAME }}
+          QUICKBOOKS_CLIENT_ID=${{ secrets.QUICKBOOKS_CLIENT_ID }}  
+          QUICKBOOKS_CLIENT_SECRET=${{ secrets.QUICKBOOKS_CLIENT_SECRET }}
+
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+          POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+
+          BASE_DOMAIN=${{ secrets.BASE_DOMAIN }}
+          BASE_URL=${{ secrets.BASE_URL }}
+          TENANT_USERS_DOMAIN=${{ secrets.TENANT_USERS_DOMAIN }}
+          ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
+          DJANGO_ENV=${{ secrets.DJANGO_ENV }}
+
+          PORTAL_CORS_ORIGINS=${{ secrets.PORTAL_CORS_ORIGINS }}
+          AFRICASTALKING_USERNAME=${{ secrets.AFRICASTALKING_USERNAME }}
+          AFRICASTALKING_API_KEY=${{ secrets.AFRICASTALKING_API_KEY }}
+          FIELD_ENCRYPTION_KEY=${{ secrets.FIELD_ENCRYPTION_KEY }}
+          EOF
+          "
+          # Secure the .env file
+          ssh root@193.203.163.30 "chmod 600 /root/pinewood/.env"
+
+      - name: Deploy containers
+        run: |
+          ssh root@193.203.163.30 "
+            cd /root/pinewood && \
+            if [ -f db.sqlite3 ]; then rm db.sqlite3; echo 'Deleted db.sqlite3'; fi; \
+            docker compose up --build -d --remove-orphans 
+          "
+
+      - name: Run migrations
+        run: |
+          ssh root@193.203.163.30 "
+            cd /root/pinewood && \
+            docker compose exec -T web python manage.py migrate_schemas --shared --noinput && \
+            docker compose exec -T web python manage.py migrate_schemas --noinput
+          "
+          
+      - name: Cleanup old Docker images 
+        run: | 
+            ssh root@193.203.163.30 " 
+              docker image prune -af 
+              "
+
+      - name: Invalidate CloudFront
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+        run: |
+          set -e
+
+          echo "Distribution:"
+          aws cloudfront get-distribution \
+            --id "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --query 'Distribution.DomainName' \
+            --output text
+
+          echo "Creating invalidation..."
+
+          INVALIDATION_ID=$(aws cloudfront create-invalidation \
+            --distribution-id "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --paths "/*" \
+            --query 'Invalidation.Id' \
+            --output text)
+
+          echo "Invalidation ID: $INVALIDATION_ID"
+
+          aws cloudfront wait invalidation-completed \
+            --distribution-id "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --id "$INVALIDATION_ID"
+
+          echo "CloudFront invalidation completed successfully."

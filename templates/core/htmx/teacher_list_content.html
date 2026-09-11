@@ -1,0 +1,239 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead>
+            <tr>
+                <th>No.</th>
+                <th>Employee #</th>
+                <th>Name</th>
+                <th class="d-none d-md-table-cell">Department</th>
+                <th class="d-none d-lg-table-cell">Position</th>
+                <th class="d-none d-lg-table-cell">Joining Date</th>
+                <th class="d-none d-md-table-cell">Contact</th>
+                <th>Status</th>
+                <th width="120">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for teacher in teachers %}
+                <tr class="{% if not teacher.status %}table-warning{% endif %}">
+                    <td class="text-center">{{ forloop.counter0|add:page_obj.start_index }}</td>
+                    <td>
+                        <strong>{{ teacher.employee_number }}</strong>
+                    </td>
+                    <td>
+                        <div>
+                            <strong>{{ teacher.first_name }} {{ teacher.last_name }}</strong>
+                            {% if teacher.middle_name %}
+                                <small class="text-muted">{{ teacher.middle_name }}</small>
+                            {% endif %}
+                            {% if teacher.is_teaching_staff %}
+                                <span class="badge bg-info-subtle text-info-emphasis">Teaching</span>
+                            {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary-emphasis">Non-Teaching</span>
+                            {% endif %}
+                        </div>
+                        {% if teacher.job_title %}
+                            <small class="text-muted">{{ teacher.job_title }}</small>
+                        {% endif %}
+                    </td>
+                    <td class="d-none d-md-table-cell">
+                        {% if teacher.employee_department %}
+                            {{ teacher.employee_department.name }}
+                        {% else %}
+                            <small class="text-muted">Not assigned</small>
+                        {% endif %}
+                    </td>
+                    <td class="d-none d-lg-table-cell">
+                        {% if teacher.employee_position %}
+                            {{ teacher.employee_position.name }}
+                        {% else %}
+                            <small class="text-muted">Not assigned</small>
+                        {% endif %}
+                    </td>
+                    <td class="d-none d-lg-table-cell">
+                        <small>{{ teacher.joining_date|date:"M j, Y" }}</small>
+                    </td>
+                    <td class="d-none d-md-table-cell">
+                        {% if teacher.email %}
+                            <small>{{ teacher.email }}</small><br>
+                        {% endif %}
+                        {% if teacher.mobile_phone %}
+                            <small>{{ teacher.mobile_phone }}</small>
+                        {% endif %}
+                        {% if not teacher.email and not teacher.mobile_phone %}
+                            <small class="text-muted">No contact info</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if teacher.status %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-warning">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="table-actions">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{% url 'core:employee_detail' pk=teacher.id %}"
+                               class="btn btn-outline-primary btn-sm"
+                               title="Open Profile">
+                                <i class="fas fa-id-badge"></i>
+                            </a>
+                            <button type="button"
+                                    class="btn btn-outline-info btn-sm"
+                                    title="Quick View"
+                                    @click="viewTeacher('{{ teacher.id }}', '{{ teacher.first_name }} {{ teacher.last_name }}')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            {% if 'hr.employee.manage' in perms %}
+                            <button type="button"
+                                    class="btn btn-outline-secondary btn-sm"
+                                    title="Edit Teacher"
+                                    onclick="openEditTeacher('{{ teacher.id }}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    {% if teacher.status %}
+                                        <li><a class="dropdown-item" href="#" onclick="toggleTeacherStatus('{{ teacher.id }}', false)">
+                                            <i class="fas fa-pause"></i> Deactivate
+                                        </a></li>
+                                    {% else %}
+                                        <li><a class="dropdown-item" href="#" onclick="toggleTeacherStatus('{{ teacher.id }}', true)">
+                                            <i class="fas fa-play"></i> Activate
+                                        </a></li>
+                                    {% endif %}
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteTeacher('{{ teacher.id }}', '{{ teacher.first_name }} {{ teacher.last_name }}')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </a></li>
+                                </ul>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr class="empty-state">
+                    <td colspan="9">
+                        {% if request.GET.search %}
+                            No employees found matching "{{ request.GET.search }}".
+                        {% else %}
+                            No employees found.
+                            <a href="#" class="btn btn-link p-0" data-bs-toggle="modal" data-bs-target="#teacherModal" onclick="resetTeacherForm()">
+                                Add your first employee
+                            </a>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+    <div class="pinewood-table-pagination">
+        <nav>
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" 
+                           hx-get="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}{% if request.GET.staff_type %}&staff_type={{ request.GET.staff_type }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}"
+                           hx-target="#teacher-list-content"
+                           data-loading>First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" 
+                           hx-get="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}{% if request.GET.staff_type %}&staff_type={{ request.GET.staff_type }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}"
+                           hx-target="#teacher-list-content"
+                           data-loading>Previous</a>
+                    </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        Page {{ page_obj.number }} of {{ paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" 
+                           hx-get="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}{% if request.GET.staff_type %}&staff_type={{ request.GET.staff_type }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}"
+                           hx-target="#teacher-list-content"
+                           data-loading>Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" 
+                           hx-get="?page={{ paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}{% if request.GET.staff_type %}&staff_type={{ request.GET.staff_type }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}"
+                           hx-target="#teacher-list-content"
+                           data-loading>Last</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+{% endif %}
+
+<script>
+function toggleTeacherStatus(teacherId, newStatus) {
+    const action = newStatus ? 'activate' : 'deactivate';
+    if (!confirm(`Are you sure you want to ${action} this teacher?`)) {
+        return;
+    }
+    
+    fetch(`/teachers/${teacherId}/toggle-status/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Refresh the list
+            htmx.ajax('GET', window.location.pathname + window.location.search, {
+                target: '#teacher-list-content'
+            });
+            showAlert(`Teacher ${action}d successfully!`, 'success');
+        } else {
+            showAlert(data.error || 'An error occurred', 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('An error occurred', 'danger');
+    });
+}
+
+function deleteTeacher(teacherId, teacherName) {
+    if (!confirm(`Are you sure you want to delete ${teacherName}? This action cannot be undone.`)) {
+        return;
+    }
+    
+    fetch(`/teachers/${teacherId}/delete/`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Refresh the list
+            htmx.ajax('GET', window.location.pathname + window.location.search, {
+                target: '#teacher-list-content'
+            });
+            showAlert('Teacher deleted successfully!', 'success');
+        } else {
+            showAlert(data.error || 'An error occurred', 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('An error occurred', 'danger');
+    });
+}
+</script>

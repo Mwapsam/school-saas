@@ -1,0 +1,450 @@
+{% extends 'core/layouts/form.html' %}
+{% load static %}
+
+{% block page_title %}Create Payment Agreement{% endblock %}
+
+{% block layout_header %}
+{% url 'core:payment_agreement_list' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Create Payment Agreement" description="Set up an instalment plan for an outstanding student balance" icon='fa-file-contract' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_form %}
+<!-- Success Banner (Hidden by default) -->
+<div id="successBanner" class="alert alert-success alert-dismissible fade show mb-4" style="display: none;">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-check-circle me-2"></i>
+            <strong>Payment Agreement Created!</strong>
+            <p class="mb-2 mt-2">The agreement has been generated successfully.</p>
+            <div class="btn-group btn-group-sm gap-2">
+                <a id="viewDetailLink" href="#" class="btn btn-sm btn-primary">
+                    <i class="fas fa-eye me-1"></i> View Details
+                </a>
+                <a id="downloadPdfLink" href="#" class="btn btn-sm btn-outline-success">
+                    <i class="fas fa-file-pdf me-1"></i> Download PDF
+                </a>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Agreement Details</h5>
+            </div>
+            <div class="card-body">
+                    {% if student %}
+                    <form id="agreementForm">
+                        <!-- Student Info (Read-Only) -->
+                        <div class="alert alert-info mb-4">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-2">
+                                        <strong>Student:</strong> {{ student.first_name }} {{ student.last_name }}<br>
+                                        <strong>Admission No:</strong> {{ student.admission_no }}
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-2">
+                                        <strong>Outstanding Balance:</strong>
+                                        <span class="text-danger fw-bold">{{ currency_symbol }}{{ outstanding_balance|floatformat:2 }}</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <input type="hidden" id="studentId" value="{{ student.id }}">
+
+                        <!-- Debtor Information -->
+                        <fieldset class="mb-4">
+                            <legend class="fs-5 mb-3">Debtor Information</legend>
+
+                            <div class="mb-3">
+                                <label for="debtorName" class="form-label">Debtor Name *</label>
+                                <input type="text" class="form-control" id="debtorName" name="debtor_name" required
+                                       placeholder="Parent/Guardian name">
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="nrcNumber" class="form-label">NRC/ID Number</label>
+                                        <input type="text" class="form-control" id="nrcNumber" name="nrc_number"
+                                               placeholder="National ID">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="guardianSelect" class="form-label">Link to Guardian (Optional)</label>
+                                        <select class="form-select" id="guardianSelect" name="guardian_id">
+                                            <option value="">-- Select Guardian --</option>
+                                            {% for gdata in guardians_with_data %}
+                                            <option value="{{ gdata.id }}"
+                                                    data-name="{{ gdata.name }}"
+                                                    data-address="{{ gdata.address }}"
+                                                    data-phone="{{ gdata.phone }}"
+                                                    {% if gdata.is_primary %}selected{% endif %}>
+                                                {{ gdata.name }}{% if gdata.is_primary %} (Primary){% endif %}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="debtorAddress" class="form-label">Address</label>
+                                <textarea class="form-control" id="debtorAddress" name="debtor_address" rows="2"
+                                          placeholder="Physical address of debtor"></textarea>
+                            </div>
+                        </fieldset>
+
+                        <!-- Agreement Signatories (Auto-Filled) -->
+                        <fieldset class="mb-4">
+                            <legend class="fs-5 mb-3">Agreement Signatories (Auto-Filled)</legend>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Director/Principal</label>
+                                        <div class="form-control-plaintext fw-bold" style="padding: 0.375rem 0.75rem;">
+                                            {% if director_display_name %}{{ director_display_name }}{% else %}<span class="text-muted">Not configured</span>{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Director's Witness (Operations Manager)</label>
+                                        <div class="form-control-plaintext fw-bold" style="padding: 0.375rem 0.75rem;">
+                                            {% if operations_manager_name %}{{ operations_manager_name }}{% else %}<span class="text-muted">Not configured</span>{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </fieldset>
+
+                        <!-- Debt Breakdown -->
+                        <fieldset class="mb-4">
+                            <legend class="fs-5 mb-3">Debt Breakdown</legend>
+
+                            {% if term_breakdown.rows %}
+                            <div class="table-responsive mb-3">
+                                <table class="table table-sm table-bordered mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Term</th>
+                                            <th class="text-end">Amount Owing ({{ currency_symbol }})</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in term_breakdown.rows %}
+                                        <tr>
+                                            <td>{{ row.label }}</td>
+                                            <td class="text-end">{{ row.amount|floatformat:2 }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="fw-bold">
+                                            <td>Total Owing</td>
+                                            <td class="text-end">{{ currency_symbol }}{{ term_breakdown.total|floatformat:2 }}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                            <p class="text-muted small mb-3">
+                                Breakdown of the outstanding fee balance per term. The
+                                <strong>Unpaid Fees Amount</strong> below defaults to this total.
+                            </p>
+                            {% endif %}
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="unpaidFeesAmount" class="form-label">Unpaid Fees Amount *</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">{{ currency_symbol }}</span>
+                                            <input type="number" class="form-control" id="unpaidFeesAmount"
+                                                   name="unpaid_fees_amount" step="0.01" value="{{ outstanding_balance }}"
+                                                   placeholder="0.00" required onchange="updateTotal()">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="otherAmount" class="form-label">Other Amount (Non-Fees)</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">{{ currency_symbol }}</span>
+                                            <input type="number" class="form-control" id="otherAmount"
+                                                   name="other_amount" step="0.01" value="0.00"
+                                                   placeholder="0.00" onchange="updateTotal()">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="otherDescription" class="form-label">Other Amount Description</label>
+                                <textarea class="form-control" id="otherDescription" name="other_description" rows="2"
+                                          placeholder="e.g., Late payment penalties, accommodation arrears"></textarea>
+                            </div>
+
+                            <div class="alert alert-secondary">
+                                <p class="mb-0">
+                                    <strong>Total Amount Due:</strong>
+                                    <span class="fs-5">{{ currency_symbol }}<span id="totalAmount">0.00</span></span>
+                                </p>
+                            </div>
+                        </fieldset>
+
+                        <!-- Agreement Terms -->
+                        <fieldset class="mb-4">
+                            <legend class="fs-5 mb-3">Agreement Terms</legend>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="startDate" class="form-label">Start Date *</label>
+                                        <input type="date" class="form-control" id="startDate" name="start_date"
+                                               required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="endDate" class="form-label">End Date *</label>
+                                        <input type="date" class="form-control" id="endDate" name="end_date" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="interestRate" class="form-label">Interest Rate (% per month)</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="interestRate" name="interest_rate"
+                                           step="0.01" value="5.00" placeholder="5.00">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                                <small class="form-text text-muted">Default: 5% per month</small>
+                            </div>
+                        </fieldset>
+
+                        <!-- Installments -->
+                        <fieldset class="mb-4">
+                            <legend class="fs-5 mb-3">Payment Schedule *</legend>
+                            <div id="installmentsContainer">
+                                <div class="installment-row mb-3">
+                                    <div class="row">
+                                        <div class="col-md-5">
+                                            <label class="form-label">Due Date</label>
+                                            <input type="date" class="form-control installment-due-date" required>
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label class="form-label">Amount ({{ currency_symbol }})</label>
+                                            <input type="number" class="form-control installment-amount" step="0.01"
+                                                   placeholder="0.00" required onchange="validateInstallments()">
+                                        </div>
+                                        <div class="col-md-2 d-flex align-items-end">
+                                            <button type="button" class="btn btn-sm btn-outline-danger w-100"
+                                                    onclick="removeInstallment(this)">Remove</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                    onclick="addInstallment()">
+                                <i class="fas fa-plus me-1"></i> Add Installment
+                            </button>
+
+                            <div class="alert alert-warning mt-3" id="installmentWarning" style="display:none;">
+                                <small>Sum of installments must equal total amount due.</small>
+                            </div>
+                        </fieldset>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Create Agreement
+                            </button>
+                            <a href="{% url 'core:fee_batch_report' %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Please select a student to create an agreement.
+                    </div>
+                    <a href="{% url 'core:fee_batch_report' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Go to Defaulters Report
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Reference</h5>
+                </div>
+                <div class="card-body small">
+                    <div class="mb-3">
+                        <p class="mb-2"><strong>Payment Schedule</strong></p>
+                        <p class="text-muted">Divide the total debt into installments with due dates. The sum of all installments must equal the total amount due.</p>
+                    </div>
+                    <div class="mb-3">
+                        <p class="mb-2"><strong>Agreement Terms</strong></p>
+                        <p class="text-muted">Set the duration and late payment interest rate. Default is 5% per month.</p>
+                    </div>
+                    <div>
+                        <p class="mb-2"><strong>Document</strong></p>
+                        <p class="text-muted">Once created, you can print and sign the agreement, then track payments against it.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block layout_extra %}{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateTotal() {
+    const fees = parseFloat(document.getElementById('unpaidFeesAmount').value || 0);
+    const other = parseFloat(document.getElementById('otherAmount').value || 0);
+    const total = fees + other;
+    document.getElementById('totalAmount').textContent = total.toFixed(2);
+    validateInstallments();
+}
+
+function addInstallment() {
+    const container = document.getElementById('installmentsContainer');
+    const html = `
+        <div class="installment-row mb-3">
+            <div class="row">
+                <div class="col-md-5">
+                    <label class="form-label">Due Date</label>
+                    <input type="date" class="form-control installment-due-date" required>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Amount ({{ currency_symbol }})</label>
+                    <input type="number" class="form-control installment-amount" step="0.01"
+                           placeholder="0.00" required onchange="validateInstallments()">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-sm btn-outline-danger w-100"
+                            onclick="removeInstallment(this)">Remove</button>
+                </div>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', html);
+}
+
+function removeInstallment(button) {
+    button.closest('.installment-row').remove();
+    validateInstallments();
+}
+
+function validateInstallments() {
+    const total = parseFloat(document.getElementById('totalAmount').textContent);
+    const amounts = Array.from(document.querySelectorAll('.installment-amount'))
+        .map(inp => parseFloat(inp.value || 0))
+        .reduce((a, b) => a + b, 0);
+
+    const warning = document.getElementById('installmentWarning');
+    if (Math.abs(total - amounts) > 0.01 && amounts > 0) {
+        warning.style.display = 'block';
+    } else {
+        warning.style.display = 'none';
+    }
+}
+
+// Auto-fill debtor name and address when guardian is selected
+function fillDebtorFromGuardian() {
+    const guardianSelect = document.getElementById('guardianSelect');
+    const selectedOption = guardianSelect.options[guardianSelect.selectedIndex];
+
+    if (selectedOption.value) {
+        const name = selectedOption.dataset.name || '';
+        const address = selectedOption.dataset.address || '';
+        document.getElementById('debtorName').value = name;
+        document.getElementById('debtorAddress').value = address;
+    } else {
+        document.getElementById('debtorName').value = '';
+        document.getElementById('debtorAddress').value = '';
+    }
+}
+
+document.getElementById('guardianSelect')?.addEventListener('change', fillDebtorFromGuardian);
+
+// Initialize on page load (trigger auto-fill if a guardian is pre-selected)
+document.addEventListener('DOMContentLoaded', function() {
+    updateTotal();
+    fillDebtorFromGuardian();
+});
+
+document.getElementById('agreementForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const installments = Array.from(document.querySelectorAll('.installment-row')).map(row => ({
+        due_date: row.querySelector('.installment-due-date').value,
+        amount: row.querySelector('.installment-amount').value,
+    }));
+
+    const data = {
+        student_id: document.getElementById('studentId').value,
+        debtor_name: document.getElementById('debtorName').value,
+        unpaid_fees_amount: document.getElementById('unpaidFeesAmount').value,
+        other_amount: document.getElementById('otherAmount').value,
+        other_description: document.getElementById('otherDescription').value,
+        start_date: document.getElementById('startDate').value,
+        end_date: document.getElementById('endDate').value,
+        interest_rate: document.getElementById('interestRate').value,
+        guardian_id: document.getElementById('guardianSelect').value,
+        nrc_number: document.getElementById('nrcNumber').value,
+        debtor_address: document.getElementById('debtorAddress').value,
+        installments: installments,
+    };
+
+    fetch('{% url "core:payment_agreement_create" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value,
+        },
+        body: JSON.stringify(data),
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            // Show success banner with links
+            const agreementId = result.agreement_id;
+            document.getElementById('viewDetailLink').href = `/fees/agreements/${agreementId}/detail/`;
+            document.getElementById('downloadPdfLink').href = `/fees/agreements/${agreementId}/pdf/`;
+            document.getElementById('successBanner').style.display = 'block';
+
+            // Scroll to the banner
+            document.getElementById('successBanner').scrollIntoView({ behavior: 'smooth' });
+
+            // Reset form after 1 second
+            setTimeout(() => {
+                document.getElementById('agreementForm').reset();
+            }, 1000);
+        } else {
+            alert('Error: ' + result.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    });
+});
+
+// Initialize is now handled in the main DOMContentLoaded block above
+</script>
+{% endblock %}
+
+{% block extra_css %}{% endblock %}

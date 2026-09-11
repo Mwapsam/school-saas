@@ -1,0 +1,458 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}Student Ledger{% endblock %}
+
+{% block layout_header %}
+{% url 'core:finance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Student Ledger" description="Per-student statement for the selected academic year" icon='fa-receipt' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+
+{% block layout_filters %}
+<!-- Filters will be extracted and moved here -->
+{% endblock %}
+
+{% block layout_table %}
+<div class="container-lg py-4">
+    {% include 'core/finance/_workflow_nav.html' with active_step=4 %}
+    <div class="d-flex justify-content-end align-items-center mb-4 d-print-none">
+        <div class="d-flex align-items-center gap-2 flex-wrap d-print-none">
+            {% include 'core/finance/_year_selector.html' %}
+            {% if student and selected_year %}
+            {% if fee_collections %}
+            <form method="get" id="feeCollectionForm" class="d-inline-block">
+                <input type="hidden" name="student_id" value="{{ student.id }}">
+                <input type="hidden" name="academic_year" value="{{ selected_year_id }}">
+                <select name="fee_collection" class="form-select form-select-sm" style="min-width: 200px;"
+                        onchange="document.getElementById('feeCollectionForm').submit()"
+                        aria-label="Select fee collection">
+                    {% for collection in fee_collections %}
+                    <option value="{{ collection.id }}" {% if collection.id|stringformat:'s' == selected_fee_collection_id %}selected{% endif %}>
+                        {{ collection.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% endif %}
+            <div class="btn-group">
+                {% if selected_fee_collection_id %}
+                <a class="btn btn-primary"
+                   href="{% url 'core:fee_student_statement_pdf' %}?student_id={{ student.id }}&fee_collection={{ selected_fee_collection_id }}"
+                   target="_blank">
+                    <i class="fas fa-file-pdf me-1"></i> Download PDF
+                </a>
+                {% else %}
+                <button class="btn btn-primary" disabled title="No fee collection available for this student/year">
+                    <i class="fas fa-file-pdf me-1"></i> Download PDF
+                </button>
+                {% endif %}
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#distributeModal" id="distributeBtn">
+                    <i class="fas fa-share me-1"></i> Share
+                </button>
+            </div>
+            <a href="{% url 'core:fee_student_management' %}?student_id={{ student.id }}&academic_year={{ selected_year_id }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if not statement %}
+        <div class="alert alert-info">Select a student and academic year to view a statement.</div>
+    {% else %}
+    <div class="card">
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h4 class="mb-1">{{ statement.student_name }}</h4>
+                    <p class="text-muted mb-0">Admission No: {{ statement.admission_no }}</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-1"><strong>Academic Year:</strong> {{ statement.academic_year }}</p>
+                    <p class="mb-0 text-muted small">Generated {% now "M d, Y" %}</p>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h5 class="mb-2">Charges</h5>
+                {% for charge in statement.charges %}
+                <div class="border rounded p-3 mb-2">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong>{{ charge.fee_category }}{% if charge.fee_collection %} &mdash; {{ charge.fee_collection }}{% endif %}</strong>
+                        {% if charge.is_paid %}
+                        <span class="badge bg-success">Paid</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark">Balance: {{ currency_symbol }}{{ charge.balance|floatformat:2 }}</span>
+                        {% endif %}
+                    </div>
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            {% for particular in charge.particulars %}
+                            <tr>
+                                <td>{{ particular.name }}</td>
+                                <td class="text-end">{{ currency_symbol }}{{ particular.amount|floatformat:2 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="2" class="text-muted">No particulars on record</td></tr>
+                            {% endfor %}
+                            {% if charge.discount_amount %}
+                            <tr class="text-muted">
+                                <td>Discount</td>
+                                <td class="text-end">-{{ currency_symbol }}{{ charge.discount_amount|floatformat:2 }}</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                {% empty %}
+                <p class="text-muted">No charges on record for this year.</p>
+                {% endfor %}
+            </div>
+
+            <h5 class="mb-2">Payments &amp; Adjustments</h5>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th class="text-end">Debit</th>
+                            <th class="text-end">Credit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in statement.line_items %}
+                        <tr>
+                            <td>{{ item.date|date:"M d, Y" }}</td>
+                            <td><span class="badge bg-secondary text-uppercase">{{ item.type }}</span></td>
+                            <td>{{ item.fee_category }}</td>
+                            <td>{{ item.description }}</td>
+                            <td class="text-end">{% if item.debit %}{{ currency_symbol }}{{ item.debit|floatformat:2 }}{% endif %}</td>
+                            <td class="text-end">{% if item.credit %}{{ currency_symbol }}{{ item.credit|floatformat:2 }}{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-3">No activity this year</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row justify-content-end">
+                <div class="col-md-5">
+                    <div class="d-flex justify-content-between"><span>Total Charged:</span><span>{{ currency_symbol }}{{ statement.total_charged|floatformat:2 }}</span></div>
+                    <div class="d-flex justify-content-between"><span>Total Paid:</span><span class="text-success">{{ currency_symbol }}{{ statement.total_paid|floatformat:2 }}</span></div>
+                    <div class="d-flex justify-content-between"><span>Total Discounts/Waivers:</span><span>{{ currency_symbol }}{{ statement.total_discounts|floatformat:2 }}</span></div>
+                    {% if statement.total_refunds %}<div class="d-flex justify-content-between"><span>Total Refunds:</span><span>{{ currency_symbol }}{{ statement.total_refunds|floatformat:2 }}</span></div>{% endif %}
+                    <hr>
+                    <div class="d-flex justify-content-between fw-bold fs-5">
+                        <span>Closing Balance:</span>
+                        <span class="{% if statement.current_outstanding > 0 %}text-danger{% else %}text-success{% endif %}">
+                            {{ currency_symbol }}{{ statement.current_outstanding|floatformat:2 }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Share Statement Modal -->
+<div class="modal fade" id="distributeModal" tabindex="-1" aria-labelledby="distributeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light border-0">
+                <div>
+                    <h5 class="modal-title" id="distributeModalLabel">
+                        <i class="fas fa-share text-success me-2"></i>Share Statement with Parent
+                    </h5>
+                    <small class="text-muted d-block mt-2">Send this fee statement to guardians via SMS, Email, or Parent Portal</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="distributeForm" class="modal-form">
+                <div class="modal-body">
+                    <!-- Loading State -->
+                    <div id="loadingState" class="text-center py-4" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="text-muted mt-2">Loading recipient options...</p>
+                    </div>
+
+                    <!-- Form Content -->
+                    <div id="formContent">
+                        <!-- Guardians Selection -->
+                        <div class="mb-4">
+                            <label class="form-label fw-500">Select Recipient(s)</label>
+                            <div id="guardiansContainer" class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                <p class="text-muted small">Loading guardians...</p>
+                            </div>
+                            <small class="text-muted d-block mt-2">You can select multiple guardians to send to all of them</small>
+                        </div>
+
+                        <!-- Distribution Channels -->
+                        <div class="mb-4">
+                            <label class="form-label fw-500">Share via</label>
+                            <div id="channelsContainer" class="row g-3">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+
+                        <!-- Custom Message (SMS only) -->
+                        <div class="mb-4">
+                            <label for="customMessage" class="form-label fw-500">Custom SMS Message (Optional)</label>
+                            <textarea
+                                id="customMessage"
+                                class="form-control form-control-sm"
+                                rows="3"
+                                placeholder="Leave blank for default message. Maximum 160 characters recommended."
+                                maxlength="320"></textarea>
+                            <small class="text-muted d-block mt-2" id="messageCount">0 / 320 characters</small>
+                        </div>
+                    </div>
+
+                    <!-- Error Display -->
+                    <div id="errorAlert" class="alert alert-danger" style="display: none;">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <span id="errorMessage"></span>
+                    </div>
+
+                    <!-- Results (After sending) -->
+                    <div id="resultsContainer" style="display: none;">
+                        <div id="resultsSummary" class="mb-4"></div>
+                        <div id="resultsList" class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                            <!-- Populated after sending -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" id="sendBtn" class="btn btn-primary">
+                        <i class="fas fa-send me-1"></i>Send
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for distribution modal -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const distributeBtn = document.getElementById('distributeBtn');
+    const distributeModal = document.getElementById('distributeModal');
+    const distributeForm = document.getElementById('distributeForm');
+    const customMessageField = document.getElementById('customMessage');
+    const messageCountDisplay = document.getElementById('messageCount');
+
+    if (!distributeBtn) return; // Exit if button doesn't exist
+
+    // Track character count
+    customMessageField.addEventListener('input', function() {
+        messageCountDisplay.textContent = `${this.value.length} / 320 characters`;
+    });
+
+    // Load guardian options when modal opens
+    distributeBtn.addEventListener('click', async function() {
+        const studentId = '{{ student.id }}';
+        const selectedYear = '{{ selected_year_id }}';
+
+        document.getElementById('formContent').style.display = 'block';
+        document.getElementById('resultsContainer').style.display = 'none';
+        document.getElementById('errorAlert').style.display = 'none';
+        document.getElementById('loadingState').style.display = 'block';
+
+        try {
+            const response = await fetch(
+                `/fees/statement-distribution-data/?student_id=${studentId}`,
+                { credentials: 'same-origin' }
+            );
+
+            if (!response.ok) throw new Error('Failed to load recipients');
+
+            const data = await response.json();
+            document.getElementById('loadingState').style.display = 'none';
+
+            // Populate guardians
+            const guardiansHtml = data.guardians.length > 0
+                ? data.guardians.map(g => `
+                    <div class="form-check mb-2">
+                        <input
+                            class="form-check-input guardian-checkbox"
+                            type="checkbox"
+                            name="guardians"
+                            value="${g.id}"
+                            id="guardian_${g.id}"
+                            data-phone="${g.has_phone}"
+                            data-email="${g.has_email}">
+                        <label class="form-check-label" for="guardian_${g.id}">
+                            <strong>${g.name}</strong>
+                            <br>
+                            <small class="text-muted">
+                                ${g.phone ? '<i class="fas fa-phone me-1"></i>' + g.phone : '<span class="text-danger">No phone</span>'}
+                                ·
+                                ${g.email ? '<i class="fas fa-envelope me-1"></i>' + g.email : '<span class="text-danger">No email</span>'}
+                            </small>
+                        </label>
+                    </div>
+                `).join('')
+                : '<p class="text-muted small">No guardians found for this student</p>';
+
+            document.getElementById('guardiansContainer').innerHTML = guardiansHtml;
+
+            // Populate channels with dynamic availability
+            const channelsHtml = data.channels.map(c => `
+                <div class="col-md-4">
+                    <div class="form-check">
+                        <input
+                            class="form-check-input channel-checkbox"
+                            type="checkbox"
+                            name="channels"
+                            value="${c.value}"
+                            id="channel_${c.value}">
+                        <label class="form-check-label" for="channel_${c.value}">
+                            <i class="${c.icon} me-2"></i>${c.label}
+                        </label>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('channelsContainer').innerHTML = channelsHtml;
+
+            // Store metadata
+            document.getElementById('distributeModal').dataset.studentId = '{{ student.id }}';
+            document.getElementById('distributeModal').dataset.academicYearId = selectedYear;
+
+        } catch (error) {
+            document.getElementById('loadingState').style.display = 'none';
+            showError('Failed to load recipient options: ' + error.message);
+        }
+    });
+
+    // Handle form submission
+    distributeForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const selectedGuardians = Array.from(document.querySelectorAll('.guardian-checkbox:checked'))
+            .map(cb => cb.value);
+        const selectedChannels = Array.from(document.querySelectorAll('.channel-checkbox:checked'))
+            .map(cb => cb.value);
+        const customMessage = customMessageField.value.trim();
+
+        if (selectedGuardians.length === 0) {
+            showError('Please select at least one guardian');
+            return;
+        }
+
+        if (selectedChannels.length === 0) {
+            showError('Please select at least one distribution channel');
+            return;
+        }
+
+        // Disable form and show sending state
+        document.getElementById('sendBtn').disabled = true;
+        document.getElementById('sendBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
+
+        try {
+            const response = await fetch('{% url "core:statement_distribute_send" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    student_id: '{{ student.id }}',
+                    academic_year_id: '{{ selected_year_id }}',
+                    guardian_ids: selectedGuardians,
+                    channels: selectedChannels,
+                    custom_message: customMessage || null,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                displayResults(result);
+            } else {
+                showError(result.error || 'Failed to send statements');
+            }
+        } catch (error) {
+            showError('Network error: ' + error.message);
+        } finally {
+            document.getElementById('sendBtn').disabled = false;
+            document.getElementById('sendBtn').innerHTML = '<i class="fas fa-send me-1"></i>Send';
+        }
+    });
+
+    function showError(message) {
+        document.getElementById('errorAlert').style.display = 'block';
+        document.getElementById('errorMessage').textContent = message;
+    }
+
+    function displayResults(result) {
+        document.getElementById('formContent').style.display = 'none';
+        document.getElementById('resultsContainer').style.display = 'block';
+
+        const summary = result.success
+            ? `<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>${result.message}</div>`
+            : `<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>${result.message}</div>`;
+
+        document.getElementById('resultsSummary').innerHTML = summary;
+
+        // Display detailed results
+        const resultsList = result.results.map(r => `
+            <div class="border-bottom pb-3 mb-3">
+                <h6 class="mb-2">
+                    <i class="fas fa-user text-primary me-2"></i>${r.guardian_name}
+                </h6>
+                <div class="ps-4">
+                    ${r.sms ? `
+                        <div class="mb-2">
+                            <span class="badge ${r.sms.success ? 'bg-success' : 'bg-danger'}">SMS</span>
+                            <small class="text-muted ms-2">${r.sms.message}</small>
+                        </div>
+                    ` : ''}
+                    ${r.email ? `
+                        <div class="mb-2">
+                            <span class="badge ${r.email.success ? 'bg-success' : 'bg-danger'}">Email</span>
+                            <small class="text-muted ms-2">${r.email.message}</small>
+                        </div>
+                    ` : ''}
+                    ${r.portal ? `
+                        <div class="mb-2">
+                            <span class="badge ${r.portal.success ? 'bg-success' : 'bg-danger'}">Portal</span>
+                            <small class="text-muted ms-2">${r.portal.message}</small>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `).join('');
+
+        document.getElementById('resultsList').innerHTML = resultsList || '<p class="text-muted">No results</p>';
+
+        // Show errors if any
+        if (result.errors && result.errors.length > 0) {
+            const errorsHtml = `
+                <div class="alert alert-info mt-3">
+                    <strong>Details:</strong>
+                    <ul class="mb-0 mt-2">
+                        ${result.errors.map(err => `<li>${err}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            document.getElementById('resultsList').innerHTML += errorsHtml;
+        }
+    }
+});
+</script>
+{% endblock %}
+
+{% block layout_pagination %}{% endblock %}
+
+{% block layout_extra %}{% endblock %}

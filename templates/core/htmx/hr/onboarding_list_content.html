@@ -1,0 +1,39 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead>
+            <tr><th>Employee</th><th>Started</th><th>Progress</th><th width="80"></th></tr>
+        </thead>
+        <tbody>
+            {% for c in checklists %}
+                <tr>
+                    <td>
+                        <a href="{% url 'core:employee_detail' c.employee_id %}"><strong>{{ c.employee.first_name }} {{ c.employee.last_name }}</strong></a>
+                        <div><small class="text-muted">{{ c.employee.employee_number }}</small></div>
+                    </td>
+                    <td><small>{{ c.started_at|date:"M j, Y" }}</small></td>
+                    <td style="min-width:160px">
+                        {% with p=c.progress %}
+                        <div class="progress" style="height:16px">
+                            <div class="progress-bar" role="progressbar" style="width: {{ p.percent }}%">{{ p.percent }}%</div>
+                        </div>
+                        <small class="text-muted">{{ p.done }} / {{ p.total }}</small>
+                        {% endwith %}
+                    </td>
+                    <td><a class="btn btn-outline-primary btn-sm" href="{% url 'core:employee_detail' c.employee_id %}">Open</a></td>
+                </tr>
+            {% empty %}
+                <tr class="empty-state"><td colspan="4">No onboarding checklists in progress.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if is_paginated %}
+<div class="pinewood-table-pagination">
+    <nav><ul class="pagination pagination-sm justify-content-center mb-0">
+        {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" hx-get="{% url 'core:hr_onboarding_list' %}?page={{ page_obj.previous_page_number }}" hx-target="#onboarding-list-content">Previous</a></li>{% endif %}
+        <li class="page-item active"><span class="page-link">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}<li class="page-item"><a class="page-link" hx-get="{% url 'core:hr_onboarding_list' %}?page={{ page_obj.next_page_number }}" hx-target="#onboarding-list-content">Next</a></li>{% endif %}
+    </ul></nav>
+</div>
+{% endif %}

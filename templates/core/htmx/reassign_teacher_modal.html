@@ -1,0 +1,240 @@
+<!-- Reassign Class Teacher Modal -->
+<style>
+#reassign-teacher-select {
+    color: #000;
+}
+
+#reassign-teacher-select option {
+    color: #000 !important;
+}
+
+#reassign-teacher-select option:first-child {
+    color: #6c757d;
+}
+</style>
+
+
+<div class="modal fade" id="reassignTeacherModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Reassign Teacher <span id="reassign-student-name" class="text-muted"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <div id="reassign-form-errors" class="alert alert-danger d-none"></div>
+
+                <input type="hidden" id="reassign-batch-id" value="">
+                <input type="hidden" id="reassign-student-id" value="">
+
+                <div class="mb-3">
+                    <label for="reassign-teacher-select" class="form-label">Assign to Teacher *</label>
+                    <select class="form-select" id="reassign-teacher-select" required>
+                        <option class="text-black" value="">Select a teacher...</option>
+                    </select>
+                </div>
+
+                <div id="current-teacher-info" class="alert alert-info d-none">
+                    <small>
+                        <strong>Currently assigned to:</strong> <span id="current-teacher-name"></span>
+                    </small>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button
+                    id="reassign-submit-btn"
+                    type="button"
+                    class="btn btn-primary"
+                    onclick="submitTeacherReassignment()">
+                    <span id="reassign-submit-text">Reassign Teacher</span>
+                    <div class="loading-spinner d-none d-inline-block ms-2"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let modal = null;
+let studentIdInput, batchIdInput, studentNameSpan, teacherSelect, currentTeacherInfo, currentTeacherName, errorDiv, submitButton, submitSpinner;
+
+function initReassignModal() {
+    if (modal) return; // Already initialized
+
+    const modalEl = document.getElementById("reassignTeacherModal");
+    if (!modalEl) return;
+
+    modal = new bootstrap.Modal(modalEl);
+    studentIdInput = document.getElementById("reassign-student-id");
+    batchIdInput = document.getElementById("reassign-batch-id");
+    studentNameSpan = document.getElementById("reassign-student-name");
+    teacherSelect = document.getElementById("reassign-teacher-select");
+    currentTeacherInfo = document.getElementById("current-teacher-info");
+    currentTeacherName = document.getElementById("current-teacher-name");
+    errorDiv = document.getElementById("reassign-form-errors");
+    submitButton = document.getElementById("reassign-submit-btn");
+    submitSpinner = submitButton.querySelector(".loading-spinner");
+
+    modalEl.addEventListener("hidden.bs.modal", resetReassignModal);
+}
+
+// Initialize on DOM ready
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initReassignModal);
+} else {
+    initReassignModal();
+}
+
+function resetReassignModal() {
+    if (!teacherSelect || !errorDiv || !currentTeacherInfo || !submitButton) return;
+
+    teacherSelect.innerHTML = '<option value="">Select a teacher...</option>';
+    teacherSelect.disabled = false;
+    teacherSelect.value = "";
+
+    errorDiv.classList.add("d-none");
+    errorDiv.innerHTML = "";
+
+    currentTeacherInfo.classList.add("d-none");
+
+    submitButton.disabled = false;
+    submitSpinner?.classList.add("d-none");
+}
+
+function getBatchId() {
+    return (
+        document.querySelector("[data-batch-id]")?.dataset.batchId ||
+        new URLSearchParams(window.location.search).get("batch_id")
+    );
+}
+
+function showCurrentTeacher(studentId) {
+    const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+    // Prefer explicit data attributes over scraping table text, which
+    // breaks silently if column order ever changes.
+    const teacherName = row?.dataset.teacherName?.trim();
+
+    if (!teacherName) {
+        currentTeacherInfo.classList.add("d-none");
+        return;
+    }
+
+    currentTeacherName.textContent = teacherName;
+    currentTeacherInfo.classList.remove("d-none");
+}
+
+async function loadTeachers(batchId) {
+    teacherSelect.disabled = false;
+    teacherSelect.innerHTML = '<option value="">Loading...</option>';
+
+    const response = await fetch(`/api/batches/${batchId}/class-teachers/`);
+
+    if (!response.ok) {
+        throw new Error("Failed to load teachers.");
+    }
+
+    const data = await response.json();
+
+    teacherSelect.innerHTML = '<option value="">Select a teacher...</option>';
+
+    if (!data.teachers.length) {
+        teacherSelect.innerHTML =
+            '<option value="">No teachers assigned</option>';
+        teacherSelect.disabled = true;
+        return;
+    }
+
+    data.teachers.forEach(({ id, full_name }) => {
+        teacherSelect.add(new Option(full_name, id));
+    });
+}
+
+async function openTeacherReassignModal(studentId, studentName) {
+    initReassignModal(); // Ensure modal is initialized
+
+    const batchId = getBatchId();
+
+    if (!batchId) {
+        showToast("Batch ID not found.", "danger");
+        return;
+    }
+
+    resetReassignModal();
+
+    studentIdInput.value = studentId;
+    batchIdInput.value = batchId;
+    studentNameSpan.textContent = studentName ? `- ${studentName}` : "";
+
+    showCurrentTeacher(studentId);
+
+    try {
+        await loadTeachers(batchId);
+        modal.show();
+    } catch (err) {
+        showToast(err.message, "danger");
+    }
+}
+
+async function submitTeacherReassignment() {
+    if (!teacherSelect.value) {
+        showToast("Please select a teacher.", "warning");
+        return;
+    }
+
+    submitButton.disabled = true;
+    submitSpinner?.classList.remove("d-none");
+
+    try {
+        const response = await fetch(
+            `/api/batches/${batchIdInput.value}/students/${studentIdInput.value}/reassign-teacher/`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCookie("csrftoken"),
+                },
+                body: JSON.stringify({
+                    employee_id: teacherSelect.value,
+                }),
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Failed to reassign teacher.");
+        }
+
+        modal.hide();
+
+        showToast(
+            data.message || "Teacher reassigned successfully.",
+            "success"
+        );
+
+        window.location.reload();
+    } catch (err) {
+        errorDiv.innerHTML = `<strong>Error:</strong> ${err.message}`;
+        errorDiv.classList.remove("d-none");
+
+        showToast(err.message, "danger");
+    } finally {
+        submitSpinner?.classList.add("d-none");
+        submitButton.disabled = false;
+    }
+}
+
+function getCookie(name) {
+    const raw = document.cookie
+        .split("; ")
+        .find(row => row.startsWith(name + "="))
+        ?.split("=")[1] || null;
+
+    return raw ? decodeURIComponent(raw) : null;
+}
+</script>

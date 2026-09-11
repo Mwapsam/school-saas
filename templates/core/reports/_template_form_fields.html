@@ -1,0 +1,250 @@
+<div class="row">
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="{{ prefix }}_name" class="form-label">Template Name *</label>
+            <input type="text" class="form-control" id="{{ prefix }}_name" name="name" required>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="{{ prefix }}_term" class="form-label">Term *</label>
+            <select class="form-select" id="{{ prefix }}_term" name="term" required>
+                <option value="">Select Term</option>
+                <option value="TERM 1">Term 1</option>
+                <option value="TERM 2">Term 2</option>
+                <option value="TERM 3">Term 3</option>
+                <option value="ANNUAL">Annual</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="mb-3">
+            <label for="{{ prefix }}_course_id" class="form-label">Grade / Class *</label>
+            <select class="form-select" id="{{ prefix }}_course_id" name="course_id"
+                    onchange="filterBatchesByCourse('{{ prefix }}')" required>
+                <option value="">— Select a class —</option>
+                {% for course in courses %}
+                <option value="{{ course.id }}">{{ course.course_name }}</option>
+                {% endfor %}
+            </select>
+            <div class="form-text">Select a class to set the batch below</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="mb-3">
+            <label for="{{ prefix }}_batch_id" class="form-label">Batch</label>
+            <select class="form-select" id="{{ prefix }}_batch_id" name="batch_id"
+                    onchange="loadSubjectsForBatch('{{ prefix }}', this.value, [])">
+                <option value="">— Select a class first —</option>
+                <option value="__all__" class="all-batches-opt d-none fw-semibold text-success"
+                        style="display:none">All batches in this class</option>
+                {% for batch in batches %}
+                <option value="{{ batch.id }}" data-course="{{ batch.course_id }}">{{ batch.name }}</option>
+                {% endfor %}
+            </select>
+            <div class="form-text" id="{{ prefix }}_batch_hint">
+                Leave blank or pick "All batches" to apply this template to every batch in the class.
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="mb-3">
+            <label for="{{ prefix }}_academic_year_id" class="form-label">Academic Year *</label>
+            <select class="form-select" id="{{ prefix }}_academic_year_id" name="academic_year_id" required>
+                <option value="">Select Academic Year</option>
+                {% for year in academic_years %}
+                <option value="{{ year.id }}">{{ year.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="{{ prefix }}_grading_scale_id" class="form-label">Grading Scheme *</label>
+            <select class="form-select" id="{{ prefix }}_grading_scale_id" name="grading_scale_id"
+                    onchange="onGradingSchemeChange('{{ prefix }}')">
+                <option value="" data-layout="">— Select a grading scheme —</option>
+                {% for gs in grading_scales %}
+                <option value="{{ gs.id }}" data-layout="{{ gs.report_layout }}">{{ gs.name }} ({{ gs.get_scale_type_display }})</option>
+                {% endfor %}
+            </select>
+            <div class="form-text">
+                Sets the report format and the grade letters used.
+                <span id="{{ prefix }}_format_label" class="fw-semibold text-success"></span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="{{ prefix }}_report_signature_id" class="form-label">Signature</label>
+            <select class="form-select" id="{{ prefix }}_report_signature_id" name="report_signature_id">
+                <option value="">— Use school default —</option>
+                {% for sig in signatures %}
+                <option value="{{ sig.id }}">{{ sig.name }} ({{ sig.title }}{% if sig.section_label %} — {{ sig.section_label }}{% endif %})</option>
+                {% endfor %}
+            </select>
+            <div class="form-text">Shown at the bottom of the report card. Leave blank to use the school's default signature.</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="{{ prefix }}_next_term_start" class="form-label">Next term commences</label>
+            <input type="date" class="form-control" id="{{ prefix }}_next_term_start" name="next_term_start">
+            <div class="form-text">Printed on the report. Leave blank to auto-detect from the exam plan's next term.</div>
+        </div>
+    </div>
+</div>
+
+<!-- Report format is derived from the grading scheme. The fallback select only
+     appears when the chosen scheme has no format configured. -->
+<input type="hidden" id="{{ prefix }}_layout_type" name="layout_type" value="FULL_ACADEMIC">
+<div class="mb-3 d-none" id="{{ prefix }}_layout_fallback">
+    <label for="{{ prefix }}_layout_type_select" class="form-label">Report Format</label>
+    <select class="form-select" id="{{ prefix }}_layout_type_select"
+            onchange="onLayoutFallbackChange('{{ prefix }}')">
+        <option value="FULL_ACADEMIC">Full Academic (Grade 3–7) — Marks / Grade / Attainment / Effort</option>
+        <option value="SIMPLE_ACADEMIC">Simple Academic (Grade 1–2) — Classwork / Test % / Class Ave.</option>
+        <option value="SKILLS">Skills Checklist (Beginners / Reception) — NOT YET / BEGINNING / SATISFACTORY / GOOD</option>
+    </select>
+    <div class="form-text">This grading scheme has no report format set — choose one.</div>
+</div>
+
+<div class="mb-3">
+    <label for="{{ prefix }}_primary_color" class="form-label">Brand Colour</label>
+    <div class="d-flex align-items-center gap-2">
+        <input type="color" class="form-control form-control-color" id="{{ prefix }}_primary_color"
+               name="primary_color" value="#5a9e2f" title="Report card accent colour">
+        <small class="text-muted">Used for headings, table headers, and accents in the generated PDF</small>
+    </div>
+</div>
+
+<div class="mb-3">
+    <label class="form-label">Sections to Include</label>
+    <small class="text-muted d-block mb-2">Only the sections supported by the selected format are shown.</small>
+    <div class="row" id="{{ prefix }}_section_toggles">
+        <div class="col-md-6">
+            <div class="form-check section-toggle" data-formats="SKILLS">
+                <input class="form-check-input" type="checkbox" id="{{ prefix }}_include_skills" name="include_skills" checked>
+                <label class="form-check-label" for="{{ prefix }}_include_skills">Skills</label>
+            </div>
+            <div class="form-check section-toggle" data-formats="SIMPLE_ACADEMIC,FULL_ACADEMIC">
+                <input class="form-check-input" type="checkbox" id="{{ prefix }}_include_exam_scores" name="include_exam_scores" checked>
+                <label class="form-check-label" for="{{ prefix }}_include_exam_scores">Assessments (subject marks)</label>
+            </div>
+            <div class="form-check section-toggle" data-formats="SKILLS,SIMPLE_ACADEMIC,FULL_ACADEMIC">
+                <input class="form-check-input" type="checkbox" id="{{ prefix }}_include_homework_assessment" name="include_homework_assessment" checked>
+                <label class="form-check-label" for="{{ prefix }}_include_homework_assessment">Homework Assessment</label>
+            </div>
+            <div class="form-check section-toggle" data-formats="SKILLS,SIMPLE_ACADEMIC,FULL_ACADEMIC">
+                <input class="form-check-input" type="checkbox" id="{{ prefix }}_include_project_work" name="include_project_work" checked>
+                <label class="form-check-label" for="{{ prefix }}_include_project_work">Project Work</label>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-check section-toggle" data-formats="SIMPLE_ACADEMIC,FULL_ACADEMIC">
+                <input class="form-check-input" type="checkbox" id="{{ prefix }}_include_clubs" name="include_clubs" checked>
+                <label class="form-check-label" for="{{ prefix }}_include_clubs">Clubs</label>
+            </div>
+            <div class="form-check section-toggle" data-formats="SIMPLE_ACADEMIC,FULL_ACADEMIC">
+                <input class="form-check-input" type="checkbox" id="{{ prefix }}_include_sports" name="include_sports" checked>
+                <label class="form-check-label" for="{{ prefix }}_include_sports">Sports</label>
+            </div>
+            <div class="form-check section-toggle" data-formats="SIMPLE_ACADEMIC,FULL_ACADEMIC">
+                <input class="form-check-input" type="checkbox" id="{{ prefix }}_include_other_activities" name="include_other_activities" checked>
+                <label class="form-check-label" for="{{ prefix }}_include_other_activities">Other Activities</label>
+            </div>
+            <div class="form-check section-toggle" data-formats="SKILLS,SIMPLE_ACADEMIC,FULL_ACADEMIC">
+                <input class="form-check-input" type="checkbox" id="{{ prefix }}_include_attendance" name="include_attendance" checked>
+                <label class="form-check-label" for="{{ prefix }}_include_attendance">Attendance</label>
+            </div>
+            <div class="form-check section-toggle" data-formats="SIMPLE_ACADEMIC,FULL_ACADEMIC">
+                <input class="form-check-input" type="checkbox" id="{{ prefix }}_include_grading_scale" name="include_grading_scale" checked>
+                <label class="form-check-label" for="{{ prefix }}_include_grading_scale">Grading Scale</label>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Subject ordering (visible only when an academic batch is selected) -->
+<div class="mb-3" id="{{ prefix }}_subject_order_section" style="display:none">
+    <label class="form-label">Subject Order in Report Card</label>
+    <small class="text-muted d-block mb-2">Use the arrows to set the order subjects appear in the exam-scores table.</small>
+    <ul class="list-group" id="{{ prefix }}_subject_order_list" style="max-width:380px"></ul>
+    <input type="hidden" id="{{ prefix }}_subject_order" name="subject_order">
+</div>
+
+<!-- Skill category ordering (visible only when a skills/pre-grade batch is selected) -->
+<div class="mb-3" id="{{ prefix }}_skill_category_order_section" style="display:none">
+    <label class="form-label">Skill Category Order in Report Card</label>
+    <small class="text-muted d-block mb-2">Use the arrows to set the order skill categories appear in the skills checklist.</small>
+    <ul class="list-group" id="{{ prefix }}_skill_category_order_list" style="max-width:380px"></ul>
+    <input type="hidden" id="{{ prefix }}_skill_category_order" name="skill_category_order">
+</div>
+
+<!-- Section ordering -->
+<div class="mb-3">
+    <label class="form-label">Section Order in PDF</label>
+    <small class="text-muted d-block mb-2">Use the arrows to reorder how sections appear in the generated report card.</small>
+    <ul class="list-group" id="{{ prefix }}_section_order_list" style="max-width:380px">
+        <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 small"
+            data-key="exam_scores">
+            Exam Scores
+            <span class="btn-group btn-group-sm ms-2">
+                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1"
+                        onclick="moveSection('{{ prefix }}', this, -1)" title="Move up">▲</button>
+                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1"
+                        onclick="moveSection('{{ prefix }}', this, 1)" title="Move down">▼</button>
+            </span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 small"
+            data-key="homework_project">
+            Homework &amp; Project Work
+            <span class="btn-group btn-group-sm ms-2">
+                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1"
+                        onclick="moveSection('{{ prefix }}', this, -1)">▲</button>
+                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1"
+                        onclick="moveSection('{{ prefix }}', this, 1)">▼</button>
+            </span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 small"
+            data-key="clubs_sports">
+            Clubs &amp; Sports
+            <span class="btn-group btn-group-sm ms-2">
+                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1"
+                        onclick="moveSection('{{ prefix }}', this, -1)">▲</button>
+                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1"
+                        onclick="moveSection('{{ prefix }}', this, 1)">▼</button>
+            </span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 small"
+            data-key="other_activities">
+            Other Activities
+            <span class="btn-group btn-group-sm ms-2">
+                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1"
+                        onclick="moveSection('{{ prefix }}', this, -1)">▲</button>
+                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1"
+                        onclick="moveSection('{{ prefix }}', this, 1)">▼</button>
+            </span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 small"
+            data-key="attendance_scale">
+            Attendance &amp; Grading Scale
+            <span class="btn-group btn-group-sm ms-2">
+                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1"
+                        onclick="moveSection('{{ prefix }}', this, -1)">▲</button>
+                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1"
+                        onclick="moveSection('{{ prefix }}', this, 1)">▼</button>
+            </span>
+        </li>
+    </ul>
+    <input type="hidden" id="{{ prefix }}_section_order" name="section_order">
+</div>

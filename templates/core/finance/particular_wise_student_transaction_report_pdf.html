@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Particular-wise Student Transaction Report</title>
+<style>
+@page { size: A4 landscape; margin: 12mm; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; font-size: 8.5pt; color: #1a1a1a; }
+
+.hdr { text-align: center; border-bottom: 2pt solid #17833f; padding-bottom: 6pt; margin-bottom: 8pt; }
+.hdr-name { font-size: 14pt; font-weight: bold; color: #17833f; }
+.hdr-sub { font-size: 7.5pt; color: #555; margin-top: 2pt; }
+
+.title { text-align: center; font-size: 11pt; font-weight: bold; letter-spacing: 1pt;
+         background: #e8f5e8; color: #125e2d; padding: 4pt; margin-bottom: 4pt; }
+.range { text-align: center; font-size: 8.5pt; color: #555; margin-bottom: 8pt; }
+
+table.report { width: 100%; border-collapse: collapse; margin-top: 4pt; }
+table.report th, table.report td { border: 0.5pt solid #9c9c9c; padding: 3pt 4pt; }
+table.report th { background: #17833f; color: #fff; text-align: center; font-size: 7.5pt; }
+table.report td.num { text-align: right; }
+tr.grand td { background: #343a40; color: #fff; font-weight: bold; }
+
+.note { text-align: center; font-size: 7pt; color: #999; margin-top: 10pt; font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+    <div class="hdr-name">{{ school.name }}</div>
+    <div class="hdr-sub">
+        {% if school.address_line1 %}{{ school.address_line1 }}{% endif %}{% if school.city %}, {{ school.city }}{% endif %}
+        {% if school.phone %} | {{ school.phone }}{% endif %}{% if school.email %} | {{ school.email }}{% endif %}
+    </div>
+</div>
+
+<div class="title">PARTICULAR-WISE STUDENT TRANSACTION REPORT</div>
+<div class="range">Academic Year: {{ selected_year.name }}</div>
+
+<table class="report">
+    <thead>
+        <tr>
+            <th>Sl No.</th>
+            <th>Student Name</th>
+            <th>Batch</th>
+            <th>Expected</th>
+            <th>Paid</th>
+            <th>Balance</th>
+            {% if with_expected %}
+            <th>PTA Expected</th>
+            <th>PTA Paid</th>
+            <th>PTA Balance</th>
+            <th>Tuition Expected</th>
+            <th>Tuition Paid</th>
+            <th>Tuition Balance</th>
+            {% endif %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ row.student.first_name }} {{ row.student.last_name }}</td>
+            <td>{{ row.batch_name }}</td>
+            <td class="num">{{ row.expected_amount|floatformat:2 }}</td>
+            <td class="num">{{ row.paid_amount|floatformat:2 }}</td>
+            <td class="num">{{ row.balance_amount|floatformat:2 }}</td>
+            {% if with_expected %}
+            <td class="num">{{ row.pta_expected|floatformat:2 }}</td>
+            <td class="num">{{ row.pta_paid|floatformat:2 }}</td>
+            <td class="num">{{ row.pta_balance|floatformat:2 }}</td>
+            <td class="num">{{ row.tuition_expected|floatformat:2 }}</td>
+            <td class="num">{{ row.tuition_paid|floatformat:2 }}</td>
+            <td class="num">{{ row.tuition_balance|floatformat:2 }}</td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+        <tr class="grand">
+            <td colspan="3">Grand Total</td>
+            <td class="num">{{ grand_totals.grand_expected|floatformat:2 }}</td>
+            <td class="num">{{ grand_totals.grand_paid|floatformat:2 }}</td>
+            <td class="num">{{ grand_totals.grand_balance|floatformat:2 }}</td>
+            {% if with_expected %}
+            <td class="num">{{ grand_totals.grand_pta_expected|floatformat:2 }}</td>
+            <td class="num">{{ grand_totals.grand_pta_paid|floatformat:2 }}</td>
+            <td class="num">{{ grand_totals.grand_pta_balance|floatformat:2 }}</td>
+            <td class="num">{{ grand_totals.grand_tuition_expected|floatformat:2 }}</td>
+            <td class="num">{{ grand_totals.grand_tuition_paid|floatformat:2 }}</td>
+            <td class="num">{{ grand_totals.grand_tuition_balance|floatformat:2 }}</td>
+            {% endif %}
+        </tr>
+    </tbody>
+</table>
+
+<div class="note">This is a computer-generated report.</div>
+
+</body>
+</html>

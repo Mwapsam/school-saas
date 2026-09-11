@@ -1,0 +1,134 @@
+{% extends "core/layouts/detail.html" %}
+{% load static %}
+
+{% block page_title %}Manage Classes - {{ exam_plan.name }}{% endblock %}
+
+
+{% block layout_header %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <span class="pw-breadcrumb">
+        <a href="{% url 'core:dashboard' %}">Home</a>
+        <span class="pw-breadcrumb-sep">›</span>
+        <a href="{% url 'core:gradebook_index' %}">Gradebook</a>
+        <span class="pw-breadcrumb-sep">›</span>
+        <a href="{% url 'core:exam_planners_list' %}">Exam Planner</a>
+        <span class="pw-breadcrumb-sep">›</span>
+        <a href="{% url 'core:exam_plan_detail' exam_plan.id %}">{{ exam_plan.name }}</a>
+        <span class="pw-breadcrumb-sep">›</span>
+        <span class="pw-breadcrumb-current">Manage Classes</span>
+    </span>
+</nav>
+{% url 'core:exam_planners_list' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Manage Classes" description=manage_classes_description icon="fa-users" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_sections %}
+<div class="gb-manage-plan-classes">
+<div class="pw-card mb-4">
+    <div class="pw-card-header">
+        <span class="pw-card-title">Classes in {{ course.course_name }}</span>
+        <span style="font-size:0.8rem;color:var(--color-muted)">
+            Check a class to include it in this exam plan (its terms and exams will be copied over); uncheck to exclude it and permanently remove its exams for this plan.
+        </span>
+    </div>
+    <div style="padding:1rem 1.25rem">
+        {% if class_rows %}
+            {% for row in class_rows %}
+            <div class="ep-class-row {% if not row.included %}excluded{% endif %}" id="class-row-{{ row.batch.id }}">
+                <div class="ep-check-wrap">
+                    <input
+                        type="checkbox"
+                        class="form-check-input class-toggle"
+                        id="toggle-{{ row.batch.id }}"
+                        data-batch-id="{{ row.batch.id }}"
+                        data-batch-name="{{ row.batch.name }}"
+                        {% if row.included %}checked{% endif %}
+                        {% if row.is_primary %}disabled{% endif %}
+                        onchange="toggleClass(this)"
+                    >
+                    <div>
+                        <p class="ep-class-name">
+                            {{ row.batch.name }}
+                            {% if row.is_primary %}<span class="ep-primary-badge">Primary</span>{% endif %}
+                        </p>
+                        <p class="ep-class-meta">
+                            {% if row.included %}
+                                <i class="fas fa-check-circle me-1 text-success"></i>Included &middot; {{ row.exams_count }} exam{{ row.exams_count|pluralize }}
+                            {% else %}
+                                <i class="fas fa-circle me-1"></i>Not included
+                            {% endif %}
+                            {% if row.is_primary %} &middot; this is the plan's primary class and can't be excluded here{% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% if row.included %}
+                <a href="{% url 'core:exam_plan_detail' exam_plan.id %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-clipboard-list me-1"></i>Manage Exams
+                </a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+        {% include 'core/components/empty_state.html' with title="No Classes Found" message="This plan isn't linked to a class yet." %}
+        {% endif %}
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleClass(checkbox) {
+    const batchId = checkbox.dataset.batchId;
+    const batchName = checkbox.dataset.batchName;
+    const row = document.getElementById(`class-row-${batchId}`);
+    const wasChecked = checkbox.checked;
+
+    if (!wasChecked) {
+        // Excluding is destructive — confirm before deleting exam data.
+        checkbox.checked = true; // revert until confirmed
+        showConfirm(
+            `Exclude ${batchName} from this plan? This permanently deletes its exams and any entered scores for this plan.`,
+            function() { applyToggle(checkbox, row, batchId, batchName, false); },
+            'Exclude',
+            'danger'
+        );
+        return;
+    }
+
+    applyToggle(checkbox, row, batchId, batchName, true);
+}
+
+function applyToggle(checkbox, row, batchId, batchName, include) {
+    checkbox.disabled = true;
+    const url = include
+        ? `/api/gradebook/exam-plan/{{ exam_plan.id }}/include-class/`
+        : `/api/gradebook/exam-plan/{{ exam_plan.id }}/exclude-class/`;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ batch_id: batchId })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message || 'Updated.', 'success');
+            setTimeout(() => location.reload(), 700);
+        } else {
+            showToast('Error: ' + (data.error || 'Failed to update class.'), 'danger');
+            checkbox.checked = !include;
+            checkbox.disabled = false;
+        }
+    })
+    .catch(err => {
+        showToast('Error updating class: ' + err, 'danger');
+        checkbox.checked = !include;
+        checkbox.disabled = false;
+    });
+}
+</script>
+{% endblock %}

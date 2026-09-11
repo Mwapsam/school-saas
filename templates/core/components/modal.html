@@ -1,0 +1,44 @@
+{% comment %}
+Pinewood modal — Bootstrap-native modal wrapper (Bootstrap JS is already
+loaded on every page via core/base.html, and existing pages already trigger
+modals with data-bs-toggle="modal", so this builds on that rather than the
+separate .pw-modal / .pw-modal-backdrop feedback-dialog CSS).
+Pair with modal_close.html; put your form/body content between them.
+
+Trigger it from a button:
+  {% include 'core/components/button.html' with label="Add Category" attrs='data-bs-toggle="modal" data-bs-target="#createCategoryModal"' %}
+
+Usage — CRUD/form variant (the common case: create/edit a record):
+  {% include 'core/components/modal.html' with id="createCategoryModal" title="Add Category" %}
+    {% include 'core/components/form_field.html' with name="name" label="Category name" %}
+  {% include 'core/components/modal_close.html' with footer=footer_actions %}
+
+Usage — confirmation/danger variant (destructive actions):
+  {% include 'core/components/modal.html' with id="deleteCategoryModal" title="Delete Category?" variant="danger" %}
+    <p>This cannot be undone.</p>
+  {% include 'core/components/modal_close.html' with variant="danger" footer=footer_actions %}
+  {# footer_actions = [{'label': 'Cancel', 'variant': 'outline', 'attrs': 'data-bs-dismiss="modal"'},
+                        {'label': 'Delete', 'variant': 'danger', 'type': 'submit'}] #}
+
+Params:
+  id       (required) — element id, referenced by the trigger's data-bs-target
+  title    (required)
+  size     (optional) — "sm" | "lg" | "xl" (Bootstrap modal-{size})
+  variant  (optional) — "danger" tints the header for destructive confirmations
+  icon     (optional) — Font Awesome class shown before the title (e.g. "fa-list")
+  subtitle (optional) — small muted line under the title
+  title_id (optional) — element id on the title's inner <span>, for JS that
+                        swaps the text between e.g. "Create X"/"Edit X" on
+                        the same modal (the create/edit CRUD-modal pattern)
+{% endcomment %}
+<div class="modal fade" id="{{ id }}" tabindex="-1" aria-labelledby="{{ id }}Label" aria-hidden="true">
+  <div class="modal-dialog{% if size %} modal-{{ size }}{% endif %}">
+    <div class="modal-content">
+      <div class="modal-header{% if variant == 'danger' %} bg-danger text-white{% endif %}">
+        <div>
+          <h5 class="modal-title" id="{{ id }}Label">{% if icon %}<i class="fas {{ icon }} me-2"></i>{% endif %}<span{% if title_id %} id="{{ title_id }}"{% endif %}>{{ title }}</span></h5>
+          {% if subtitle %}<small class="text-muted d-block mt-1">{{ subtitle }}</small>{% endif %}
+        </div>
+        <button type="button" class="btn-close{% if variant == 'danger' %} btn-close-white{% endif %}" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">

@@ -1,0 +1,48 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead>
+            <tr>
+                <th>Role</th>
+                <th class="d-none d-md-table-cell">Description</th>
+                <th class="text-center">Permissions</th>
+                <th class="text-center">Users</th>
+                <th>Type</th>
+                <th width="160">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for role, perm_count, user_count in role_rows %}
+                <tr>
+                    <td>
+                        <a href="{% url 'core:role_detail' role.id %}"><strong>{{ role.name }}</strong></a>
+                        {% if not role.is_active %}<span class="badge bg-warning text-dark ms-1">Inactive</span>{% endif %}
+                    </td>
+                    <td class="d-none d-md-table-cell"><small class="text-muted">{{ role.description|default:"—" }}</small></td>
+                    <td class="text-center">{{ perm_count }}</td>
+                    <td class="text-center">{{ user_count }}</td>
+                    <td>
+                        {% if role.is_system %}
+                            <span class="badge bg-secondary">System</span>
+                        {% else %}
+                            <span class="badge bg-info text-dark">Custom</span>
+                        {% endif %}
+                    </td>
+                    <td class="table-actions">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a class="btn btn-outline-secondary btn-sm" title="Edit permissions"
+                               href="{% url 'core:role_detail' role.id %}"><i class="fas fa-key"></i></a>
+                            {% if not role.is_system %}
+                            <button type="button" class="btn btn-outline-danger btn-sm" title="Delete role"
+                                    onclick="deleteRole('{{ role.id }}', '{{ role.name|escapejs }}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr class="empty-state"><td colspan="6">No roles defined yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

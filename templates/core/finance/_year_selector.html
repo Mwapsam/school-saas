@@ -1,0 +1,28 @@
+{# Shared academic-year selector for finance screens (Phase 1). #}
+{# Requires year context from build_year_context(): academic_years, selected_year_id. #}
+{% if academic_years %}
+<form method="get" id="yearSelectorForm" class="d-inline-block">
+    {% for key, value in request.GET.items %}
+        {% if key != 'academic_year' %}
+            <input type="hidden" name="{{ key }}" value="{{ value }}">
+        {% endif %}
+    {% endfor %}
+    <div class="d-flex align-items-center gap-2">
+        <label for="academicYearSelect" class="form-label mb-0 text-muted small text-nowrap">
+            <i class="fas fa-calendar-alt me-1"></i>Academic Year
+        </label>
+        <select name="academic_year" id="academicYearSelect"
+                class="form-select form-select-sm"
+                aria-label="Select academic year"
+                onchange="document.getElementById('yearSelectorForm').submit()">
+            {% for ay in academic_years %}
+                <option value="{{ ay.id }}" {% if ay.id|stringformat:'s' == selected_year_id %}selected{% endif %}>
+                    {{ ay.name }}{% if ay.is_active %} (active){% endif %}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+</form>
+{% else %}
+<span class="text-muted small"><i class="fas fa-calendar-alt me-1"></i>No academic year configured</span>
+{% endif %}

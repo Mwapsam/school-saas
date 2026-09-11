@@ -1,0 +1,50 @@
+{% comment %}
+Pinewood form field — one consistent contract for every form input, so
+individual pages stop hand-rolling label/input/help-text/error markup.
+
+Usage:
+  {% include 'core/components/form_field.html' with name="name" label="Category name" required=True %}
+  {% include 'core/components/form_field.html' with name="notes" label="Notes" type="textarea" rows=3 %}
+  {% include 'core/components/form_field.html' with name="status" label="Status" type="select" options=status_options value=current_status %}
+  {% include 'core/components/form_field.html' with name="active" label="Active" type="checkbox" checked=True %}
+  {% include 'core/components/form_field.html' with name="email" label="Email" errors=form.email.errors %}
+
+Params:
+  name        (required) — input name/id
+  label       (optional) — field label (checkbox: rendered beside the box, not above)
+  type        (optional) — "text" (default) | "number" | "email" | "date" | "textarea" | "select" | "checkbox"
+  value       (optional) — current value
+  placeholder (optional)
+  required    (optional) — boolean
+  help_text   (optional) — small muted line under the field
+  errors      (optional) — list/iterable of error strings
+  options     (optional) — for type="select": list of {value, label} dicts
+  rows        (optional) — for type="textarea" (default 3)
+  checked     (optional) — for type="checkbox"
+  attrs       (optional) — raw extra attribute string, e.g. 'data-max="10"'
+{% endcomment %}
+<div class="pw-form-group">
+  {% if type != 'checkbox' and label %}
+  <label class="pw-form-label" for="{{ name }}">{{ label }}{% if required %} <span style="color:var(--p-danger)">*</span>{% endif %}</label>
+  {% endif %}
+
+  {% if type == 'textarea' %}
+    <textarea class="pw-form-control" id="{{ name }}" name="{{ name }}" rows="{{ rows|default:3 }}" placeholder="{{ placeholder }}" {% if required %}required{% endif %} {% if attrs %}{{ attrs|safe }}{% endif %}>{{ value }}</textarea>
+  {% elif type == 'select' %}
+    <select class="pw-form-control" id="{{ name }}" name="{{ name }}" {% if required %}required{% endif %} {% if attrs %}{{ attrs|safe }}{% endif %}>
+      {% for opt in options %}
+        <option value="{{ opt.value }}" {% if opt.value|stringformat:'s' == value|stringformat:'s' %}selected{% endif %}>{{ opt.label }}</option>
+      {% endfor %}
+    </select>
+  {% elif type == 'checkbox' %}
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" id="{{ name }}" name="{{ name }}" {% if checked %}checked{% endif %} {% if attrs %}{{ attrs|safe }}{% endif %}>
+      <label class="form-check-label pw-form-label" for="{{ name }}" style="margin-bottom:0">{{ label }}</label>
+    </div>
+  {% else %}
+    <input class="pw-form-control" type="{{ type|default:'text' }}" id="{{ name }}" name="{{ name }}" value="{{ value|default_if_none:'' }}" placeholder="{{ placeholder }}" {% if required %}required{% endif %} {% if attrs %}{{ attrs|safe }}{% endif %}>
+  {% endif %}
+
+  {% if help_text %}<div class="form-text" style="font-size:11px">{{ help_text }}</div>{% endif %}
+  {% for err in errors %}<div style="color:var(--p-danger);font-size:12px;margin-top:2px">{{ err }}</div>{% endfor %}
+</div>

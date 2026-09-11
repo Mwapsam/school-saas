@@ -1,0 +1,89 @@
+<script>
+(function () {
+  function csrftoken() {
+    var m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+  }
+  function contentEl(entity) {
+    return document.getElementById('transport-' + entity + '-content');
+  }
+  function modalEl(entity) {
+    return document.getElementById('transportModal-' + entity);
+  }
+  function showModal(entity) {
+    return bootstrap.Modal.getOrCreateInstance(modalEl(entity)).show();
+  }
+  function hideModal(entity) {
+    var inst = bootstrap.Modal.getInstance(modalEl(entity));
+    if (inst) inst.hide();
+  }
+  function formEl(entity) { return document.getElementById('tform-' + entity); }
+  function errEl(entity) { return document.querySelector('#tform-' + entity + ' .tform-error'); }
+
+  window.transportOpenAdd = function (entity) {
+    var f = formEl(entity);
+    f.reset();
+    f.querySelector('input[name="pk"]').value = '';
+    var err = errEl(entity); if (err) { err.textContent = ''; err.hidden = true; }
+    var t = document.querySelector('#transportModal-' + entity + ' .modal-title span');
+    if (t && t.dataset.addLabel) t.textContent = t.dataset.addLabel;
+    if (typeof window['transportModalReset_' + entity] === 'function') window['transportModalReset_' + entity]();
+    showModal(entity);
+  };
+
+  window.transportOpenEdit = function (btn) {
+    var entity = btn.dataset.entity;
+    var row = JSON.parse(btn.dataset.row || '{}');
+    var f = formEl(entity);
+    f.reset();
+    var err = errEl(entity); if (err) { err.textContent = ''; err.hidden = true; }
+    f.querySelector('input[name="pk"]').value = row.id || '';
+    Object.keys(row).forEach(function (k) {
+      var field = f.elements[k];
+      if (!field) return;
+      if (field.type === 'checkbox') field.checked = !!row[k];
+      else field.value = row[k] == null ? '' : row[k];
+    });
+    var t = document.querySelector('#transportModal-' + entity + ' .modal-title span');
+    if (t && t.dataset.editLabel) t.textContent = t.dataset.editLabel;
+    if (typeof window['transportModalEdit_' + entity] === 'function') window['transportModalEdit_' + entity](row);
+    showModal(entity);
+  };
+
+  window.transportSubmit = function (evt, entity) {
+    evt.preventDefault();
+    var f = formEl(entity);
+    var pk = f.querySelector('input[name="pk"]').value;
+    var action = pk ? 'update' : 'create';
+    var url = '/transport/' + entity + '/' + action + '/' + (pk ? pk + '/' : '');
+    fetch(url, { method: 'POST', headers: { 'X-CSRFToken': csrftoken() }, body: new FormData(f) })
+      .then(function (r) { return r.text().then(function (body) { return { ok: r.ok, body: body }; }); })
+      .then(function (res) {
+        if (res.ok) { contentEl(entity).innerHTML = res.body; hideModal(entity); }
+        else {
+          var msg = res.body;
+          try { var j = JSON.parse(res.body); msg = j.error || Object.values(j).flat().join(' '); } catch (e) {}
+          var err = errEl(entity);
+          if (err) { err.textContent = msg; err.hidden = false; }
+          else alert(msg);
+        }
+      });
+  };
+
+  window.transportAction = function (entity, action, pk, confirmMsg, extra) {
+    if (confirmMsg && !window.confirm(confirmMsg)) return;
+    var body = new FormData();
+    if (extra) Object.keys(extra).forEach(function (k) { body.append(k, extra[k]); });
+    fetch('/transport/' + entity + '/' + action + '/' + pk + '/',
+      { method: 'POST', headers: { 'X-CSRFToken': csrftoken() }, body: body })
+      .then(function (r) { return r.text().then(function (t) { return { ok: r.ok, body: t }; }); })
+      .then(function (res) {
+        if (res.ok) contentEl(entity).innerHTML = res.body;
+        else {
+          try { alert(JSON.parse(res.body).error || 'Action failed'); }
+          catch (e) { alert('Action failed'); }
+        }
+      });
+  };
+})();
+</script>

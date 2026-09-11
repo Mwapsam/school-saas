@@ -1,0 +1,484 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-file-pdf' back_url=back_url|default:back_fallback crumbs=crumbs %}
+<div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
+<button type="button" onclick="history.back()" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> Back
+</button>
+<a href="{% url 'core:report_template_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
+    <i class="fas fa-cog me-1"></i> Report Templates
+</a>
+<a href="{% url 'core:gradebook_management' %}" class="btn btn-outline-secondary btn-sm ms-2">
+    <i class="fas fa-book me-1"></i> Manage Gradebook
+</a>
+<a href="{% url 'core:comprehensive_reports' %}" class="btn btn-primary btn-sm ms-2">
+    <i class="fas fa-plus me-1"></i> Generate New
+</a>
+</div>
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Generated Reports{% endblock %}
+
+
+{% block layout_table %}
+<!-- Filters -->
+<form method="get" class="row g-2 mb-4 align-items-end">
+    <div class="col-md-3">
+        <label class="form-label small fw-medium">Academic Year</label>
+        <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">All years</option>
+            {% for y in academic_years %}
+            <option value="{{ y.id }}" {% if selected_year == y.id|stringformat:'s' %}selected{% endif %}>{{ y.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small fw-medium">Batch</label>
+        <select name="batch" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">All batches</option>
+            {% for b in batches %}
+            <option value="{{ b.id }}" {% if selected_batch == b.id|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small fw-medium">Exam Group</label>
+        <select name="exam_group" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">All exam groups</option>
+            {% for eg in exam_groups %}
+            <option value="{{ eg.id }}" {% if selected_eg == eg.id|stringformat:'s' %}selected{% endif %}>{{ eg.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label small fw-medium">Status</label>
+        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">All statuses</option>
+            {% for val, label in STATUS_CHOICES %}
+            <option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-1">
+        <a href="{% url 'core:generated_reports' %}" class="btn btn-outline-secondary btn-sm w-100">Clear</a>
+    </div>
+</form>
+
+<!-- Bulk action bar (hidden until rows are checked) -->
+<div id="bulkBar" class="d-none alert alert-secondary py-2 px-3 mb-2">
+    <div class="d-flex align-items-center gap-3">
+        <span class="small fw-medium" id="bulkCount">0 selected</span>
+        <button class="btn btn-sm btn-outline-danger ms-auto" onclick="bulkDownloadZip()">
+            <i class="fas fa-file-archive me-1"></i>Download ZIP
+        </button>
+        <button class="btn btn-sm btn-outline-danger" onclick="bulkDelete()">
+            <i class="fas fa-trash me-1"></i>Delete
+        </button>
+        <button class="btn btn-sm btn-link text-muted p-0" onclick="clearSelection()">Clear</button>
+    </div>
+    <div id="selectAllMatchingRow" class="small mt-1 d-none">
+        All <span id="pageSelectedCount">0</span> on this page selected.
+        <a href="#" id="selectAllMatchingLink" onclick="enableSelectAllMatching(event)">
+            Select all <span id="totalMatchingCount">{{ page_obj.paginator.count }}</span> reports in this filter
+        </a>
+        <span id="selectAllMatchingActive" class="fw-medium text-success d-none">
+            <i class="fas fa-check me-1"></i>All <span>{{ page_obj.paginator.count }}</span> matching reports selected.
+            <a href="#" onclick="clearSelection(); return false;">Clear</a>
+        </span>
+    </div>
+</div>
+{{ selected_batch|json_script:"filter-batch" }}
+{{ selected_eg|json_script:"filter-exam_group" }}
+{{ selected_status|json_script:"filter-status" }}
+{{ selected_year|json_script:"filter-year" }}
+
+<!-- Reports table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-medium">
+            <i class="fas fa-file-pdf text-danger me-1"></i>
+            Generated Reports
+            <span class="badge bg-secondary ms-1">{{ page_obj.paginator.count }}</span>
+        </span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:36px">
+                            <input type="checkbox" id="selectAll" title="Select all on this page">
+                        </th>
+                        <th>Student</th>
+                        <th>Exam Group</th>
+                        <th>Batch</th>
+                        <th>Template</th>
+                        <th>Generated</th>
+                        <th>Status</th>
+                        <th class="text-center">Download</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in reports %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" class="report-cb" value="{{ r.id }}"
+                                   {% if r.generation_status == 'completed' %}data-completed="1"{% endif %}
+                                   onchange="updateBulkBar()">
+                        </td>
+                        <td class="fw-medium">{{ r.student.full_name }}<br>
+                            <small class="text-muted">{{ r.student.admission_no }}</small>
+                        </td>
+                        <td class="small">{{ r.exam_group.name }}</td>
+                        <td class="small text-muted">{{ r.exam_group.batch.name }}</td>
+                        <td class="small text-muted">{{ r.template.name }}</td>
+                        <td class="small text-muted">
+                            {% if r.generation_completed_at %}
+                                {{ r.generation_completed_at|date:"d M Y, g:i A" }}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if r.generation_status == 'completed' %}
+                            <span class="badge bg-success"><i class="fas fa-check me-1"></i>Ready</span>
+                            {% elif r.generation_status == 'generating' %}
+                            <span class="badge bg-primary">
+                                <span class="spinner-border spinner-border-sm me-1" style="width:.6rem;height:.6rem;"></span>
+                                Generating
+                            </span>
+                            {% elif r.generation_status == 'failed' %}
+                            <span class="badge bg-danger" title="{{ r.generation_error }}">
+                                <i class="fas fa-times me-1"></i>Failed
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if r.generation_status == 'completed' and r.pdf_file_path %}
+                            <a href="{{ r.pdf_url }}" target="_blank"
+                               class="btn btn-sm btn-outline-danger" title="Download PDF">
+                                <i class="fas fa-download"></i>
+                            </a>
+                            {% elif r.generation_status == 'failed' %}
+                            <button class="btn btn-sm btn-outline-warning"
+                                    onclick="regenerateReport('{{ r.exam_group.id }}','{{ r.exam_group.batch.id }}')"
+                                    title="Retry generation">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-5">
+                            <i class="fas fa-file-pdf fa-3x opacity-25 mb-3 d-block text-danger"></i>
+                            No reports generated yet.
+                            <a href="{% url 'core:comprehensive_reports' %}">Generate your first report</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<nav class="mt-3">
+    <ul class="pagination pagination-sm justify-content-center mb-0">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_batch %}&batch={{ selected_batch }}{% endif %}{% if selected_eg %}&exam_group={{ selected_eg }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}">‹</a>
+        </li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ num }}{% if selected_batch %}&batch={{ selected_batch }}{% endif %}{% if selected_eg %}&exam_group={{ selected_eg }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}">{{ num }}</a>
+            </li>
+            {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_batch %}&batch={{ selected_batch }}{% endif %}{% if selected_eg %}&exam_group={{ selected_eg }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}">›</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- Reuse the modals from exam group page -->
+<div class="modal fade" id="generatingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-primary mb-3" style="width:3rem;height:3rem;"></div>
+                <h6 class="fw-semibold mb-1">Regenerating report…</h6>
+                <div class="progress mt-2" style="height:6px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                         id="regen-bar" style="width:30%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="regenResultModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" id="regen-result-header">
+                <h6 class="modal-title mb-0" id="regen-result-title"></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="regen-result-body"></div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ZIP build progress -->
+<div class="modal fade" id="zipProgressModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body text-center py-4">
+                <i class="fas fa-file-archive fa-2x text-danger mb-3"></i>
+                <h6 class="fw-semibold mb-1">Building ZIP…</h6>
+                <div class="small text-muted mb-2" id="zip-progress-label">Queued…</div>
+                <div class="progress" style="height:6px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-danger"
+                         id="zip-progress-bar" style="width:0%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = document.cookie.split(';').reduce((v,c)=>{const[k,val]=c.trim().split('=');return k==='csrftoken'?decodeURIComponent(val):v;},'');
+const regenModal  = new bootstrap.Modal(document.getElementById('generatingModal'));
+const resultModal = new bootstrap.Modal(document.getElementById('regenResultModal'));
+
+// ── Select-all + bulk action bar ────────────────────────────────────
+const REPORT_FILTERS = {
+    batch:      JSON.parse(document.getElementById('filter-batch').textContent || 'null'),
+    exam_group: JSON.parse(document.getElementById('filter-exam_group').textContent || 'null'),
+    status:     JSON.parse(document.getElementById('filter-status').textContent || 'null'),
+    year:       JSON.parse(document.getElementById('filter-year').textContent || 'null'),
+};
+const TOTAL_MATCHING = parseInt(document.getElementById('totalMatchingCount').textContent, 10) || 0;
+let selectAllMatching = false;
+
+document.getElementById('selectAll').addEventListener('change', function() {
+    document.querySelectorAll('.report-cb').forEach(cb => { cb.checked = this.checked; });
+    if (!this.checked) selectAllMatching = false;
+    updateBulkBar();
+});
+
+function selectedIds() {
+    return Array.from(document.querySelectorAll('.report-cb:checked')).map(cb => cb.value);
+}
+
+function enableSelectAllMatching(e) {
+    e.preventDefault();
+    selectAllMatching = true;
+    updateBulkBar();
+}
+
+function updateBulkBar() {
+    const ids = selectedIds();
+    const pageTotal = document.querySelectorAll('.report-cb').length;
+    const bar = document.getElementById('bulkBar');
+    const matchingRow = document.getElementById('selectAllMatchingRow');
+    const matchingLink = document.getElementById('selectAllMatchingLink');
+    const matchingActive = document.getElementById('selectAllMatchingActive');
+
+    if (selectAllMatching) {
+        document.getElementById('bulkCount').textContent = `${TOTAL_MATCHING} selected (all matching filter)`;
+    } else {
+        document.getElementById('bulkCount').textContent = `${ids.length} selected`;
+    }
+
+    bar.classList.toggle('d-none', ids.length === 0 && !selectAllMatching);
+
+    // Offer "select all matching" only when the whole page is checked and more rows exist elsewhere.
+    const wholePageChecked = pageTotal > 0 && ids.length === pageTotal;
+    if (wholePageChecked && TOTAL_MATCHING > pageTotal) {
+        matchingRow.classList.remove('d-none');
+        document.getElementById('pageSelectedCount').textContent = pageTotal;
+        matchingLink.classList.toggle('d-none', selectAllMatching);
+        matchingActive.classList.toggle('d-none', !selectAllMatching);
+    } else {
+        matchingRow.classList.add('d-none');
+    }
+}
+
+function clearSelection() {
+    selectAllMatching = false;
+    document.querySelectorAll('.report-cb, #selectAll').forEach(cb => { cb.checked = false; });
+    updateBulkBar();
+    return false;
+}
+
+function bulkDelete() {
+    const ids = selectedIds();
+    if (!ids.length) return;
+    showDanger(`Delete ${ids.length} report(s)? This cannot be undone.`, function () {
+        fetch('/api/reports/bulk-delete/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+            body: JSON.stringify({report_ids: ids})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) location.reload();
+            else showToast(data.error || 'Delete failed', 'danger');
+        });
+    }, {heading: 'Delete reports'});
+}
+
+const zipProgressModal = new bootstrap.Modal(document.getElementById('zipProgressModal'));
+
+function setZipProgress(pct, label) {
+    const bar = document.getElementById('zip-progress-bar');
+    bar.style.width = `${pct}%`;
+    if (label !== undefined) document.getElementById('zip-progress-label').textContent = label;
+}
+
+function bulkDownloadZip() {
+    let payload;
+
+    if (selectAllMatching) {
+        payload = {filters: REPORT_FILTERS};
+    } else {
+        const ids = selectedIds().filter(id => {
+            const cb = document.querySelector(`.report-cb[value="${id}"]`);
+            return cb && cb.dataset.completed === '1';
+        });
+        if (!ids.length) {
+            showToast('Select at least one completed report to download.', 'warning');
+            return;
+        }
+        payload = {report_ids: ids};
+    }
+
+    setZipProgress(0, 'Queued…');
+    zipProgressModal.show();
+
+    // Enqueue the ZIP build job
+    fetch('/api/reports/zip-enqueue/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+        body: JSON.stringify(payload)
+    })
+    .then(r => {
+        if (!r.ok) return r.json().then(d => { throw new Error(d.error || 'Server error'); });
+        return r.json();
+    })
+    .then(data => {
+        if (!data.success) throw new Error(data.error || 'Failed to enqueue job');
+        startZipPolling(data.job_id);
+    })
+    .catch(err => {
+        zipProgressModal.hide();
+        showToast('Download failed: ' + err.message, 'danger');
+    });
+}
+
+function startZipPolling(jobId) {
+    const pollUrl = `/api/reports/zip-status/${jobId}/`;
+    const downloadUrl = `/api/reports/zip-download/${jobId}/`;
+    let delay = 1000; // Start with 1s
+
+    function poll() {
+        fetch(pollUrl, {headers: {'X-CSRFToken': CSRF}})
+        .then(r => {
+            if (!r.ok) throw new Error('Poll failed');
+            return r.json();
+        })
+        .then(data => {
+            const pct = data.pct || 0;
+            setZipProgress(pct, `${data.processed_reports || 0} of ${data.total_reports || 0} reports…`);
+
+            if (data.status === 'completed') {
+                setZipProgress(100, 'Done');
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = 'reports.zip';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                zipProgressModal.hide();
+                showToast('ZIP downloaded successfully', 'success');
+                return;
+            }
+
+            if (data.status === 'failed') {
+                zipProgressModal.hide();
+                showToast('ZIP build failed: ' + (data.error || 'Unknown error'), 'danger');
+                return;
+            }
+
+            // Still processing — poll again with backoff (cap at 10s)
+            delay = Math.min(delay * 1.5, 10000);
+            setTimeout(poll, delay);
+        })
+        .catch(err => {
+            zipProgressModal.hide();
+            showToast('Polling error: ' + err.message, 'danger');
+        });
+    }
+
+    poll();
+}
+
+function regenerateReport(examGroupId, batchId) {
+    regenModal.show();
+    fetch(`/api/reports/generate-batch-reports/${examGroupId}/${batchId}/`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRFToken':CSRF}
+    })
+    .then(r => r.json())
+    .then(data => {
+        regenModal.hide();
+        const header = document.getElementById('regen-result-header');
+        const title  = document.getElementById('regen-result-title');
+        const body   = document.getElementById('regen-result-body');
+        if (data.success) {
+            header.className = 'modal-header pw-brand';
+            title.textContent = 'Reports Regenerated';
+            let html = '<div class="list-group">';
+            (data.generated_reports || []).forEach(r => {
+                html += `<a href="${r.report_url}" target="_blank" class="list-group-item list-group-item-action">
+                           <i class="fas fa-file-pdf text-danger me-2"></i>${r.student_name}
+                           <small class="float-end text-muted">Download</small>
+                         </a>`;
+            });
+            html += '</div>';
+            body.innerHTML = html;
+        } else {
+            header.className = 'modal-header pw-danger';
+            title.textContent = 'Generation Failed';
+            body.textContent = data.error || 'Unknown error';
+        }
+        resultModal.show();
+        setTimeout(() => location.reload(), 3000);
+    })
+    .catch(err => {
+        regenModal.hide();
+        showToast(err.message, 'danger');
+    });
+}
+</script>
+{% endblock %}

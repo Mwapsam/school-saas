@@ -1,0 +1,1675 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block page_title %}Pinewood School Management{% endblock %}</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/logo.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/logo.png' %}">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <!-- Font Awesome Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
+
+    <!-- Pinewood UI — shared design system (green/white/black) -->
+    <link href="{% static 'css/pinewood-ui.css' %}" rel="stylesheet">
+
+    <!-- Base Fedena-style CSS -->
+    <style>
+        /* Design tokens (--color-*, --p-*, --font-*, --radius-*) now live
+           solely in static/css/pinewood-ui.css (Phase 0 CSS consolidation) —
+           do not redeclare :root here. Every var(...) usage below carries a
+           hardcoded fallback matching pinewood-ui.css's current :root values,
+           so the header/nav degrade to the correct color instead of going
+           transparent if that stylesheet is ever served stale or fails to
+           load (e.g. a CDN cache not yet invalidated after a token change). */
+
+        /* ── Typography ─────────────────────────────────────────────── */
+        body {
+            font-family: var(--font-body, 'Trebuchet MS', 'Helvetica Neue', sans-serif);
+            font-size: 14px;
+            color: var(--color-text, #1a1a1a);
+        }
+
+        p, span, div, td, li, label,
+        .form-control, .btn, .card-text, .small,
+        input, textarea, select {
+            font-size: 14px;
+        }
+
+        /* 16px on mobile prevents iOS auto-zoom on focus */
+        @media (max-width: 767px) {
+            input, textarea, select, .form-control, .form-select {
+                font-size: 16px;
+            }
+        }
+
+        /* Heading scale — institutional serif for weight, semantic hierarchy preserved */
+        h1, h2, h3 { font-family: var(--font-heading, 'Georgia', 'Times New Roman', serif); }
+        h1 { font-size: 1.75rem; font-weight: 700; color: var(--color-text, #1a1a1a); margin-top: 20px; }
+        h2 { font-size: 1.5rem;  font-weight: 700; color: var(--color-text, #1a1a1a); }
+        h3 { font-size: 1.25rem; font-weight: 700; color: #333; }
+        h4 { font-size: 1.1rem;  font-weight: 600; color: #444; }
+        h5 { font-size: 1rem;    font-weight: 600; color: #444; }
+        h6 { font-size: 0.9rem;  font-weight: 600; color: #444; }
+
+        /* Card / modal titles stay compact */
+        .card-title, .modal-title, .section-title,
+        .term-title, .plan-title, .page-title,
+        .menu-card h3 {
+            font-weight: 600;
+            color: #444;
+        }
+
+        .white { color: white !important; }
+
+        .btn-outline-primary, .btn-outline-secondary,
+        .btn-outline-success, .btn-outline-danger {
+            color: #444 !important;
+        }
+
+        /* Navigation / header: slightly smaller copy */
+        .navbar, .navbar *,
+        .fedena-header, .fedena-header *,
+        .header-brand,
+        .dropdown-menu, .dropdown-menu * {
+            font-size: 13px;
+        }
+
+        /* Table headers */
+        .table th {
+            color: #444;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .nav-link {
+            color: var(--color-brand-dark, #145f2e)
+        }
+
+        .nav-link:hover, .nav-link:focus {
+            color: var(--color-brand-bg, #e8f5ed);
+        }
+
+        /* Muted text — darkened to meet WCAG AA at 14px */
+        .text-muted, .form-text, .small { color: var(--color-muted, #555) !important; }
+
+        body {
+            background-color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Header Styles */
+        .fedena-header {
+            color: white;
+            padding: 8px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            /* Use the Pinewood brand green, not Bootstrap's bg-success */
+            background-color: var(--color-brand, #1a7a3c) !important;
+        }
+        .header-brand { font-family: var(--font-heading, 'Georgia', 'Times New Roman', serif); }
+
+        .dropdown-toggle {
+            text-decoration: none;
+        }
+
+        .dropdown-toggle::after {
+            display: none;
+        }
+        
+        .header-brand {
+            font-size: 13px;
+            text-decoration: none;
+            color: white;
+            font-family: 'Times New Roman', Times, serif;
+        }
+        
+        .header-search {
+            max-width: 300px;
+            background-color: #fff;
+        }
+        
+        .header-search input {
+            border: none;
+            border-radius: 0;
+            padding: 5px 15px;
+            font-size: 0.9rem;
+        }
+        
+        .header-icons {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header-icon {
+            color: white;
+            font-size: 1.1rem;
+            text-decoration: none;
+            position: relative;
+        }
+
+        .header-card {
+                max-width: 1000px;
+    margin: 0 auto;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #dc3545;
+            color: white;
+            border-radius: 0;
+            width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        
+        /* Main Content */
+        .main-content {
+            /* background: white; */
+            min-height: calc(100vh - 120px);
+            padding: 20px;
+            max-width: 1000px;
+            margin: 20px auto;
+        }
+        
+        .htmx-indicator { display: none; }
+        .htmx-request .htmx-indicator { display: inline; }
+        
+        .loading-spinner {
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--color-brand, #1a7a3c);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* ── Sharp-corner design — applied only to UI shell components ── */
+        .btn,
+        .form-control,
+        .form-select,
+        .input-group-text,
+        .card,
+        .alert,
+        .modal-content,
+        .dropdown-menu,
+        .nav-tabs .nav-link,
+        .pagination .page-link,
+        .toast,
+        .progress,
+        .list-group-item {
+            border-radius: 0;
+            padding: 1rem;
+        }
+
+        /* Badge keeps a tiny radius for readability */
+        .badge { border-radius: 2px; }
+
+        .btn-group .btn:first-child,
+        .btn-group .btn:last-child,
+        .btn-group .btn:not(:first-child):not(:last-child),
+        .input-group .form-control:first-child,
+        .input-group .form-control:last-child,
+        .input-group-text:first-child,
+        .input-group-text:last-child {
+            border-radius: 0;
+        }
+
+        .topbar-icon {
+            width: 28px;
+            height: 28px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: var(--p-radius-sm, 2px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        
+        /* Dropdown Menu Styles */
+        .dropdown-menu-large {
+            min-width: 800px;
+            max-width: 900px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .quick-links-nav-dropdown {
+            background: var(--color-brand, #1a7a3c);
+        }
+        
+        .quick-links-content-dropdown {
+            background: white;
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .quick-links-grid-dropdown {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        
+        .quick-link-item-dropdown {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            text-decoration: none;
+            color: #495057;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+        
+        .quick-link-item-dropdown:hover {
+            background: var(--color-brand-bg, #e8f5ed);
+            color: var(--color-text, #1a1a1a);
+            box-shadow: none;   /* remove the shadow — not part of the 3-color system */
+        }
+        
+        .quick-link-item-dropdown.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: #f1f3f4;
+        }
+        
+        .quick-link-item-dropdown.disabled:hover {
+            background-color: #f1f3f4;
+            box-shadow: none;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header-search { display: none; }
+            .dropdown-menu-large {
+                min-width: 95vw;
+                max-width: 95vw;
+                left: 2.5vw !important;
+                right: 2.5vw !important;
+            }
+            .quick-links-grid-dropdown {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+            .quick-link-item-dropdown {
+                font-size: 0.8rem;
+                padding: 6px 10px;
+            }
+            .nav-tabs-fedena .nav-link {
+                padding: 8px 12px;
+                font-size: 0.75rem;
+            }
+            .header-brand {
+                font-size: 11px;
+            }
+            .header-icons {
+                gap: 10px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .dropdown-menu-large {
+                min-width: 100vw;
+                max-width: 100vw;
+                left: 0 !important;
+                right: 0 !important;
+                margin: 0;
+                border-radius: 0;
+            }
+            .quick-links-grid-dropdown {
+                grid-template-columns: 1fr;
+                gap: 4px;
+            }
+            .quick-link-item-dropdown {
+                font-size: 0.75rem;
+                padding: 8px 12px;
+            }
+            .main-content {
+                padding: 10px;
+                margin: 10px auto;
+            }
+        }
+
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--p-radius, 4px); font-family: var(--p-font-ui, 'Trebuchet MS', 'Helvetica Neue', sans-serif); font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: background 0.15s, transform 0.1s; text-decoration: none; }
+        .btn:active { transform: scale(0.98); }
+
+        .btn-danger {
+            background: var(--p-white, #ffffff);
+            color: #c0392b;
+            border: 1px solid #c0392b;
+        }
+
+        .btn-danger:hover {
+            background: #fdf0ef;
+            color: #c0392b;
+            border: 1px solid #c0392b;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        /* ── Primary button — brand green ───────────────────────────── */
+        .btn-primary {
+            background-color: var(--color-brand, #1a7a3c);
+            border-color: var(--color-brand, #1a7a3c);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--color-brand-dark, #145f2e);
+            border-color: var(--color-brand-dark, #145f2e);
+            color: #ffffff;
+        }
+
+        .btn-primary:focus, .btn-primary.focus {
+            background-color: var(--color-brand, #1a7a3c);
+            border-color: var(--color-brand, #1a7a3c);
+            color: #ffffff;
+            box-shadow: 0 0 0 0.2rem rgba(23, 131, 63, 0.35);
+        }
+
+        .btn-primary:active, .btn-primary.active,
+        .show > .btn-primary.dropdown-toggle {
+            background-color: var(--color-brand-dark, #145f2e);
+            border-color: var(--color-brand-dark, #145f2e);
+            color: #ffffff;
+        }
+
+        .btn-outline-primary {
+            color: var(--color-brand, #1a7a3c);
+            border-color: var(--color-brand, #1a7a3c);
+        }
+
+        .btn-outline-primary:hover {
+            color: #ffffff;
+            background-color: var(--color-brand, #1a7a3c);
+            border-color: var(--color-brand, #1a7a3c);
+        }
+
+        .btn-outline-primary:focus, .btn-outline-primary.focus {
+            box-shadow: 0 0 0 0.2rem rgba(23, 131, 63, 0.35);
+        }
+
+        .btn-outline-primary:active, .btn-outline-primary.active,
+        .show > .btn-outline-primary.dropdown-toggle {
+            color: #ffffff;
+            background-color: var(--color-brand, #1a7a3c);
+            border-color: var(--color-brand, #1a7a3c);
+        }
+
+        /* ── Flyout submenus (Gradebook & Settings) — Alpine.js controlled ── */
+        /* Shared submenu trigger */
+        .flyout-trigger {
+            cursor: pointer;
+            position: relative;
+            overflow: visible;
+        }
+
+        /* Shared submenu panel */
+        .flyout-submenu {
+            position: absolute;
+            left: calc(100% - 2px);
+            top: 0;
+            min-width: 220px;
+            background: white;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            z-index: 1050;
+            flex-direction: column;
+            white-space: nowrap;
+        }
+
+        /* Invisible bridge prevents gap-triggered close on mouse */
+        .flyout-submenu::before {
+            content: '';
+            position: absolute;
+            left: -5px;
+            top: 0;
+            width: 7px;
+            height: 100%;
+            background: transparent;
+        }
+
+        .flyout-submenu-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            text-decoration: none;
+            color: #495057;
+            border-bottom: 1px solid #f1f3f4;
+            font-size: 0.9rem;
+            transition: background-color 0.15s ease;
+            background: white;
+        }
+
+        .flyout-submenu-item:hover,
+        .flyout-submenu-item:focus {
+            background-color: var(--color-brand-bg, #e8f5ed);
+            color: #495057;
+            text-decoration: none;
+            outline: none;
+        }
+
+        .flyout-submenu-item:last-child { border-bottom: none; }
+
+        .flyout-submenu-item i {
+            margin-right: 10px;
+            width: 18px;
+            text-align: center;
+            color: var(--color-muted, #555);
+            flex-shrink: 0;
+        }
+
+        /* Ensure parent containers allow overflow */
+        .dropdown-menu-large,
+        .quick-links-content-dropdown,
+        .quick-links-grid-dropdown {
+            overflow: visible;
+        }
+
+        /* Prevent Alpine.js x-cloak flash */
+        [x-cloak] { display: none !important; }
+
+        .quick-link-icon {
+            color: var(--color-brand, #1a7a3c);
+            width: 16px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        /* Add to pinewood-ui.css */
+        .quick-links-nav-dropdown .nav-link {
+            color: rgba(255,255,255,0.75);
+            border-radius: 0;
+            border: none;
+            padding: 10px 14px;
+            font-size: 13px;
+        }
+        .quick-links-nav-dropdown .nav-link.active,
+        .quick-links-nav-dropdown .nav-link:hover {
+            color: #fff;
+            background: rgba(255,255,255,0.15);
+        }
+
+
+        /* ── Feedback Modal ── */
+        .pw-modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 1080;
+            align-items: center;
+            justify-content: center;
+        }
+        .pw-modal-backdrop.show { display: flex; }
+        .pw-modal {
+            background: #fff;
+            width: 100%;
+            max-width: 420px;
+            border: 0.5px solid #e0e0e0;
+            border-radius: 0;
+        }
+        .pw-modal-header {
+            background: var(--color-brand, #1a7a3c);
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .pw-modal-header.danger { background: var(--color-danger, #c0392b); }
+        .pw-modal-title { color: #fff; font-family: var(--font-heading, 'Georgia', 'Times New Roman', serif); font-size: 15px; font-weight: 700; }
+        .pw-modal-close { background: none; border: none; color: rgba(255,255,255,0.75); font-size: 20px; cursor: pointer; line-height: 1; }
+        .pw-modal-close:hover { color: #fff; }
+
+        /* Bootstrap modal-header colour variants — used across all sections */
+        .modal-header.pw-brand  { background: var(--color-brand, #1a7a3c);  color: #fff; }
+        .modal-header.pw-danger { background: var(--color-danger, #c0392b);  color: #fff; }
+        .modal-header.pw-warn   { background: var(--p-warning, #f57c00); color: #fff; }
+        .modal-header.pw-brand .btn-close,
+        .modal-header.pw-danger .btn-close,
+        .modal-header.pw-warn .btn-close  { filter: invert(1) grayscale(100%) brightness(200%); }
+        .pw-modal-body { padding: 20px 18px 12px; text-align: center; }
+        .pw-modal-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 20px; }
+        .pw-modal-icon.success { background: var(--color-brand-bg, #e8f5ed); color: var(--color-brand, #1a7a3c); }
+        .pw-modal-icon.warning { background: #fff8e1; color: #f57c00; }
+        .pw-modal-icon.danger  { background: #fdf0ef; color: var(--color-danger, #c0392b); }
+        .pw-modal-heading { font-weight: 600; font-size: 14px; margin-bottom: 6px; color: var(--color-text, #1a1a1a); }
+        .pw-modal-message { font-size: 13px; color: var(--color-muted, #555); line-height: 1.6; margin-bottom: 0; }
+        .pw-modal-footer { padding: 12px 18px; border-top: 0.5px solid #e0e0e0; display: flex; justify-content: flex-end; gap: 8px; }
+        .pw-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 0; font-family: var(--font-body, 'Trebuchet MS', 'Helvetica Neue', sans-serif); font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: background 0.15s; }
+        .pw-btn-primary { background: var(--color-brand, #1a7a3c); color: #fff; }
+        .pw-btn-primary:hover { background: var(--color-brand-dark, #145f2e); }
+        .pw-btn-outline { background: #fff; color: var(--color-brand, #1a7a3c); border: 1px solid var(--color-brand, #1a7a3c); }
+        .pw-btn-outline:hover { background: var(--color-brand-bg, #e8f5ed); }
+        .pw-btn-danger { background: #fff; color: var(--color-danger, #c0392b); border: 1px solid var(--color-danger, #c0392b); }
+        .pw-btn-danger:hover { background: #fdf0ef; }
+        .pw-btn-sm { padding: 5px 12px; font-size: 12px; }
+
+        /* ── Inline alert strips ── */
+        .pw-alert { display: flex; align-items: center; gap: 10px; padding: 10px 14px; font-size: 13px; border-left: 3px solid; }
+        .pw-alert-success { background: var(--color-brand-bg, #e8f5ed); border-color: var(--color-brand, #1a7a3c); color: var(--color-brand, #1a7a3c); }
+        .pw-alert-warning  { background: #fff8e1; border-color: #f57c00; color: #7a4100; }
+        .pw-alert-error,
+        .pw-alert-danger   { background: #fdf0ef; border-color: var(--color-danger, #c0392b); color: #7b1a12; }
+        .pw-alert-info     { background: #e8f0fe; border-color: #1967d2; color: #1967d2; }
+        .pw-alert .btn-close { margin-left: auto; }
+
+        /* ── Command Palette ──────────────────────────────────────────── */
+        #pw-palette-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 9000;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 80px;
+        }
+        #pw-palette-backdrop.open { display: flex; }
+
+        #pw-palette {
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 0;
+            width: 100%;
+            max-width: 580px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+            overflow: hidden;
+            max-height: calc(100vh - 120px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #pw-palette-input-wrap {
+            display: flex;
+            align-items: center;
+            padding: 0 14px;
+            border-bottom: 2px solid var(--color-brand, #1a7a3c);
+            gap: 10px;
+        }
+        #pw-palette-input-wrap i { color: var(--color-brand, #1a7a3c); font-size: 15px; flex-shrink: 0; }
+        #pw-palette-input {
+            border: none;
+            outline: none;
+            font-size: 15px;
+            padding: 14px 4px;
+            flex: 1;
+            font-family: var(--font-body, 'Trebuchet MS', 'Helvetica Neue', sans-serif);
+            background: transparent;
+            color: var(--color-text, #1a1a1a);
+        }
+        #pw-palette-input::placeholder { color: #aaa; }
+        #pw-palette-kbd-hint {
+            font-size: 11px;
+            color: #999;
+            white-space: nowrap;
+            border: 1px solid #ddd;
+            padding: 2px 6px;
+            background: #f5f5f5;
+            font-family: monospace;
+        }
+
+        #pw-palette-results {
+            overflow-y: auto;
+            max-height: calc(100vh - 220px);
+        }
+        #pw-palette-results:empty::after {
+            content: 'No results';
+            display: block;
+            text-align: center;
+            padding: 28px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .pw-pal-group-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--color-muted, #555);
+            padding: 10px 16px 4px;
+            background: #f8f8f8;
+            border-bottom: 1px solid #eee;
+        }
+
+        .pw-pal-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            text-decoration: none;
+            color: var(--color-text, #1a1a1a);
+            transition: background 0.1s;
+        }
+        .pw-pal-item:hover,
+        .pw-pal-item.active {
+            background: var(--color-brand-bg, #e8f5ed);
+            color: var(--color-text, #1a1a1a);
+        }
+        .pw-pal-item.active { border-left: 3px solid var(--color-brand, #1a7a3c); padding-left: 13px; }
+        .pw-pal-item:last-child { border-bottom: none; }
+
+        .pw-pal-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 0;
+            background: var(--color-brand-bg, #e8f5ed);
+            color: var(--color-brand, #1a7a3c);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+        .pw-pal-item.active .pw-pal-icon { background: var(--color-brand, #1a7a3c); color: #fff; }
+
+        .pw-pal-text { display: flex; flex-direction: column; }
+        .pw-pal-title { font-size: 13px; font-weight: 600; }
+        .pw-pal-desc  { font-size: 11px; color: var(--color-muted, #555); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .pw-pal-enter-hint {
+            font-size: 11px;
+            color: #bbb;
+            border: 1px solid #e0e0e0;
+            padding: 2px 6px;
+            background: #fafafa;
+            font-family: monospace;
+            flex-shrink: 0;
+            display: none;
+        }
+        .pw-pal-item.active .pw-pal-enter-hint { display: inline; }
+
+        #pw-palette-footer {
+            border-top: 1px solid #eee;
+            padding: 7px 16px;
+            display: flex;
+            gap: 16px;
+            font-size: 11px;
+            color: #aaa;
+            background: #fafafa;
+        }
+        #pw-palette-footer kbd {
+            font-family: monospace;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            padding: 1px 5px;
+            font-size: 10px;
+        }
+
+        /* Header search trigger */
+        .pw-search-trigger {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 12px;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            cursor: pointer;
+            color: rgba(255,255,255,0.85);
+            font-size: 13px;
+            font-family: var(--font-body, 'Trebuchet MS', 'Helvetica Neue', sans-serif);
+            transition: background 0.15s;
+            white-space: nowrap;
+            min-width: 200px;
+        }
+        .pw-search-trigger:hover { background: rgba(255,255,255,0.25); color: #fff; }
+        .pw-search-trigger i { font-size: 12px; }
+        .pw-search-trigger .pw-search-shortcut {
+            margin-left: auto;
+            font-size: 10px;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 1px 5px;
+            font-family: monospace;
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Skip navigation for keyboard / screen-reader users -->
+    <a href="#main-content" class="visually-hidden focusable position-absolute top-0 start-0 p-2 bg-white text-dark fw-semibold" style="z-index:9999">
+        Skip to main content
+    </a>
+
+    <!-- Fedena-style Header -->
+    <header class="fedena-header">
+        <div class="container">
+            <div class="row align-items-center header-card">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center">
+                        <div class="dropdown">
+                            <button class="btn btn-link text-white me-3 p-1 dropdown-toggle" type="button" id="menuDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Main navigation menu">
+                                <div class="topbar-icon" style="gap:3px; flex-direction:column; padding:6px;">
+                                    <div style="height:2px;width:14px;background:#fff;border-radius:1px"></div>
+                                    <div style="height:2px;width:14px;background:#fff;border-radius:1px"></div>
+                                    <div style="height:2px;width:14px;background:#fff;border-radius:1px"></div>
+                                </div>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-large p-0" aria-labelledby="menuDropdown">
+                                <!-- Navigation Tabs -->
+                                <div class="quick-links-nav-dropdown">
+                                    <ul class="nav nav-tabs nav-tabs-fedena" id="quickLinksTabsDropdown">
+                                        <li class="nav-item">
+                                            <a class="nav-link active" data-bs-toggle="tab" href="#quickLinksDropdown">Quick Links</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" data-bs-toggle="tab" href="#studentsDropdown">{{ terms.student_plural }}</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" data-bs-toggle="tab" href="#academicsDropdown">Academics</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" data-bs-toggle="tab" href="#gradebookDropdown">Gradebook</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" data-bs-toggle="tab" href="#financeDropdown">Finance</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" data-bs-toggle="tab" href="#humanResourcesDropdown">HR</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" data-bs-toggle="tab" href="#administrationDropdown">Administration</a>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <!-- Tab Content -->
+                                <div class="quick-links-content-dropdown">
+                                    <div class="tab-content">
+
+                                        <!-- Quick Links Tab -->
+                                        <div class="tab-pane fade show active" id="quickLinksDropdown">
+                                            <div class="quick-links-grid-dropdown">
+                                                <a href="{% url 'core:dashboard' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-home quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Dashboard
+                                                </a>
+                                                <a href="{% url 'core:student_list' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-user-graduate quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    {{ terms.student_plural }}
+                                                </a>
+                                                <a href="{% url 'core:admission_dashboard' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-user-plus quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Admission
+                                                </a>
+                                                <a href="{% url 'core:attendance_dashboard' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-check-square quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Attendance
+                                                </a>
+                                                <a href="{% url 'core:timetable_list' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-calendar-alt quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Timetable
+                                                </a>
+                                                <a href="{% url 'core:gradebook_index' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-book quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Gradebook
+                                                </a>
+                                                <a href="{% url 'core:finance_dashboard' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-money-bill-wave quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Finance
+                                                </a>
+                                                <a href="{% url 'core:news' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-newspaper quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    News
+                                                </a>
+                                                <a href="{% url 'core:communication' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-comments quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Communication
+                                                </a>
+                                                <div class="quick-link-item-dropdown position-relative flyout-trigger"
+                                                     x-data="{ open: false }"
+                                                     @mouseenter="open = true"
+                                                     @mouseleave="open = false"
+                                                     @keydown.escape="open = false"
+                                                     role="button" tabindex="0"
+                                                     aria-haspopup="true" :aria-expanded="open"
+                                                     @click="open = !open"
+                                                     @keydown.enter.prevent="open = !open">
+                                                    <i class="fas fa-cog quick-link-icon" style="color:var(--color-muted, #555)" aria-hidden="true"></i>
+                                                    Settings
+                                                    <i class="fas fa-chevron-right ms-auto small" aria-hidden="true"></i>
+                                                    <div class="flyout-submenu" x-show="open" x-cloak role="menu">
+                                                        <a href="{% url 'core:configuration' %}" class="flyout-submenu-item" role="menuitem">
+                                                            <i class="fas fa-cog" aria-hidden="true"></i>Configuration
+                                                        </a>
+                                                        <a href="{% url 'core:manage_class_batch' %}" class="flyout-submenu-item" role="menuitem">
+                                                            <i class="fas fa-layer-group" aria-hidden="true"></i>Class &amp; Batch
+                                                        </a>
+                                                        <a href="{% url 'core:academic_year_list' %}" class="flyout-submenu-item" role="menuitem">
+                                                            <i class="fas fa-calendar-alt" aria-hidden="true"></i>Academic Years
+                                                        </a>
+                                                        <a href="{% url 'core:school_settings' %}" class="flyout-submenu-item" role="menuitem">
+                                                            <i class="fas fa-school" aria-hidden="true"></i>School Settings
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Students Tab -->
+                                        <div class="tab-pane fade" id="studentsDropdown">
+                                            <div class="quick-links-grid-dropdown">
+                                                <a href="{% url 'core:student_list' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-user-graduate quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    All Students
+                                                </a>
+                                                <a href="{% url 'core:admission_dashboard' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-user-plus quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Admission Dashboard
+                                                </a>
+                                                <a href="{% url 'core:admission_list' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-list-alt quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Manage Admissions
+                                                </a>
+                                                <a href="{% url 'core:enquiry_list' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-question-circle quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Enquiries
+                                                </a>
+                                                <a href="{% url 'core:batch_transfer_list' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-exchange-alt quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Batch Transfer
+                                                </a>
+                                                <a href="{% url 'core:student_list' %}?alumni=1" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-university quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Alumni
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                        <!-- Academics Tab -->
+                                        <div class="tab-pane fade" id="academicsDropdown">
+                                            <div class="quick-links-grid-dropdown">
+                                                <a href="{% url 'core:batch_list' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-layer-group quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Batches
+                                                </a>
+                                                <a href="{% url 'core:course_list' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-chalkboard quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Classes
+                                                </a>
+                                                <a href="{% url 'core:subjects_center' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-bookmark quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Subjects
+                                                </a>
+                                                <a href="{% url 'core:timetable_list' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-calendar-alt quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Timetable
+                                                </a>
+                                                <a href="{% url 'core:attendance_dashboard' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-check-square quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Attendance
+                                                </a>
+                                                <a href="{% url 'core:exam_index' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-clipboard-list quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Examinations
+                                                </a>
+                                                <a href="{% url 'core:assignments' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-clipboard quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Assignments
+                                                </a>
+                                                <a href="{% url 'core:school_calendar' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-calendar quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    School Calendar
+                                                </a>
+                                                <a href="{% url 'core:activity_catalogue' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-trophy quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Activities
+                                                </a>
+                                                <a href="{% url 'core:hostel' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-building quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Hostel
+                                                </a>
+                                                <a href="{% url 'core:transport' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-bus quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Transport
+                                                </a>
+                                                <a href="{% url 'core:library' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-book-open quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Library
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                        <!-- Gradebook Tab -->
+                                        <div class="tab-pane fade" id="gradebookDropdown">
+                                            <div class="quick-links-grid-dropdown">
+                                                <a href="{% url 'core:gradebook_index' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-book quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Gradebook
+                                                </a>
+                                                <a href="{% url 'core:gradebook_management' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-calendar-check quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Exam Management
+                                                </a>
+                                                <a href="{% url 'core:exam_planners_list' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-tasks quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Exam Year Planner
+                                                </a>
+                                                <a href="{% url 'core:skills_assessment_index' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-child quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Skills Assessment
+                                                </a>
+                                                <a href="{% url 'core:report_template_list' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-file-invoice quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Report Templates
+                                                </a>
+                                                <a href="{% url 'core:comprehensive_reports' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-file-pdf quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Generate Reports
+                                                </a>
+                                                <a href="{% url 'core:generated_reports' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-folder-open quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Generated Reports
+                                                </a>
+                                                <a href="{% url 'core:grading_settings' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-sliders-h quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Grading Settings
+                                                </a>
+                                                <a href="{% url 'core:attendance_reports' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-chart-bar quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Attendance Reports
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                        <!-- Finance Tab -->
+                                        <div class="tab-pane fade" id="financeDropdown">
+                                            <div class="quick-links-grid-dropdown">
+                                                <a href="{% url 'core:finance_dashboard' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-tachometer-alt quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Finance Dashboard
+                                                </a>
+                                                <a href="{% url 'core:finance_reports' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-chart-bar quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Finance Reports
+                                                </a>
+                                                <a href="{% url 'core:fee_structure' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-sitemap quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Fee Structure
+                                                </a>
+                                                <a href="{% url 'core:fee_collections' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-hand-holding-usd quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Collections
+                                                </a>
+                                                <a href="{% url 'core:collect_fees' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-cash-register quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Collect Fees
+                                                </a>
+                                                <a href="{% url 'core:finance_track' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-chart-line quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Track &amp; Monitor
+                                                </a>
+                                                <a href="{% url 'core:family_accounts' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-users quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Family Accounts
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                        <!-- HR Tab -->
+                                        <div class="tab-pane fade" id="humanResourcesDropdown">
+                                            <div class="quick-links-grid-dropdown">
+                                                <a href="{% url 'core:hr_dashboard' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-gauge-high quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Dashboard
+                                                </a>
+
+                                                <div class="quick-links-section-heading" style="grid-column:1/-1;font-weight:700;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:#6c757d;margin-top:.35rem">Employees</div>
+                                                <a href="{% url 'core:teacher_list' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-id-badge quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    All Employees
+                                                </a>
+                                                <a href="{% url 'core:hr_subject_assignments' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-chalkboard-teacher quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Subject Assignments
+                                                </a>
+
+                                                <div class="quick-links-section-heading" style="grid-column:1/-1;font-weight:700;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:#6c757d;margin-top:.35rem">Attendance</div>
+                                                <a href="{% url 'core:hr_attendance_register' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-clipboard-check quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Daily Attendance
+                                                </a>
+                                                <a href="{% url 'core:hr_attendance_records' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-list quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Attendance Records
+                                                </a>
+                                                <a href="{% url 'core:hr_attendance_report' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-chart-bar quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Attendance Report
+                                                </a>
+
+                                                <div class="quick-links-section-heading" style="grid-column:1/-1;font-weight:700;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:#6c757d;margin-top:.35rem">Leave</div>
+                                                <a href="{% url 'core:hr_leave_list' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-calendar-minus quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Leave Requests
+                                                </a>
+                                                <a href="{% url 'core:hr_leave_balances' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-balance-scale quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Leave Balances
+                                                </a>
+                                                <a href="{% url 'core:hr_leave_balance_report' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-file-alt quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Leave Report
+                                                </a>
+
+                                                <div class="quick-links-section-heading" style="grid-column:1/-1;font-weight:700;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:#6c757d;margin-top:.35rem">Payroll</div>
+                                                <a href="{% url 'core:hr_payroll_settings' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-money-check-alt quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Salary Structures
+                                                </a>
+                                                <a href="{% url 'core:hr_payroll_runs' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-play-circle quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Payroll Runs
+                                                </a>
+                                                <a href="{% url 'core:hr_payslip_list' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-receipt quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Payslips
+                                                </a>
+                                                <a href="{% url 'core:hr_payslip_report' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-chart-line quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Payroll Report
+                                                </a>
+
+                                                <div class="quick-links-section-heading" style="grid-column:1/-1;font-weight:700;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:#6c757d;margin-top:.35rem">Reports &amp; Settings</div>
+                                                <a href="{% url 'core:hr_reports' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-folder-open quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Reports
+                                                </a>
+                                                <a href="{% url 'core:hr_settings' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-sliders-h quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    HR Settings
+                                                </a>
+                                                <a href="{% url 'core:hr_cashier_settings' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-cash-register quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Cashier Settings
+                                                </a>
+                                                <a href="{% url 'core:hr_payslip_settings' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-cog quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Payslip Display Settings
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                        <!-- Administration Tab -->
+                                        <div class="tab-pane fade" id="administrationDropdown">
+                                            <div class="quick-links-grid-dropdown">
+                                                <a href="{% url 'core:configuration' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-cog quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Configuration
+                                                </a>
+                                                <a href="{% url 'core:school_settings' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-school quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    School Settings
+                                                </a>
+                                                <a href="{% url 'core:manage_class_batch' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-layer-group quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Class &amp; Batch
+                                                </a>
+                                                <a href="{% url 'core:academic_year_list' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-calendar-alt quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Academic Years
+                                                </a>
+                                                <a href="{% url 'core:user_management' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-users-cog quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    User Management
+                                                </a>
+                                                <a href="{% url 'core:role_list' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-user-shield quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Roles &amp; Permissions
+                                                </a>
+                                                <a href="{% url 'core:programs' %}" class="quick-link-item-dropdown">
+                                                    <i class="fas fa-graduation-cap quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
+                                                    Programs
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="{% url 'core:dashboard' %}" class="header-brand">
+                            PINEWOOD PREPARATORY SCHOOL
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-3 d-flex justify-content-center">
+                    <button type="button" class="pw-search-trigger" id="pwSearchTrigger" aria-label="Open navigation search" aria-keyshortcuts="Control+k">
+                        <i class="fas fa-search"></i>
+                        <span>Search pages…</span>
+                        <span class="pw-search-shortcut">Ctrl K</span>
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <div class="header-icons justify-content-end">
+                        <a href="{% url 'core:communication' %}" class="header-icon" aria-label="Messages">
+                            <i class="fas fa-envelope" aria-hidden="true"></i>
+                        </a>
+                        <a href="#" class="header-icon" aria-label="Notifications{% if unread_notifications_count %}, {{ unread_notifications_count }} unread{% endif %}">
+                            <i class="fas fa-bell" aria-hidden="true"></i>
+                            {% if unread_notifications_count %}
+                                <span class="notification-badge" aria-hidden="true">{{ unread_notifications_count }}</span>
+                            {% endif %}
+                        </a>
+                        <a href="{% url 'core:user_management' %}" class="header-icon" aria-label="My profile">
+                            <i class="fas fa-user" aria-hidden="true"></i>
+                        </a>
+                        <form method="post" action="{% url 'logout' %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="header-icon" style="background:none;border:none;padding:0;" aria-label="Logout">
+                                <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="container">
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+                {% block page_actions %}{% endblock %}
+            </div>
+
+            <!-- Messages -->
+            {% if messages %}
+                <div id="messages" class="d-flex flex-column gap-2 mb-3">
+                    {% for message in messages %}
+                        <div class="pw-alert pw-alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                            <i class="fas {% if 'success' in message.tags %}fa-circle-check{% elif 'warning' in message.tags %}fa-triangle-exclamation{% elif 'error' in message.tags or 'danger' in message.tags %}fa-circle-xmark{% else %}fa-circle-info{% endif %}"></i>
+                            <span class="flex-grow-1">{{ message }}</span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Main content area -->
+            <div id="main-content">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <!-- jQuery (required for AJAX functionality) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    
+    <!-- HTMX for dynamic updates -->
+    <script src="https://unpkg.com/htmx.org@1.9.6/dist/htmx.min.js"></script>
+    
+    <!-- Alpine.js for client-side reactivity -->
+    <script src="https://unpkg.com/alpinejs@3.14.3/dist/cdn.min.js" defer></script>
+
+    <!-- API Client -->
+    {% load static %}
+    <script src="{% static 'js/api-client.js' %}" defer></script>
+    <script src="{% static 'js/academic-api.js' %}" defer></script>
+
+    <!-- Command Palette -->
+    <div id="pw-palette-backdrop" role="dialog" aria-modal="true" aria-label="Navigation search">
+        <div id="pw-palette">
+            <div id="pw-palette-input-wrap">
+                <i class="fas fa-search" aria-hidden="true"></i>
+                <input id="pw-palette-input" type="text" placeholder="Search pages, features, modules…" autocomplete="off" spellcheck="false" aria-label="Search navigation">
+                <span class="pw-palette-kbd-hint" id="pw-palette-kbd-hint">Esc to close</span>
+            </div>
+            <div id="pw-palette-results" role="listbox" aria-label="Navigation results"></div>
+            <div id="pw-palette-footer">
+                <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+                <span><kbd>↵</kbd> Go</span>
+                <span><kbd>Esc</kbd> Close</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Base JavaScript -->
+    <script>
+        // ── Navigation Index ─────────────────────────────────────────────
+        // Each entry: { title, url, icon, cat, desc, kw }
+        const PW_NAV = [
+            // Dashboard
+            { title:'Dashboard',           url:'{% url "core:dashboard" %}',               icon:'fa-home',              cat:'Dashboard',     desc:'Main overview',                             kw:'home overview main' },
+            // Students
+            { title:'Students',            url:'{% url "core:student_list" %}',             icon:'fa-user-graduate',     cat:'Students',      desc:'All students list',                         kw:'pupil learner list enroll' },
+            { title:'Batch Assignments',   url:'{% url "core:batch_assignment_list" %}',    icon:'fa-layer-group',       cat:'Students',      desc:'Assign students to batches',                kw:'class assign group' },
+            { title:'Batch Transfers',     url:'{% url "core:batch_transfer_list" %}',      icon:'fa-exchange-alt',      cat:'Students',      desc:'Transfer students between batches',          kw:'move class transfer' },
+            // Academics
+            { title:'Courses',             url:'{% url "core:course_list" %}',              icon:'fa-book',              cat:'Academics',     desc:'Manage courses',                            kw:'programme subject level grade' },
+            { title:'Subjects',            url:'{% url "core:subject_list" %}',             icon:'fa-book-open',         cat:'Academics',     desc:'All subjects',                              kw:'topic lesson class' },
+            { title:'Subjects Centre',     url:'{% url "core:subjects_center" %}',          icon:'fa-th',                cat:'Academics',     desc:'Subject skill sets and overview',           kw:'skill set overview hub' },
+            { title:'Batches',             url:'{% url "core:batch_list" %}',               icon:'fa-users',             cat:'Academics',     desc:'Class batches',                             kw:'class group section year' },
+            { title:'Timetable',           url:'{% url "core:timetable_list" %}',           icon:'fa-calendar-alt',      cat:'Academics',     desc:'Class timetables',                          kw:'schedule period lesson plan' },
+            { title:'Academic Years',      url:'{% url "core:academic_year_list" %}',       icon:'fa-calendar',          cat:'Academics',     desc:'Academic year configuration',               kw:'year term period session' },
+            { title:'School Calendar',     url:'{% url "core:school_calendar" %}',          icon:'fa-calendar',          cat:'Academics',     desc:'School calendar events and dates',          kw:'calendar event date holiday schedule' },
+            // Attendance
+            { title:'Attendance',          url:'{% url "core:attendance_list" %}',          icon:'fa-clipboard-check',   cat:'Attendance',    desc:'Record attendance',                         kw:'present absent mark register' },
+            { title:'Attendance Management', url:'{% url "core:attendance_management" %}',  icon:'fa-tasks',             cat:'Attendance',    desc:'Manage attendance settings',                kw:'configure rules policy' },
+            { title:'Attendance Reports',  url:'{% url "core:attendance_reports" %}',       icon:'fa-chart-bar',         cat:'Attendance',    desc:'Attendance analytics and reports',          kw:'report summary absent present stats' },
+            { title:'Attendance Dashboard',url:'{% url "core:attendance_dashboard" %}',     icon:'fa-tachometer-alt',    cat:'Attendance',    desc:'Attendance overview dashboard',             kw:'overview stats summary' },
+            { title:'Attendance Register', url:'{% url "core:attendance_register" %}',      icon:'fa-list-check',        cat:'Attendance',    desc:'Daily attendance register',                 kw:'daily mark class register' },
+            { title:'Attendance Settings', url:'{% url "core:attendance_settings" %}',      icon:'fa-cog',               cat:'Attendance',    desc:'Configure attendance rules',                kw:'configure rules weekend holiday' },
+            // Exams & Gradebook
+            { title:'Exam Index',          url:'{% url "core:exam_index" %}',               icon:'fa-file-alt',          cat:'Exams',         desc:'Exam management hub',                       kw:'test assessment marks score' },
+            { title:'Exam Management',     url:'{% url "core:gradebook_management" %}',     icon:'fa-calendar-check',    cat:'Exams',         desc:'Schedule and manage exams',                 kw:'schedule timetable test plan' },
+            { title:'Exam Year Planner',   url:'{% url "core:exam_planners_list" %}',        icon:'fa-clipboard-list',    cat:'Exams',         desc:'Plan exams by academic year',               kw:'planner year schedule annual' },
+            { title:'Gradebook',           url:'{% url "core:gradebook_index" %}',          icon:'fa-star',              cat:'Gradebook',     desc:'Gradebook overview',                        kw:'marks score grade entry' },
+            { title:'Gradebook Management',url:'{% url "core:gradebook_management" %}',     icon:'fa-cogs',              cat:'Gradebook',     desc:'Configure gradebook settings',              kw:'configure grade scale rubric' },
+            { title:'Exam Planners',       url:'{% url "core:exam_planners_list" %}',       icon:'fa-list-alt',          cat:'Gradebook',     desc:'All exam planners',                         kw:'planner list exam year' },
+            { title:'Skills Assessment',   url:'{% url "core:skills_assessment_index" %}',  icon:'fa-check-double',      cat:'Gradebook',     desc:'Early childhood skills assessment',          kw:'early childhood motor conceptual social skill activity' },
+            { title:'Grading Settings',    url:'{% url "core:grading_settings" %}',         icon:'fa-sliders-h',         cat:'Gradebook',     desc:'Grade scales and GPA configuration',        kw:'scale gpa grade configure rubric' },
+            { title:'Comprehensive Reports', url:'{% url "core:comprehensive_reports" %}',  icon:'fa-chart-line',        cat:'Gradebook',     desc:'Student report cards',                      kw:'report card student result term' },
+            // Admissions
+            { title:'Admission Dashboard', url:'{% url "core:admission_dashboard" %}',      icon:'fa-tachometer-alt',    cat:'Admissions',    desc:'Admission overview',                        kw:'overview enquiry funnel pipeline' },
+            { title:'Apply / New Admission', url:'{% url "core:admission_apply" %}',        icon:'fa-user-plus',         cat:'Admissions',    desc:'New admission application',                 kw:'new apply register enrol intake' },
+            { title:'Admission List',      url:'{% url "core:admission_list" %}',           icon:'fa-list',              cat:'Admissions',    desc:'All admission applications',                kw:'list application status pending' },
+            { title:'Enquiries',           url:'{% url "core:enquiry_list" %}',             icon:'fa-question-circle',   cat:'Admissions',    desc:'Prospective student enquiries',             kw:'lead prospect contact form' },
+            // Finance
+            { title:'Finance Dashboard',   url:'{% url "core:finance_dashboard" %}',        icon:'fa-chart-pie',         cat:'Finance',       desc:'Financial overview',                        kw:'money budget overview income expense' },
+            { title:'Fee Structure',       url:'{% url "core:fee_structure" %}',            icon:'fa-sitemap',           cat:'Finance',       desc:'Fee groups, particulars, fine slabs',       kw:'structure category particular fine slab' },
+            { title:'Collections',         url:'{% url "core:fee_collections" %}',          icon:'fa-hand-holding-usd',  cat:'Finance',       desc:'Fee collection batches',                    kw:'collection batch drive' },
+            { title:'Collect Fees',        url:'{% url "core:collect_fees" %}',             icon:'fa-cash-register',     cat:'Finance',       desc:'Collect fees from a student',               kw:'pay collect receive payment student' },
+            { title:'Track & Monitor',     url:'{% url "core:finance_track" %}',            icon:'fa-chart-line',        cat:'Finance',       desc:'Track outstanding fees and collections',    kw:'track monitor outstanding due' },
+            { title:'Family Accounts',     url:'{% url "core:family_accounts" %}',          icon:'fa-users',             cat:'Finance',       desc:'Guardian-level consolidated accounts',      kw:'family guardian consolidated invoice' },
+            { title:'Finance Reports',     url:'{% url "core:finance_reports" %}',          icon:'fa-file-invoice-dollar',cat:'Finance',      desc:'Financial reports and statements',           kw:'report income expense statement' },
+            { title:'Currency Configuration', url:'{% url "core:currency_configuration" %}',icon:'fa-coins',            cat:'Finance',       desc:'Currency settings',                         kw:'currency exchange rate ZMW' },
+            // Fees
+            { title:'Fee Categories',      url:'{% url "core:fee_categories" %}',           icon:'fa-tags',              cat:'Fees',          desc:'Fee category types',                        kw:'category type tuition levy' },
+            { title:'Fee Masters',         url:'{% url "core:fee_masters" %}',              icon:'fa-layer-group',       cat:'Fees',          desc:'Reusable fee templates',                    kw:'master template particular discount reusable' },
+            { title:'Fee Particulars',     url:'{% url "core:fee_particulars" %}',          icon:'fa-receipt',           cat:'Fees',          desc:'Fee line items',                            kw:'line item particular amount' },
+            { title:'Fee Discounts',       url:'{% url "core:fee_discounts" %}',            icon:'fa-percentage',        cat:'Fees',          desc:'Discount rules',                            kw:'discount waiver concession bursary' },
+            { title:'Fine Slabs',          url:'{% url "core:fine_slabs" %}',               icon:'fa-exclamation-triangle',cat:'Fees',        desc:'Late payment fines',                        kw:'fine penalty late overdue' },
+            // Staff / HR
+            { title:'HR Dashboard',        url:'{% url "core:hr_dashboard" %}',             icon:'fa-gauge-high',        cat:'Staff & HR',    desc:'Human Resources home — stats and sections', kw:'hr human resources dashboard home' },
+            { title:'Teachers',            url:'{% url "core:teacher_list" %}',             icon:'fa-chalkboard-teacher',cat:'Staff & HR',    desc:'Teaching staff list',                       kw:'teacher staff employee instructor' },
+            { title:'Subject Assignments', url:'{% url "core:hr_subject_assignments" %}',   icon:'fa-chalkboard-teacher',cat:'Staff & HR',    desc:'Link teaching staff to subjects',           kw:'subject assignment teacher teaches' },
+            { title:'Attendance Records',  url:'{% url "core:hr_attendance_records" %}',    icon:'fa-list',              cat:'Staff & HR',    desc:'Browse and filter marked staff attendance',kw:'attendance records history filter' },
+            { title:'Leave Balances',      url:'{% url "core:hr_leave_balances" %}',        icon:'fa-balance-scale',    cat:'Staff & HR',    desc:'Leave entitlement, used and remaining',     kw:'leave balance entitlement remaining' },
+            { title:'Payroll Runs',        url:'{% url "core:hr_payroll_runs" %}',          icon:'fa-play-circle',      cat:'Staff & HR',    desc:'Generate payslips for a group and period',  kw:'payroll run batch generate period' },
+            { title:'HR Reports',          url:'{% url "core:hr_reports" %}',               icon:'fa-folder-open',      cat:'Staff & HR',    desc:'All HR reports in one place',               kw:'hr reports attendance leave payroll' },
+            { title:'HR Settings',         url:'{% url "core:hr_settings" %}',              icon:'fa-sliders-h',         cat:'Staff & HR',    desc:'Employee categories, positions, departments, grades, leave types, working days', kw:'category position department grade leave type working day settings hr' },
+            { title:'Leave Management',    url:'{% url "core:hr_leave_list" %}',            icon:'fa-calendar-minus',   cat:'Staff & HR',    desc:'Employee leave requests, approvals',        kw:'leave approve reject request vacation sick' },
+            { title:'Attendance',          url:'{% url "core:hr_attendance_register" %}',   icon:'fa-clipboard-check',  cat:'Staff & HR',    desc:'Mark daily employee attendance',            kw:'attendance mark present absent' },
+            { title:'Attendance Report',   url:'{% url "core:hr_attendance_report" %}',      icon:'fa-chart-bar',        cat:'Staff & HR',    desc:'Department attendance report',              kw:'attendance report department percentage' },
+            { title:'Leave Balance Report',url:'{% url "core:hr_leave_balance_report" %}',   icon:'fa-balance-scale',    cat:'Staff & HR',    desc:'Department leave balance report',           kw:'leave balance report department' },
+            { title:'Payroll Settings',    url:'{% url "core:hr_payroll_settings" %}',       icon:'fa-money-check-alt',  cat:'Staff & HR',    desc:'Payroll categories and groups',             kw:'payroll category group earning deduction basic pay' },
+            { title:'Generate Payslips',   url:'{% url "core:hr_payslip_generate" %}',       icon:'fa-file-invoice-dollar',cat:'Staff & HR',  desc:'Generate payslips for an employee or group',kw:'payslip generate salary wage' },
+            { title:'Payslips',            url:'{% url "core:hr_payslip_list" %}',           icon:'fa-receipt',          cat:'Staff & HR',    desc:'View, approve, reject, regenerate payslips',kw:'payslip list rejected approve paid' },
+            { title:'Payslip Display Settings', url:'{% url "core:hr_payslip_settings" %}',  icon:'fa-cog',              cat:'Staff & HR',    desc:'What appears on a generated payslip',       kw:'payslip settings logo bank details footer' },
+            { title:'Payslip Reports',     url:'{% url "core:hr_payslip_report" %}',         icon:'fa-chart-line',       cat:'Staff & HR',    desc:'Payslip reports and saved templates',       kw:'payslip report template saved filter' },
+            // Communication & Collaboration
+            { title:'Communication',       url:'{% url "core:communication" %}',            icon:'fa-envelope',          cat:'Communication', desc:'Messages and communication',                kw:'message email send inbox' },
+            { title:'News',                url:'{% url "core:news" %}',                     icon:'fa-newspaper',         cat:'Communication', desc:'School news and announcements',             kw:'announcement notice board bulletin' },
+            { title:'Assignments',         url:'{% url "core:assignments" %}',              icon:'fa-tasks',             cat:'Communication', desc:'Student assignments',                       kw:'task homework classwork project' },
+            // Library, Hostel, Transport
+            { title:'Library',             url:'{% url "core:library" %}',                  icon:'fa-book',              cat:'Services',      desc:'Library management',                        kw:'book resource borrow return' },
+            { title:'Hostel',              url:'{% url "core:hostel" %}',                   icon:'fa-hotel',             cat:'Services',      desc:'Hostel / boarding management',              kw:'boarding room bed dormitory' },
+            { title:'Transport',           url:'{% url "core:transport" %}',                icon:'fa-bus',               cat:'Services',      desc:'Transport / bus routes',                    kw:'bus route vehicle driver pick drop' },
+            // Reports
+            { title:'Generated Reports',   url:'{% url "core:generated_reports" %}',        icon:'fa-folder-open',       cat:'Reports',       desc:'View generated report files',               kw:'download pdf generated stored' },
+            { title:'Report Templates',    url:'{% url "core:report_template_list" %}',     icon:'fa-file-code',         cat:'Reports',       desc:'Report template configuration',             kw:'template configure layout design' },
+            // Settings & Config
+            { title:'Configuration',       url:'{% url "core:configuration" %}',            icon:'fa-cog',               cat:'Settings',      desc:'System configuration',                      kw:'setup configure system general' },
+            { title:'School Settings',     url:'{% url "core:school_settings" %}',          icon:'fa-school',            cat:'Settings',      desc:'School profile settings',                   kw:'profile school name logo branding' },
+            { title:'Programs',            url:'{% url "core:programs" %}',                 icon:'fa-sitemap',           cat:'Settings',      desc:'Academic programme management',             kw:'programme curriculum structure level' },
+            { title:'Manage Class / Batch',url:'{% url "core:manage_class_batch" %}',       icon:'fa-layer-group',       cat:'Settings',      desc:'Configure classes and batches',             kw:'class batch year section configure' },
+            { title:'User Management',     url:'{% url "core:user_management" %}',          icon:'fa-users-cog',         cat:'Settings',      desc:'User accounts, portal logins, role assignment', kw:'user account login assign role staff' },
+            { title:'Roles & Permissions', url:'{% url "core:role_list" %}',                icon:'fa-user-shield',       cat:'Settings',      desc:'Define roles and what each can access',      kw:'role permission rbac access control hr manager' },
+            { title:'Subject Skill Sets',  url:'{% url "core:skill_sets_list" %}',          icon:'fa-check-square',      cat:'Settings',      desc:'Subject skill set definitions',             kw:'skill rubric criteria standard' },
+            { title:'Activity Catalogue',  url:'{% url "core:activity_catalogue" %}',       icon:'fa-shapes',            cat:'Settings',      desc:'Extra-curricular activities catalogue',     kw:'activity extra sport club event' },
+        ];
+
+        // ── Command Palette Logic ─────────────────────────────────────────
+        (function () {
+            var backdrop = document.getElementById('pw-palette-backdrop');
+            var input    = document.getElementById('pw-palette-input');
+            var results  = document.getElementById('pw-palette-results');
+            var trigger  = document.getElementById('pwSearchTrigger');
+            var activeIdx = -1;
+            var filtered  = [];
+
+            function open() {
+                backdrop.classList.add('open');
+                input.value = '';
+                activeIdx = -1;
+                render('');
+                requestAnimationFrame(function () { input.focus(); });
+                document.body.style.overflow = 'hidden';
+            }
+
+            function close() {
+                backdrop.classList.remove('open');
+                document.body.style.overflow = '';
+                activeIdx = -1;
+            }
+
+            function score(item, q) {
+                if (!q) return 1;
+                var t = item.title.toLowerCase();
+                var c = item.cat.toLowerCase();
+                var k = (item.kw || '').toLowerCase();
+                var d = (item.desc || '').toLowerCase();
+                var terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+                var s = 0;
+                terms.forEach(function (term) {
+                    if (t.startsWith(term))        s += 10;
+                    else if (t.includes(term))     s += 7;
+                    else if (k.includes(term))     s += 5;
+                    else if (d.includes(term))     s += 3;
+                    else if (c.includes(term))     s += 2;
+                    else                           s -= 99; // required: all terms must match
+                });
+                return s;
+            }
+
+            function render(q) {
+                filtered = PW_NAV.map(function (item) {
+                    return { item: item, s: score(item, q) };
+                }).filter(function (x) { return x.s > 0 || !q; })
+                  .sort(function (a, b) { return b.s - a.s; });
+
+                if (q) filtered = filtered.slice(0, 12);
+
+                // group by category
+                var groups = {};
+                var order  = [];
+                filtered.forEach(function (x) {
+                    var cat = x.item.cat;
+                    if (!groups[cat]) { groups[cat] = []; order.push(cat); }
+                    groups[cat].push(x.item);
+                });
+
+                var html = '';
+                var flatItems = [];
+                order.forEach(function (cat) {
+                    html += '<div class="pw-pal-group-label">' + cat + '</div>';
+                    groups[cat].forEach(function (item) {
+                        var idx = flatItems.length;
+                        flatItems.push(item);
+                        html += '<a href="' + item.url + '" class="pw-pal-item" data-idx="' + idx + '" role="option">'
+                            + '<span class="pw-pal-icon"><i class="fas ' + item.icon + '" aria-hidden="true"></i></span>'
+                            + '<span class="pw-pal-text">'
+                            +   '<span class="pw-pal-title">' + item.title + '</span>'
+                            +   (item.desc ? '<span class="pw-pal-desc">' + item.desc + '</span>' : '')
+                            + '</span>'
+                            + '<span class="pw-pal-enter-hint">↵</span>'
+                            + '</a>';
+                    });
+                });
+
+                results.innerHTML = html;
+                results._flat = flatItems;
+                activeIdx = -1;
+            }
+
+            function setActive(idx) {
+                var items = results.querySelectorAll('.pw-pal-item');
+                items.forEach(function (el) { el.classList.remove('active'); });
+                activeIdx = Math.max(-1, Math.min(idx, items.length - 1));
+                if (activeIdx >= 0 && items[activeIdx]) {
+                    items[activeIdx].classList.add('active');
+                    items[activeIdx].scrollIntoView({ block: 'nearest' });
+                }
+            }
+
+            // Trigger
+            if (trigger) trigger.addEventListener('click', open);
+
+            // Keyboard shortcut Ctrl+K / Cmd+K
+            document.addEventListener('keydown', function (e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    backdrop.classList.contains('open') ? close() : open();
+                }
+                if (!backdrop.classList.contains('open')) return;
+                if (e.key === 'Escape')     { e.preventDefault(); close(); }
+                if (e.key === 'ArrowDown')  { e.preventDefault(); setActive(activeIdx + 1); }
+                if (e.key === 'ArrowUp')    { e.preventDefault(); setActive(activeIdx - 1); }
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    var items = results.querySelectorAll('.pw-pal-item');
+                    var target = activeIdx >= 0 ? items[activeIdx] : items[0];
+                    if (target) { close(); window.location.href = target.href; }
+                }
+            });
+
+            // Input filtering
+            input.addEventListener('input', function () { render(this.value.trim()); });
+
+            // Click on backdrop (outside palette) closes
+            backdrop.addEventListener('click', function (e) {
+                if (e.target === backdrop) close();
+            });
+
+            // Result clicks — close palette first
+            results.addEventListener('click', function (e) {
+                var item = e.target.closest('.pw-pal-item');
+                if (item) { close(); }
+            });
+        })();
+
+        // Prevent dropdown from closing when clicking on tabs or content inside
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropdown = document.querySelector('.dropdown-menu-large');
+            if (dropdown) {
+                dropdown.addEventListener('click', function(e) {
+                    // Allow normal link clicks to work, but prevent dropdown from closing on tabs
+                    if (e.target.closest('.nav-tabs') || e.target.closest('.tab-content')) {
+                        e.stopPropagation();
+                    }
+                });
+            }
+            
+            // Handle tab switching within dropdown
+            const tabLinks = dropdown?.querySelectorAll('.nav-tabs .nav-link');
+            tabLinks?.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.stopPropagation(); // Prevent dropdown from closing
+                });
+            });
+        });
+
+        // Initialize tooltips
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    </script>
+    
+    <!-- Custom JS -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-dismiss Django messages after 5 s using Bootstrap's own Alert API
+            setTimeout(function() {
+                document.querySelectorAll('#messages .alert').forEach(function(el) {
+                    bootstrap.Alert.getOrCreateInstance(el).close();
+                });
+            }, 5000);
+
+            // HTMX loading indicators
+            document.body.addEventListener('htmx:beforeRequest', function(e) {
+                const indicator = e.target.closest('[data-loading]');
+                if (indicator) indicator.classList.add('htmx-request');
+            });
+
+            document.body.addEventListener('htmx:afterRequest', function(e) {
+                const indicator = e.target.closest('[data-loading]');
+                if (indicator) indicator.classList.remove('htmx-request');
+            });
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+
+    <!-- Toast container -->
+    <div id="pw-toast-container" class="toast-container position-fixed top-0 end-0 p-3" style="z-index:1100"></div>
+
+    <!-- Confirm modal (legacy compact — kept for showConfirm) -->
+    <div class="modal fade" id="pw-confirm-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-body pt-4 pb-2 px-4">
+                    <p id="pw-confirm-message" class="mb-0 text-center"></p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center pb-3 gap-2">
+                    <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="pw-confirm-ok" class="btn btn-danger btn-sm px-4">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Standardized feedback modals (success / confirm / danger) ── -->
+    <div class="pw-modal-backdrop" id="pw-feedback-modal">
+        <div class="pw-modal" role="dialog" aria-modal="true" aria-labelledby="pw-fb-title">
+            <div class="pw-modal-header" id="pw-fb-header">
+                <span class="pw-modal-title" id="pw-fb-title">Notice</span>
+                <button class="pw-modal-close" type="button" data-pw-dismiss aria-label="Close">&times;</button>
+            </div>
+            <div class="pw-modal-body">
+                <div class="pw-modal-icon" id="pw-fb-icon"></div>
+                <p class="pw-modal-heading" id="pw-fb-heading"></p>
+                <p class="pw-modal-message" id="pw-fb-message"></p>
+            </div>
+            <div class="pw-modal-footer" id="pw-fb-footer">
+                <button class="pw-btn pw-btn-outline pw-btn-sm" type="button" id="pw-fb-cancel" data-pw-dismiss>Cancel</button>
+                <button class="pw-btn pw-btn-primary pw-btn-sm" type="button" id="pw-fb-ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        // showToast(message, type)  type: 'success' | 'danger' | 'warning' | 'info'
+        window.showToast = function (message, type) {
+            type = type || 'success';
+            var icons = {success: 'fa-check-circle', danger: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle'};
+            var icon = icons[type] || icons.info;
+            var id = 'toast-' + Date.now();
+            var html = '<div id="' + id + '" class="toast align-items-center text-bg-' + type + ' border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">'
+                + '<div class="d-flex">'
+                + '<div class="toast-body d-flex align-items-center gap-2"><i class="fas ' + icon + '"></i> ' + message + '</div>'
+                + '<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>'
+                + '</div></div>';
+            var container = document.getElementById('pw-toast-container');
+            container.insertAdjacentHTML('beforeend', html);
+            var el = document.getElementById(id);
+            var toast = new bootstrap.Toast(el);
+            el.addEventListener('hidden.bs.toast', function () { el.remove(); });
+            toast.show();
+        };
+
+        // showConfirm(message, onConfirm, confirmLabel, confirmType)  — compact bootstrap confirm
+        window.showConfirm = function (message, onConfirm, confirmLabel, confirmType) {
+            document.getElementById('pw-confirm-message').innerHTML = message;
+            var okBtn = document.getElementById('pw-confirm-ok');
+            okBtn.textContent = confirmLabel || 'Confirm';
+            okBtn.className = 'btn btn-sm px-4 btn-' + (confirmType || 'danger');
+            var modal = new bootstrap.Modal(document.getElementById('pw-confirm-modal'));
+            var handler = function () {
+                modal.hide();
+                okBtn.removeEventListener('click', handler);
+                onConfirm();
+            };
+            okBtn.addEventListener('click', handler);
+            document.getElementById('pw-confirm-modal').addEventListener('hidden.bs.modal', function cleanup() {
+                okBtn.removeEventListener('click', handler);
+                document.getElementById('pw-confirm-modal').removeEventListener('hidden.bs.modal', cleanup);
+            });
+            modal.show();
+        };
+
+        // ── Standardized feedback modals ──────────────────────────────
+        var fb = document.getElementById('pw-feedback-modal');
+        var ICONS = {
+            success: '<i class="fas fa-circle-check"></i>',
+            warning: '<i class="fas fa-circle-exclamation"></i>',
+            danger:  '<i class="fas fa-trash"></i>'
+        };
+        function closeFb() { fb.classList.remove('show'); }
+        fb.querySelectorAll('[data-pw-dismiss]').forEach(function (b) { b.addEventListener('click', closeFb); });
+        fb.addEventListener('click', function (e) { if (e.target === fb) closeFb(); });
+
+        // Internal renderer. opts: {variant, title, heading, message, okLabel, okVariant, onOk, showCancel, cancelLabel}
+        function renderFb(opts) {
+            var header = document.getElementById('pw-fb-header');
+            var icon   = document.getElementById('pw-fb-icon');
+            var okBtn  = document.getElementById('pw-fb-ok');
+            var cancel = document.getElementById('pw-fb-cancel');
+
+            header.className = 'pw-modal-header' + (opts.variant === 'danger' ? ' danger' : '');
+            document.getElementById('pw-fb-title').textContent = opts.title || 'Notice';
+            icon.className = 'pw-modal-icon ' + (opts.variant || 'success');
+            icon.innerHTML = ICONS[opts.variant] || ICONS.success;
+            document.getElementById('pw-fb-heading').textContent = opts.heading || '';
+            document.getElementById('pw-fb-message').innerHTML = opts.message || '';
+
+            okBtn.textContent = opts.okLabel || 'OK';
+            okBtn.className = 'pw-btn pw-btn-sm ' + (opts.okVariant === 'danger' ? 'pw-btn-danger' : 'pw-btn-primary');
+            cancel.style.display = opts.showCancel ? '' : 'none';
+            cancel.textContent = opts.cancelLabel || 'Cancel';
+
+            var newOk = okBtn.cloneNode(true);   // drop old listeners
+            okBtn.parentNode.replaceChild(newOk, okBtn);
+            newOk.addEventListener('click', function () { closeFb(); if (opts.onOk) opts.onOk(); });
+
+            fb.classList.add('show');
+        }
+
+        // showSuccess(message, onOk, opts?)
+        window.showSuccess = function (message, onOk, opts) {
+            opts = opts || {};
+            renderFb({ variant: 'success', title: opts.title || 'Success',
+                       heading: opts.heading || '', message: message,
+                       okLabel: opts.okLabel || 'Done', onOk: onOk });
+        };
+
+        // showDanger(message, onConfirm, opts?)  — destructive confirm (red header + Delete/Cancel)
+        window.showDanger = function (message, onConfirm, opts) {
+            opts = opts || {};
+            renderFb({ variant: 'danger', title: opts.title || 'Confirm',
+                       heading: opts.heading || 'This cannot be undone', message: message,
+                       okLabel: opts.okLabel || 'Delete', okVariant: 'danger',
+                       showCancel: true, onOk: onConfirm });
+        };
+
+        // showConfirmModal(message, onConfirm, opts?)  — warning-style confirm (amber icon)
+        window.showConfirmModal = function (message, onConfirm, opts) {
+            opts = opts || {};
+            renderFb({ variant: 'warning', title: opts.title || 'Confirm',
+                       heading: opts.heading || '', message: message,
+                       okLabel: opts.okLabel || 'Confirm', showCancel: true, onOk: onConfirm });
+        };
+    })();
+    </script>
+</body>
+</html>

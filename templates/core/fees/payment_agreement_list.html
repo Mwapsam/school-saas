@@ -1,0 +1,114 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}Payment Agreements{% endblock %}
+
+{% block layout_header %}
+{% url 'core:finance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Payment Agreements" description="Instalment plans for outstanding student balances" icon='fa-file-contract' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_filters %}
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col">
+                <label for="statusFilter" class="form-label">Filter by Status</label>
+            </div>
+            <div class="col-auto">
+                <select class="form-select form-select-sm" id="statusFilter" style="width: auto;">
+                    <option value="">All Statuses</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block layout_table %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">All Agreements</h5>
+    </div>
+    {% if agreements %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Student</th>
+                        <th>Debtor</th>
+                        <th>Total Amount</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for agreement in agreements %}
+                    <tr>
+                        <td>
+                            <div>
+                                <strong>{{ agreement.student.first_name }} {{ agreement.student.last_name }}</strong><br>
+                                <small class="text-muted">{{ agreement.student.admission_no }}</small>
+                            </div>
+                        </td>
+                        <td>{{ agreement.debtor_name }}</td>
+                        <td class="text-danger fw-bold">{{ currency_symbol }}{{ agreement.total_amount|floatformat:2 }}</td>
+                        <td>
+                            {% if agreement.status == 'draft' %}
+                            <span class="badge bg-secondary">Draft</span>
+                            {% elif agreement.status == 'active' %}
+                            <span class="badge bg-info">Active</span>
+                            {% elif agreement.status == 'completed' %}
+                            <span class="badge bg-success">Completed</span>
+                            {% elif agreement.status == 'defaulted' %}
+                            <span class="badge bg-danger">Defaulted</span>
+                            {% elif agreement.status == 'cancelled' %}
+                            <span class="badge bg-dark">Cancelled</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ agreement.created_at|date:"M d, Y" }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{% url 'core:payment_agreement_detail' agreement.id %}"
+                                   class="btn btn-outline-primary"
+                                   title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'core:payment_agreement_pdf' agreement.id %}"
+                                   class="btn btn-outline-secondary"
+                                   title="Download PDF"
+                                   target="_blank">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+    <div class="card-body">
+        <p class="text-muted text-center mb-0">No payment agreements found.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block layout_pagination %}{% endblock %}
+
+{% block layout_extra %}{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('statusFilter')?.addEventListener('change', function(e) {
+    const params = new URLSearchParams();
+    if (e.target.value) params.set('status', e.target.value);
+    window.location.href = `${window.location.pathname}?${params.toString()}`;
+});
+</script>
+{% endblock %}

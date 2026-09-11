@@ -1,0 +1,407 @@
+{% extends 'unfold/layouts/base_simple.html' %}
+{% load i18n unfold %}
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block title %}
+  {% trans 'Dashboard' %} | {{ site_title|default:_('Django site admin') }}
+{% endblock %}
+
+{% block branding %}
+  <h1 id="site-name">
+    <a href="{% url 'admin:index' %}">{{ site_header }}</a>
+  </h1>
+{% endblock %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script>
+    // Unfold binds `dark` on <html> via Alpine (theme = $persist('auto'), then
+    // x-bind:class based on that + prefers-color-scheme). These are pure
+    // function definitions -- safe to declare here since they don't touch the
+    // DOM until called, well after Alpine has applied the class.
+    function isDarkMode() {
+      var dark = document.documentElement.classList.contains('dark');
+      console.log("Dark mode:", dark);
+      return dark;
+    }
+    function chartGridColor() {
+      var color = isDarkMode() ? 'rgba(255,255,255,0.08)' : 'rgba(120,120,120,0.15)';
+      console.log("Chart grid color: " + color);
+      return color;
+    }
+    function chartTextColor() {
+      var color = isDarkMode() ? '#9ca3af' : '#4b5563';
+      console.log("Chart text color: " + color);
+      return color;
+    }
+    function chartBackgroundColor(canvas) {
+      var ctx = canvas.getContext('2d');
+      var gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      if (isDarkMode()) {
+        gradient.addColorStop(0, 'rgba(31,41,55,0.8)');
+        gradient.addColorStop(1, 'rgba(31,41,55,0.2)');
+      } else {
+        gradient.addColorStop(0, 'rgba(255,255,255,0.8)');
+        gradient.addColorStop(1, 'rgba(255,255,255,0.2)');
+      }
+      console.log("Chart background gradient:", gradient);
+      return gradient;
+    }
+  </script>
+  <script>
+    // Registered once, used by every chart below via
+    // plugins: { customCanvasBackgroundColor: { color: ... } }
+    //
+    // Safe to call directly (no event-listener wrapper needed): the Chart.js
+    // <script src> tag above executes synchronously, so `Chart` is already
+    // defined by the time this runs. Wrapping this in window.onload instead
+    // would fire too late -- 'load' waits for every page resource, well
+    // after DOMContentLoaded, which is when the charts below get created.
+    Chart.register({
+      id: 'customCanvasBackgroundColor',
+      beforeDraw: function (chart, args, options) {
+        var ctx = chart.ctx;
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = options.color || '#ffffff';
+        ctx.fillRect(0, 0, chart.width, chart.height);
+        ctx.restore();
+      },
+    });
+  </script>
+{% endblock %}
+
+{% block content %}
+<div class="p-4">
+
+  {% if is_public %}
+    {# ---------------- Public schema: tenant overview ---------------- #}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">{% trans "Active Schools" %}</p>
+        <p class="text-3xl font-semibold mt-1">{{ total_tenants }}</p>
+      </div>
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">{% trans "Domains" %}</p>
+        <p class="text-3xl font-semibold mt-1">{{ total_domains }}</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-3">{% trans "School Status" %}</h3>
+        <canvas id="schoolStatusChart" height="220"></canvas>
+      </div>
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-3">{% trans "Domains per School" %}</h3>
+        <canvas id="domainsPerSchoolChart" height="220"></canvas>
+      </div>
+    </div>
+
+    <div class="mt-6 bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+      <h3 class="text-lg font-semibold mb-3">{% trans "Recently Added Schools" %}</h3>
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-gray-500 dark:text-gray-400">
+            <th class="py-1 pr-4">{% trans "Name" %}</th>
+            <th class="py-1 pr-4">{% trans "Schema" %}</th>
+            <th class="py-1">{% trans "Active" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for school in recent_tenants %}
+          <tr class="border-t border-gray-100 dark:border-gray-800">
+            <td class="py-1 pr-4">{{ school.name }}</td>
+            <td class="py-1 pr-4">{{ school.schema_name }}</td>
+            <td class="py-1">{{ school.is_active|yesno:"Yes,No" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="py-2 text-gray-400">{% trans "No schools yet." %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      Chart.defaults.color = chartTextColor();
+      Chart.defaults.borderColor = chartGridColor();
+
+      new Chart(document.getElementById("schoolStatusChart"), {
+        type: "doughnut",
+        data: {
+          labels: {{ school_status_labels|default:"[]"|safe }},
+          datasets: [{
+            data: {{ school_status_data|default:"[]"|safe }},
+            backgroundColor: ["#5a9e2f", "#9ca3af"],
+          }],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: "bottom", labels: { color: chartTextColor() } },
+            customCanvasBackgroundColor: { color: chartBackgroundColor(document.getElementById("schoolStatusChart")) },
+          },
+        },
+      });
+
+      new Chart(document.getElementById("domainsPerSchoolChart"), {
+        type: "bar",
+        data: {
+          labels: {{ domains_per_school_labels|default:"[]"|safe }},
+          datasets: [{
+            label: "{% trans 'Domains' %}",
+            data: {{ domains_per_school_data|default:"[]"|safe }},
+            backgroundColor: "#5a9e2f",
+          }],
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { grid: { color: chartGridColor() }, ticks: { color: chartTextColor() } },
+            y: { grid: { color: chartGridColor() }, ticks: { color: chartTextColor() }, beginAtZero: true },
+          },
+          plugins: {
+            legend: { display: false },
+            customCanvasBackgroundColor: { color: chartBackgroundColor(document.getElementById("domainsPerSchoolChart")) },
+          },
+        },
+      });
+    });
+    </script>
+
+  {% else %}
+    {# ---------------- Tenant schema: academic + finance overview ---------------- #}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">{% trans "Active Students" %}</p>
+        <p class="text-3xl font-semibold mt-1">{{ total_students }}</p>
+      </div>
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">{% trans "Active Batches" %}</p>
+        <p class="text-3xl font-semibold mt-1">{{ active_batches }}</p>
+      </div>
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">{% trans "Pending Admissions" %}</p>
+        <p class="text-3xl font-semibold mt-1">{{ pending_admissions }}</p>
+      </div>
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">{% trans "Exams (next 7 days)" %}</p>
+        <p class="text-3xl font-semibold mt-1">{{ upcoming_exams }}</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">{% trans "Open Invoices" %}</p>
+        <p class="text-3xl font-semibold mt-1">{{ open_invoices }}</p>
+      </div>
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">{% trans "Outstanding Balance" %}</p>
+        <p class="text-3xl font-semibold mt-1">{{ outstanding_balance }}</p>
+      </div>
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">{% trans "QuickBooks Sync Failures" %}</p>
+        <p class="text-3xl font-semibold mt-1 {% if qb_sync_failures %}text-red-600{% endif %}">
+          {{ qb_sync_failures }}
+        </p>
+      </div>
+    </div>
+
+    {# ---- Charts ---- #}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-3">{% trans "Revenue, Last 6 Months" %}</h3>
+        <canvas id="revenueChart" height="240"></canvas>
+      </div>
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-3">{% trans "Outstanding Balance by Fee Category" %}</h3>
+        <canvas id="feeCategoryChart" height="240"></canvas>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-3">{% trans "Attendance Rate, Last 14 Days" %}</h3>
+        <canvas id="attendanceChart" height="240"></canvas>
+      </div>
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-3">{% trans "Enrollment by Batch" %}</h3>
+        <canvas id="batchEnrollmentChart" height="240"></canvas>
+      </div>
+    </div>
+
+    <div class="mt-6 bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+      <h3 class="text-lg font-semibold mb-3">{% trans "Recent Payments" %}</h3>
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-gray-500 dark:text-gray-400">
+            <th class="py-1 pr-4">{% trans "Student" %}</th>
+            <th class="py-1 pr-4">{% trans "Amount" %}</th>
+            <th class="py-1 pr-4">{% trans "Method" %}</th>
+            <th class="py-1">{% trans "Date" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for txn in recent_payments %}
+          <tr class="border-t border-gray-100 dark:border-gray-800">
+            <td class="py-1 pr-4">{{ txn.student }}</td>
+            <td class="py-1 pr-4">{{ txn.amount }}</td>
+            <td class="py-1 pr-4">{{ txn.get_payment_method_display }}</td>
+            <td class="py-1">{{ txn.transaction_date }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="py-2 text-gray-400">{% trans "No payments recorded yet." %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      Chart.defaults.color = chartTextColor();
+      Chart.defaults.borderColor = chartGridColor();
+
+      new Chart(document.getElementById("revenueChart"), {
+        type: "line",
+        data: {
+          labels: {{ revenue_chart_labels|safe }},
+          datasets: [{
+            label: "{% trans 'Revenue' %}",
+            data: {{ revenue_chart_data|safe }},
+            borderColor: "#5a9e2f",
+            backgroundColor: "rgba(90,158,47,0.15)",
+            fill: true,
+            tension: 0.3,
+          }],
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { grid: { color: chartGridColor() }, ticks: { color: chartTextColor() } },
+            y: { grid: { color: chartGridColor() }, ticks: { color: chartTextColor() }, beginAtZero: true },
+          },
+          plugins: {
+            legend: { display: false },
+            customCanvasBackgroundColor: { color: chartBackgroundColor(document.getElementById("revenueChart")) },
+          },
+        },
+      });
+
+      new Chart(document.getElementById("feeCategoryChart"), {
+        type: "doughnut",
+        data: {
+          labels: {{ fee_category_labels|safe }},
+          datasets: [{
+            data: {{ fee_category_data|safe }},
+            backgroundColor: ["#5a9e2f", "#84cc16", "#facc15", "#f97316", "#ef4444", "#a855f7"],
+          }],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: "bottom", labels: { color: chartTextColor() } },
+            customCanvasBackgroundColor: { color: chartBackgroundColor(document.getElementById("feeCategoryChart")) },
+          },
+        },
+      });
+
+      new Chart(document.getElementById("attendanceChart"), {
+        type: "line",
+        data: {
+          labels: {{ attendance_chart_labels|safe }},
+          datasets: [{
+            label: "{% trans 'Attendance %' %}",
+            data: {{ attendance_chart_data|safe }},
+            borderColor: "#2563eb",
+            backgroundColor: "rgba(37,99,235,0.12)",
+            fill: true,
+            tension: 0.3,
+          }],
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { grid: { color: chartGridColor() }, ticks: { color: chartTextColor() } },
+            y: { grid: { color: chartGridColor() }, ticks: { color: chartTextColor() }, beginAtZero: true, max: 100 },
+          },
+          plugins: {
+            legend: { display: false },
+            customCanvasBackgroundColor: { color: chartBackgroundColor(document.getElementById("attendanceChart")) },
+          },
+        },
+      });
+
+      new Chart(document.getElementById("batchEnrollmentChart"), {
+        type: "bar",
+        data: {
+          labels: {{ batch_enrollment_labels|safe }},
+          datasets: [{
+            label: "{% trans 'Students' %}",
+            data: {{ batch_enrollment_data|safe }},
+            backgroundColor: "#5a9e2f",
+          }],
+        },
+        options: {
+          responsive: true,
+          indexAxis: "y",
+          scales: {
+            x: { grid: { color: chartGridColor() }, ticks: { color: chartTextColor() }, beginAtZero: true },
+            y: { grid: { color: chartGridColor() }, ticks: { color: chartTextColor() } },
+          },
+          plugins: {
+            legend: { display: false },
+            customCanvasBackgroundColor: { color: chartBackgroundColor(document.getElementById("batchEnrollmentChart")) },
+          },
+        },
+      });
+    });
+    </script>
+  {% endif %}
+
+</div>
+
+<script>
+// Re-theme any already-rendered chart the moment Unfold's theme switcher
+// toggles the `dark` class on <html> -- Chart.js instances don't pick up
+// Chart.defaults changes retroactively, so each one needs its own update().
+(function () {
+  var chartIds = [
+    'schoolStatusChart', 'domainsPerSchoolChart',
+    'revenueChart', 'feeCategoryChart', 'attendanceChart', 'batchEnrollmentChart',
+  ];
+
+  function applyThemeToChart(chart, canvas) {
+    var grid = chartGridColor();
+    var text = chartTextColor();
+
+    if (chart.options.scales) {
+      Object.values(chart.options.scales).forEach(function (scale) {
+        if (scale.grid) scale.grid.color = grid;
+        if (scale.ticks) scale.ticks.color = text;
+      });
+    }
+    if (chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+      chart.options.plugins.legend.labels.color = text;
+    }
+    if (chart.options.plugins && chart.options.plugins.customCanvasBackgroundColor) {
+      chart.options.plugins.customCanvasBackgroundColor.color = chartBackgroundColor(canvas);
+    }
+    chart.update();
+  }
+
+  var observer = new MutationObserver(function () {
+    chartIds.forEach(function (id) {
+      var canvas = document.getElementById(id);
+      if (!canvas || typeof Chart === 'undefined') return;
+      var chart = Chart.getChart(canvas);
+      if (chart) applyThemeToChart(chart, canvas);
+    });
+  });
+
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,11 @@
+{# Reusable, consistent fee payment-status badge (Phase 5). #}
+{# Usage: {% include 'core/finance/_status_badge.html' with status=fee.display_status %} #}
+{% if status == 'paid' %}
+    <span class="badge bg-success">Paid in Full</span>
+{% elif status == 'partial' %}
+    <span class="badge bg-warning text-dark">Partial</span>
+{% elif status == 'overdue' %}
+    <span class="badge bg-danger">Overdue</span>
+{% else %}
+    <span class="badge bg-secondary">Outstanding</span>
+{% endif %}

@@ -1,0 +1,543 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}Batch Fee Assignment{% endblock %}
+
+{% block layout_header %}
+{% url 'core:finance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Batch Fee Assignment" description="Assign fee categories to batches" icon='fa-money-check-alt' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+
+{% block layout_filters %}
+<!-- Filters will be extracted and moved here -->
+{% endblock %}
+
+{% block layout_table %}
+<div class="container-lg py-4">
+    <!-- Breadcrumb -->
+    {% include 'core/finance/_workflow_nav.html' with active_step=1 %}
+
+    <div class="d-flex flex-wrap justify-content-end align-items-center gap-2 mb-3">
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createAssignmentModal">
+            <i class="fas fa-plus me-2"></i>New Assignment
+        </button>
+    </div>
+
+    <!-- Existing Assignments -->
+    <div class="card">
+        <div class="card-header bg-light border-0 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">
+                <i class="fas fa-list me-2 text-primary"></i>
+                {% if assignments %}
+                    Assignments ({{ assignments|length }})
+                {% else %}
+                    No Assignments Found
+                {% endif %}
+            </h6>
+            {% if assignments %}
+            <button type="button" id="bulkDeleteAssignmentsBtn" class="btn btn-sm btn-outline-danger" disabled onclick="bulkDeleteAssignments()">
+                <i class="fas fa-trash me-2"></i>Delete Selected
+            </button>
+            {% endif %}
+        </div>
+        <div class="card-body p-0">
+            {% if assignments %}
+            <div class="px-3 pt-3">
+                <label class="form-check d-inline-flex align-items-center gap-2 mb-0">
+                    <input type="checkbox" id="selectAllAssignments" onchange="toggleAllAssignments(this)">
+                    <span class="text-muted small">Select all</span>
+                </label>
+            </div>
+            {% for group in grouped_assignments %}
+            <div class="mt-3">
+                <div class="px-3 py-2 bg-light border-top border-bottom d-flex align-items-center gap-2">
+                    <i class="fas fa-calendar-alt text-primary"></i>
+                    <strong>{% if group.term %}{{ group.term }}{% else %}No term assigned{% endif %}</strong>
+                    <span class="badge bg-secondary ms-1">{{ group.items|length }}</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 3%;"></th>
+                                <th style="width: 37%;">Fee Category</th>
+                                <th style="width: 37%;">Batch</th>
+                                <th class="text-center" style="width: 23%;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for assignment in group.items %}
+                            <tr class="align-middle">
+                                <td onclick="event.stopPropagation();">
+                                    <input type="checkbox" class="assignment-checkbox" value="{{ assignment.id }}" onchange="updateBulkDeleteButton()">
+                                </td>
+                                <td>
+                                    <strong class="text-dark">{{ assignment.fee_category.name }}</strong>
+                                    <small class="d-block text-muted">Fee Group</small>
+                                </td>
+                                <td>
+                                    <strong>{{ assignment.batch.name }}</strong>
+                                    <small class="d-block text-muted">{{ assignment.batch.course.name }}</small>
+                                </td>
+                                <td class="text-center" onclick="event.stopPropagation();">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" title="Delete Assignment" onclick="deleteAssignment('{{ assignment.id }}', '{{ assignment.fee_category.name }}', '{{ assignment.batch.name }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <!-- Empty State -->
+            <div class="p-5 text-center">
+                <div class="mb-3">
+                    <i class="fas fa-inbox fa-3x text-muted opacity-25"></i>
+                </div>
+                <h6 class="text-muted">No Assignments Yet</h6>
+                <p class="text-muted small mb-4">Link fee categories to batches to apply them to students. Each batch must be assigned at least one fee category.</p>
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createAssignmentModal">
+                    <i class="fas fa-plus me-2"></i>Create First Assignment
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Create Assignment Modal -->
+    <div class="modal fade" id="createAssignmentModal" tabindex="-1" aria-labelledby="createAssignmentModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-light border-0">
+                    <div>
+                        <h5 class="modal-title fw-600" id="createAssignmentModalLabel">
+                            <i class="fas fa-link me-2 text-primary"></i>New Batch Assignment
+                        </h5>
+                        <small class="text-muted d-block mt-1">Link a fee category to one or more batches</small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="createAssignmentForm">
+                    <div class="modal-body">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label for="assignmentFeeCategory" class="form-label fw-500">Fee Category <span class="text-danger">*</span></label>
+                            <select class="form-select" id="assignmentFeeCategory" name="fee_category_id" required>
+                                <option value="">Select a fee category...</option>
+                                {% for group in grouped_categories %}
+                                    <optgroup label="{% if group.term %}{{ group.term }}{% else %}No term assigned{% endif %}">
+                                        {% for category in group.items %}
+                                            <option value="{{ category.id }}">{{ category.name }}</option>
+                                        {% endfor %}
+                                    </optgroup>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted d-block mt-2">Choose the fee category to assign</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-500">Batches <span class="text-danger">*</span></label>
+                            <div class="batch-checkboxes border rounded p-3 bg-light" style="max-height: 300px; overflow-y: auto;">
+                                {% if batches %}
+                                    {% for batch in batches %}
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input batch-checkbox" type="checkbox" name="batch_ids" value="{{ batch.id }}" id="batch_{{ batch.id }}" onchange="refreshStudentPicker()">
+                                        <label class="form-check-label" for="batch_{{ batch.id }}">
+                                            <strong>{{ batch.name }}</strong>
+                                            <small class="d-block text-muted">{{ batch.course.name }}</small>
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="text-muted mb-0">No active batches available</p>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted d-block mt-2">Select one or more batches. Fee amounts are determined by the category's fee particulars.</small>
+                        </div>
+
+                        <!-- Student Picker (Optional) -->
+                        <div class="mb-3" id="studentPickerSection" style="display: none;">
+                            <div class="card border-light">
+                                <div class="card-header bg-light border-0">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-users me-2 text-info"></i>Students (Optional)
+                                        <small class="float-end text-muted">
+                                            <span id="studentCountDisplay">0</span> of <span id="studentTotalDisplay">0</span> selected
+                                        </small>
+                                    </h6>
+                                    <small class="text-muted d-block mt-1">Leave empty to apply the fee to all students in the selected batch(es)</small>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="mb-2">
+                                        <input type="text" id="studentSearchInput" class="form-control form-control-sm" placeholder="Search by name or admission number...">
+                                    </div>
+                                    <div class="mb-2">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAllStudents()">Select All</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllStudents()">Deselect All</button>
+                                    </div>
+                                    <div id="studentCheckboxes" class="border rounded p-2 bg-light" style="max-height: 250px; overflow-y: auto;">
+                                        <p class="text-muted mb-0 small">Select batches above to load students</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Create Assignment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block layout_pagination %}{% endblock %}
+
+{% block layout_extra %}{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header {
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 1.5rem;
+}
+
+.page-header h1 {
+    color: #212529;
+    font-weight: 600;
+}
+
+.breadcrumb-sm {
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+.breadcrumb-sm .breadcrumb-item a {
+    color: #28a745;
+    text-decoration: none;
+}
+
+.breadcrumb-sm .breadcrumb-item a:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-sm .breadcrumb-item.active {
+    color: #6c757d;
+}
+
+.breadcrumb-sm .breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+    color: #6c757d;
+}
+
+.card {
+    border: 1px solid #e9ecef;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    padding: 1rem;
+}
+
+.card-header h6 {
+    font-weight: 600;
+    color: #212529;
+    margin: 0;
+}
+
+.card-body {
+    padding: 1rem;
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+    background-color: #f8f9fa;
+    border-top: none;
+}
+
+.table tbody tr {
+    vertical-align: middle;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.form-label.fw-500 {
+    font-weight: 500;
+    color: #212529;
+}
+
+.form-check-input {
+    margin-top: 0.25rem;
+}
+
+.modal-header h5 {
+    color: #212529;
+    font-weight: 600;
+}
+
+.opacity-25 {
+    opacity: 0.25;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Student picker state
+const studentRosterCache = new Map();
+const selectedStudents = new Set();
+
+document.getElementById('createAssignmentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const feeCategory = document.getElementById('assignmentFeeCategory').value;
+    const selectedBatches = Array.from(document.querySelectorAll('.batch-checkbox:checked')).map(cb => cb.value);
+
+    // Validation
+    if (!feeCategory) {
+        showToast('Please select a fee category', 'warning');
+        return;
+    }
+
+    if (selectedBatches.length === 0) {
+        showToast('Please select at least one batch', 'warning');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('fee_category_id', feeCategory);
+    selectedBatches.forEach(batchId => {
+        formData.append('batch_ids', batchId);
+    });
+    selectedStudents.forEach(studentId => {
+        formData.append('student_ids', studentId);
+    });
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+    const submitBtn = document.querySelector('#createAssignmentForm button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating...';
+
+    fetch('{% url "core:fee_batch_assignment_create" %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-plus me-2"></i>Create Assignment';
+
+        if (data.success) {
+            showToast(data.message, 'success');
+            document.getElementById('createAssignmentForm').reset();
+            document.querySelectorAll('.batch-checkbox').forEach(cb => cb.checked = false);
+            selectedStudents.clear();
+            document.getElementById('studentPickerSection').style.display = 'none';
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast(data.error || 'Unknown error', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-plus me-2"></i>Create Assignment';
+        showToast('Error saving assignments: ' + error.message, 'danger');
+    });
+});
+
+async function refreshStudentPicker() {
+    const selectedBatchIds = Array.from(document.querySelectorAll('.batch-checkbox:checked')).map(cb => cb.value);
+
+    if (selectedBatchIds.length === 0) {
+        document.getElementById('studentPickerSection').style.display = 'none';
+        return;
+    }
+
+    document.getElementById('studentPickerSection').style.display = 'block';
+
+    // Fetch roster for each selected batch
+    let allStudents = new Map();
+    for (const batchId of selectedBatchIds) {
+        if (!studentRosterCache.has(batchId)) {
+            try {
+                const response = await fetch(`/api/fees/batch-assignment/students/?batch_id=${batchId}`);
+                const data = await response.json();
+                if (response.ok) {
+                    studentRosterCache.set(batchId, data.students || []);
+                }
+            } catch (error) {
+                console.error(`Error loading students for batch ${batchId}:`, error);
+            }
+        }
+
+        const students = studentRosterCache.get(batchId) || [];
+        students.forEach(student => {
+            allStudents.set(student.id, student);
+        });
+    }
+
+    renderStudentCheckboxes(Array.from(allStudents.values()));
+    updateStudentCount();
+}
+
+function renderStudentCheckboxes(students) {
+    const container = document.getElementById('studentCheckboxes');
+
+    if (students.length === 0) {
+        container.innerHTML = '<p class="text-muted mb-0 small">No students found in selected batches</p>';
+        return;
+    }
+
+    const searchTerm = document.getElementById('studentSearchInput').value.toLowerCase();
+    const filtered = students.filter(s =>
+        s.name.toLowerCase().includes(searchTerm) ||
+        s.admission_no.toLowerCase().includes(searchTerm)
+    );
+
+    let html = '';
+    filtered.forEach(student => {
+        const isChecked = selectedStudents.has(student.id);
+        html += `
+            <div class="form-check mb-2">
+                <input type="checkbox" class="form-check-input student-checkbox" value="${student.id}" id="student_${student.id}" ${isChecked ? 'checked' : ''} onchange="updateStudentCount()">
+                <label class="form-check-label" for="student_${student.id}">
+                    <strong>${student.name}</strong>
+                    <small class="d-block text-muted">${student.admission_no}</small>
+                </label>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+
+    // Sync checkboxes with selectedStudents
+    document.querySelectorAll('.student-checkbox').forEach(cb => {
+        cb.addEventListener('change', () => {
+            if (cb.checked) {
+                selectedStudents.add(cb.value);
+            } else {
+                selectedStudents.delete(cb.value);
+            }
+            updateStudentCount();
+        });
+    });
+}
+
+function selectAllStudents() {
+    document.querySelectorAll('.student-checkbox').forEach(cb => {
+        cb.checked = true;
+        selectedStudents.add(cb.value);
+    });
+    updateStudentCount();
+}
+
+function deselectAllStudents() {
+    document.querySelectorAll('.student-checkbox').forEach(cb => {
+        cb.checked = false;
+        selectedStudents.delete(cb.value);
+    });
+    updateStudentCount();
+}
+
+function updateStudentCount() {
+    document.getElementById('studentCountDisplay').textContent = selectedStudents.size;
+    const total = document.querySelectorAll('.student-checkbox').length;
+    document.getElementById('studentTotalDisplay').textContent = total;
+}
+
+document.getElementById('studentSearchInput')?.addEventListener('input', () => {
+    const selectedBatchIds = Array.from(document.querySelectorAll('.batch-checkbox:checked')).map(cb => cb.value);
+    let allStudents = new Map();
+    selectedBatchIds.forEach(batchId => {
+        const students = studentRosterCache.get(batchId) || [];
+        students.forEach(student => {
+            allStudents.set(student.id, student);
+        });
+    });
+    renderStudentCheckboxes(Array.from(allStudents.values()));
+});
+
+function deleteAssignment(assignmentId, categoryName, batchName) {
+    showDanger(
+        `Delete "${categoryName}" from "${batchName}"? This action cannot be undone.`,
+        async () => {
+            try {
+                const response = await fetch(`/fees/batch-assignment/${assignmentId}/delete/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showToast(`Assignment deleted successfully`, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(data.error || 'Failed to delete assignment', 'danger');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error deleting assignment: ' + error.message, 'danger');
+            }
+        }
+    );
+}
+
+function updateBulkDeleteButton() {
+    const checked = document.querySelectorAll('.assignment-checkbox:checked').length;
+    document.getElementById('bulkDeleteAssignmentsBtn').disabled = checked === 0;
+}
+
+function toggleAllAssignments(checkbox) {
+    document.querySelectorAll('.assignment-checkbox').forEach(cb => cb.checked = checkbox.checked);
+    updateBulkDeleteButton();
+}
+
+function bulkDeleteAssignments() {
+    const checked = document.querySelectorAll('.assignment-checkbox:checked');
+    if (checked.length === 0) return;
+
+    const assignmentIds = [...new Set(Array.from(checked).map(cb => cb.value))];
+    const count = assignmentIds.length;
+    showDanger(
+        `Delete ${count} assignment(s)? They will be permanently deleted. This action cannot be undone.`,
+        async () => {
+            try {
+                const response = await fetch('/fees/batch-assignment/bulk-delete/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({ assignment_ids: assignmentIds })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast(`Deleted ${result.deleted_count} assignment(s)`, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(result.message || result.error || 'Failed to delete assignments', 'danger');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error deleting assignments', 'danger');
+            }
+        }
+    );
+}
+</script>
+{% endblock %}

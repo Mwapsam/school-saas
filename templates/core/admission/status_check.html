@@ -1,0 +1,112 @@
+{% extends base_template|default:'core/base.html' %}
+{% load static %}
+
+{% block page_title %}Check Application Status{% endblock %}
+
+{% block content %}
+<div class="container-lg py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background:var(--p-green,#1a7a3c);color:#fff;">
+                    <h5 class="mb-0"><i class="fas fa-search me-2"></i>Track Your Application</h5>
+                </div>
+                <div class="card-body p-4">
+                    <p class="text-muted mb-4">Enter your application number to check the current status of your admission application.</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Application Number</label>
+                        <input type="text" id="appNumberInput" class="form-control form-control-lg"
+                               placeholder="e.g. APP-2025-001" autocomplete="off">
+                    </div>
+                    <button class="btn btn-success w-100" onclick="checkStatus()">
+                        <i class="fas fa-search me-2"></i>Check Status
+                    </button>
+                </div>
+            </div>
+
+            <!-- Result panel -->
+            <div id="statusResult" class="mt-4" style="display:none;"></div>
+
+            {% if is_portal %}
+            <div class="text-center mt-4">
+                <a href="{% url 'core:portal_landing' %}" class="text-muted small">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Portal
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const STATUS_COLORS = {
+    submitted:    'info',
+    under_review: 'warning',
+    approved:     'success',
+    rejected:     'danger',
+    admitted:     'primary',
+    waitlisted:   'secondary',
+    draft:        'light',
+};
+const STATUS_ICONS = {
+    submitted:    'fa-paper-plane',
+    under_review: 'fa-search',
+    approved:     'fa-check-circle',
+    rejected:     'fa-times-circle',
+    admitted:     'fa-user-graduate',
+    waitlisted:   'fa-clock',
+};
+
+function checkStatus() {
+    const val = document.getElementById('appNumberInput').value.trim();
+    if (!val) { alert('Please enter your application number.'); return; }
+
+    const resultDiv = document.getElementById('statusResult');
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = `<div class="text-center py-3 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Checking...</div>`;
+
+    fetch('', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'application_number=' + encodeURIComponent(val)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const a = data.application;
+            const color = STATUS_COLORS[a.status] || 'secondary';
+            const icon  = STATUS_ICONS[a.status]  || 'fa-info-circle';
+            resultDiv.innerHTML = `
+                <div class="card border-${color}">
+                    <div class="card-header bg-${color} ${color === 'warning' || color === 'light' ? 'text-dark' : 'text-white'}">
+                        <h6 class="mb-0"><i class="fas ${icon} me-2"></i>${a.status.replace('_',' ').replace(/\b\w/g,c=>c.toUpperCase())}</h6>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0" style="font-size:.9rem;">
+                            <dt class="col-5 text-muted">Application #</dt><dd class="col-7 fw-bold">${a.application_number}</dd>
+                            <dt class="col-5 text-muted">Student</dt><dd class="col-7">${a.student_name}</dd>
+                            <dt class="col-5 text-muted">Grade Applied</dt><dd class="col-7">${a.course_applied}</dd>
+                            <dt class="col-5 text-muted">Applied On</dt><dd class="col-7">${a.application_date}</dd>
+                            ${a.remarks ? `<dt class="col-5 text-muted">Remarks</dt><dd class="col-7">${a.remarks}</dd>` : ''}
+                        </dl>
+                    </div>
+                </div>`;
+        } else {
+            resultDiv.innerHTML = `<div class="alert alert-danger"><i class="fas fa-times-circle me-2"></i>${data.error}</div>`;
+        }
+    })
+    .catch(() => {
+        resultDiv.innerHTML = `<div class="alert alert-danger">An error occurred. Please try again.</div>`;
+    });
+}
+
+document.getElementById('appNumberInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') checkStatus();
+});
+</script>
+{% endblock %}

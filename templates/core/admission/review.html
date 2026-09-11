@@ -1,0 +1,31 @@
+{% extends 'core/layouts/detail.html' %}
+{% comment %}
+The standalone review screen was superseded by the inline approve / reject /
+admit actions on the application detail page (templates/core/admission/detail.html)
+and on the management list. AdmissionReviewView still handles the review POST
+(core/views.py) but no longer has its own review UI, so this GET view just
+points the user at the detail page. See the plan file
+after-ui-design-change-distributed-corbato.md for context.
+{% endcomment %}
+
+{% block page_title %}Review Application{% endblock %}
+
+{% block layout_header %}
+{% url 'core:admission_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Review Application" description="Approve or reject applications from the application detail page" icon="fa-clipboard-check" back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_sections %}
+<div class="pw-card text-center py-5">
+  <p class="mb-3">Review actions have moved to the application detail page.</p>
+  {% if app_id %}
+  <a href="{% url 'core:admission_detail' app_id %}" class="btn btn-primary">
+    <i class="fas fa-arrow-right me-1"></i> Open application detail
+  </a>
+  {% else %}
+  <a href="{% url 'core:admission_list' %}" class="btn btn-primary">
+    <i class="fas fa-list me-1"></i> Back to applications
+  </a>
+  {% endif %}
+</div>
+{% endblock %}

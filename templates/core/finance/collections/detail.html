@@ -1,0 +1,134 @@
+{% extends 'core/layouts/detail.html' %}
+{% load currency_tags %}
+{% block page_title %}{{ collection.name }}{% endblock %}
+{% block extra_css %}
+{% include 'core/finance/_finance_ui_styles.html' %}
+{% endblock %}
+
+{% block layout_header %}
+{% url 'core:fee_collections' as back_fallback %}
+{% include 'core/components/page_header.html' with title=collection_header_title description=collection_description icon="fa-calendar-check" actions=header_actions back_url=back_url|default:back_fallback %}
+{% include 'core/finance/_workflow_nav.html' %}
+<form id="csrfForm">{% csrf_token %}</form>
+{% endblock %}
+
+{% block layout_summary %}
+{% include 'core/components/stat_cards.html' with stats=collection_stats %}
+{% endblock %}
+
+{% block layout_sections %}
+    {% if extra_particulars %}
+    <div class="card mb-3">
+        <div class="card-header bg-light border-0 py-2">
+            <h6 class="mb-0"><i class="fas fa-plus-circle me-2 text-info"></i>Collection Particulars</h6>
+            <small class="text-muted">Extra charges applied to this collection only (on top of the fee group's particulars).</small>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr><th>Particular</th><th class="text-end">Amount</th><th>Due</th><th></th></tr>
+                </thead>
+                <tbody>
+                {% for fcp in extra_particulars %}
+                    <tr>
+                        <td>{{ fcp.name }}{% if fcp.description %}<small class="d-block text-muted">{{ fcp.description }}</small>{% endif %}</td>
+                        <td class="text-end">{{ currency_symbol }}{{ fcp.amount|floatformat:2 }}</td>
+                        <td>{{ fcp.due_date|date:"d M, Y"|default:"—" }}</td>
+                        <td class="text-end">
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                    onclick="removeCollectionParticular('{{ fcp.id }}', '{{ fcp.name|escapejs }}')"
+                                    title="Remove and refund">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="get" class="d-flex gap-2 mb-3">
+        <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" style="max-width:260px" placeholder="Search student…">
+        <select name="status" class="form-select form-select-sm" style="max-width:160px">
+            <option value="">All statuses</option>
+            <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Paid</option>
+            <option value="partial" {% if status_filter == 'partial' %}selected{% endif %}>Partial</option>
+            <option value="unpaid" {% if status_filter == 'unpaid' %}selected{% endif %}>Unpaid</option>
+        </select>
+        <button class="btn btn-sm btn-outline-secondary">Filter</button>
+    </form>
+    {% include 'core/components/table_open.html' %}
+        <thead>
+            <tr><th scope="col">Student</th><th scope="col">Admission No.</th><th scope="col" class="text-end">Total</th>
+                <th scope="col" class="text-end">Paid</th><th scope="col" class="text-end">Balance</th><th scope="col">Status</th><th scope="col"></th></tr>
+        </thead>
+        <tbody>
+        {% for r in rows %}
+        <tr>
+            <td>{{ r.student.first_name }} {{ r.student.last_name }}</td>
+            <td>{{ r.student.admission_no }}</td>
+            <td class="text-end">{{ r.total|floatformat:2 }}</td>
+            <td class="text-end">{{ r.paid|floatformat:2 }}</td>
+            <td class="text-end">{{ r.balance|floatformat:2 }}</td>
+            <td>{% if r.status == 'paid' %}<span class="badge bg-success">Paid</span>
+                {% elif r.status == 'partial' %}<span class="badge bg-warning text-dark">Partial</span>
+                {% else %}<span class="badge bg-danger">Unpaid</span>{% endif %}</td>
+            <td><a class="btn btn-sm btn-outline-primary"
+                   href="{% url 'core:collect_fees' %}?student={{ r.student.id }}">Collect</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4">No students match.</td></tr>
+        {% endfor %}
+        </tbody>
+    {% include 'core/components/table_close.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function deleteCollection(id, name) {
+    if (!confirm(`Delete collection "${name}"? This removes all its student obligations. Collections with recorded payments cannot be deleted.`)) {
+        return;
+    }
+    const csrfToken = document.querySelector('#csrfForm [name=csrfmiddlewaretoken]').value;
+    fetch(`/finance/collections/${id}/delete/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken },
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            window.location.href = '{% url "core:fee_collections" %}';
+        } else {
+            alert(result.error || 'Failed to delete collection');
+        }
+    })
+    .catch(() => alert('Failed to delete collection'));
+}
+
+function removeCollectionParticular(particularId, name) {
+    if (!confirm(`Remove "${name}" from this collection? Each student's balance is refunded by its amount.`)) {
+        return;
+    }
+    const csrfToken = document.querySelector('#csrfForm [name=csrfmiddlewaretoken]').value;
+    const body = new FormData();
+    body.append('particular_id', particularId);
+    fetch(`/finance/collections/{{ collection.id }}/particulars/remove/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken },
+        body: body,
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            (window.showToast || alert)(result.message, 'success');
+            setTimeout(() => location.reload(), 800);
+        } else {
+            (window.showToast || alert)(result.error || 'Failed to remove particular', 'danger');
+        }
+    })
+    .catch(() => (window.showToast || alert)('Failed to remove particular', 'danger'));
+}
+</script>
+{% endblock %}

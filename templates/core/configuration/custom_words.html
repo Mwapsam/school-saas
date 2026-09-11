@@ -1,0 +1,52 @@
+{% extends 'core/layouts/form.html' %}
+{% block page_title %}Custom Words{% endblock %}
+
+{% block layout_header %}
+{% url 'core:configuration' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Custom Words" description="Rename system terminology, e.g. Student → Pupil, Class → Grade" icon="fa-spell-check" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_form %}
+<form method="post" class="pw-card p-3 mb-3" style="max-width:640px">
+  {% csrf_token %}
+  <div class="row g-2">
+    <div class="col-md-4"><label class="form-label">Term</label>
+      <input type="text" name="term" class="form-control" list="common_terms" placeholder="student" required>
+      <datalist id="common_terms">
+        {% for t in common_terms %}<option value="{{ t }}">{% endfor %}
+      </datalist>
+    </div>
+    <div class="col-md-4"><label class="form-label">Replacement</label>
+      <input type="text" name="replacement" class="form-control" placeholder="Pupil" required></div>
+    <div class="col-md-4"><label class="form-label">Plural</label>
+      <input type="text" name="replacement_plural" class="form-control" placeholder="Pupils"></div>
+  </div>
+  <button class="btn btn-primary mt-3"><i class="fas fa-plus me-1"></i>Save word</button>
+</form>
+
+<div class="pw-card p-0" style="max-width:640px">
+  <table class="table mb-0 align-middle">
+    <thead><tr><th>Term</th><th>Singular</th><th>Plural</th><th>Active</th><th></th></tr></thead>
+    <tbody>
+      {% for o in overrides %}
+      <tr>
+        <td>{{ o.term }}</td>
+        <td>{{ o.replacement }}</td>
+        <td class="text-muted">{{ o.replacement_plural }}</td>
+        <td>{% if o.is_active %}<i class="fas fa-check text-success"></i>{% endif %}</td>
+        <td class="text-end">
+          <form method="post" class="d-inline" onsubmit="return confirm('Remove this word?')">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="id" value="{{ o.id }}">
+            <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="text-muted p-3">No custom words yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

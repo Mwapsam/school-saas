@@ -1,0 +1,929 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Timetable Management" description="Organize and manage class schedules" icon='fa-clock' back_url=back_url|default:back_fallback crumbs=crumbs %}
+<div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-primary btn-sm" onclick="openTimetableModal()">
+        <i class="fas fa-plus"></i> Add Period
+    </button>
+    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="openScheduleBuilderModal()">
+        <i class="fas fa-cog"></i> Configure Schedule
+    </button>
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="generateBtn" onclick="generateTimetable()">
+        <i class="fas fa-magic"></i> Generate
+    </button>
+    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="exportTimetable()">
+        <i class="fas fa-download"></i> Export
+    </button>
+</div>
+</div>
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Timetable Management{% endblock %}
+
+
+{% block layout_table %}
+<div class="timetable-management-container">
+
+    <!-- Filter Section -->
+    <div class="card mb-4" style="border-radius: var(--p-radius); border: .5px solid var(--p-gray-border);">
+        <div class="card-header bg-light d-flex align-items-center justify-content-between py-2">
+            <span class="fw-semibold" style="font-size: 13px;">Filters & Selection</span>
+            <small class="text-muted">Total Periods: <strong>{{ page_obj.paginator.count }}</strong></small>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <form method="get">
+                        <label class="form-label fw-semibold" style="font-size: 12px;">Select Batch</label>
+                        <select class="form-select" name="batch" onchange="this.form.submit()" style="border-radius: var(--p-radius); border: .5px solid var(--p-gray-border);">
+                            <option value="">All Batches</option>
+                            {% for batch in batches %}
+                                <option value="{{ batch.id }}" {% if selected_batch == batch.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ batch.name }} - {{ batch.course.course_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if selected_weekday %}
+                            <input type="hidden" name="weekday" value="{{ selected_weekday }}">
+                        {% endif %}
+                    </form>
+                </div>
+                <div class="col-md-4">
+                    <form method="get">
+                        <label class="form-label fw-semibold" style="font-size: 12px;">Select Day</label>
+                        <select class="form-select" name="weekday" onchange="this.form.submit()" style="border-radius: var(--p-radius); border: .5px solid var(--p-gray-border);">
+                            <option value="">All Days</option>
+                            {% for weekday in weekdays %}
+                                <option value="{{ weekday.id }}" {% if selected_weekday == weekday.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ weekday.weekday }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if selected_batch %}
+                            <input type="hidden" name="batch" value="{{ selected_batch }}">
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timetable View -->
+    {% if selected_batch and timetables %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-calendar-week"></i> 
+                Weekly Timetable
+                {% if selected_batch %}
+                    {% for batch in batches %}
+                        {% if batch.id|stringformat:"s" == selected_batch %}
+                            - {{ batch.name }}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered timetable-grid mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width: 100px;">Time</th>
+                            <th>Monday</th>
+                            <th>Tuesday</th>
+                            <th>Wednesday</th>
+                            <th>Thursday</th>
+                            <th>Friday</th>
+                            <th>Saturday</th>
+                            <th>Sunday</th>
+                        </tr>
+                    </thead>
+                    <tbody id="timetableGrid">
+                        <!-- Timetable grid will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Period List -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list"></i> 
+                {% if selected_batch %}
+                    Periods
+                    {% for batch in batches %}
+                        {% if batch.id|stringformat:"s" == selected_batch %}
+                            for {{ batch.name }}
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    All Periods
+                {% endif %}
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Day</th>
+                            <th>Time</th>
+                            <th>Batch</th>
+                            <th>Subject</th>
+                            <th>Teacher</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for timetable in timetables %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-primary">{{ timetable.weekday.weekday }}</span>
+                            </td>
+                            <td>
+                                <strong>{{ timetable.class_timing.start_time|time:"H:i" }} - {{ timetable.class_timing.end_time|time:"H:i" }}</strong>
+                                <br>
+                                <small class="text-muted">{{ timetable.class_timing.name }}</small>
+                            </td>
+                            <td>{{ timetable.batch.name }}</td>
+                            <td>
+                                {% if timetable.subject %}
+                                    {{ timetable.subject.name }}
+                                    <small class="text-muted">({{ timetable.subject.code }})</small>
+                                {% else %}
+                                    <span class="text-muted">No Subject</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if timetable.employee %}
+                                    {{ timetable.employee.first_name }} {{ timetable.employee.last_name }}
+                                {% else %}
+                                    <span class="text-muted">No Teacher</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-outline-primary" 
+                                            onclick="editTimetable('{{ timetable.id }}')" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" 
+                                            onclick="deleteTimetable('{{ timetable.id }}')" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <i class="fas fa-calendar-times text-muted fa-3x mb-3"></i>
+                                <h5 class="text-muted">No Timetable Entries Found</h5>
+                                <p class="text-muted">
+                                    {% if selected_batch %}
+                                        No periods scheduled for the selected batch and filters.
+                                    {% else %}
+                                        Start by adding periods to create your timetable.
+                                    {% endif %}
+                                </p>
+                                <button class="btn btn-primary" onclick="openTimetableModal()">
+                                    <i class="fas fa-plus"></i> Add Period
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="d-flex justify-content-center mt-4">
+        <nav>
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">Previous</a>
+                    </li>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Next</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Schedule Builder Modal -->
+<div class="modal fade" id="scheduleBuilderModal" tabindex="-1" aria-labelledby="scheduleBuilderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="border-radius: var(--p-radius); border: .5px solid var(--p-gray-border);">
+            <div class="modal-header pw-brand">
+                <h5 class="modal-title" id="scheduleBuilderModalLabel" style="color: white; font-weight: 600;">
+                    <i class="fas fa-cog me-2"></i>Configure Daily Schedule
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="scheduleBuilderForm">
+                <div class="modal-body">
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Warning:</strong> Rebuilding the schedule will clear all existing period assignments for this batch.
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="scheduleBatch" class="form-label">Batch *</label>
+                            <select class="form-control" id="scheduleBatch" name="batch" required>
+                                <option value="">Select Batch</option>
+                                {% for batch in batches %}
+                                    <option value="{{ batch.id }}" {% if selected_batch == batch.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ batch.name }} - {{ batch.course.course_name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="periodDuration" class="form-label">Period Duration (minutes) *</label>
+                            <input type="number" class="form-control" id="periodDuration" name="period_duration_minutes" value="45" required min="1">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="periodsCount" class="form-label">Number of Periods *</label>
+                            <input type="number" class="form-control" id="periodsCount" name="periods_count" value="7" required min="1">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="startTime" class="form-label">Start Time *</label>
+                            <input type="time" class="form-control" id="startTime" name="start_time" value="08:00" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Breaks & Lunch</label>
+                        <div id="breaksContainer"></div>
+                        <button type="button" class="btn btn-sm btn-secondary mt-2" onclick="addBreakRow()">
+                            <i class="fas fa-plus"></i> Add Break
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Build Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Timetable Modal -->
+<div class="modal fade" id="timetableModal" tabindex="-1" aria-labelledby="timetableModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="border-radius: var(--p-radius); border: .5px solid var(--p-gray-border);">
+            <div class="modal-header pw-brand">
+                <h5 class="modal-title" id="timetableModalLabel" style="color: white; font-weight: 600;">
+                    <i class="fas fa-plus me-2"></i><span id="periodModalAction">Add</span> Period
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="timetableForm">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="periodBatch" class="form-label">Batch *</label>
+                            <select class="form-control" id="periodBatch" name="batch" required>
+                                <option value="">Select Batch</option>
+                                {% for batch in batches %}
+                                    <option value="{{ batch.id }}">{{ batch.name }} - {{ batch.course.course_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="periodWeekday" class="form-label">Day *</label>
+                            <select class="form-control" id="periodWeekday" name="weekday" required>
+                                <option value="">Select Day</option>
+                                {% for weekday in weekdays %}
+                                    <option value="{{ weekday.id }}">{{ weekday.weekday }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="periodTiming" class="form-label">Time Slot *</label>
+                            <select class="form-control" id="periodTiming" name="class_timing" required>
+                                <option value="">Select Time Slot</option>
+                                <!-- Will be populated based on batch selection -->
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="periodSubject" class="form-label">Subject</label>
+                            <select class="form-control" id="periodSubject" name="subject">
+                                <option value="">Select Subject</option>
+                                <!-- Will be populated based on batch selection -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="periodEmployee" class="form-label">Teacher</label>
+                            <select class="form-control" id="periodEmployee" name="employee">
+                                <option value="">Select Teacher</option>
+                                {% for employee in employees %}
+                                    <option value="{{ employee.id }}">{{ employee.first_name }} {{ employee.last_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span id="saveButtonText">Save Period</span>
+                        <span id="saveButtonSpinner" class="loading-spinner d-none"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+{% block extra_js %}
+<script>
+let editingTimetableId = null;
+
+function openTimetableModal(timetableData = null) {
+    const modal = new bootstrap.Modal(document.getElementById('timetableModal'));
+    const form = document.getElementById('timetableForm');
+    const actionSpan = document.getElementById('periodModalAction');
+
+    // Reset form
+    form.reset();
+    editingTimetableId = null;
+
+    if (timetableData) {
+        // Edit mode
+        actionSpan.textContent = 'Edit';
+        document.getElementById('saveButtonText').textContent = 'Update Period';
+        editingTimetableId = timetableData.id;
+
+        // Populate form fields
+        Object.keys(timetableData).forEach(key => {
+            const field = form.querySelector(`[name="${key}"]`);
+            if (field) {
+                field.value = timetableData[key] || '';
+            }
+        });
+    } else {
+        // Add mode
+        actionSpan.textContent = 'Add';
+        document.getElementById('saveButtonText').textContent = 'Save Period';
+        
+        // Pre-select batch if filtered
+        const selectedBatch = '{{ selected_batch }}';
+        if (selectedBatch) {
+            document.getElementById('periodBatch').value = selectedBatch;
+            loadBatchData(selectedBatch);
+        }
+        
+        // Pre-select weekday if filtered
+        const selectedWeekday = '{{ selected_weekday }}';
+        if (selectedWeekday) {
+            document.getElementById('periodWeekday').value = selectedWeekday;
+        }
+    }
+
+    // Load dynamic data for dropdowns
+    loadModalData();
+
+    modal.show();
+}
+
+function editTimetable(timetableId) {
+    // In a real implementation, you would fetch timetable data from API
+    openTimetableModal();
+}
+
+function deleteTimetable(timetableId) {
+    if (confirm('Are you sure you want to delete this period?')) {
+        // Implement timetable deletion
+        alert('Period deletion functionality to be implemented');
+    }
+}
+
+function generateTimetable() {
+    const batchId = '{{ selected_batch }}';
+    if (!batchId) {
+        showAlert('danger', 'Please select a batch first.');
+        return;
+    }
+    if (!confirm('This will clear and regenerate all period assignments for this batch. Continue?')) {
+        return;
+    }
+
+    const btn = document.getElementById('generateBtn');
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Generating...';
+
+    fetch(`/api/batches/${batchId}/generate-timetable/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken(),
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+
+        if (!data.success) {
+            showAlert('danger', data.error || 'Generation failed');
+            return;
+        }
+
+        const alertType = data.unplaced_count > 0 ? 'warning' : 'success';
+        const message = `Placed ${data.placed_count} periods. ${data.unplaced_count} could not be placed.`;
+        showAlert(alertType, message);
+
+        if (data.conflicts && data.conflicts.length > 0) {
+            renderConflicts(data.conflicts);
+        }
+
+        loadTimetableGrid(batchId);
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+        showAlert('danger', err.message || 'An error occurred');
+    });
+}
+
+function exportTimetable() {
+    alert('Export functionality to be implemented');
+}
+
+function getCsrfToken() {
+    const name = 'csrftoken';
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showAlert(type, message) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show mt-3" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    const container = document.querySelector('.timetable-management-container');
+    const alertDiv = document.createElement('div');
+    alertDiv.innerHTML = alertHtml;
+    container.insertBefore(alertDiv.firstElementChild, container.firstChild);
+}
+
+function renderConflicts(conflicts) {
+    if (!conflicts || conflicts.length === 0) return;
+
+    let html = '<div class="mt-2"><strong>Scheduling Conflicts:</strong><ul class="mb-0">';
+    for (const conflict of conflicts) {
+        const subj = conflict.subject || 'General';
+        html += `<li><strong>${subj}:</strong> ${conflict.reason}</li>`;
+    }
+    html += '</ul></div>';
+
+    const lastAlert = document.querySelector('.alert');
+    if (lastAlert) {
+        lastAlert.innerHTML += html;
+    }
+}
+
+function openScheduleBuilderModal() {
+    const batchId = '{{ selected_batch }}';
+    if (!batchId) {
+        showAlert('danger', 'Please select a batch first.');
+        return;
+    }
+
+    // Initialize the breaks container
+    const breaksContainer = document.getElementById('breaksContainer');
+    breaksContainer.innerHTML = '';
+    addBreakRow(); // Add one default break row
+
+    // Pre-select batch
+    document.getElementById('scheduleBatch').value = batchId;
+
+    const modal = new bootstrap.Modal(document.getElementById('scheduleBuilderModal'));
+    modal.show();
+}
+
+function addBreakRow() {
+    const container = document.getElementById('breaksContainer');
+    const rowIndex = container.children.length;
+
+    const rowHtml = `
+        <div class="break-row card p-3 mb-2" data-row="${rowIndex}">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <label class="form-label">After Period</label>
+                    <input type="number" class="form-control form-control-sm break-after" min="0" value="3" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Duration (min)</label>
+                    <input type="number" class="form-control form-control-sm break-duration" min="1" value="15" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Label</label>
+                    <input type="text" class="form-control form-control-sm break-label" placeholder="e.g., Recess" value="Recess" required>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeBreakRow(${rowIndex})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const div = document.createElement('div');
+    div.innerHTML = rowHtml;
+    container.appendChild(div.firstElementChild);
+}
+
+function removeBreakRow(rowIndex) {
+    document.querySelector(`.break-row[data-row="${rowIndex}"]`).remove();
+}
+
+function loadBatchData(batchId) {
+    if (!batchId) return;
+
+    // Fetch subjects for this batch
+    fetch(`/api/subjects/?batch_id=${batchId}`)
+        .then(r => r.json())
+        .then(data => {
+            const subjectSelect = document.getElementById('periodSubject');
+            subjectSelect.innerHTML = '<option value="">Select Subject</option>';
+            const subjects = data.subjects || [];
+            subjects.forEach(subject => {
+                const option = document.createElement('option');
+                option.value = subject.id;
+                option.textContent = subject.name;
+                subjectSelect.appendChild(option);
+            });
+        })
+        .catch(err => console.error('Failed to load subjects:', err));
+
+    // Fetch time slots (ClassTiming) for this batch
+    fetch(`/api/batches/${batchId}/class-timings/`)
+        .then(r => r.json())
+        .then(data => {
+            const timingSelect = document.getElementById('periodTiming');
+            timingSelect.innerHTML = '<option value="">Select Time Slot</option>';
+            const timings = data.results || [];
+            timings.forEach(timing => {
+                const option = document.createElement('option');
+                option.value = timing.id;
+                option.textContent = `${timing.name} (${timing.start_time} - ${timing.end_time})`;
+                timingSelect.appendChild(option);
+            });
+        })
+        .catch(err => console.error('Failed to load class timings:', err));
+}
+
+function loadModalData() {
+    // Fetch working weekdays for the active academic year
+    fetch('/api/weekdays/')
+        .then(r => {
+            if (!r.ok) {
+                throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+            }
+            return r.json();
+        })
+        .then(data => {
+            const weekdaySelect = document.getElementById('periodWeekday');
+            const weekdays = data.results || [];
+
+            if (weekdays.length === 0) {
+                console.warn('No weekdays returned from API:', data);
+                weekdaySelect.innerHTML = '<option value="">⚠️ No days configured</option>';
+                return;
+            }
+
+            // Only clear and rebuild if we have weekdays
+            weekdaySelect.innerHTML = '<option value="">Select Day</option>';
+            weekdays.forEach(weekday => {
+                const option = document.createElement('option');
+                option.value = weekday.id;
+                option.textContent = weekday.weekday;
+                weekdaySelect.appendChild(option);
+            });
+        })
+        .catch(err => {
+            console.error('Failed to load weekdays from API:', err);
+            const weekdaySelect = document.getElementById('periodWeekday');
+            weekdaySelect.innerHTML = `<option value="">❌ Error: ${err.message}</option>`;
+            weekdaySelect.disabled = true;
+        });
+
+    // Fetch active teachers
+    fetch('/api/teachers/')
+        .then(r => {
+            if (!r.ok) {
+                throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+            }
+            return r.json();
+        })
+        .then(data => {
+            const teacherSelect = document.getElementById('periodEmployee');
+            const teachers = data.results || [];
+
+            if (teachers.length === 0) {
+                console.warn('No teachers returned from API:', data);
+                teacherSelect.innerHTML = '<option value="">⚠️ No teachers found</option>';
+                return;
+            }
+
+            teacherSelect.innerHTML = '<option value="">Select Teacher</option>';
+            teachers.forEach(teacher => {
+                const option = document.createElement('option');
+                option.value = teacher.id;
+                option.textContent = teacher.full_name;
+                teacherSelect.appendChild(option);
+            });
+        })
+        .catch(err => {
+            console.error('Failed to load teachers from API:', err);
+            const teacherSelect = document.getElementById('periodEmployee');
+            teacherSelect.innerHTML = `<option value="">❌ Error: ${err.message}</option>`;
+            teacherSelect.disabled = true;
+        });
+}
+
+// Handle batch selection change in Add Period modal
+const periodBatchSelect = document.getElementById('periodBatch');
+if (periodBatchSelect) {
+    periodBatchSelect.addEventListener('change', function() {
+        const batchId = this.value;
+        if (batchId) {
+            loadBatchData(batchId);
+        } else {
+            document.getElementById('periodSubject').innerHTML = '<option value="">Select Subject</option>';
+            document.getElementById('periodTiming').innerHTML = '<option value="">Select Time Slot</option>';
+        }
+    });
+}
+
+// Handle schedule builder form submission
+document.getElementById('scheduleBuilderForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const batchId = document.getElementById('scheduleBatch').value;
+    const periodDurationMinutes = parseInt(document.getElementById('periodDuration').value);
+    const periodsCount = parseInt(document.getElementById('periodsCount').value);
+    const startTime = document.getElementById('startTime').value;
+
+    // Collect breaks
+    const breaks = [];
+    document.querySelectorAll('.break-row').forEach((row, idx) => {
+        const afterPeriod = parseInt(row.querySelector('.break-after').value);
+        const durationMinutes = parseInt(row.querySelector('.break-duration').value);
+        const label = row.querySelector('.break-label').value;
+
+        breaks.push({
+            after_period: afterPeriod,
+            duration_minutes: durationMinutes,
+            label: label,
+            is_lunch: label.toLowerCase().includes('lunch')
+        });
+    });
+
+    const payload = {
+        period_duration_minutes: periodDurationMinutes,
+        periods_count: periodsCount,
+        start_time: startTime,
+        breaks: breaks
+    };
+
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Building...';
+
+    fetch(`/api/batches/${batchId}/build-schedule/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken(),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+
+        if (!data.success) {
+            showAlert('danger', data.error || 'Schedule build failed');
+            return;
+        }
+
+        showAlert('success', data.message || 'Schedule built successfully');
+        bootstrap.Modal.getInstance(document.getElementById('scheduleBuilderModal')).hide();
+        loadTimetableGrid(batchId);
+    })
+    .catch(err => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        showAlert('danger', err.message || 'An error occurred');
+    });
+});
+
+// Handle form submission
+document.getElementById('timetableForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const submitButton = this.querySelector('button[type="submit"]');
+    const buttonText = document.getElementById('saveButtonText');
+    const spinner = document.getElementById('saveButtonSpinner');
+
+    // Show loading state
+    buttonText.classList.add('d-none');
+    spinner.classList.remove('d-none');
+    submitButton.disabled = true;
+
+    const formData = new FormData(this);
+    const url = editingTimetableId ? `/api/timetable/${editingTimetableId}/` : '/api/timetable/';
+    const method = editingTimetableId ? 'PUT' : 'POST';
+
+    // Convert FormData to JSON
+    const data = {
+        batch: formData.get('batch'),
+        weekday: formData.get('weekday'),
+        class_timing: formData.get('class_timing'),
+        subject: formData.get('subject'),
+        employee: formData.get('employee') || null
+    };
+
+    fetch(url, {
+        method: method,
+        headers: {
+            'X-CSRFToken': getCsrfToken(),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(r => {
+        if (!r.ok) {
+            throw new Error(`HTTP ${r.status}`);
+        }
+        return r.json();
+    })
+    .then(data => {
+        // Hide loading state
+        buttonText.classList.remove('d-none');
+        spinner.classList.add('d-none');
+        submitButton.disabled = false;
+
+        showAlert('success', editingTimetableId ? 'Period updated successfully' : 'Period added successfully');
+
+        // Close modal and reload grid
+        bootstrap.Modal.getInstance(document.getElementById('timetableModal')).hide();
+        const selectedBatch = '{{ selected_batch }}';
+        if (selectedBatch) {
+            loadTimetableGrid(selectedBatch);
+        } else {
+            window.location.reload();
+        }
+    })
+    .catch(err => {
+        // Hide loading state
+        buttonText.classList.remove('d-none');
+        spinner.classList.add('d-none');
+        submitButton.disabled = false;
+
+        showAlert('danger', `Failed to save period: ${err.message}`);
+    });
+});
+
+function loadTimetableGrid(batchId) {
+    // Fetch real timetable data from API
+    const gridBody = document.getElementById('timetableGrid');
+    if (!gridBody) return;
+
+    fetch(`/api/timetable/?batch_id=${batchId}&include_breaks=true`)
+        .then(r => r.json())
+        .then(data => {
+            gridBody.innerHTML = '';
+
+            if (!data.timetable || Object.keys(data.timetable).length === 0) {
+                gridBody.innerHTML = '<tr><td colspan="8" class="text-center py-4">No timetable data. Configure the schedule first.</td></tr>';
+                return;
+            }
+
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const dayMap = {};
+            days.forEach((d, i) => dayMap[d] = i);
+
+            // Get all unique time slots across all days (sorted)
+            const timeSlots = new Set();
+            Object.values(data.timetable).forEach(dayEntries => {
+                dayEntries.forEach(entry => {
+                    timeSlots.add(entry.time_slot);
+                });
+            });
+
+            const sortedTimeSlots = Array.from(timeSlots).sort();
+
+            // Build grid rows
+            sortedTimeSlots.forEach(timeSlot => {
+                const row = document.createElement('tr');
+
+                // Time column
+                const timeCell = document.createElement('td');
+                timeCell.innerHTML = `<strong>${timeSlot}</strong>`;
+                timeCell.classList.add('text-center', 'bg-light');
+                row.appendChild(timeCell);
+
+                // Day columns
+                days.forEach(day => {
+                    const dayCell = document.createElement('td');
+
+                    // Find matching entry for this day and time slot
+                    const entries = data.timetable[day] || [];
+                    const entry = entries.find(e => e.time_slot === timeSlot);
+
+                    if (entry) {
+                        if (entry.is_break) {
+                            dayCell.innerHTML = `<div class="period-block break-block">${entry.timing_name}</div>`;
+                        } else if (entry.subject) {
+                            dayCell.innerHTML = `
+                                <div class="period-block">
+                                    <div class="subject">${entry.subject}</div>
+                                    <div class="teacher">${entry.employee || 'No teacher'}</div>
+                                </div>
+                            `;
+                        } else {
+                            dayCell.innerHTML = '<div class="empty-period">No assignment</div>';
+                        }
+                    } else {
+                        dayCell.innerHTML = '<div class="empty-period">-</div>';
+                    }
+
+                    row.appendChild(dayCell);
+                });
+
+                gridBody.appendChild(row);
+            });
+        })
+        .catch(err => {
+            console.error('Failed to load timetable grid:', err);
+            gridBody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Failed to load timetable data</td></tr>';
+        });
+}
+
+// Load timetable grid if batch is selected on page load
+{% if selected_batch %}
+document.addEventListener('DOMContentLoaded', function() {
+    loadTimetableGrid('{{ selected_batch }}');
+});
+{% endif %}
+</script>
+{% endblock %}

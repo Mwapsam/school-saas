@@ -1,0 +1,33 @@
+{% extends 'core/layouts/list.html' %}
+{% block page_title %}Training{% endblock %}
+
+{% block layout_header %}
+{% url 'core:hr_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title='Training' icon='fa-graduation-cap' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_table %}
+{% if mandatory_gaps or expiring %}
+<div class="alert alert-warning">
+    {% if mandatory_gaps %}<div><strong>{{ mandatory_gaps|length }}</strong> employee(s) missing mandatory training.</div>{% endif %}
+    {% if expiring %}<div><strong>{{ expiring|length }}</strong> training record(s) expiring within 60 days.</div>{% endif %}
+</div>
+{% endif %}
+
+<div class="card mb-4"><div class="card-body">
+    <form method="get" hx-get="{% url 'core:hr_training_list' %}" hx-target="#training-list-content" hx-trigger="change">
+        <div class="row g-3"><div class="col-md-4">
+            <label for="category" class="form-label">Category</label>
+            <select class="form-select" id="category" name="category">
+                <option value="">All</option>
+                {% for value, label in category_choices %}<option value="{{ value }}" {% if request.GET.category == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+        </div></div>
+    </form>
+</div></div>
+
+<div class="card">
+    <div class="card-header"><h5 class="mb-0">Training records</h5></div>
+    <div id="training-list-content">{% include 'core/htmx/hr/training_list_content.html' %}</div>
+</div>
+{% endblock %}

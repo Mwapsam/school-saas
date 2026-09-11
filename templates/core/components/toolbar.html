@@ -1,0 +1,37 @@
+{% comment %}
+Pinewood list toolbar — search box + optional dropdown filters, as a GET
+form. Consolidates the hand-rolled search/filter <form> reinvented on every
+list page (admission/list.html, fees/category_list.html, students/list.html,
+courses.html all had their own near-identical version of this).
+
+Usage:
+  {% include 'core/components/toolbar.html' with search_value=request.GET.query search_placeholder="Search students…" filters=filters clear_url=list_url %}
+  {# filters = [{'name': 'status', 'label': 'Status', 'options': status_options, 'value': request.GET.status}] #}
+
+Params:
+  search_name        (optional) — GET param name for the search box (default: "query")
+  search_value        (optional) — current value
+  search_placeholder  (optional)
+  filters             (optional) — list of {name, label, options, value}, each
+                                   rendered as a select via components/form_field.html
+  clear_url           (optional) — if given, shows a "Clear" link next to Filter
+{% endcomment %}
+<form method="get" class="pw-card mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-4">
+      <label class="pw-form-label" for="{{ search_name|default:'query' }}">Search</label>
+      <input class="pw-form-control" type="text" id="{{ search_name|default:'query' }}" name="{{ search_name|default:'query' }}" value="{{ search_value|default_if_none:'' }}" placeholder="{{ search_placeholder }}">
+    </div>
+    {% for f in filters %}
+    <div class="col-md-3">
+      {% include 'core/components/form_field.html' with type='select' name=f.name label=f.label options=f.options value=f.value %}
+    </div>
+    {% endfor %}
+    <div class="col-md-auto d-flex gap-2">
+      {% include 'core/components/button.html' with label="Filter" type="submit" variant="primary" size="sm" %}
+      {% if clear_url %}
+        {% include 'core/components/button.html' with label="Clear" url=clear_url variant="outline" size="sm" %}
+      {% endif %}
+    </div>
+  </div>
+</form>

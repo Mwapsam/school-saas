@@ -1,0 +1,178 @@
+{% extends 'core/layouts/form.html' %}
+{% load static %}
+
+{% block page_title %}Edit Student{% endblock %}
+
+{% block layout_header %}
+{% url 'core:student_detail' student.id as back_url %}
+{% url 'core:student_list' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Edit "|add:terms.student description=student.first_name|add:" "|add:student.last_name|add:" · "|add:student.admission_no icon="fa-user-edit" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_validation %}
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+{% endif %}
+{% endblock %}
+
+{% block layout_form %}
+<form method="post" action="{% url 'core:student_edit' student.id %}">
+    {% csrf_token %}
+
+    <div class="card mb-3">
+        <div class="card-header"><h6 class="mb-0">Personal Information</h6></div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">First Name *</label>
+                    <input type="text" name="first_name" class="form-control" value="{{ student.first_name }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Middle Name</label>
+                    <input type="text" name="middle_name" class="form-control" value="{{ student.middle_name|default:'' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Last Name *</label>
+                    <input type="text" name="last_name" class="form-control" value="{{ student.last_name }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Gender *</label>
+                    <select name="gender" class="form-select" required>
+                        {% for value, label in gender_choices %}
+                        <option value="{{ value }}" {% if student.gender == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Date of Birth *</label>
+                    <input type="date" name="date_of_birth" class="form-control" value="{{ student.date_of_birth|date:'Y-m-d' }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Blood Group</label>
+                    <input type="text" name="blood_group" class="form-control" value="{{ student.blood_group|default:'' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Birth Place</label>
+                    <input type="text" name="birth_place" class="form-control" value="{{ student.birth_place|default:'' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Language</label>
+                    <input type="text" name="language" class="form-control" value="{{ student.language|default:'' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Religion</label>
+                    <input type="text" name="religion" class="form-control" value="{{ student.religion|default:'' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Nationality</label>
+                    <select name="nationality" class="form-select">
+                        <option value="">—</option>
+                        {% for c in countries %}
+                        <option value="{{ c.id }}" {% if student.nationality_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Student Category</label>
+                    <select name="student_category" class="form-select">
+                        <option value="">—</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if student.student_category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header"><h6 class="mb-0">Admission</h6></div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Admission Number *</label>
+                    <input type="text" name="admission_no" class="form-control" value="{{ student.admission_no }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Class Roll No.</label>
+                    <input type="text" name="class_roll_no" class="form-control" value="{{ student.class_roll_no|default:'' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Admission Date *</label>
+                    <input type="date" name="admission_date" class="form-control" value="{{ student.admission_date|date:'Y-m-d' }}" required>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header"><h6 class="mb-0">Contact &amp; Address</h6></div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Phone 1</label>
+                    <input type="text" name="phone1" class="form-control" value="{{ student.phone1|default:'' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Phone 2</label>
+                    <input type="text" name="phone2" class="form-control" value="{{ student.phone2|default:'' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" value="{{ student.email|default:'' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Address Line 1</label>
+                    <input type="text" name="address_line1" class="form-control" value="{{ student.address_line1|default:'' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Address Line 2</label>
+                    <input type="text" name="address_line2" class="form-control" value="{{ student.address_line2|default:'' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">City</label>
+                    <input type="text" name="city" class="form-control" value="{{ student.city|default:'' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">State</label>
+                    <input type="text" name="state" class="form-control" value="{{ student.state|default:'' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Pin Code</label>
+                    <input type="text" name="pin_code" class="form-control" value="{{ student.pin_code|default:'' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Country</label>
+                    <select name="country" class="form-select">
+                        <option value="">—</option>
+                        {% for c in countries %}
+                        <option value="{{ c.id }}" {% if student.country_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if student.is_active %}checked{% endif %}>
+                <label class="form-check-label" for="is_active">Active student</label>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block layout_actions %}
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Save Changes</button>
+        <a href="{% url 'core:student_detail' student.id %}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

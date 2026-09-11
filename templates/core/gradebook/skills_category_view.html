@@ -1,0 +1,422 @@
+{% extends 'core/layouts/detail.html' %}
+{% load static %}
+
+{% block page_title %}{{ skill_category.name }} — Skill Activities{% endblock %}
+
+
+{% block layout_header %}
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with title=skill_category.name description=skill_category_description icon="fa-check-double" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_sections %}
+<div class="gb-skills">
+<div class="scat-page">
+
+    <div class="d-flex justify-content-end mb-2">
+        <span class="badge" style="background:var(--color-brand);font-size:12px;padding:5px 10px" id="itemCount">
+            {{ skill_items|length }} {% if skill_items|length == 1 %}activity{% else %}activities{% endif %}
+        </span>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="scat-filter">
+        <i class="fas fa-filter" style="color:var(--color-muted);font-size:13px"></i>
+        <label for="batchFilter">Show activities for</label>
+        <select id="batchFilter" class="form-select" onchange="onFilterChange(this.value)">
+            <option value="" {% if not selected_batch_id %}selected{% endif %}>All activities</option>
+            <option value="shared" {% if selected_batch_id == 'shared' %}selected{% endif %}>Shared across all classes</option>
+            {% for b in batches %}
+                <option value="{{ b.id }}" {% if selected_batch_id == b.id|stringformat:'s' %}selected{% endif %}>
+                    {{ b.course.course_name }} — {{ b.name }}
+                </option>
+            {% endfor %}
+        </select>
+        <span class="text-muted" style="font-size:12px">
+            A class shows <strong>Shared</strong> activities plus any attached to that class.
+        </span>
+    </div>
+
+    <!-- Body -->
+    <div class="scat-body">
+
+        <!-- Add panel -->
+        <div class="scat-panel">
+            <div class="scat-panel-header">
+                <i class="fas fa-plus" style="color:var(--color-brand);font-size:12px"></i>
+                <h6>Add Skill Activity</h6>
+            </div>
+            <div class="scat-panel-body">
+                <div class="scat-error" id="addError"></div>
+
+                <label class="scat-form-label" for="newDescription">
+                    Description <span class="req">*</span>
+                </label>
+                <textarea id="newDescription" class="scat-textarea" rows="3"
+                          placeholder="e.g. Can catch a ball with both hands"></textarea>
+                <div style="font-size:11px;color:var(--color-muted);margin-top:4px;margin-bottom:14px">
+                    Be specific — this text appears on the assessment sheet.
+                </div>
+
+                <label class="scat-form-label">Attach to classes</label>
+                <div class="scat-batch-list" id="newBatchList">
+                    {% for b in batches %}
+                    <label>
+                        <input type="checkbox" class="new-batch-cb" value="{{ b.id }}"
+                            {% if selected_batch_id == b.id|stringformat:'s' %}checked{% endif %}>
+                        <span>{{ b.course.course_name }} — {{ b.name }}</span>
+                    </label>
+                    {% empty %}
+                    <div class="scat-batch-list-empty">No classes configured yet.</div>
+                    {% endfor %}
+                </div>
+                <div style="font-size:11px;color:var(--color-muted);margin-top:5px;margin-bottom:16px">
+                    Leave all unchecked to share across every class.
+                </div>
+
+                <button id="addBtn" class="btn btn-primary w-100" onclick="addSkillItem()">
+                    <i class="fas fa-plus me-1"></i> Add Activity
+                </button>
+            </div>
+        </div>
+
+        <!-- Activity table -->
+        <div class="scat-table-wrap">
+            <div class="scat-table-header">
+                <h6>Activities</h6>
+            </div>
+            <table class="scat-table">
+                <thead>
+                    <tr>
+                        <th style="width:32px"></th>
+                        <th class="scat-row-num">#</th>
+                        <th>Activity</th>
+                        <th style="width:200px">Classes</th>
+                        <th style="width:72px"></th>
+                    </tr>
+                </thead>
+                <tbody id="itemsTbody">
+                    {% for item in skill_items %}
+                    <tr id="row-{{ item.id }}"
+                        data-id="{{ item.id }}"
+                        data-description="{{ item.description|escapejs }}"
+                        data-batches="{% for b in item.batches.all %}{{ b.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
+                        <td class="drag-handle" title="Drag to reorder" style="cursor:grab;color:var(--color-muted);text-align:center;user-select:none">⠿</td>
+                        <td class="scat-row-num">{{ forloop.counter }}</td>
+                        <td>
+                            <span class="item-desc">{{ item.description }}</span>
+                            {% if not item.is_active %}
+                                <span class="badge bg-warning text-dark ms-1" style="font-size:10px">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="item-batches">
+                                {% for b in item.batches.all %}
+                                    <span class="scat-chip">{{ b.name }}</span>
+                                {% empty %}
+                                    <span class="scat-chip scat-chip-shared">Shared</span>
+                                {% endfor %}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="scat-row-actions">
+                                <button class="scat-btn-icon" onclick="openEdit('{{ item.id }}')" title="Edit">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </button>
+                                <button class="scat-btn-icon danger" onclick="confirmDelete('{{ item.id }}', '{{ item.description|escapejs }}')" title="Remove">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr id="emptyRow">
+                        <td colspan="5">
+                            <div class="scat-empty">
+                                <div class="scat-empty-icon"><i class="fas fa-list-check"></i></div>
+                                <h6>No activities yet</h6>
+                                <p>Use the form on the left to add the first skill activity for this category.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div><!-- /scat-body -->
+</div><!-- /scat-page -->
+</div>
+{% endblock %}
+
+{% block layout_extra %}
+<div class="gb-skills">
+<!-- Edit Modal -->
+{% include 'core/components/modal.html' with id="editModal" title="Edit Skill Activity" icon="fa-pencil-alt" %}
+    <div class="scat-error" id="editError"></div>
+    <input type="hidden" id="editId">
+
+    <label class="scat-form-label" for="editDescription">
+        Description <span class="req">*</span>
+    </label>
+    <textarea id="editDescription" class="scat-textarea" rows="3"></textarea>
+
+    <div class="scat-divider">Attach to classes</div>
+    <div class="scat-batch-list" id="editBatchList">
+        {% for b in batches %}
+        <label>
+            <input type="checkbox" class="edit-batch-cb" value="{{ b.id }}">
+            <span>{{ b.course.course_name }} — {{ b.name }}</span>
+        </label>
+        {% empty %}
+        <div class="scat-batch-list-empty">No classes configured yet.</div>
+        {% endfor %}
+    </div>
+    <div style="font-size:11px;color:var(--color-muted);margin-top:5px">
+        Leave all unchecked to share across every class.
+    </div>
+{% include 'core/components/modal_close.html' with footer=skill_item_edit_footer %}
+
+{% csrf_token %}
+
+<script id="batchData" type="application/json">{{ batches_json }}</script>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CATEGORY_ID  = '{{ skill_category.id }}';
+const CREATE_URL   = '{% url "core:create_skill_item_api" %}';
+const UPDATE_URL_T = '/api/gradebook/skill-items/{id}/update/';
+const DELETE_URL_T = '/api/gradebook/skill-items/{id}/delete/';
+
+const BATCH_MAP = {};
+try {
+    JSON.parse(document.getElementById('batchData').textContent)
+        .forEach(function(b) { BATCH_MAP[String(b.id)] = b.name; });
+} catch(e) {}
+
+function csrf() { return document.querySelector('[name=csrfmiddlewaretoken]').value; }
+
+function checkedValues(name) {
+    return Array.from(document.querySelectorAll('input[type=checkbox].' + name + ':checked'))
+                .map(function(cb) { return cb.value; });
+}
+
+function setLoading(btn, on) {
+    if (on) { btn._orig = btn.innerHTML; btn.innerHTML = '<span class="loading-spinner d-inline-block me-1"></span> Saving…'; btn.disabled = true; }
+    else     { btn.innerHTML = btn._orig || btn.innerHTML; btn.disabled = false; }
+}
+
+function showErr(id, msg) {
+    var el = document.getElementById(id);
+    el.textContent = msg;
+    el.classList.add('show');
+}
+function hideErr(id) { document.getElementById(id).classList.remove('show'); }
+
+function chips(batchIds, localMap) {
+    var map = localMap || BATCH_MAP;
+    if (!batchIds || !batchIds.length)
+        return '<span class="scat-chip scat-chip-shared">Shared</span>';
+    return batchIds.map(function(id) {
+        return '<span class="scat-chip">' + _esc(map[id] || BATCH_MAP[id] || '') + '</span>';
+    }).join('');
+}
+
+function updateCount() {
+    var rows = document.querySelectorAll('#itemsTbody tr[id^="row-"]');
+    var n = rows.length;
+    document.getElementById('itemCount').textContent = n + (n === 1 ? ' activity' : ' activities');
+    var i = 1;
+    rows.forEach(function(r) { var c = r.querySelector('.scat-row-num'); if (c) c.textContent = i++; });
+}
+
+function onFilterChange(val) {
+    var url = new URL(window.location);
+    if (val) url.searchParams.set('batch', val);
+    else url.searchParams.delete('batch');
+    window.location.href = url.toString();
+}
+
+/* ── CREATE ── */
+function addSkillItem() {
+    hideErr('addError');
+    var desc     = document.getElementById('newDescription').value.trim();
+    var batchIds = checkedValues('new-batch-cb');
+    var btn      = document.getElementById('addBtn');
+    if (!desc) { showErr('addError', 'Activity description is required.'); return; }
+
+    var body = new FormData();
+    body.append('category_id', CATEGORY_ID);
+    body.append('description', desc);
+    batchIds.forEach(function(v) { body.append('batch_ids', v); });
+
+    setLoading(btn, true);
+    fetch(CREATE_URL, { method: 'POST', headers: { 'X-CSRFToken': csrf() }, body: body })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            setLoading(btn, false);
+            if (!data.success) { showErr('addError', data.error || 'Failed to add.'); return; }
+
+            var savedBatches = data.batches || [];
+            var savedIds = savedBatches.map(function(b) { return b.id; });
+            var localMap = {};
+            savedBatches.forEach(function(b) { localMap[b.id] = b.name; });
+
+            var empty = document.getElementById('emptyRow');
+            if (empty) empty.remove();
+
+            var row = document.createElement('tr');
+            row.id = 'row-' + data.id;
+            row.dataset.id          = data.id;
+            row.dataset.description = desc;
+            row.dataset.batches     = savedIds.join(',');
+            row.innerHTML =
+                '<td class="scat-row-num">?</td>' +
+                '<td><span class="item-desc">' + _esc(desc) + '</span></td>' +
+                '<td><span class="item-batches">' + chips(savedIds, localMap) + '</span></td>' +
+                '<td><div class="scat-row-actions">' +
+                  '<button class="scat-btn-icon" onclick="openEdit(\'' + data.id + '\')" title="Edit"><i class="fas fa-pencil-alt"></i></button>' +
+                  '<button class="scat-btn-icon danger" onclick="confirmDelete(\'' + data.id + '\',\'' + _escJs(desc) + '\')" title="Remove"><i class="fas fa-trash-alt"></i></button>' +
+                '</div></td>';
+            document.getElementById('itemsTbody').appendChild(row);
+            updateCount();
+
+            document.getElementById('newDescription').value = '';
+            document.querySelectorAll('.new-batch-cb').forEach(function(cb) { cb.checked = false; });
+            showToast('Activity added.', 'success');
+        })
+        .catch(function() { setLoading(btn, false); showErr('addError', 'Network error. Please try again.'); });
+}
+
+/* ── EDIT (open) ── */
+function openEdit(id) {
+    hideErr('editError');
+    var row = document.getElementById('row-' + id);
+    if (!row) return;
+    var bIds = (row.dataset.batches || '').split(',').filter(Boolean);
+
+    document.getElementById('editId').value          = id;
+    document.getElementById('editDescription').value = row.dataset.description;
+    document.querySelectorAll('.edit-batch-cb').forEach(function(cb) {
+        cb.checked = bIds.includes(cb.value);
+    });
+    new bootstrap.Modal(document.getElementById('editModal')).show();
+    setTimeout(function() { document.getElementById('editDescription').focus(); }, 300);
+}
+
+/* ── EDIT (save) ── */
+function saveEdit() {
+    hideErr('editError');
+    var id       = document.getElementById('editId').value;
+    var desc     = document.getElementById('editDescription').value.trim();
+    var batchIds = checkedValues('edit-batch-cb');
+    var btn      = document.getElementById('saveEditBtn');
+    if (!desc) { showErr('editError', 'Activity description is required.'); return; }
+
+    var body = new FormData();
+    body.append('description', desc);
+    batchIds.forEach(function(v) { body.append('batch_ids', v); });
+
+    setLoading(btn, true);
+    fetch(UPDATE_URL_T.replace('{id}', id), { method: 'POST', headers: { 'X-CSRFToken': csrf() }, body: body })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            setLoading(btn, false);
+            if (!data.success) { showErr('editError', data.error || 'Failed to save.'); return; }
+            var savedBatches = data.batches || [];
+            var savedIds = savedBatches.map(function(b) { return b.id; });
+            var localMap = {};
+            savedBatches.forEach(function(b) { localMap[b.id] = b.name; });
+            var row = document.getElementById('row-' + id);
+            if (row) {
+                row.dataset.description = desc;
+                row.dataset.batches     = savedIds.join(',');
+                row.querySelector('.item-desc').textContent = desc;
+                row.querySelector('.item-batches').innerHTML = chips(savedIds, localMap);
+            }
+            bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+            showToast('Activity updated.', 'success');
+        })
+        .catch(function() { setLoading(btn, false); showErr('editError', 'Network error. Please try again.'); });
+}
+
+/* ── DELETE ── */
+function confirmDelete(id, description) {
+    showDanger(
+        'Remove <strong>' + _esc(description) + '</strong>?<br><small class="text-muted">Past assessment results are kept.</small>',
+        function() { doDelete(id); },
+        { title: 'Remove Activity', okLabel: 'Remove' }
+    );
+}
+
+function doDelete(id) {
+    fetch(DELETE_URL_T.replace('{id}', id), { method: 'POST', headers: { 'X-CSRFToken': csrf() } })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.success) { showToast(data.error || 'Failed to remove.', 'danger'); return; }
+            var row = document.getElementById('row-' + id);
+            if (row) {
+                row.style.transition = 'opacity .2s, transform .2s';
+                row.style.opacity = '0';
+                row.style.transform = 'translateX(8px)';
+                setTimeout(function() {
+                    row.remove();
+                    updateCount();
+                    if (!document.querySelector('#itemsTbody tr[id^="row-"]')) {
+                        var tbody = document.getElementById('itemsTbody');
+                        var empty = document.createElement('tr');
+                        empty.id = 'emptyRow';
+                        empty.innerHTML = '<td colspan="4"><div class="scat-empty">' +
+                            '<div class="scat-empty-icon"><i class="fas fa-list-check"></i></div>' +
+                            '<h6>No activities yet</h6>' +
+                            '<p>Use the form on the left to add the first skill activity for this category.</p>' +
+                            '</div></td>';
+                        tbody.appendChild(empty);
+                    }
+                }, 220);
+            }
+            showToast('Activity removed.', 'success');
+        })
+        .catch(function() { showToast('Network error.', 'danger'); });
+}
+
+function _esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function _escJs(s) {
+    return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+const REORDER_URL = '{% url "core:reorder_skill_items_api" %}';
+
+Sortable.create(document.getElementById('itemsTbody'), {
+    handle: '.drag-handle',
+    animation: 150,
+    ghostClass: 'scat-row-dragging',
+    onEnd: function() {
+        const ids = Array.from(document.querySelectorAll('#itemsTbody tr[data-id]'))
+            .map(function(tr) { return tr.dataset.id; });
+
+        document.querySelectorAll('#itemsTbody .scat-row-num').forEach(function(td, i) {
+            td.textContent = i + 1;
+        });
+
+        fetch(REORDER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+            body: JSON.stringify({ ids: ids }),
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (!d.success) showToast('Reorder failed.', 'danger');
+        })
+        .catch(function() { showToast('Network error.', 'danger'); });
+    },
+});
+</script>
+{% endblock %}

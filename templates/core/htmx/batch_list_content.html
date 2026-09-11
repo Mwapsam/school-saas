@@ -1,0 +1,125 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead>
+            <tr>
+                <th>No.</th>
+                <th>Batch Name</th>
+                <th>Course</th>
+                <th class="d-none d-md-table-cell">Teacher</th>
+                <th class="d-none d-lg-table-cell">Duration</th>
+                <th>Students</th>
+                <th width="100">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for batch in batches %}
+                <tr class="{% if not batch.is_active %}table-warning{% endif %}">
+                    <td class="text-center">{{ forloop.counter0|add:page_obj.start_index }}</td>
+                    <td>
+                        <strong>{{ batch.name }}</strong>
+                        {% if not batch.is_active %}
+                            <small class="badge bg-warning ms-1">Inactive</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ batch.course.course_name }}
+                        <br>
+                        <small class="text-muted">{{ batch.course.code }}</small>
+                    </td>
+                    <td class="d-none d-md-table-cell">
+                        {% if batch.employee %}
+                            {{ batch.employee.first_name }} {{ batch.employee.last_name }}
+                        {% else %}
+                            <small class="text-muted">Not assigned</small>
+                        {% endif %}
+                    </td>
+                    <td class="d-none d-lg-table-cell">
+                        <small>
+                            {{ batch.start_date|date:"M j, Y" }} -
+                            {{ batch.end_date|date:"M j, Y" }}
+                        </small>
+                    </td>
+                    <td>
+                        <span class="badge bg-info">{{ batch.student_count }} students</span>
+                    </td>
+                    <td class="table-actions">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{% url 'core:batch_detail' batch.id %}" 
+                               class="btn btn-outline-primary btn-sm"
+                               title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <button type="button" 
+                                    class="btn btn-outline-info btn-sm"
+                                    title="View Students"
+                                    @click="viewStudents('{{ batch.id }}', '{{ batch.name }}')">
+                                <i class="fas fa-users"></i>
+                            </button>
+                            <button type="button" 
+                                    class="btn btn-outline-secondary btn-sm"
+                                    title="Edit Batch"
+                                    onclick="openEditBatch('{{ batch.id }}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr class="empty-state">
+                    <td colspan="7">
+                        {% if request.GET.search %}
+                            No batches found matching "{{ request.GET.search }}".
+                        {% else %}
+                            No batches found.
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+    <div class="pinewood-table-pagination">
+        <nav>
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" 
+                           hx-get="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}"
+                           hx-target="#batch-list-content"
+                           data-loading>First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" 
+                           hx-get="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}"
+                           hx-target="#batch-list-content"
+                           data-loading>Previous</a>
+                    </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        Page {{ page_obj.number }} of {{ paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" 
+                           hx-get="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}"
+                           hx-target="#batch-list-content"
+                           data-loading>Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" 
+                           hx-get="?page={{ paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}"
+                           hx-target="#batch-list-content"
+                           data-loading>Last</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+{% endif %}

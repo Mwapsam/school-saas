@@ -1,0 +1,270 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Pinewood Preparatory School</title>
+    <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+            padding: 16px;
+        }
+
+        .login-card {
+            background: #ffffff;
+            border: 1px solid #cccccc;
+            width: 100%;
+            max-width: 560px;
+            padding: 0;
+        }
+
+        .card-title {
+            text-align: center;
+            padding: 18px 20px 14px;
+            font-size: clamp(12px, 2.5vw, 15px);
+            font-weight: bold;
+            color: #1a1a1a;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .card-body {
+            display: flex;
+            align-items: center;
+            padding: 30px;
+            gap: 30px;
+        }
+
+        .logo-section {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-right: 20px;
+            border-right: 1px solid #e8e8e8;
+        }
+
+        .logo-section img {
+            width: clamp(100px, 25vw, 160px);
+            height: auto;
+        }
+
+        .form-section {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .error-message {
+            color: #cc0000;
+            font-size: 13px;
+            padding: 6px 0;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #bbbbbb;
+            font-size: 13px;
+            color: #555;
+            outline: none;
+            background: #fff;
+        }
+
+        .form-input:focus {
+            border-color: #888;
+        }
+
+        .input-wrap {
+            margin-bottom: 10px;
+        }
+
+        .form-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 4px;
+            flex-wrap: wrap;
+        }
+
+        .btn-login {
+            background-color: #2d6e2d;
+            color: #ffffff;
+            border: none;
+            padding: 9px 28px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            letter-spacing: 0.3px;
+            touch-action: manipulation;
+        }
+
+        .btn-login:hover {
+            background-color: #245824;
+        }
+
+        .forgot-link {
+            font-size: 12px;
+            color: #8b5e3c;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .forgot-link:hover {
+            text-decoration: underline;
+        }
+
+        .page-footer {
+            margin-top: 18px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+
+        .page-footer a {
+            color: #2a7a5a;
+            text-decoration: none;
+        }
+
+        /* Tablet: stack logo above form */
+        @media (max-width: 480px) {
+            body {
+                justify-content: flex-start;
+                padding-top: 40px;
+            }
+
+            .card-body {
+                flex-direction: column;
+                align-items: center;
+                padding: 24px 20px;
+                gap: 20px;
+            }
+
+            .logo-section {
+                border-right: none;
+                border-bottom: 1px solid #e8e8e8;
+                padding-right: 0;
+                padding-bottom: 16px;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .logo-section img {
+                width: clamp(100px, 50vw, 140px);
+            }
+
+            .form-section {
+                width: 100%;
+            }
+
+            .form-actions {
+                justify-content: space-between;
+            }
+
+            .btn-login {
+                flex: 1;
+                text-align: center;
+                padding: 10px;
+            }
+        }
+
+        /* Very small phones */
+        @media (max-width: 320px) {
+            .card-title {
+                font-size: 11px;
+                padding: 14px 10px 10px;
+            }
+
+            .form-actions {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .btn-login {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <div class="card-title">PINEWOOD PREPARATORY SCHOOL</div>
+
+        <div class="card-body">
+            <div class="logo-section">
+                <img src="{% static 'img/logo.png' %}" alt="Pinewood Preparatory School">
+            </div>
+
+            <div class="form-section">
+                {% if form.non_field_errors %}
+                    {% for error in form.non_field_errors %}
+                        <div class="error-message">{{ error }}</div>
+                    {% endfor %}
+                {% elif form.errors %}
+                    <div class="error-message">Invalid username or password. Please try again.</div>
+                {% endif %}
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="error-message">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+                    {% if next %}
+                        <input type="hidden" name="next" value="{{ next }}">
+                    {% endif %}
+
+                    <div class="input-wrap">
+                        <input type="text"
+                               class="form-input"
+                               name="{{ form.username.name }}"
+                               id="{{ form.username.id_for_label }}"
+                               value="{{ form.username.value|default:'' }}"
+                               placeholder="Username"
+                               autocomplete="username"
+                               required>
+                    </div>
+
+                    <div class="input-wrap">
+                        <input type="password"
+                               class="form-input"
+                               name="{{ form.password.name }}"
+                               id="{{ form.password.id_for_label }}"
+                               placeholder="Password"
+                               autocomplete="current-password"
+                               required>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-login">Login</button>
+                        <a href="/accounts/password_reset/" class="forgot-link">Forgot password?</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-footer">
+        Powered by <a href="#">PINEWOOD PREPARATORY SCHOOL</a>
+    </div>
+
+</body>
+</html>

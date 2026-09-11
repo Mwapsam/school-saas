@@ -1,0 +1,28 @@
+{% extends 'core/base.html' %}
+{% comment %}
+Dashboard page pattern — a landing/directory page linking out to a module's
+sub-pages (drafted against templates/core/hr/dashboard.html).
+
+Fixed region order: Header → Stats → Primary content → Secondary content.
+This layout only provides structure — fill each block with components from
+templates/core/components/ (page_header, stat_cards, ...). See
+docs/UI_COMPONENTS.md.
+
+Usage:
+  {% extends 'core/layouts/dashboard.html' %}
+  {% block page_title %}Human Resources{% endblock %}
+  {% block layout_header %}
+    {% include 'core/components/page_header.html' with title="Human Resources" description="..." icon="fa-id-badge" %}
+  {% endblock %}
+  {% block layout_primary %}
+    <div class="row g-3">
+      {% for tile in tiles %}...{% endfor %}
+    </div>
+  {% endblock %}
+{% endcomment %}
+{% block content %}
+{% block layout_header %}{% endblock %}
+{% block layout_stats %}{% endblock %}
+{% block layout_primary %}{% endblock %}
+{% block layout_secondary %}{% endblock %}
+{% endblock %}

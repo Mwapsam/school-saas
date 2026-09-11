@@ -1,0 +1,213 @@
+{% extends 'core/layouts/form.html' %}
+
+{% block layout_header %}
+{% url 'core:subjects_center' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-link' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Link Batches{% endblock %}
+
+{% block layout_form %}
+<div class="link-batches-container">
+    <!-- Breadcrumb -->
+    
+
+    <!-- Class + Year Selection -->
+    <form method="get" class="row g-3 mb-4">
+        <div class="col-md-3">
+            <label class="form-label fw-medium">Class</label>
+            <select class="form-select" name="class" id="class-select" onchange="this.form.submit()">
+                <option value="">Select Class</option>
+                {% for course in courses %}
+                <option value="{{ course.id }}" {% if selected_course and selected_course.id == course.id %}selected{% endif %}>
+                    {{ course.course_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-medium">Academic Year</label>
+            <select class="form-select" name="year" onchange="this.form.submit()">
+                {% for year in academic_years %}
+                <option value="{{ year.id }}" {% if selected_year and selected_year.id == year.id %}selected{% endif %}>
+                    {{ year.name }}{% if year.is_active %} (Active){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% if selected_course %}
+        <div class="col-md-2 d-flex align-items-end">
+            <span class="text-muted small">{{ subjects_data|length }} subject{{ subjects_data|length|pluralize }}</span>
+        </div>
+        {% endif %}
+    </form>
+
+    <!-- Subjects and Batches -->
+    {% if selected_course %}
+    <form id="linkBatchesForm">
+        <input type="hidden" name="course_id" value="{{ selected_course.id }}">
+
+        <div class="subjects-batches-list">
+            {% for subject_data in subjects_data %}
+            <div class="subject-batch-item mb-3">
+                <!-- Subject Header (Collapsible) -->
+                <div class="subject-header" data-bs-toggle="collapse" data-bs-target="#subject-{{ subject_data.subject.id }}" aria-expanded="false">
+                    <div class="row align-items-center">
+                        <div class="col-md-5">
+                            <strong>{{ subject_data.subject.name }}({{ subject_data.subject.code }})</strong>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            {{ subject_data.assigned_count }}
+                        </div>
+                        <div class="col-md-3 text-center">
+                            {% if subject_data.all_allocated %}
+                            <span class="text-success">Completely allocated</span>
+                            {% else %}
+                            <span class="text-warning">Partially allocated</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-1 text-end">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Batches List (Collapsible Content) -->
+                <div class="collapse batch-list" id="subject-{{ subject_data.subject.id }}">
+                    <div class="batch-list-content">
+                        <div class="row mb-2 text-muted">
+                            <div class="col-md-6"><small>Batches</small></div>
+                            <div class="col-md-6"><small>Allocation status</small></div>
+                        </div>
+                        {% for batch_data in subject_data.batches %}
+                        <div class="row batch-row align-items-center mb-2">
+                            <div class="col-md-6">
+                                {{ batch_data.batch.name }}
+                            </div>
+                            <div class="col-md-4">
+                                {% if batch_data.is_allocated %}
+                                <span class="text-success">Allocated</span>
+                                {% else %}
+                                <span class="text-muted">Not allocated</span>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <div class="form-check">
+                                    <input class="form-check-input batch-assign-checkbox"
+                                           type="checkbox"
+                                           name="assignments[]"
+                                           value="{{ subject_data.subject.id }}_{{ batch_data.batch.id }}"
+                                           {% if batch_data.is_allocated %}checked{% endif %}
+                                           data-subject-id="{{ subject_data.subject.id }}"
+                                           data-batch-id="{{ batch_data.batch.id }}">
+                                    <label class="form-check-label">Assign</label>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-5">
+                <i class="fas fa-link fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No subjects found for this class</h5>
+                <p class="text-muted">Please select a different class or add subjects first.</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if subjects_data %}
+        <div class="mt-4">
+            <button type="submit" class="btn btn-dark">Save</button>
+        </div>
+        {% endif %}
+    </form>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-graduation-cap fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">Please select a class to view subjects and batches</h5>
+    </div>
+    {% endif %}
+</div>
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    // Handle form submission
+    const form = document.getElementById('linkBatchesForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Collect all checked assignments
+            const assignments = [];
+            document.querySelectorAll('.batch-assign-checkbox:checked').forEach(checkbox => {
+                const subjectId = checkbox.dataset.subjectId;
+                const batchId = checkbox.dataset.batchId;
+                assignments.push({
+                    subject_id: subjectId,
+                    batch_id: batchId
+                });
+            });
+
+            // Collect all unchecked assignments (for removal)
+            const removals = [];
+            document.querySelectorAll('.batch-assign-checkbox:not(:checked)').forEach(checkbox => {
+                const subjectId = checkbox.dataset.subjectId;
+                const batchId = checkbox.dataset.batchId;
+                removals.push({
+                    subject_id: subjectId,
+                    batch_id: batchId
+                });
+            });
+
+            const formData = new FormData();
+            formData.append('course_id', document.querySelector('input[name="course_id"]').value);
+            formData.append('assignments', JSON.stringify(assignments));
+            formData.append('removals', JSON.stringify(removals));
+
+            fetch('{% url "core:link_batches_save_api" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Batch assignments saved successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while saving assignments.');
+            });
+        });
+    }
+});
+
+// Helper function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}Day Book{% endblock %}
+
+{% block layout_header %}
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'core:finance_dashboard' %}">Finance</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'core:finance_reports' %}">Reports</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Day Book</li>
+    </ol>
+</nav>
+
+{% url 'core:finance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Day Book" description="Daily cash/bank reconciliation across fee collection and the general ledger" icon="fa-book" back_url=back_url|default:back_fallback %}
+
+{% include 'core/finance/_workflow_nav.html' %}
+{% endblock %}
+
+{% block layout_filters %}
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-4">
+        <label for="from_date" class="form-label">From</label>
+        <input type="date" class="form-control" id="from_date" name="from_date" value="{{ date_from|date:'Y-m-d' }}">
+    </div>
+    <div class="col-md-4">
+        <label for="to_date" class="form-label">To</label>
+        <input type="date" class="form-control" id="to_date" name="to_date" value="{{ date_to|date:'Y-m-d' }}">
+    </div>
+    <div class="col-md-4 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-filter me-1"></i> Apply
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block layout_table %}
+{% if day_book %}
+<div class="mb-4">
+    {% include 'core/components/stat_cards.html' with stats=day_book_stats %}
+</div>
+
+<div class="pinewood-table-container">
+    <div class="pinewood-table-header">
+        <h5 class="mb-0">Daily Ledger</h5>
+    </div>
+    {% include 'core/components/table_open.html' with columns=ledger_columns %}
+        <tbody>
+            {% for day in day_book.days %}
+            <tr>
+                <td>{{ day.date|date:"M d, Y" }}</td>
+                <td class="text-end">{{ day.opening_balance|floatformat:2 }}</td>
+                <td class="text-end text-success">{{ day.total_in|floatformat:2 }}</td>
+                <td class="text-end text-danger">{{ day.total_out|floatformat:2 }}</td>
+                <td class="text-end fw-semibold">{{ day.closing_balance|floatformat:2 }}</td>
+                <td>
+                    {% for mode, totals in day.by_mode.items %}
+                        <span class="badge bg-light text-dark border me-1">
+                            {{ mode|title }}: +{{ totals.in|floatformat:2 }}{% if totals.out %} / -{{ totals.out|floatformat:2 }}{% endif %}
+                        </span>
+                    {% empty %}
+                        <span class="text-muted">—</span>
+                    {% endfor %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-muted text-center py-3">No activity in this date range</td></tr>
+            {% endfor %}
+        </tbody>
+    {% include 'core/components/table_close.html' %}
+</div>
+{% else %}
+{% include 'core/components/alert.html' with message="Invalid date range." variant="warning" %}
+{% endif %}
+{% endblock %}

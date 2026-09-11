@@ -1,0 +1,598 @@
+{% extends 'core/layouts/form.html' %}
+{% load static %}
+
+{% block page_title %}QuickBooks Integration{% endblock %}
+
+{% block layout_header %}
+{% url 'core:finance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="QuickBooks Integration" description="Manage your QuickBooks connection and sync settings" icon='fa-quickbooks' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+
+{% block layout_form %}
+<div class="container-lg py-4">
+    <div class="d-flex flex-wrap justify-content-end align-items-center gap-2 mb-3">
+        <a href="{% url 'core:quickbooks_webhook_review' %}" class="btn btn-outline-warning btn-sm">
+            <i class="fas fa-flag me-1"></i> Webhook Review
+        </a>
+        <a href="{% url 'core:finance_settings' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i> Back to Settings
+        </a>
+    </div>
+
+    <!-- Workflow Nav -->
+    {% include 'core/finance/_workflow_nav.html' %}
+
+    <!-- Status Alert -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if config_warnings %}
+        <div class="alert alert-danger" role="alert">
+            <h6 class="mb-2"><i class="fas fa-triangle-exclamation me-1"></i>QuickBooks configuration needs attention before production use</h6>
+            <ul class="mb-0">
+                {% for warning in config_warnings %}
+                    <li>{{ warning }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Connection Status Card -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-plug me-2"></i>Connection Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="connection-status">
+                        {% if connection_status.connected %}
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="status-indicator bg-success me-3"></div>
+                                <div>
+                                    <h6 class="mb-1 text-success">Connected</h6>
+                                    <p class="text-muted mb-0">{{ connection_status.message }}</p>
+                                    {% if connection_status.company_name %}
+                                        <small class="text-muted">Company: {{ connection_status.company_name }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-outline-success" onclick="testConnection()">
+                                    <i class="fas fa-check-circle me-1"></i> Test Connection
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" onclick="disconnectQuickBooks()">
+                                    <i class="fas fa-unlink me-1"></i> Disconnect
+                                </button>
+                            </div>
+                        {% elif connection_status.configured %}
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="status-indicator bg-warning me-3"></div>
+                                <div>
+                                    <h6 class="mb-1 text-warning">Ready to Connect</h6>
+                                    <p class="text-muted mb-0">{{ connection_status.message }}</p>
+                                </div>
+                            </div>
+                            {% if connection_status.auth_url %}
+                                <a href="{{ connection_status.auth_url }}" class="btn btn-primary" target="_blank">
+                                    <i class="fab fa-quickbooks me-1"></i> Connect to QuickBooks
+                                </a>
+                            {% endif %}
+                        {% else %}
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="status-indicator bg-secondary me-3"></div>
+                                <div>
+                                    <h6 class="mb-1 text-muted">Not Configured</h6>
+                                    <p class="text-muted mb-0">{{ connection_status.message }}</p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-cog me-2"></i>Configuration
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="quickbooks-config-form">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="client_id" class="form-label">Client ID <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="client_id" name="client_id" 
+                                           value="{% if integration %}{{ integration.client_id }}{% endif %}" 
+                                           placeholder="Your QuickBooks App Client ID">
+                                    <div class="form-text">Get this from your QuickBooks Developer account</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="client_secret" class="form-label">Client Secret <span class="text-danger">*</span></label>
+                                    <input type="password" class="form-control" id="client_secret" name="client_secret" 
+                                           value="{% if integration %}{{ integration.client_secret }}{% endif %}" 
+                                           placeholder="Your QuickBooks App Client Secret">
+                                    <div class="form-text">Keep this secret and secure</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="environment" class="form-label">Environment</label>
+                                    <select class="form-select" id="environment" name="environment">
+                                        <option value="sandbox" {% if integration.environment == 'sandbox' or not integration %}selected{% endif %}>
+                                            Sandbox (Testing)
+                                        </option>
+                                        <option value="production" {% if integration.environment == 'production' %}selected{% endif %}>
+                                            Production (Live)
+                                        </option>
+                                    </select>
+                                    <div class="form-text">Use Sandbox for testing, Production for live data</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="redirect_uri" class="form-label">Redirect URI</label>
+                                    <input type="url" class="form-control" id="redirect_uri" name="redirect_uri" 
+                                           value="{% if integration %}{{ integration.redirect_uri }}{% endif %}" 
+                                           placeholder="https://your-domain.com/quickbooks/callback" readonly>
+                                    <div class="form-text">This is configured automatically</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary" id="save-config-btn">
+                                <i class="fas fa-save me-1"></i> Save Configuration
+                            </button>
+                            <button type="button" class="btn btn-primary" id="connect-btn" disabled>
+                                <i class="fab fa-quickbooks me-1"></i> Connect to QuickBooks
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help & Information -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Setup Instructions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ol class="list-unstyled">
+                        <li class="mb-3">
+                            <div class="d-flex">
+                                <span class="badge bg-primary me-3">1</span>
+                                <div>
+                                    <strong>Create QuickBooks App</strong>
+                                    <p class="text-muted small mb-0">Sign up at developer.intuit.com and create a new app</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="mb-3">
+                            <div class="d-flex">
+                                <span class="badge bg-primary me-3">2</span>
+                                <div>
+                                    <strong>Get API Credentials</strong>
+                                    <p class="text-muted small mb-0">Copy your Client ID and Client Secret from the app dashboard</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="mb-3">
+                            <div class="d-flex">
+                                <span class="badge bg-primary me-3">3</span>
+                                <div>
+                                    <strong>Configure Redirect URI</strong>
+                                    <p class="text-muted small mb-0">Add this callback URL to your QuickBooks app settings</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="d-flex">
+                                <span class="badge bg-primary me-3">4</span>
+                                <div>
+                                    <strong>Connect & Authorize</strong>
+                                    <p class="text-muted small mb-0">Save your credentials and click Connect to authorize</p>
+                                </div>
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-sync-alt me-2"></i>Sync Settings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if connection_status.connected %}
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="auto_sync"
+                                   onchange="saveAutoSync(this.checked)"
+                                   {% if qb_config.auto_sync_customers %}checked{% endif %}>
+                            <label class="form-check-label" for="auto_sync">
+                                Enable automatic sync
+                            </label>
+                        </div>
+                        <div class="mb-3">
+                            <label for="default_service_item" class="form-label">
+                                Service item for fee charges
+                            </label>
+                            <select class="form-select" id="default_service_item"
+                                    onchange="saveServiceItem(this.value)"
+                                    data-selected="{{ qb_config.default_service_item|default_if_none:'' }}">
+                                <option value="">Loading items from QuickBooks…</option>
+                            </select>
+                            <div class="form-text">
+                                Every synced fee line is booked against this QuickBooks item
+                                (and its income account).
+                            </div>
+                        </div>
+                        {% if connection_status.last_sync %}
+                            <p class="text-muted small">
+                                Last sync: {{ connection_status.last_sync|date:"M d, Y H:i" }}
+                            </p>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted">Connect to QuickBooks to enable sync settings.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mb-0">Processing request...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block layout_extra %}{% endblock %}
+
+{% block extra_css %}
+{% include 'core/finance/_finance_ui_styles.html' %}
+<style>
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.card {
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    padding: 1rem 1.25rem;
+}
+
+.card-title {
+    color: #495057;
+    font-weight: 600;
+}
+
+.breadcrumb {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+.breadcrumb-item a {
+    color: #28a745;
+    text-decoration: none;
+}
+
+.breadcrumb-item a:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+    color: #6c757d;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+    color: #6c757d;
+}
+
+.badge {
+    font-size: 0.75rem;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const configForm = document.getElementById('quickbooks-config-form');
+    const connectBtn = document.getElementById('connect-btn');
+    const saveBtn = document.getElementById('save-config-btn');
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+
+    // Enable connect button when form has valid data
+    function checkFormValidity() {
+        const clientId = document.getElementById('client_id').value.trim();
+        const clientSecret = document.getElementById('client_secret').value.trim();
+        
+        if (clientId && clientSecret) {
+            connectBtn.disabled = false;
+        } else {
+            connectBtn.disabled = true;
+        }
+    }
+
+    // Check form validity on input
+    document.getElementById('client_id').addEventListener('input', checkFormValidity);
+    document.getElementById('client_secret').addEventListener('input', checkFormValidity);
+    checkFormValidity();
+
+    // Handle form submission
+    configForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        saveConfiguration();
+    });
+
+    // Handle connect button
+    connectBtn.addEventListener('click', function() {
+        connectToQuickBooks();
+    });
+
+    function saveConfiguration() {
+        const formData = new FormData(configForm);
+        loadingModal.show();
+        
+        fetch('{% url "core:quickbooks_connect" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            loadingModal.hide();
+            if (data.success) {
+                showAlert('Configuration saved successfully!', 'success');
+                if (data.auth_url) {
+                    // Open QuickBooks authorization in new window
+                    const authWindow = window.open(data.auth_url, 'quickbooks-auth', 'width=800,height=600');
+                    // Poll for connection status
+                    const pollInterval = setInterval(() => {
+                        fetch('{% url "core:quickbooks_settings" %}', {
+                            method: 'GET',
+                            headers: {
+                                'X-CSRFToken': getCookie('csrftoken')
+                            }
+                        })
+                        .then(response => response.text())
+                        .then(html => {
+                            // Check if the page indicates a connected status
+                            if (html.includes('Connected')) {
+                                clearInterval(pollInterval);
+                                authWindow.close();
+                                location.reload();
+                            }
+                        });
+                    }, 3000);
+                }
+            } else {
+                showAlert(data.error || 'Failed to save configuration', 'danger');
+            }
+        })
+        .catch(error => {
+            loadingModal.hide();
+            console.error('Error:', error);
+            showAlert('An error occurred. Please try again.', 'danger');
+        });
+    }
+
+    function connectToQuickBooks() {
+        // This will save config and redirect to QuickBooks
+        saveConfiguration();
+    }
+});
+
+function testConnection() {
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    loadingModal.show();
+    
+    fetch('{% url "core:quickbooks_test" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        loadingModal.hide();
+        if (data.success) {
+            showAlert(data.message, 'success');
+        } else {
+            showAlert(data.error || 'Connection test failed', 'danger');
+        }
+    })
+    .catch(error => {
+        loadingModal.hide();
+        console.error('Error:', error);
+        showAlert('Connection test failed', 'danger');
+    });
+}
+
+function disconnectQuickBooks() {
+    if (!confirm('Are you sure you want to disconnect from QuickBooks? This will revoke access tokens.')) {
+        return;
+    }
+    
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    loadingModal.show();
+    
+    fetch('{% url "core:quickbooks_disconnect" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        loadingModal.hide();
+        if (data.success) {
+            showAlert(data.message, 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert(data.error || 'Disconnect failed', 'danger');
+        }
+    })
+    .catch(error => {
+        loadingModal.hide();
+        console.error('Error:', error);
+        showAlert('Disconnect failed', 'danger');
+    });
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container-lg');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto dismiss after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function loadServiceItems() {
+    const sel = document.getElementById('default_service_item');
+    if (!sel) return;
+    const chosen = sel.dataset.selected || '';
+    fetch("{% url 'core:quickbooks_items' %}", { headers: { 'X-CSRFToken': getCookie('csrftoken') } })
+        .then(r => r.json())
+        .then(d => {
+            const items = (d && d.items) || [];
+            sel.innerHTML = '<option value="">— None (charges fall back to item 1) —</option>';
+            items.forEach(it => {
+                const o = document.createElement('option');
+                o.value = it.id;
+                o.textContent = it.name + (it.income_account ? ' → ' + it.income_account : '');
+                if (String(it.id) === String(chosen)) o.selected = true;
+                sel.appendChild(o);
+            });
+            if (!items.length) {
+                sel.innerHTML = '<option value="">No items returned by QuickBooks</option>';
+            }
+        })
+        .catch(() => {
+            sel.innerHTML = '<option value="">Could not load items from QuickBooks</option>';
+        });
+}
+
+function saveServiceItem(itemId) {
+    fetch("{% url 'core:quickbooks_config_update' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'default_service_item=' + encodeURIComponent(itemId || ''),
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (typeof showToast === 'function') {
+            showToast(d.success ? 'Service item saved' : (d.error || 'Failed to save service item'),
+                      d.success ? 'success' : 'danger');
+        }
+    })
+    .catch(() => {
+        if (typeof showToast === 'function') showToast('Failed to save service item', 'danger');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', loadServiceItems);
+
+function saveAutoSync(enabled) {
+    fetch("{% url 'core:quickbooks_config_update' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'auto_sync=' + (enabled ? 'true' : 'false'),
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (typeof showToast === 'function') {
+            showToast(d.success ? 'Auto-sync ' + (enabled ? 'enabled' : 'disabled') : 'Failed to save setting',
+                      d.success ? 'success' : 'danger');
+        }
+    })
+    .catch(() => {
+        if (typeof showToast === 'function') showToast('Failed to save auto-sync setting', 'danger');
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,92 @@
+<div id="employee-documents-content">
+    <div id="employee-documents-errors" class="alert alert-danger d-none"></div>
+
+    {% if 'hr.document.manage' in perms %}
+    <div class="pw-card mb-3">
+        <h2 class="h6 fw-bold">Upload document</h2>
+        <form onsubmit="submitDocumentUpload(event, '{{ employee.id }}')" enctype="multipart/form-data">
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <label class="form-label">Document type</label>
+                    <input type="text" class="form-control form-control-sm" name="document_type"
+                        placeholder="NRC, CV, Contract…" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">File</label>
+                    <input type="file" class="form-control form-control-sm" name="file" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Expiry date</label>
+                    <input type="date" class="form-control form-control-sm" name="expiry_date">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm mt-2">Upload</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <div class="pinewood-table-responsive">
+        <table class="pinewood-table">
+            <thead>
+                <tr>
+                    <th>Type</th><th>Uploaded</th><th>Expiry</th><th>Status</th>
+                    <th width="140">File</th>
+                    {% if 'hr.document.manage' in perms %}<th width="80">Actions</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in documents %}
+                    <tr>
+                        <td>{{ d.document_type }}</td>
+                        <td><small>{{ d.uploaded_at|date:"M j, Y" }}</small></td>
+                        <td><small>{{ d.expiry_date|date:"M j, Y"|default:"—" }}</small></td>
+                        <td>
+                            {% if d.status == 'expired' %}<span class="badge bg-danger">Expired</span>
+                            {% elif d.status == 'expiring' %}<span class="badge bg-warning">Expiring</span>
+                            {% else %}<span class="badge bg-success">Valid</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if d.file %}<a href="{{ d.file.url }}" target="_blank" rel="noopener"><i class="fas fa-download"></i> Open</a>{% else %}—{% endif %}
+                        </td>
+                        {% if 'hr.document.manage' in perms %}
+                        <td class="table-actions">
+                            <button type="button" class="btn btn-outline-danger btn-sm" title="Delete"
+                                onclick="deleteDocument('{{ d.id }}')"><i class="fas fa-trash"></i></button>
+                        </td>
+                        {% endif %}
+                    </tr>
+                {% empty %}
+                    <tr class="empty-state"><td colspan="6">No documents on file.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function _docCsrf() { return document.querySelector('[name=csrfmiddlewaretoken]').value; }
+function _swapDocs(status, text) {
+    if (status === 200) {
+        document.getElementById('employee-documents-content').outerHTML = text;
+        if (typeof showAlert === 'function') showAlert('Saved', 'success');
+    } else {
+        const box = document.getElementById('employee-documents-errors');
+        try { box.textContent = JSON.parse(text).error || 'An error occurred'; }
+        catch (e) { box.textContent = 'An error occurred'; }
+        box.classList.remove('d-none');
+    }
+}
+function submitDocumentUpload(event, employeeId) {
+    event.preventDefault();
+    fetch(`/hr/employees/${employeeId}/documents/upload/`, {
+        method: 'POST', headers: { 'X-CSRFToken': _docCsrf() },
+        body: new FormData(event.target),
+    }).then(r => r.text().then(t => _swapDocs(r.status, t)));
+}
+function deleteDocument(documentId) {
+    if (!confirm('Delete this document?')) return;
+    fetch(`/hr/documents/${documentId}/delete/`, {
+        method: 'POST', headers: { 'X-CSRFToken': _docCsrf() },
+    }).then(r => r.text().then(t => _swapDocs(r.status, t)));
+}
+</script>

@@ -1,0 +1,218 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}Admission Applications{% endblock %}
+
+{% block layout_header %}
+{% url 'core:admission_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Admission Applications" description="Manage and review student admission applications" icon="fa-file-alt" actions=header_actions back_url=back_url|default:back_fallback %}
+{% if stat_cards %}
+<div class="mb-4">
+    {% include 'core/components/stat_cards.html' with stats=stat_cards %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block layout_filters %}
+{% include 'core/components/toolbar.html' with search_name="query" search_value=request.GET.query search_placeholder="Search by name, application number, or guardian…" filters=admission_status_filters clear_url=admission_list_clear_url %}
+
+<div class="d-flex justify-content-end mb-3">
+    <a href="?export=csv" class="table-export-btn">
+        <i class="fas fa-download me-2"></i>Export as CSV
+    </a>
+</div>
+{% endblock %}
+
+{% block layout_table %}
+<div class="pinewood-table-container">
+    <div class="pinewood-table-header">
+        <h5 class="mb-0">Applications</h5>
+        {% if applications %}
+        <span class="table-info">{{ applications|length }} results</span>
+        {% endif %}
+    </div>
+
+    {% if applications %}
+    {% include 'core/components/table_open.html' with columns=table_columns %}
+        <tbody>
+            {% for application in applications %}
+            <tr>
+                <td class="text-center">{{ forloop.counter0|add:page_obj.start_index }}</td>
+                <td>
+                    <strong class="text-primary">{{ application.application_number }}</strong>
+                </td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-sm me-2">
+                            <div class="avatar-title bg-light text-dark rounded">
+                                {{ application.first_name.0 }}{{ application.last_name.0 }}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="fw-semibold">{{ application.first_name }} {{ application.last_name }}</div>
+                            <small class="text-muted">DOB: {{ application.date_of_birth|date:"d/m/Y" }}</small>
+                        </div>
+                    </div>
+                </td>
+                <td>{{ application.course_applied.course_name }}</td>
+                <td>{{ application.application_date|date:"d M Y" }}</td>
+                <td>
+                    {% if application.status == 'pending' %}
+                        <span class="badge bg-warning text-dark">Pending</span>
+                    {% elif application.status == 'approved' %}
+                        <span class="badge bg-success">Approved</span>
+                    {% elif application.status == 'rejected' %}
+                        <span class="badge bg-danger">Rejected</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div>{{ application.guardian_name }}</div>
+                    <small class="text-muted">{{ application.guardian_phone }}</small>
+                </td>
+                <td class="table-actions">
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'core:admission_detail' application.id %}"
+                           class="btn btn-sm btn-outline-primary" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        {% if application.status == 'pending' %}
+                        <button type="button" class="btn btn-sm btn-outline-success"
+                                onclick="reviewApplication('{{ application.id }}', 'approve')" title="Approve">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                onclick="reviewApplication('{{ application.id }}', 'reject')" title="Reject">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    {% include 'core/components/table_close.html' %}
+    {% else %}
+    {% include 'core/components/empty_state.html' with title="No Applications Found" message="There are no admission applications matching your criteria." icon="fa-inbox" action_url=apply_url action_label="Create New Application" %}
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block layout_pagination %}
+{% include 'core/components/pagination.html' with page_obj=page_obj %}
+{% endblock %}
+
+{% block layout_extra %}
+<!-- Quick Review Modal -->
+<form id="quickReviewForm">
+{% include 'core/components/modal.html' with id="quickReviewModal" title="Quick Review" %}
+        <input type="hidden" id="reviewApplicationId">
+        <input type="hidden" id="reviewAction">
+
+        <div class="mb-3" id="admissionNoField" style="display: none;">
+            <label for="admissionNo" class="form-label">Admission Number</label>
+            <input type="text" class="form-control" id="admissionNo"
+                   placeholder="Leave blank to auto-generate">
+            <div class="form-text">Leave blank to auto-generate admission number</div>
+        </div>
+
+        <div class="mb-3">
+            <label for="remarks" class="form-label">Remarks</label>
+            <textarea class="form-control" id="remarks" rows="3"
+                      placeholder="Enter remarks or reason for decision" required></textarea>
+        </div>
+{% include 'core/components/modal_close.html' with footer=quick_review_footer %}
+</form>
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function reviewApplication(applicationId, action) {
+    document.getElementById('reviewApplicationId').value = applicationId;
+    document.getElementById('reviewAction').value = action;
+
+    const modal = new bootstrap.Modal(document.getElementById('quickReviewModal'));
+    const title = document.querySelector('#quickReviewModal .modal-title');
+    const confirmBtn = document.getElementById('confirmAction');
+    const admissionField = document.getElementById('admissionNoField');
+    const remarksField = document.getElementById('remarks');
+
+    if (action === 'approve') {
+        title.textContent = 'Approve Application';
+        confirmBtn.textContent = 'Approve';
+        confirmBtn.className = 'btn btn-success';
+        admissionField.style.display = 'block';
+        remarksField.placeholder = 'Enter approval remarks (optional)';
+        remarksField.required = false;
+    } else {
+        title.textContent = 'Reject Application';
+        confirmBtn.textContent = 'Reject';
+        confirmBtn.className = 'btn btn-danger';
+        admissionField.style.display = 'none';
+        remarksField.placeholder = 'Enter reason for rejection';
+        remarksField.required = true;
+    }
+
+    modal.show();
+}
+
+document.getElementById('quickReviewForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const applicationId = document.getElementById('reviewApplicationId').value;
+    const action = document.getElementById('reviewAction').value;
+    const remarks = document.getElementById('remarks').value;
+    const admissionNo = document.getElementById('admissionNo').value;
+
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    formData.append('action', action);
+    formData.append('remarks', remarks);
+    if (action === 'approve' && admissionNo) {
+        formData.append('admission_no', admissionNo);
+    }
+
+    fetch(`/admission/review/${applicationId}/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                ${data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('#main-content').insertBefore(alertDiv, document.querySelector('#main-content').firstChild);
+
+            // Close modal and reload page
+            bootstrap.Modal.getInstance(document.getElementById('quickReviewModal')).hide();
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error processing request');
+    });
+});
+
+// Add CSRF token to all forms
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    if (!csrfToken) {
+        // Add CSRF token if not present
+        const metaTag = document.createElement('meta');
+        metaTag.name = 'csrf-token';
+        metaTag.content = '{{ csrf_token }}';
+        document.head.appendChild(metaTag);
+    }
+});
+</script>
+{% endblock %}

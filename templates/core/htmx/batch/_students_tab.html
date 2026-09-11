@@ -1,0 +1,86 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <span class="pw-card-title"><span class="pw-badge pw-badge-active">{{ student_count }}</span> Students</span>
+    <button class="pw-btn pw-btn-primary pw-btn-sm" onclick="addStudentToBatch()">
+        <i class="fas fa-user-plus"></i> Import Students
+    </button>
+</div>
+
+{% if batch_assignments %}
+<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+    <input type="text" id="batchStudentSearch" class="pw-form-control" style="max-width:280px"
+           placeholder="Search by name or admission no…" oninput="filterBatchStudents(this.value)">
+    <select id="batchStudentSort" class="pw-form-control" style="max-width:200px" onchange="sortBatchStudents(this.value)">
+        <option value="name">Name (A–Z)</option>
+        <option value="name_desc">Name (Z–A)</option>
+        <option value="admission">Admission No.</option>
+    </select>
+    <span class="pw-card-meta" id="batchStudentShown"></span>
+</div>
+
+<div class="pw-table-wrap">
+    <table class="pw-table" id="batchStudentsTable">
+        <thead>
+            <tr>
+                <th style="width:60px">Sl No.</th>
+                <th>Student Name</th>
+                <th style="width:160px">Admission No.</th>
+                <th style="width:200px">Assigned Teacher</th>
+                <th style="width:100px">Comment</th>
+                <th style="width:100px">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in batch_assignments %}
+            <tr data-name="{{ entry.student.first_name|add:' '|add:entry.student.last_name|lower }}" data-admission="{{ entry.student.admission_no|lower }}" data-student-id="{{ entry.student.id }}" data-teacher-name="{% if entry.employee %}{{ entry.employee.full_name }}{% endif %}">
+                <td class="sl-no">{{ forloop.counter }}</td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center me-2"
+                             style="background:var(--p-green-light);color:var(--p-green-dark)">
+                            {{ entry.student.first_name|first }}{{ entry.student.last_name|first }}
+                        </div>
+                        <div>
+                            <strong>{{ entry.student.first_name }} {{ entry.student.last_name }}</strong>
+                            {% if entry.student.email %}<br><span class="pw-card-meta">{{ entry.student.email }}</span>{% endif %}
+                        </div>
+                    </div>
+                </td>
+                <td><span class="pw-badge pw-badge-active">{{ entry.student.admission_no }}</span></td>
+                <td>
+                    {% if entry.employee %}
+                        <span class="pw-badge" style="background-color:#e8f4f8;color:#0969da;">
+                            {{ entry.employee.full_name }}
+                        </span>
+                        {% if entry.needs_review %}
+                            <span class="pw-badge" style="background-color:#fff3cd;color:#856404;">Needs Review</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="pw-card-meta">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if entry.has_comment %}
+                        <i class="fas fa-check" style="color:var(--p-success)"></i>
+                    {% else %}
+                        <span class="pw-card-meta">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'core:student_detail' entry.student.id %}" class="pw-table-action">View</a>
+                    <button class="pw-table-action" onclick="openTeacherReassignModal('{{ entry.student.id }}', '{{ entry.student.full_name }}')">Reassign</button>
+                    <button class="pw-table-action" style="color:var(--p-danger)" onclick="removeStudentFromBatch('{{ entry.student.id }}')">Remove</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="pw-empty">
+    <i class="fas fa-users"></i>
+    <h5>No students assigned to this batch yet</h5>
+    <button class="pw-btn pw-btn-primary pw-btn-sm" onclick="addStudentToBatch()">
+        <i class="fas fa-user-plus"></i> Import Students
+    </button>
+</div>
+{% endif %}

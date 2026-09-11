@@ -1,0 +1,217 @@
+{% extends 'core/layouts/detail.html' %}
+{% load static %}
+
+{% block page_title %}Batch Transfer - {{ source_batch.name }}{% endblock %}
+
+
+{% block layout_header %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Home</a></li>
+        <li class="breadcrumb-item">Configuration</li>
+        <li class="breadcrumb-item">Class</li>
+        <li class="breadcrumb-item">Manage Batch</li>
+        <li class="breadcrumb-item"><a href="{% url 'core:batch_transfer_list' %}">Batch transfer</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ source_batch.name }}</li>
+    </ol>
+</nav>
+{% url 'core:batch_transfer_list' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Batch transfer" icon="fa-exchange-alt" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_summary %}
+<div class="container-fluid">
+    <!-- Warning Alert -->
+    {% if students_with_unpaid_fees %}
+    <div class="row">
+        <div class="col-12">
+            <div class="warning-alert">
+                Highlighted students in this batch have unpaid fees!
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Transfer Information -->
+    <div class="row">
+        <div class="col-12">
+            <div class="transfer-info">
+                <div class="transfer-info-row">
+                    <div class="transfer-info-label">Transferring batch:</div>
+                    <div class="transfer-info-value transferring-batch">{{ source_batch.name }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block layout_sections %}
+<div class="container-fluid">
+    <!-- Transfer Form -->
+    <div class="row">
+        <div class="col-12">
+            <div class="transfer-form">
+                <form id="transferForm">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="targetBatch">Transfer to batch:</label>
+                        <select id="targetBatch" name="target_batch" class="form-select" required>
+                            <option value="">Select a batch</option>
+                            {% for batch in target_batches %}
+                            <option value="{{ batch.id }}">{{ batch.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Students Table -->
+    {% if batch_students %}
+    <div class="row">
+        <div class="col-12">
+            <div class="students-table">
+                {% include 'core/components/table_open.html' %}
+                    <thead>
+                        <tr>
+                            <th scope="col" style="width:48px">
+                                <input type="checkbox" id="selectAllStudents" onclick="toggleSelectAllStudents(this)" checked>
+                            </th>
+                            <th scope="col">Student Name</th>
+                            <th scope="col">Admission Number</th>
+                            <th scope="col">Fee Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for batch_student in batch_students %}
+                        <tr {% if batch_student.student.id in students_with_unpaid_fees %}style="background-color: #fff3cd;"{% endif %}>
+                            <td>
+                                <input type="checkbox" class="transfer-check" value="{{ batch_student.student.id }}" onchange="updateTransferCount()" checked>
+                            </td>
+                            <td class="student-name">{{ batch_student.student.first_name }} {{ batch_student.student.last_name }}</td>
+                            <td>{{ batch_student.student.admission_no|default:"-" }}</td>
+                            <td>
+                                {% if batch_student.student.id in students_with_unpaid_fees %}
+                                    <span class="unpaid-fees">Unpaid</span>
+                                {% else %}
+                                    <span class="paid-fees">Paid</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                {% include 'core/components/table_close.html' %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Transfer Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="transfer-actions">
+                <button type="button" class="btn btn-transfer" onclick="performTransfer()">
+                    Transfer <span id="transferCount"></span> Students
+                </button>
+                <a href="{% url 'core:batch_transfer_list' %}" class="btn btn-cancel">
+                    Cancel
+                </a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            {% include 'core/components/empty_state.html' with title="No Students Found" message=no_students_message icon="fa-user-graduate" %}
+            <div class="text-center pb-4">
+                <a href="{% url 'core:batch_transfer_list' %}" class="btn btn-cancel">
+                    Back to Batch Transfer
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    updateTransferCount();
+});
+
+function selectedStudentIds() {
+    return Array.from(document.querySelectorAll('.transfer-check:checked')).map(cb => cb.value);
+}
+
+function toggleSelectAllStudents(master) {
+    document.querySelectorAll('.transfer-check').forEach(cb => { cb.checked = master.checked; });
+    updateTransferCount();
+}
+
+function updateTransferCount() {
+    const total = document.querySelectorAll('.transfer-check').length;
+    const selected = selectedStudentIds().length;
+    const countEl = document.getElementById('transferCount');
+    if (countEl) countEl.textContent = selected ? '(' + selected + ')' : '';
+    // Keep the header checkbox in sync (checked only when all are selected).
+    const master = document.getElementById('selectAllStudents');
+    if (master) master.checked = total > 0 && selected === total;
+}
+
+function performTransfer() {
+    const targetBatchId = document.getElementById('targetBatch').value;
+
+    if (!targetBatchId) {
+        alert('Please select a target batch for transfer');
+        return;
+    }
+
+    const studentIds = selectedStudentIds();
+    if (studentIds.length === 0) {
+        alert('Please select at least one student to transfer');
+        return;
+    }
+
+    if (!confirm('Transfer ' + studentIds.length + ' selected student(s) from {{ source_batch.name }} to the selected batch?')) {
+        return;
+    }
+
+    // Show loading state
+    const transferBtn = document.querySelector('.btn-transfer');
+    const originalText = transferBtn.textContent;
+    transferBtn.textContent = 'Transferring...';
+    transferBtn.disabled = true;
+
+    $.ajax({
+        url: '{% url "core:batch_transfer_api" %}',
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val(),
+            'Content-Type': 'application/json',
+        },
+        data: JSON.stringify({
+            source_batch_id: '{{ source_batch.id }}',
+            target_batch_id: targetBatchId,
+            student_ids: studentIds
+        }),
+        success: function(response) {
+            if (response.success) {
+                alert(response.message || 'Students transferred successfully!');
+                window.location.href = '{% url "core:batch_transfer_list" %}';
+            } else {
+                alert('Error: ' + (response.error || 'Failed to transfer students'));
+                transferBtn.textContent = originalText;
+                transferBtn.disabled = false;
+            }
+        },
+        error: function() {
+            alert('Error transferring students. Please try again.');
+            transferBtn.textContent = originalText;
+            transferBtn.disabled = false;
+        }
+    });
+}
+</script>
+{% endblock %}

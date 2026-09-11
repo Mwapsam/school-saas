@@ -1,0 +1,1459 @@
+{% extends 'core/layouts/detail.html' %}
+
+{% load static %}
+
+
+
+{% block page_title %}Enhanced Score Entry{% endblock %}
+
+
+
+
+
+{% block layout_header %}
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Enhanced Score Entry" description="Enter and review exam scores with live grade calculation." icon="fa-chart-line" back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% block layout_summary %}
+<div class="gb-score-entry">
+<div class="container-fluid">
+
+    <!-- Breadcrumb -->
+
+    
+
+
+
+    <!-- Header -->
+
+    
+
+    </div>
+
+
+
+    <div class="row">
+
+        <div class="col-lg-9">
+
+            <!-- Selection Panel -->
+
+            <div class="selection-panel">
+
+                <div class="row">
+
+                    <div class="col-md-4">
+
+                        <label class="form-label">Select Exam</label>
+
+                        <select class="form-select" id="examSelect" onchange="loadExamDetails()">
+
+                            <option value="">Choose exam...</option>
+
+                            {% for exam_group in exam_groups %}
+
+                                <optgroup label="{{ exam_group.name }}">
+
+                                    {% for exam in exam_group.exams.all %}
+
+                                    <option value="{{ exam.id }}" data-subject="{{ exam.subject.id }}" data-batch="{{ exam_group.batch.id }}">
+
+                                        {{ exam.subject.name }} ({{ exam.maximum_marks }} marks)
+
+                                    </option>
+
+                                    {% endfor %}
+
+                                </optgroup>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+                    <div class="col-md-4">
+
+                        <label class="form-label">Grading System</label>
+
+                        <select class="form-select" id="gradingTypeSelect" onchange="updateGradingSystem()">
+
+                            <option value="">Auto-detect from batch</option>
+
+                            {% for grading_type in grading_types %}
+
+                            <option value="{{ grading_type.id }}">{{ grading_type.name }}</option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+                    <div class="col-md-4">
+
+                        <label class="form-label">Entry Mode</label>
+
+                        <select class="form-select" id="entryModeSelect" onchange="changeEntryMode()">
+
+                            <option value="traditional">Traditional (Total Marks)</option>
+
+                            <option value="breakdown">Internal/External Breakdown</option>
+
+                            <option value="cce">CCE Assessment</option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- Progress Indicator -->
+
+            <div class="progress-indicator" id="progressIndicator" style="display: none;">
+
+                <div class="progress-stats">
+
+                    <div class="progress-stat">
+
+                        <h6 id="totalStudents">0</h6>
+
+                        <p>Total Students</p>
+
+                    </div>
+
+                    <div class="progress-stat">
+
+                        <h6 id="scoresEntered">0</h6>
+
+                        <p>Scores Entered</p>
+
+                    </div>
+
+                    <div class="progress-stat">
+
+                        <h6 id="studentsAbsent">0</h6>
+
+                        <p>Absent</p>
+
+                    </div>
+
+                    <div class="progress-stat">
+
+                        <h6 id="averageScore">0%</h6>
+
+                        <p>Class Average</p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- Score Entry Tabs -->
+
+            <div class="score-entry-tabs" id="scoreEntryTabs" style="display: none;">
+
+                <ul class="nav nav-tabs" id="entryTabs" role="tablist">
+
+                    <li class="nav-item" role="presentation">
+
+                        <button class="nav-link active" id="scores-tab" data-bs-toggle="tab"
+
+                                data-bs-target="#scores" type="button" role="tab">
+
+                            <i class="fas fa-keyboard me-2"></i>
+
+                            Score Entry
+
+                        </button>
+
+                    </li>
+
+                    <li class="nav-item" role="presentation" style="display: none;" id="cceTab">
+
+                        <button class="nav-link" id="cce-tab" data-bs-toggle="tab"
+
+                                data-bs-target="#cce" type="button" role="tab">
+
+                            <i class="fas fa-chart-pie me-2"></i>
+
+                            CCE Assessment
+
+                        </button>
+
+                    </li>
+
+                    <li class="nav-item" role="presentation">
+
+                        <button class="nav-link" id="validation-tab" data-bs-toggle="tab"
+
+                                data-bs-target="#validation" type="button" role="tab">
+
+                            <i class="fas fa-check-circle me-2"></i>
+
+                            Validation
+
+                        </button>
+
+                    </li>
+
+                </ul>
+
+
+
+                <div class="tab-content" id="entryTabContent">
+
+                    <!-- Traditional Score Entry -->
+
+                    <div class="tab-pane fade show active" id="scores" role="tabpanel">
+
+                        <div class="batch-actions">
+
+                            <button class="btn btn-primary action-btn" onclick="autoCalculateGrades()">
+
+                                <i class="fas fa-calculator me-2"></i>Auto-Calculate Grades
+
+                            </button>
+
+                            <button class="btn btn-outline-primary action-btn" onclick="markAllAbsent()">
+
+                                <i class="fas fa-user-slash me-2"></i>Mark All Absent
+
+                            </button>
+
+                            <button class="btn btn-outline-secondary action-btn" onclick="clearAllScores()">
+
+                                <i class="fas fa-eraser me-2"></i>Clear All
+
+                            </button>
+
+                            <button class="btn btn-primary action-btn" onclick="saveScores()">
+
+                                <i class="fas fa-save me-2"></i>Save Scores
+
+                            </button>
+
+                        </div>
+
+
+
+                        <div class="score-table">
+
+                            <table class="table table-hover mb-0" id="scoresTable">
+
+                                <thead>
+
+                                    <tr>
+
+                                        <th style="width: 200px;">Student</th>
+
+                                        <th style="width: 80px;">Absent</th>
+
+                                        <th style="width: 100px;" id="obtainedHeader">Obtained</th>
+
+                                        <th style="width: 80px;" id="totalHeader">Total</th>
+
+                                        <th style="width: 80px;">%</th>
+
+                                        <th style="width: 80px;">Grade</th>
+
+                                        <th style="width: 120px;">Remarks</th>
+
+                                    </tr>
+
+                                </thead>
+
+                                <tbody id="scoresTableBody">
+
+                                    <!-- Dynamic content will be loaded here -->
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- CCE Assessment Tab -->
+
+                    <div class="tab-pane fade" id="cce" role="tabpanel">
+
+                        <div class="alert alert-info">
+
+                            <i class="fas fa-info-circle me-2"></i>
+
+                            CCE (Continuous Comprehensive Evaluation) allows separate entry for Formative and Summative assessments.
+
+                        </div>
+
+
+
+                        <div class="score-table">
+
+                            <table class="table table-hover mb-0" id="cceTable">
+
+                                <thead>
+
+                                    <tr>
+
+                                        <th style="width: 200px;">Student</th>
+
+                                        <th style="width: 80px;">Absent</th>
+
+                                        <th colspan="2" class="text-center">Formative Assessment</th>
+
+                                        <th colspan="2" class="text-center">Summative Assessment</th>
+
+                                        <th style="width: 80px;">Total %</th>
+
+                                        <th style="width: 80px;">Grade</th>
+
+                                    </tr>
+
+                                    <tr>
+
+                                        <th colspan="2"></th>
+
+                                        <th style="width: 80px;">Obtained</th>
+
+                                        <th style="width: 80px;">Total</th>
+
+                                        <th style="width: 80px;">Obtained</th>
+
+                                        <th style="width: 80px;">Total</th>
+
+                                        <th></th>
+
+                                        <th></th>
+
+                                    </tr>
+
+                                </thead>
+
+                                <tbody id="cceTableBody">
+
+                                    <!-- Dynamic content will be loaded here -->
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- Validation Tab -->
+
+                    <div class="tab-pane fade" id="validation" role="tabpanel">
+
+                        <div class="alert alert-warning">
+
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+
+                            Review and validate scores before final submission.
+
+                        </div>
+
+
+
+                        <div id="validationResults">
+
+                            <!-- Validation results will appear here -->
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="col-lg-3">
+
+            <!-- Calculation Panel -->
+
+            <div class="calculation-panel">
+
+                <h5 class="mb-3">
+
+                    <i class="fas fa-calculator me-2"></i>
+
+                    Live Statistics
+
+                </h5>
+
+
+
+                <div id="calculationDetails">
+
+                    <div class="text-center py-4">
+
+                        <i class="fas fa-chart-line fa-2x text-muted mb-2"></i>
+
+                        <p class="text-muted">Select an exam to view statistics</p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- Grading Scale Reference -->
+
+            <div class="calculation-panel" id="gradingScalePanel" style="display: none;">
+
+                <h5 class="mb-3">
+
+                    <i class="fas fa-layer-group me-2"></i>
+
+                    Grading Scale
+
+                </h5>
+
+
+
+                <div id="gradingScaleDetails">
+
+                    <!-- Grading scale will be loaded here -->
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- Import Scores Modal -->
+
+<div class="modal fade" id="importScoresModal" tabindex="-1">
+
+    <div class="modal-dialog">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <h5 class="modal-title">Import Scores</h5>
+
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
+            </div>
+
+            <div class="modal-body">
+
+                <div class="mb-3">
+
+                    <label class="form-label">Select Exam</label>
+
+                    <select class="form-select" id="importExamSelect" required>
+
+                        <option value="">Choose exam...</option>
+
+                        {% for exam_group in exam_groups %}
+
+                            <optgroup label="{{ exam_group.name }}">
+
+                                {% for exam in exam_group.exams.all %}
+
+                                <option value="{{ exam.id }}">{{ exam.subject.name }}</option>
+
+                                {% endfor %}
+
+                            </optgroup>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+                <div class="mb-3">
+
+                    <label class="form-label">Upload File</label>
+
+                    <input type="file" class="form-control" id="scoresFile" accept=".csv,.xlsx,.xls">
+
+                    <small class="form-text text-muted">
+
+                        Supported formats: CSV, Excel (.xlsx, .xls)
+
+                    </small>
+
+                </div>
+
+                <div class="alert alert-info">
+
+                    <h6>File Format Requirements:</h6>
+
+                    <ul class="mb-0">
+
+                        <li>First column: Student ID or Admission Number</li>
+
+                        <li>Second column: Obtained Marks</li>
+
+                        <li>Third column (optional): Remarks</li>
+
+                    </ul>
+
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+
+                <button type="button" class="btn btn-primary" onclick="processImport()">
+
+                    <i class="fas fa-upload me-2"></i>Import Scores
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+{% block layout_sections %}{% endblock %}
+{% block layout_extra %}<!-- Modals will go here -->{% endblock %}
+
+
+
+
+{% block extra_js %}
+
+<script>
+
+let currentExam = null;
+
+let currentGradingType = null;
+
+let currentGradeScale = [];
+
+let students = [];
+
+
+
+function loadExamDetails() {
+
+    const examId = $('#examSelect').val();
+
+    if (!examId) {
+
+        $('#scoreEntryTabs').hide();
+
+        $('#progressIndicator').hide();
+
+        return;
+
+    }
+
+
+
+    $('#progressIndicator').show();
+
+    $('#scoreEntryTabs').show();
+
+
+
+    // Load exam details and students
+
+    $.get(`/api/gradebook/exam/${examId}/details/`, function(data) {
+
+        currentExam = data.exam;
+
+        students = data.students;
+
+        currentGradingType = data.grading_type;
+
+        currentGradeScale = (data.exam && data.exam.grade_scale) || [];
+
+
+
+        updateProgressIndicator();
+
+        loadScoreEntryTable();
+
+        loadCalculationPanel();
+
+        loadGradingScale();
+
+
+
+        // Show CCE tab if applicable
+
+        if (currentGradingType && currentGradingType.code === 'CCE') {
+
+            $('#cceTab').show();
+
+        } else {
+
+            $('#cceTab').hide();
+
+        }
+
+    }).fail(function() {
+
+        alert('Failed to load exam details');
+
+    });
+
+}
+
+
+
+function updateProgressIndicator() {
+
+    $('#totalStudents').text(students.length);
+
+
+
+    let scoresEntered = 0;
+
+    let studentsAbsent = 0;
+
+    let totalScores = 0;
+
+
+
+    students.forEach(student => {
+
+        if (student.is_absent) {
+
+            studentsAbsent++;
+
+        } else if (student.obtained_marks !== null) {
+
+            scoresEntered++;
+
+            totalScores += parseFloat(student.obtained_marks) || 0;
+
+        }
+
+    });
+
+
+
+    $('#scoresEntered').text(scoresEntered);
+
+    $('#studentsAbsent').text(studentsAbsent);
+
+
+
+    const averageScore = scoresEntered > 0 ? (totalScores / scoresEntered).toFixed(1) + '%' : '0%';
+
+    $('#averageScore').text(averageScore);
+
+}
+
+
+
+function loadScoreEntryTable() {
+
+    const tbody = $('#scoresTableBody');
+
+    tbody.empty();
+
+
+
+    const entryMode = $('#entryModeSelect').val();
+
+
+
+    students.forEach((student, index) => {
+
+        let row = '';
+
+
+
+        if (entryMode === 'breakdown') {
+
+            row = createBreakdownRow(student, index);
+
+        } else if (entryMode === 'cce') {
+
+            row = createCCERow(student, index);
+
+        } else {
+
+            row = createTraditionalRow(student, index);
+
+        }
+
+
+
+        tbody.append(row);
+
+    });
+
+
+
+    // Load CCE table if needed
+
+    if (entryMode === 'cce') {
+
+        loadCCETable();
+
+    }
+
+}
+
+
+
+function createTraditionalRow(student, index) {
+
+    const initials = student.first_name.charAt(0) + (student.last_name ? student.last_name.charAt(0) : '');
+
+
+
+    return `
+
+        <tr data-student-id="${student.id}">
+
+            <td>
+
+                <div class="student-info">
+
+                    <div class="student-avatar">${initials}</div>
+
+                    <div>
+
+                        <div class="student-name">${student.first_name} ${student.last_name || ''}</div>
+
+                        <div class="student-id">${student.admission_no}</div>
+
+                    </div>
+
+                </div>
+
+            </td>
+
+            <td>
+
+                <div class="absent-toggle ${student.is_absent ? 'active' : ''}"
+
+                     onclick="toggleAbsent(${index})">
+
+                    <i class="fas fa-user-slash"></i>
+
+                </div>
+
+            </td>
+
+            <td>
+
+                <input type="number" class="form-control score-input"
+
+                       value="${student.obtained_marks || ''}"
+
+                       max="${currentExam.maximum_marks}"
+
+                       onchange="updateScore(${index}, this.value)"
+
+                       ${student.is_absent ? 'disabled' : ''}>
+
+            </td>
+
+            <td>
+
+                <strong>${currentExam.maximum_marks}</strong>
+
+            </td>
+
+            <td>
+
+                <span id="percentage-${index}">${calculatePercentage(student.obtained_marks)}</span>
+
+            </td>
+
+            <td>
+
+                <span class="grade-display" id="grade-${index}">${calculateGrade(student.obtained_marks)}</span>
+
+            </td>
+
+            <td>
+
+                <input type="text" class="form-control"
+
+                       value="${student.remarks || ''}"
+
+                       onchange="updateRemarks(${index}, this.value)"
+
+                       placeholder="Remarks...">
+
+            </td>
+
+        </tr>
+
+    `;
+
+}
+
+
+
+function createBreakdownRow(student, index) {
+
+    const initials = student.first_name.charAt(0) + (student.last_name ? student.last_name.charAt(0) : '');
+
+
+
+    return `
+
+        <tr data-student-id="${student.id}">
+
+            <td>
+
+                <div class="student-info">
+
+                    <div class="student-avatar">${initials}</div>
+
+                    <div>
+
+                        <div class="student-name">${student.first_name} ${student.last_name || ''}</div>
+
+                        <div class="student-id">${student.admission_no}</div>
+
+                    </div>
+
+                </div>
+
+            </td>
+
+            <td>
+
+                <div class="absent-toggle ${student.is_absent ? 'active' : ''}"
+
+                     onclick="toggleAbsent(${index})">
+
+                    <i class="fas fa-user-slash"></i>
+
+                </div>
+
+            </td>
+
+            <td>
+
+                <div class="breakdown-inputs">
+
+                    <label class="small">Internal</label>
+
+                    <input type="number" class="form-control breakdown-input"
+
+                           value="${student.internal_marks || ''}"
+
+                           onchange="updateInternalMarks(${index}, this.value)"
+
+                           ${student.is_absent ? 'disabled' : ''}>
+
+                    <label class="small">External</label>
+
+                    <input type="number" class="form-control breakdown-input"
+
+                           value="${student.external_marks || ''}"
+
+                           onchange="updateExternalMarks(${index}, this.value)"
+
+                           ${student.is_absent ? 'disabled' : ''}>
+
+                </div>
+
+            </td>
+
+            <td>
+
+                <strong>${currentExam.maximum_marks}</strong>
+
+            </td>
+
+            <td>
+
+                <span id="percentage-${index}">${calculatePercentage(student.obtained_marks)}</span>
+
+            </td>
+
+            <td>
+
+                <span class="grade-display" id="grade-${index}">${calculateGrade(student.obtained_marks)}</span>
+
+            </td>
+
+            <td>
+
+                <input type="text" class="form-control"
+
+                       value="${student.remarks || ''}"
+
+                       onchange="updateRemarks(${index}, this.value)"
+
+                       placeholder="Remarks...">
+
+            </td>
+
+        </tr>
+
+    `;
+
+}
+
+
+
+function loadCCETable() {
+
+    const tbody = $('#cceTableBody');
+
+    tbody.empty();
+
+
+
+    students.forEach((student, index) => {
+
+        const initials = student.first_name.charAt(0) + (student.last_name ? student.last_name.charAt(0) : '');
+
+
+
+        const row = `
+
+            <tr data-student-id="${student.id}">
+
+                <td>
+
+                    <div class="student-info">
+
+                        <div class="student-avatar">${initials}</div>
+
+                        <div>
+
+                            <div class="student-name">${student.first_name} ${student.last_name || ''}</div>
+
+                            <div class="student-id">${student.admission_no}</div>
+
+                        </div>
+
+                    </div>
+
+                </td>
+
+                <td>
+
+                    <div class="absent-toggle ${student.is_absent ? 'active' : ''}"
+
+                         onclick="toggleAbsent(${index})">
+
+                        <i class="fas fa-user-slash"></i>
+
+                    </div>
+
+                </td>
+
+                <td>
+
+                    <input type="number" class="form-control score-input"
+
+                           value="${student.formative_marks || ''}"
+
+                           onchange="updateFormativeMarks(${index}, this.value)"
+
+                           ${student.is_absent ? 'disabled' : ''}>
+
+                </td>
+
+                <td>
+
+                    <input type="number" class="form-control score-input"
+
+                           value="${student.formative_total || currentExam.maximum_marks * 0.4}"
+
+                           onchange="updateFormativeTotal(${index}, this.value)"
+
+                           ${student.is_absent ? 'disabled' : ''}>
+
+                </td>
+
+                <td>
+
+                    <input type="number" class="form-control score-input"
+
+                           value="${student.summative_marks || ''}"
+
+                           onchange="updateSummativeMarks(${index}, this.value)"
+
+                           ${student.is_absent ? 'disabled' : ''}>
+
+                </td>
+
+                <td>
+
+                    <input type="number" class="form-control score-input"
+
+                           value="${student.summative_total || currentExam.maximum_marks * 0.6}"
+
+                           onchange="updateSummativeTotal(${index}, this.value)"
+
+                           ${student.is_absent ? 'disabled' : ''}>
+
+                </td>
+
+                <td>
+
+                    <span id="cce-percentage-${index}">${calculateCCEPercentage(student)}</span>
+
+                </td>
+
+                <td>
+
+                    <span class="grade-display" id="cce-grade-${index}">${calculateCCEGrade(student)}</span>
+
+                </td>
+
+            </tr>
+
+        `;
+
+
+
+        tbody.append(row);
+
+    });
+
+}
+
+
+
+function toggleAbsent(index) {
+
+    students[index].is_absent = !students[index].is_absent;
+
+
+
+    const row = $(`tr[data-student-id="${students[index].id}"]`);
+
+    const toggle = row.find('.absent-toggle');
+
+    const inputs = row.find('input');
+
+
+
+    if (students[index].is_absent) {
+
+        toggle.addClass('active');
+
+        inputs.prop('disabled', true);
+
+        students[index].obtained_marks = null;
+
+    } else {
+
+        toggle.removeClass('active');
+
+        inputs.prop('disabled', false);
+
+    }
+
+
+
+    updateProgressIndicator();
+
+    updateCalculations();
+
+}
+
+
+
+function updateScore(index, value) {
+
+    const numValue = parseFloat(value);
+
+
+
+    if (isNaN(numValue) || numValue < 0 || numValue > currentExam.maximum_marks) {
+
+        students[index].obtained_marks = null;
+
+        return;
+
+    }
+
+
+
+    students[index].obtained_marks = numValue;
+
+
+
+    // Update percentage and grade
+
+    const percentage = calculatePercentage(numValue);
+
+    const grade = calculateGrade(numValue);
+
+
+
+    $(`#percentage-${index}`).text(percentage);
+
+    $(`#grade-${index}`).text(grade).attr('class', `grade-display grade-${grade.toLowerCase()}`);
+
+
+
+    updateProgressIndicator();
+
+    updateCalculations();
+
+}
+
+
+
+function calculatePercentage(obtainedMarks) {
+
+    if (!obtainedMarks || !currentExam) return '0%';
+
+    return ((obtainedMarks / currentExam.maximum_marks) * 100).toFixed(1) + '%';
+
+}
+
+
+
+function calculateGrade(obtainedMarks) {
+
+    if (!obtainedMarks || !currentExam || !currentGradeScale.length) return '-';
+
+
+
+    const percentage = (obtainedMarks / currentExam.maximum_marks) * 100;
+
+
+
+    // Walk the exam's actual configured grading scale (highest threshold
+
+    // first), matching the server-side lookup in ReportGenerationService.
+
+    for (const row of currentGradeScale) {
+
+        if (percentage >= row.min_percentage) return row.grade;
+
+    }
+
+    return currentGradeScale[currentGradeScale.length - 1].grade;
+
+}
+
+
+
+function autoCalculateGrades() {
+
+    students.forEach((student, index) => {
+
+        if (!student.is_absent && student.obtained_marks) {
+
+            const grade = calculateGrade(student.obtained_marks);
+
+            $(`#grade-${index}`).text(grade).attr('class', `grade-display grade-${grade.toLowerCase()}`);
+
+        }
+
+    });
+
+}
+
+
+
+function saveScores() {
+
+    const examId = $('#examSelect').val();
+
+    if (!examId) {
+
+        alert('Please select an exam first');
+
+        return;
+
+    }
+
+
+
+    const scoresData = students.map(student => ({
+
+        student_id: student.id,
+
+        obtained_marks: student.obtained_marks,
+
+        is_absent: student.is_absent,
+
+        remarks: student.remarks || '',
+
+        internal_marks: student.internal_marks,
+
+        external_marks: student.external_marks,
+
+        formative_marks: student.formative_marks,
+
+        summative_marks: student.summative_marks
+
+    }));
+
+
+
+    $.ajax({
+
+        url: `/api/gradebook/exam/${examId}/save-scores/`,
+
+        type: 'POST',
+
+        data: JSON.stringify({
+
+            scores: scoresData
+
+        }),
+
+        contentType: 'application/json',
+
+        headers: {
+
+            'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+
+        },
+
+        success: function(response) {
+
+            if (response.success) {
+
+                alert('Scores saved successfully!');
+
+                loadExamDetails(); // Reload to show updated data
+
+            } else {
+
+                alert('Error saving scores: ' + response.error);
+
+            }
+
+        },
+
+        error: function() {
+
+            alert('Failed to save scores');
+
+        }
+
+    });
+
+}
+
+
+
+function showImportModal() {
+
+    $('#importScoresModal').modal('show');
+
+}
+
+
+
+function loadCalculationPanel() {
+
+    if (!currentExam) return;
+
+
+
+    const details = `
+
+        <div class="calculation-item">
+
+            <span>Total Students:</span>
+
+            <span>${students.length}</span>
+
+        </div>
+
+        <div class="calculation-item">
+
+            <span>Maximum Marks:</span>
+
+            <span>${currentExam.maximum_marks}</span>
+
+        </div>
+
+        <div class="calculation-item">
+
+            <span>Minimum Marks:</span>
+
+            <span>${currentExam.minimum_marks}</span>
+
+        </div>
+
+        <div class="calculation-item">
+
+            <span>Subject:</span>
+
+            <span>${currentExam.subject_name}</span>
+
+        </div>
+
+    `;
+
+
+
+    $('#calculationDetails').html(details);
+
+}
+
+
+
+function loadGradingScale() {
+
+    if (!currentGradingType) return;
+
+
+
+    $('#gradingScalePanel').show();
+
+
+
+    // This would load actual grading levels from the backend
+
+    const scaleDetails = `
+
+        <div class="grade-level">
+
+            <span class="grade-display grade-a">A</span>
+
+            <span>80% - 100%</span>
+
+        </div>
+
+        <div class="grade-level">
+
+            <span class="grade-display grade-b">B</span>
+
+            <span>60% - 79%</span>
+
+        </div>
+
+        <div class="grade-level">
+
+            <span class="grade-display grade-c">C</span>
+
+            <span>50% - 59%</span>
+
+        </div>
+
+        <div class="grade-level">
+
+            <span class="grade-display grade-d">D</span>
+
+            <span>40% - 49%</span>
+
+        </div>
+
+        <div class="grade-level">
+
+            <span class="grade-display grade-e">E</span>
+
+            <span>0% - 39%</span>
+
+        </div>
+
+    `;
+
+
+
+    $('#gradingScaleDetails').html(scaleDetails);
+
+}
+
+
+
+function changeEntryMode() {
+
+    loadScoreEntryTable();
+
+}
+
+
+
+function updateCalculations() {
+
+    loadCalculationPanel();
+
+}
+
+
+
+// Additional CCE functions
+
+function calculateCCEPercentage(student) {
+
+    if (!student.formative_marks || !student.summative_marks) return '0%';
+
+
+
+    const formativePercentage = (student.formative_marks / (student.formative_total || 40)) * 100;
+
+    const summativePercentage = (student.summative_marks / (student.summative_total || 60)) * 100;
+
+
+
+    const weightedTotal = (formativePercentage * 0.4) + (summativePercentage * 0.6);
+
+    return weightedTotal.toFixed(1) + '%';
+
+}
+
+
+
+function calculateCCEGrade(student) {
+
+    const percentage = parseFloat(calculateCCEPercentage(student));
+
+    return calculateGrade(percentage);
+
+}
+
+
+
+// Initialize
+
+$(document).ready(function() {
+
+    // Auto-load if exam is pre-selected
+
+    const preSelectedExam = new URLSearchParams(window.location.search).get('exam');
+
+    if (preSelectedExam) {
+
+        $('#examSelect').val(preSelectedExam);
+
+        loadExamDetails();
+
+    }
+
+});
+
+</script>
+
+{% endblock %}

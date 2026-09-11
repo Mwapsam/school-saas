@@ -1,0 +1,149 @@
+{% extends 'core/layouts/detail.html' %}
+{% load static %}
+
+{% block page_title %}Payment Agreement Details{% endblock %}
+
+{% block layout_header %}
+{% url 'core:payment_agreement_list' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Payment Agreement Details" description=agreement.debtor_name icon='fa-file-contract' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_summary %}
+{% if agreement %}
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Agreement Summary -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Agreement Summary</h5>
+                    <a href="{% url 'core:payment_agreement_pdf' agreement.id %}"
+                       class="btn btn-sm btn-primary" target="_blank">
+                        <i class="fas fa-download me-1"></i> Download PDF
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p class="mb-2"><strong>Debtor Name:</strong> {{ agreement.debtor_name }}</p>
+                            <p class="mb-2"><strong>Status:</strong> <span class="badge bg-info">{{ agreement.get_status_display }}</span></p>
+                            <p class="mb-2"><strong>Start Date:</strong> {{ agreement.start_date|date:"M d, Y" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2"><strong>Total Amount:</strong> <span class="text-danger fw-bold">{{ currency_symbol }}{{ agreement.total_amount|floatformat:2 }}</span></p>
+                            <p class="mb-2"><strong>Interest Rate:</strong> {{ agreement.interest_rate }}% per month</p>
+                            <p class="mb-2"><strong>End Date:</strong> {{ agreement.end_date|date:"M d, Y" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Schedule -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Payment Schedule</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Due Date</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for installment in installments %}
+                            <tr>
+                                <td>{{ installment.sequence }}</td>
+                                <td>{{ installment.due_date|date:"M d, Y" }}</td>
+                                <td>{{ currency_symbol }}{{ installment.amount|floatformat:2 }}</td>
+                                <td>
+                                    {% if installment.due_date < today %}
+                                    <span class="badge bg-danger">Overdue</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Payment Records -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Payment Records</h5>
+                </div>
+                {% if payment_records %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Amount Paid</th>
+                                <th>Balance After</th>
+                                <th>Recorded By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in payment_records %}
+                            <tr>
+                                <td>{{ record.payment_date|date:"M d, Y" }}</td>
+                                <td class="text-success">{{ currency_symbol }}{{ record.amount_paid|floatformat:2 }}</td>
+                                <td class="fw-bold">{{ currency_symbol }}{{ record.balance_after|floatformat:2 }}</td>
+                                <td>{{ record.recorded_by.get_full_name|default:"System" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="card-body">
+                    <p class="text-muted mb-0">No payments recorded yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <p class="text-muted mb-1">Total Due</p>
+                        <p class="fs-4 text-danger fw-bold">{{ currency_symbol }}{{ agreement.total_amount|floatformat:2 }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <p class="text-muted mb-1">Total Paid</p>
+                        <p class="fs-5 text-success fw-bold">{{ currency_symbol }}{{ paid_total|floatformat:2 }}</p>
+                    </div>
+                    <hr>
+                    <div>
+                        <p class="text-muted mb-1">Remaining Balance</p>
+                        <p class="fs-5 fw-bold">{{ currency_symbol }}{{ running_balance|floatformat:2 }}</p>
+                    </div>
+                    {% if installments_due > 0 %}
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <small><i class="fas fa-exclamation-triangle me-1"></i> {{ installments_due }} installment(s) overdue</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        Agreement not found.
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block layout_sections %}{% endblock %}
+
+{% block layout_extra %}{% endblock %}

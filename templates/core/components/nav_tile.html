@@ -1,0 +1,28 @@
+{% comment %}
+Pinewood dashboard nav tile — one link-card in a module dashboard's tile grid
+(the pattern behind the admission/gradebook/hr/finance dashboards' repeated
+hand-written "gb-card" markup, discovered during Phase 2a migration).
+
+Usage:
+  <div class="row g-3">
+    {% for tile in dashboard_tiles %}
+      <div class="col-md-6">
+        {% include 'core/components/nav_tile.html' with icon=tile.icon title=tile.title description=tile.description url=tile.url %}
+      </div>
+    {% endfor %}
+  </div>
+
+Params:
+  icon        (required) — Font Awesome class, e.g. "fa-user-plus"
+  title       (required) — tile heading
+  description (optional) — muted line under the title
+  url         (required) — link target
+{% endcomment %}
+<a href="{{ url }}" class="gb-card">
+  <div class="gb-card-icon"><i class="fas {{ icon }}"></i></div>
+  <div class="gb-card-body">
+    <p class="gb-card-title">{{ title }}</p>
+    {% if description %}<p class="gb-card-desc">{{ description }}</p>{% endif %}
+  </div>
+  <i class="fas fa-chevron-right gb-card-arrow"></i>
+</a>

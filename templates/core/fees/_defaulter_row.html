@@ -1,0 +1,33 @@
+{% load static %}
+<tr data-student-id="{{ s.student.id }}">
+    <td><input type="checkbox" class="form-check-input student-checkbox" value="{{ s.student.id }}"></td>
+    <td>
+        <div class="fw-semibold">{{ s.student_name }}</div>
+        <small class="text-muted">{{ s.admission_no|default:"—" }}</small>
+    </td>
+    <td><small>{{ s.batch_name }}</small></td>
+    <td>
+        {% for line in s.lines %}
+        <div class="small">{{ line.collection_name }}
+            <span class="text-muted">· {{ currency_symbol }}{{ line.outstanding|floatformat:2 }}</span>
+        </div>
+        {% endfor %}
+    </td>
+    <td>{{ s.oldest_due_date|date:"d M Y"|default:"—" }}</td>
+    <td class="text-end">{% if s.max_days_overdue %}{{ s.max_days_overdue }}{% else %}<span class="text-muted">not due</span>{% endif %}</td>
+    <td class="text-end fw-semibold" style="color: var(--color-danger);">{{ s.outstanding|floatformat:2 }}</td>
+    <td>
+        <div class="btn-group" role="group">
+            <a href="{% url 'core:payment_agreement_create' %}?student_id={{ s.student.id }}"
+               class="btn btn-sm btn-outline-danger" title="Generate Payment Agreement">
+                <i class="fas fa-file-contract"></i>
+            </a>
+            <a href="/students/{{ s.student.id }}/" class="btn btn-sm btn-outline-primary" title="View Details">
+                <i class="fas fa-eye"></i>
+            </a>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="sendFeeReminder('{{ s.student.id }}')" title="Send Reminder">
+                <i class="fas fa-bell"></i>
+            </button>
+        </div>
+    </td>
+</tr>

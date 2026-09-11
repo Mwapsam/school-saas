@@ -1,0 +1,32 @@
+{% extends 'core/layouts/list.html' %}
+{% block page_title %}HR Audit Trail{% endblock %}
+
+{% block layout_header %}
+{% url 'core:hr_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title='Audit Trail' icon='fa-clock-rotate-left' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_table %}
+<div class="card mb-4"><div class="card-body">
+    <form method="get" hx-get="{% url 'core:hr_audit_list' %}" hx-target="#audit-list-content" hx-trigger="change, keyup delay:400ms from:input[name=target_id]">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Action</label>
+                <select class="form-select" name="action">
+                    <option value="">All</option>
+                    {% for p in action_prefixes %}<option value="{{ p }}" {% if request.GET.action == p %}selected{% endif %}>{{ p|title }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Target ID</label>
+                <input type="text" class="form-control" name="target_id" value="{{ request.GET.target_id }}" placeholder="employee / record UUID">
+            </div>
+        </div>
+    </form>
+</div></div>
+
+<div class="card">
+    <div class="card-header"><h5 class="mb-0">Changes</h5></div>
+    <div id="audit-list-content">{% include 'core/htmx/hr/audit_list_content.html' %}</div>
+</div>
+{% endblock %}

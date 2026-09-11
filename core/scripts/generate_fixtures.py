@@ -1,0 +1,420 @@
+import uuid
+import json
+from datetime import datetime, date
+from django.contrib.auth.hashers import make_password
+
+# Define constants for the Zambian context
+SCHOOL_ID = 1  # Integer PK for School
+SCHOOL_SCHEMA = "lis001"
+SCHOOL_DOMAIN = "lis001.localhost"
+CREATED_AT = "2025-08-19T12:00:00Z"
+PASSWORD_HASH = make_password(
+    "password123"
+)  # Replace with secure passwords in production
+
+# Generate fixture data
+fixtures = [
+    # Country (public schema, integer PK)
+    {"model": "core.country", "pk": 1, "fields": {"name": "Zambia", "code": "ZM"}},
+    # School (public schema, integer PK)
+    {
+        "model": "core.school",
+        "pk": SCHOOL_ID,
+        "fields": {
+            "name": "Lusaka International School",
+            "code": "LIS001",
+            "logo_file_name": None,
+            "logo_content_type": None,
+            "logo_file_size": None,
+            "address_line1": "Plot 123, Roma",
+            "address_line2": None,
+            "city": "Lusaka",
+            "state": "Lusaka Province",
+            "pin_code": "10101",
+            "country": 1,
+            "phone": "+260211123456",
+            "email": "info@lusakais.ac.zm",
+            "fax": None,
+            "website": "https://lusakais.ac.zm",
+            "is_active": True,
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+            "schema_name": SCHOOL_SCHEMA,
+        },
+    },
+    # Domain (public schema, integer PK)
+    {
+        "model": "core.domain",
+        "pk": 1,
+        "fields": {"domain": SCHOOL_DOMAIN, "is_primary": True, "tenant_id": SCHOOL_ID},
+    },
+    # User: Admin (tenant schema, UUID PK)
+    {
+        "model": "core.user",
+        "pk": "550e8400-e29b-41d4-a716-446655440000",
+        "fields": {
+            "username": "admin",
+            "email": "admin@lusakais.ac.zm",
+            "first_name": "Admin",
+            "last_name": "User",
+            "password": PASSWORD_HASH,
+            "is_active": True,
+            "is_admin": True,
+            "is_superuser": True,
+            "last_login": None,
+            "school": SCHOOL_ID,
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+        },
+    },
+    # User: Student (tenant schema, UUID PK)
+    {
+        "model": "core.user",
+        "pk": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "username": "ST001",
+            "email": "john.doe@lusakais.ac.zm",
+            "first_name": "John",
+            "last_name": "Doe",
+            "password": PASSWORD_HASH,
+            "is_active": True,
+            "is_admin": False,
+            "is_superuser": False,
+            "last_login": None,
+            "school": SCHOOL_ID,
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+        },
+    },
+    # Student (tenant schema, UUID PK)
+    {
+        "model": "core.student",
+        "pk": "7ba7b811-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "admission_no": "ST001",
+            "class_roll_no": "R001",
+            "admission_date": "2025-01-01",
+            "first_name": "John",
+            "middle_name": None,
+            "last_name": "Doe",
+            "date_of_birth": "2010-01-01",
+            "gender": "male",
+            "blood_group": "O+",
+            "birth_place": "Lusaka",
+            "nationality": 1,
+            "language": "English",
+            "religion": "Christian",
+            "student_category": None,
+            "address_line1": "Plot 456, Ibex Hill",
+            "address_line2": None,
+            "city": "Lusaka",
+            "state": "Lusaka Province",
+            "pin_code": "10101",
+            "country": 1,
+            "phone1": "+260971234567",
+            "phone2": None,
+            "email": "john.doe@lusakais.ac.zm",
+            "is_sms_enabled": True,
+            "photo_file_name": None,
+            "photo_content_type": None,
+            "photo_file_size": None,
+            "status_description": None,
+            "is_active": True,
+            "is_deleted": False,
+            "school": SCHOOL_ID,
+            "user": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+            "immediate_contact": None,
+            "has_paid_fees": False,
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+        },
+    },
+    # Guardian (tenant schema, UUID PK)
+    {
+        "model": "core.guardian",
+        "pk": "8ba7b812-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "relation": "Parent",
+            "email": "jane.doe@lusakais.ac.zm",
+            "mobile_phone": "+260971234568",
+            "office_phone": None,
+            "office_address_line1": None,
+            "office_address_line2": None,
+            "city": "Lusaka",
+            "state": "Lusaka Province",
+            "country": 1,
+            "dob": "1980-01-01",
+            "occupation": "Teacher",
+            "income": 15000.00,
+            "education": "Bachelor's Degree",
+            "school": SCHOOL_ID,
+            "user": None,
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+        },
+    },
+    # StudentGuardianRelation (tenant schema, UUID PK)
+    {
+        "model": "core.studentguardianrelation",
+        "pk": "9ba7b813-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "student": "7ba7b811-9dad-11d1-80b4-00c04fd430c8",
+            "guardian": "8ba7b812-9dad-11d1-80b4-00c04fd430c8",
+            "relation": "Mother",
+            "is_immediate_contact": True,
+            "school": SCHOOL_ID,
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+        },
+    },
+    # Employee (tenant schema, UUID PK)
+    {
+        "model": "core.employee",
+        "pk": "aba7b814-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "employee_number": "EMP001",
+            "joining_date": "2025-01-01",
+            "first_name": "Mary",
+            "middle_name": None,
+            "last_name": "Banda",
+            "gender": True,
+            "job_title": "Teacher",
+            "employee_category": None,
+            "employee_position": None,
+            "employee_department": None,
+            "reporting_manager": None,
+            "employee_grade": None,
+            "qualification": "Bachelor of Education",
+            "experience_detail": "5 years teaching Mathematics",
+            "experience_year": 5,
+            "experience_month": 0,
+            "date_of_birth": "1985-03-15",
+            "marital_status": "Married",
+            "children_count": 2,
+            "blood_group": "A+",
+            "nationality": 1,
+            "home_address_line1": "Plot 789, Kabulonga",
+            "home_address_line2": None,
+            "home_city": "Lusaka",
+            "home_state": "Lusaka Province",
+            "home_country": 1,
+            "home_pin_code": "10101",
+            "office_address_line1": None,
+            "office_address_line2": None,
+            "office_city": None,
+            "office_state": None,
+            "office_country": None,
+            "office_pin_code": None,
+            "email": "mary.banda@lusakais.ac.zm",
+            "mobile_phone": "+260971234569",
+            "school": SCHOOL_ID,
+            "user": None,
+            "status": True,
+            "photo_file_name": None,
+            "photo_content_type": None,
+            "photo_file_size": None,
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+        },
+    },
+    # Course (tenant schema, UUID PK)
+    {
+        "model": "core.course",
+        "pk": "bba7b815-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "course_name": "Grade 10",
+            "code": "G10",
+            "section_name": None,
+            "is_deleted": False,
+            "school": SCHOOL_ID,
+            "grading_type": "GPA",
+            "max_hours_day": 6,
+            "max_hours_week": 30,
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+        },
+    },
+    # Batch (tenant schema, UUID PK)
+    {
+        "model": "core.batch",
+        "pk": "cba7b816-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "name": "2025 Cohort",
+            "course": "bba7b815-9dad-11d1-80b4-00c04fd430c8",
+            "start_date": "2025-01-01T00:00:00Z",
+            "end_date": "2025-12-31T23:59:59Z",
+            "is_active": True,
+            "is_deleted": False,
+            "employee": "aba7b814-9dad-11d1-80b4-00c04fd430c8",
+            "school": SCHOOL_ID,
+            "grading_type": "GPA",
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+        },
+    },
+    # BatchStudent (tenant schema, UUID PK)
+    {
+        "model": "core.batchstudent",
+        "pk": "dba7b817-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "batch": "cba7b816-9dad-11d1-80b4-00c04fd430c8",
+            "student": "7ba7b811-9dad-11d1-80b4-00c04fd430c8",
+            "roll_number": "R001",
+            "is_active": True,
+            "school": SCHOOL_ID,
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+        },
+    },
+    # FeeCategory (tenant schema, UUID PK)
+    {
+        "model": "core.feecategory",
+        "pk": "eba7b818-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "name": "Tuition Fee",
+            "description": "Annual tuition fee for Grade 10",
+            "is_deleted": False,
+            "school": SCHOOL_ID,
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+        },
+    },
+    # FinanceFee (tenant schema, UUID PK)
+    {
+        "model": "core.financefee",
+        "pk": "fba7b819-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "fee_category": "eba7b818-9dad-11d1-80b4-00c04fd430c8",
+            "student": "7ba7b811-9dad-11d1-80b4-00c04fd430c8",
+            "balance": 15000.00,
+            "transaction_date": "2025-01-01",
+            "school": SCHOOL_ID,
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+        },
+    },
+    # Subject (tenant schema, UUID PK)
+    {
+        "model": "core.subject",
+        "pk": "0ca7b81a-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "name": "Mathematics",
+            "code": "MATH10",
+            "batch": "cba7b816-9dad-11d1-80b4-00c04fd430c8",
+            "no_exams": False,
+            "max_weekly_classes": 5,
+            "elective_group": None,
+            "is_deleted": False,
+            "school": SCHOOL_ID,
+            "language": False,
+            "credit_hours": 5.0,
+            "prefer_consecutive": True,
+            "amount": None,
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+        },
+    },
+    # ExamGroup (tenant schema, UUID PK)
+    {
+        "model": "core.examgroup",
+        "pk": "1ca7b81b-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "name": "Midterm 2025",
+            "batch": "cba7b816-9dad-11d1-80b4-00c04fd430c8",
+            "exam_type": "Midterm",
+            "is_published": False,
+            "result_published": False,
+            "exam_date": "2025-06-15",
+            "school": SCHOOL_ID,
+            "is_final_exam": False,
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+        },
+    },
+    # Exam (tenant schema, UUID PK)
+    {
+        "model": "core.exam",
+        "pk": "2ca7b81c-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "exam_group": "1ca7b81b-9dad-11d1-80b4-00c04fd430c8",
+            "subject": "0ca7b81a-9dad-11d1-80b4-00c04fd430c8",
+            "start_time": "2025-06-15T09:00:00Z",
+            "end_time": "2025-06-15T11:00:00Z",
+            "maximum_marks": 100.00,
+            "minimum_marks": 40.00,
+            "grading_level": None,
+            "weightage": 20,
+            "event": None,
+            "school": SCHOOL_ID,
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+        },
+    },
+    # ExamScore (tenant schema, UUID PK)
+    {
+        "model": "core.examscore",
+        "pk": "3ca7b81d-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "student": "7ba7b811-9dad-11d1-80b4-00c04fd430c8",
+            "exam": "2ca7b81c-9dad-11d1-80b4-00c04fd430c8",
+            "marks": 85.00,
+            "grading_level": None,
+            "remarks": "Excellent performance",
+            "is_absent": False,
+            "school": SCHOOL_ID,
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+        },
+    },
+    # Weekday (tenant schema, UUID PK)
+    {
+        "model": "core.weekday",
+        "pk": "4ca7b81e-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "weekday": "Monday",
+            "day_of_week": 1,
+            "school": SCHOOL_ID,
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+        },
+    },
+    # ClassTiming (tenant schema, UUID PK)
+    {
+        "model": "core.classtiming",
+        "pk": "5ca7b81f-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "batch": "cba7b816-9dad-11d1-80b4-00c04fd430c8",
+            "name": "Period 1",
+            "start_time": "08:00:00",
+            "end_time": "09:00:00",
+            "is_break": False,
+            "school": SCHOOL_ID,
+            "is_deleted": False,
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+        },
+    },
+    # Timetable (tenant schema, UUID PK)
+    {
+        "model": "core.timetable",
+        "pk": "6ca7b820-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "batch": "cba7b816-9dad-11d1-80b4-00c04fd430c8",
+            "weekday": "4ca7b81e-9dad-11d1-80b4-00c04fd430c8",
+            "class_timing": "5ca7b81f-9dad-11d1-80b4-00c04fd430c8",
+            "subject": "0ca7b81a-9dad-11d1-80b4-00c04fd430c8",
+            "employee": "aba7b814-9dad-11d1-80b4-00c04fd430c8",
+            "school": SCHOOL_ID,
+            "created_at": CREATED_AT,
+            "updated_at": CREATED_AT,
+        },
+    },
+]
+
+# Write fixtures to file
+with open("core/fixtures/initial_data.json", "w") as f:
+    json.dump(fixtures, f, indent=4)
+
+print("Fixture file generated at core/fixtures/initial_data.json")

@@ -1,0 +1,79 @@
+{% extends 'core/layouts/list.html' %}
+{% block page_title %}HR Policies{% endblock %}
+
+{% block layout_header %}
+{% url 'core:hr_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title='Policies' icon='fa-file-lines' back_url=back_url|default:back_fallback crumbs=crumbs %}
+<div class="d-flex justify-content-end mb-3">
+    {% if can_manage %}
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#policyCreateModal"><i class="fas fa-plus"></i> Publish policy</button>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block layout_table %}
+{% csrf_token %}
+<div class="card mb-4"><div class="card-body">
+    <form method="get" hx-get="{% url 'core:hr_policy_list' %}" hx-target="#policy-list-content" hx-trigger="change">
+        <div class="row g-3"><div class="col-md-3">
+            <label class="form-label">Show</label>
+            <select class="form-select" name="active">
+                <option value="all">All</option>
+                <option value="true" {% if request.GET.active == 'true' %}selected{% endif %}>Active only</option>
+                <option value="false" {% if request.GET.active == 'false' %}selected{% endif %}>Inactive only</option>
+            </select>
+        </div></div>
+    </form>
+</div></div>
+
+<div class="card"><div id="policy-list-content">{{ policy_rows_html|safe }}</div></div>
+
+<div class="modal fade" id="policyCreateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <form onsubmit="createPolicy(event)" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="modal-header"><h5 class="modal-title">Publish policy</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div id="policy-create-errors" class="alert alert-danger d-none"></div>
+                <div class="mb-3"><label class="form-label">Title *</label><input type="text" class="form-control" name="title" required></div>
+                <div class="row">
+                    <div class="col-md-6 mb-3"><label class="form-label">Category</label>
+                        <select class="form-select" name="category">
+                            {% for value, label in category_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                        </select></div>
+                    <div class="col-md-3 mb-3"><label class="form-label">Version</label><input type="text" class="form-control" name="version"></div>
+                    <div class="col-md-3 mb-3"><label class="form-label">Effective</label><input type="date" class="form-control" name="effective_date"></div>
+                </div>
+                <div class="mb-3"><label class="form-label">File</label><input type="file" class="form-control" name="file"></div>
+                <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="2"></textarea></div>
+                <div class="form-check"><input type="checkbox" class="form-check-input" id="pol-ack" name="requires_acknowledgement" checked><label class="form-check-label" for="pol-ack">Requires acknowledgement</label></div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Publish</button></div>
+        </form>
+    </div></div>
+</div>
+
+<script>
+function _polCsrf() { return document.querySelector('[name=csrfmiddlewaretoken]').value; }
+function _swapPolicies(status, text) {
+    if (status === 200) document.getElementById('policy-list-content').innerHTML = text;
+    else { try { alert(JSON.parse(text).error); } catch (e) { alert('An error occurred'); } }
+}
+function createPolicy(event) {
+    event.preventDefault();
+    fetch("{% url 'core:hr_policy_create' %}", { method: 'POST', headers: { 'X-CSRFToken': _polCsrf() }, body: new FormData(event.target) })
+        .then(r => r.text().then(t => {
+            if (r.status === 200) { document.getElementById('policy-list-content').innerHTML = t; bootstrap.Modal.getInstance(document.getElementById('policyCreateModal')).hide(); event.target.reset(); }
+            else { const box = document.getElementById('policy-create-errors'); try { box.textContent = JSON.parse(t).error; } catch (e) { box.textContent = 'An error occurred'; } box.classList.remove('d-none'); }
+        }));
+}
+function togglePolicy(id, active) {
+    const body = new FormData(); body.append('is_active', active ? 'true' : 'false');
+    fetch(`/hr/policies/${id}/update/`, { method: 'POST', headers: { 'X-CSRFToken': _polCsrf() }, body }).then(r => r.text().then(t => _swapPolicies(r.status, t)));
+}
+function deletePolicy(id) {
+    if (!confirm('Delete this policy?')) return;
+    fetch(`/hr/policies/${id}/delete/`, { method: 'POST', headers: { 'X-CSRFToken': _polCsrf() } }).then(r => r.text().then(t => _swapPolicies(r.status, t)));
+}
+</script>
+{% endblock %}

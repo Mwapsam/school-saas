@@ -1,0 +1,817 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}QuickBooks Receipt Reconciliation{% endblock %}
+
+{% block layout_header %}
+{% url 'core:finance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="QuickBooks Receipt Reconciliation" description="Payment sync status & management" icon='fa-sync-alt' back_url=back_url|default:back_fallback crumbs=crumbs %}
+<div class="d-flex justify-content-end gap-2 mb-3">
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="quickbooks-status-btn">
+        <i class="fas fa-cloud" id="quickbooks-icon"></i>
+        <span id="quickbooks-status-text">Checking...</span>
+    </button>
+    <button type="button" class="btn btn-primary btn-sm" onclick="refreshReconciliationData()">
+        <i class="fas fa-refresh"></i> Refresh Data
+    </button>
+</div>
+{% endblock %}
+
+
+{% block layout_filters %}
+<!-- Filters will be extracted and moved here -->
+{% endblock %}
+
+{% block layout_table %}
+<div class="container-fluid py-4">
+    <!-- Workflow Nav -->
+    {% include 'core/finance/_workflow_nav.html' with active_step=6 %}
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-sm-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-1" id="synced-count">-</h4>
+                            <p class="mb-0">Successfully Synced</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-sm-6">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-1" id="error-count">-</h4>
+                            <p class="mb-0">Sync Errors</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-sm-6">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-1" id="pending-count">-</h4>
+                            <p class="mb-0">Pending Sync</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-sm-6">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-1" id="total-amount">-</h4>
+                            <p class="mb-0">Total Amount (ZMW)</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-money-bill-wave fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-filter me-2"></i>Filter Options
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <label for="status-filter" class="form-label">Sync Status</label>
+                    <select class="form-select" id="status-filter">
+                        <option value="">All Statuses</option>
+                        <option value="synced">Successfully Synced</option>
+                        <option value="error">Sync Error</option>
+                        <option value="pending">Pending Sync</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="date-from" class="form-label">Date From</label>
+                    <input type="date" class="form-control" id="date-from">
+                </div>
+                <div class="col-md-3">
+                    <label for="date-to" class="form-label">Date To</label>
+                    <input type="date" class="form-control" id="date-to">
+                </div>
+                <div class="col-md-3">
+                    <label for="student-search" class="form-label">Student Search</label>
+                    <input type="text" class="form-control" id="student-search" placeholder="Student name...">
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-12">
+                    <button type="button" class="btn btn-primary" onclick="applyFilters()">
+                        <i class="fas fa-search"></i> Apply Filters
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary ms-2" onclick="clearFilters()">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reconciliation Data Table -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-table me-2"></i>Payment Reconciliation Records
+            </h5>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-success" onclick="exportReconciliationData()">
+                    <i class="fas fa-download"></i> Export CSV
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-warning" onclick="retryFailedSyncs()">
+                    <i class="fas fa-redo"></i> Retry Failed
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="reconciliation-table">
+                    <thead class="table-dark">
+                        <tr>
+                            <th width="3%">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="select-all">
+                                </div>
+                            </th>
+                            <th>Student</th>
+                            <th>Amount</th>
+                            <th>Payment Date</th>
+                            <th>Receipt Number</th>
+                            <th>QB Payment ID</th>
+                            <th>Sync Status</th>
+                            <th>Created</th>
+                            <th width="15%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reconciliation-tbody">
+                        <tr>
+                            <td colspan="9" class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <div class="mt-2">Loading reconciliation data...</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            <nav aria-label="Reconciliation pagination" class="mt-3">
+                <ul class="pagination justify-content-center" id="pagination">
+                    <!-- Pagination will be inserted here -->
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- Error Details Modal -->
+<div class="modal fade" id="errorDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header pw-danger">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Sync Error Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="error-details-content"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="retrySpecificSync()">
+                    <i class="fas fa-redo"></i> Retry This Sync
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Actions Modal -->
+<div class="modal fade" id="bulkActionsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-tasks"></i> Bulk Actions
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Select action for <span id="selected-count">0</span> selected record(s):</p>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-primary" onclick="bulkRetrySync()">
+                        <i class="fas fa-redo"></i> Retry Sync
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="bulkDeleteRecords()">
+                        <i class="fas fa-trash"></i> Delete Records
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1060;">
+    <div id="result-toast" class="toast" role="alert">
+        <div class="toast-header">
+            <strong class="me-auto" id="toast-title">Reconciliation</strong>
+            <small class="text-muted" id="toast-time"></small>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toast-message"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block layout_pagination %}{% endblock %}
+
+{% block layout_extra %}{% endblock %}
+
+{% block extra_css %}
+<style>
+.table th {
+    border-top: none;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+
+.btn-sm {
+    font-size: 0.8rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.table-responsive {
+    border-radius: 0.375rem;
+}
+
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+.breadcrumb {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+.breadcrumb-item a {
+    color: #28a745;
+    text-decoration: none;
+}
+
+.breadcrumb-item a:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+    color: #6c757d;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+    color: #6c757d;
+}
+
+.status-synced {
+    background-color: #28a745;
+}
+
+.status-error {
+    background-color: #dc3545;
+}
+
+.status-pending {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.row-selected {
+    background-color: #fff3cd;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let quickbooksConnected = false;
+let reconciliationData = [];
+let filteredData = [];
+let currentPage = 1;
+let recordsPerPage = 10;
+let selectedRecords = new Set();
+let currentErrorRecordId = null;
+
+$(document).ready(function() {
+    checkQuickBooksStatus();
+    loadReconciliationData();
+    
+    $('#select-all').change(function() {
+        const isChecked = $(this).prop('checked');
+        $('.record-checkbox').prop('checked', isChecked);
+        updateSelectedRecords();
+    });
+    
+    // Date filters default to last 30 days
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+    $('#date-to').val(today.toISOString().split('T')[0]);
+    $('#date-from').val(thirtyDaysAgo.toISOString().split('T')[0]);
+});
+
+function checkQuickBooksStatus() {
+    $('#quickbooks-status-text').text('Checking...');
+    $('#quickbooks-icon').removeClass().addClass('fas fa-spinner fa-spin');
+
+    fetch("{% url 'core:quickbooks_status' %}")
+        .then(r => r.json())
+        .then(function(data) {
+            quickbooksConnected = !!data.connected;
+            updateQuickBooksStatus();
+        })
+        .catch(function() {
+            quickbooksConnected = false;
+            updateQuickBooksStatus();
+        });
+}
+
+function updateQuickBooksStatus() {
+    if (quickbooksConnected) {
+        $('#quickbooks-status-text').text('Connected');
+        $('#quickbooks-icon').removeClass().addClass('fas fa-cloud text-success');
+    } else {
+        $('#quickbooks-status-text').text('Not Connected');
+        $('#quickbooks-icon').removeClass().addClass('fas fa-cloud-slash text-danger');
+    }
+}
+
+function loadReconciliationData() {
+    showTableLoading(true);
+    
+    $.ajax({
+        url: '{% url "core:quickbooks_receipt_reconciliation" %}',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                reconciliationData = response.reconciliation_data;
+                filteredData = [...reconciliationData];
+                updateStatistics();
+                renderTable();
+            } else {
+                showToast('Error', response.error || 'Failed to load data', 'error');
+            }
+        },
+        error: function(xhr) {
+            const response = xhr.responseJSON || {};
+            showToast('Error', response.error || 'Failed to load reconciliation data', 'error');
+            $('#reconciliation-tbody').html('<tr><td colspan="9" class="text-center py-4 text-muted">Failed to load data</td></tr>');
+        },
+        complete: function() {
+            showTableLoading(false);
+        }
+    });
+}
+
+function updateStatistics() {
+    let synced = 0, errors = 0, pending = 0, totalAmount = 0;
+    
+    reconciliationData.forEach(record => {
+        totalAmount += record.amount;
+        switch (record.sync_status) {
+            case 'synced':
+                synced++;
+                break;
+            case 'error':
+                errors++;
+                break;
+            case 'pending':
+                pending++;
+                break;
+        }
+    });
+    
+    $('#synced-count').text(synced);
+    $('#error-count').text(errors);
+    $('#pending-count').text(pending);
+    $('#total-amount').text(totalAmount.toFixed(2));
+}
+
+function renderTable() {
+    const startIndex = (currentPage - 1) * recordsPerPage;
+    const endIndex = startIndex + recordsPerPage;
+    const paginatedData = filteredData.slice(startIndex, endIndex);
+    
+    let tableHtml = '';
+    
+    if (paginatedData.length === 0) {
+        tableHtml = '<tr><td colspan="9" class="text-center py-4 text-muted">No records found</td></tr>';
+    } else {
+        paginatedData.forEach(record => {
+            const statusClass = `status-${record.sync_status}`;
+            const statusText = record.sync_status.charAt(0).toUpperCase() + record.sync_status.slice(1);
+            const isSelected = selectedRecords.has(record.id);
+            
+            tableHtml += `
+                <tr class="${isSelected ? 'row-selected' : ''}">
+                    <td>
+                        <div class="form-check">
+                            <input class="form-check-input record-checkbox" type="checkbox" 
+                                   value="${record.id}" ${isSelected ? 'checked' : ''}>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="fw-bold">${record.student_name}</div>
+                    </td>
+                    <td>
+                        <span class="fw-bold text-success">ZMW ${record.amount.toFixed(2)}</span>
+                    </td>
+                    <td>${new Date(record.payment_date).toLocaleDateString()}</td>
+                    <td>
+                        ${record.receipt_number ? `<span class="badge bg-primary">${record.receipt_number}</span>` : '<span class="text-muted">N/A</span>'}
+                    </td>
+                    <td>
+                        ${record.quickbooks_payment_id ? `<code class="small">${record.quickbooks_payment_id}</code>` : '<span class="text-muted">N/A</span>'}
+                    </td>
+                    <td>
+                        <span class="badge ${statusClass}">${statusText}</span>
+                        ${record.error_message ? '<i class="fas fa-exclamation-circle text-danger ms-1" title="Has Error"></i>' : ''}
+                    </td>
+                    <td>
+                        <small class="text-muted">${new Date(record.created_at).toLocaleDateString()}</small>
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            ${record.sync_status === 'error' ? `
+                                <button class="btn btn-outline-danger" onclick="showErrorDetails('${record.id}')" title="View Error">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </button>
+                                <button class="btn btn-outline-warning" onclick="retrySync('${record.id}')" title="Retry Sync">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                            ` : ''}
+                            ${record.sync_status === 'synced' ? `
+                                <button class="btn btn-outline-info" onclick="viewReceipt('${record.id}')" title="View Receipt">
+                                    <i class="fas fa-receipt"></i>
+                                </button>
+                            ` : ''}
+                            <button class="btn btn-outline-secondary" onclick="viewDetails('${record.id}')" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+    
+    $('#reconciliation-tbody').html(tableHtml);
+    renderPagination();
+    
+    // Reattach event handlers
+    $('.record-checkbox').change(function() {
+        updateSelectedRecords();
+    });
+}
+
+function renderPagination() {
+    const totalPages = Math.ceil(filteredData.length / recordsPerPage);
+    let paginationHtml = '';
+    
+    if (totalPages > 1) {
+        // Previous button
+        paginationHtml += `
+            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="changePage(${currentPage - 1})">Previous</a>
+            </li>
+        `;
+        
+        // Page numbers
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                paginationHtml += `
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+                    </li>
+                `;
+            } else if (i === currentPage - 3 || i === currentPage + 3) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+        
+        // Next button
+        paginationHtml += `
+            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="changePage(${currentPage + 1})">Next</a>
+            </li>
+        `;
+    }
+    
+    $('#pagination').html(paginationHtml);
+}
+
+function changePage(page) {
+    const totalPages = Math.ceil(filteredData.length / recordsPerPage);
+    if (page >= 1 && page <= totalPages) {
+        currentPage = page;
+        renderTable();
+    }
+}
+
+function applyFilters() {
+    const statusFilter = $('#status-filter').val();
+    const dateFrom = $('#date-from').val();
+    const dateTo = $('#date-to').val();
+    const studentSearch = $('#student-search').val().toLowerCase();
+    
+    filteredData = reconciliationData.filter(record => {
+        let matches = true;
+        
+        // Status filter
+        if (statusFilter && record.sync_status !== statusFilter) {
+            matches = false;
+        }
+        
+        // Date filter
+        if (dateFrom && new Date(record.payment_date) < new Date(dateFrom)) {
+            matches = false;
+        }
+        if (dateTo && new Date(record.payment_date) > new Date(dateTo)) {
+            matches = false;
+        }
+        
+        // Student search
+        if (studentSearch && !record.student_name.toLowerCase().includes(studentSearch)) {
+            matches = false;
+        }
+        
+        return matches;
+    });
+    
+    currentPage = 1;
+    renderTable();
+}
+
+function clearFilters() {
+    $('#status-filter').val('');
+    $('#date-from').val('');
+    $('#date-to').val('');
+    $('#student-search').val('');
+    
+    filteredData = [...reconciliationData];
+    currentPage = 1;
+    renderTable();
+}
+
+function updateSelectedRecords() {
+    selectedRecords.clear();
+    $('.record-checkbox:checked').each(function() {
+        selectedRecords.add($(this).val());
+    });
+    
+    const selectedCount = selectedRecords.size;
+    $('#selected-count').text(selectedCount);
+    
+    if (selectedCount > 0) {
+        // Show bulk actions button if not already shown
+        if (!$('#bulk-actions-btn').length) {
+            const bulkBtn = $(`
+                <button type="button" class="btn btn-outline-primary ms-2" id="bulk-actions-btn" 
+                        onclick="showBulkActionsModal()">
+                    <i class="fas fa-tasks"></i> Bulk Actions (${selectedCount})
+                </button>
+            `);
+            $('#quickbooks-status-btn').parent().append(bulkBtn);
+        } else {
+            $('#bulk-actions-btn').html(`<i class="fas fa-tasks"></i> Bulk Actions (${selectedCount})`);
+        }
+    } else {
+        $('#bulk-actions-btn').remove();
+    }
+}
+
+function showErrorDetails(recordId) {
+    const record = reconciliationData.find(r => r.id === recordId);
+    if (record && record.error_message) {
+        currentErrorRecordId = recordId;
+        
+        const errorHtml = `
+            <div class="alert alert-danger">
+                <h6><i class="fas fa-exclamation-triangle"></i> Error Information</h6>
+                <p><strong>Student:</strong> ${record.student_name}</p>
+                <p><strong>Amount:</strong> ZMW ${record.amount.toFixed(2)}</p>
+                <p><strong>Payment Date:</strong> ${new Date(record.payment_date).toLocaleDateString()}</p>
+                <hr>
+                <p><strong>Error Details:</strong></p>
+                <pre class="small">${record.error_message}</pre>
+            </div>
+        `;
+        
+        $('#error-details-content').html(errorHtml);
+        $('#errorDetailsModal').modal('show');
+    }
+}
+
+function retrySync(recordId) {
+    const record = reconciliationData.find(r => r.id === recordId);
+    if (!record) return;
+    
+    $.ajax({
+        url: '{% url "core:quickbooks_receipt_reconciliation" %}',
+        method: 'POST',
+        data: {
+            'payment_sync_id': recordId,
+            'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+        },
+        success: function(response) {
+            if (response.success) {
+                showToast('Success', 'Sync retry completed', 'success');
+                loadReconciliationData();
+            } else {
+                showToast('Error', response.error || 'Retry failed', 'error');
+            }
+        },
+        error: function(xhr) {
+            const response = xhr.responseJSON || {};
+            showToast('Error', response.error || 'Retry failed', 'error');
+        }
+    });
+}
+
+function retrySpecificSync() {
+    if (currentErrorRecordId) {
+        $('#errorDetailsModal').modal('hide');
+        retrySync(currentErrorRecordId);
+    }
+}
+
+function refreshReconciliationData() {
+    loadReconciliationData();
+    showToast('Info', 'Reconciliation data refreshed', 'info');
+}
+
+function showTableLoading(show) {
+    if (show) {
+        $('#reconciliation-tbody').html(`
+            <tr>
+                <td colspan="9" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="mt-2">Loading reconciliation data...</div>
+                </td>
+            </tr>
+        `);
+    }
+}
+
+function showToast(title, message, type) {
+    $('#toast-title').text(title);
+    $('#toast-message').html(message);
+    $('#toast-time').text(new Date().toLocaleTimeString());
+    
+    const toast = $('#result-toast');
+    toast.removeClass('text-bg-success text-bg-danger text-bg-warning text-bg-info');
+    
+    switch (type) {
+        case 'success':
+            toast.addClass('text-bg-success');
+            break;
+        case 'error':
+            toast.addClass('text-bg-danger');
+            break;
+        case 'warning':
+            toast.addClass('text-bg-warning');
+            break;
+        default:
+            toast.addClass('text-bg-info');
+    }
+    
+    new bootstrap.Toast(toast[0], {
+        autohide: true,
+        delay: 5000
+    }).show();
+}
+
+// ── Previously-missing handlers (were referenced by buttons but undefined) ──
+
+function retryFailedSyncs() {
+    const errored = filteredData.filter(r => r.sync_status === 'error');
+    if (errored.length === 0) {
+        showToast('Info', 'No failed syncs to retry', 'info');
+        return;
+    }
+    showToast('Info', `Retrying ${errored.length} failed sync(s)…`, 'info');
+    errored.forEach(r => retrySync(r.id));
+}
+
+function bulkRetrySync() {
+    if (selectedRecords.size === 0) {
+        showToast('Info', 'No records selected', 'info');
+        return;
+    }
+    showToast('Info', `Retrying ${selectedRecords.size} selected sync(s)…`, 'info');
+    Array.from(selectedRecords).forEach(id => retrySync(id));
+    $('#bulkActionsModal').modal('hide');
+}
+
+function showBulkActionsModal() {
+    if (selectedRecords.size === 0) {
+        showToast('Info', 'Select at least one record first', 'info');
+        return;
+    }
+    $('#selected-count').text(selectedRecords.size);
+    $('#bulkActionsModal').modal('show');
+}
+
+function bulkDeleteRecords() {
+    // No server-side delete endpoint exists for sync records; surface this clearly
+    showToast('Not Available', 'Deleting reconciliation records is not supported.', 'warning');
+}
+
+function viewDetails(recordId) {
+    const r = reconciliationData.find(x => x.id === recordId);
+    if (!r) return;
+    const html = `
+        <strong>Student:</strong> ${r.student_name || '—'}<br>
+        <strong>Amount:</strong> ${r.amount}<br>
+        <strong>Payment Date:</strong> ${r.payment_date || '—'}<br>
+        <strong>Receipt #:</strong> ${r.receipt_number || '—'}<br>
+        <strong>QB Payment ID:</strong> ${r.quickbooks_payment_id || '—'}<br>
+        <strong>Status:</strong> ${r.sync_status}`;
+    showToast('Payment Details', html, 'info');
+}
+
+function viewReceipt(recordId) {
+    const r = reconciliationData.find(x => x.id === recordId);
+    if (r && r.receipt_number) {
+        showToast('Receipt', 'Receipt #' + r.receipt_number + ' (QB ID: ' + (r.quickbooks_payment_id || 'n/a') + ')', 'info');
+    } else {
+        showToast('Info', 'No receipt available for this record', 'info');
+    }
+}
+
+function exportReconciliationData() {
+    if (!filteredData || filteredData.length === 0) {
+        showToast('Info', 'Nothing to export', 'info');
+        return;
+    }
+    const cols = ['student_name', 'amount', 'payment_date', 'receipt_number', 'quickbooks_payment_id', 'sync_status'];
+    const header = ['Student', 'Amount', 'Payment Date', 'Receipt Number', 'QB Payment ID', 'Status'];
+    const escape = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const rows = filteredData.map(r => cols.map(c => escape(r[c])).join(','));
+    const csv = [header.map(escape).join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'reconciliation_' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Success', `Exported ${filteredData.length} record(s)`, 'success');
+}
+</script>
+{% endblock %}

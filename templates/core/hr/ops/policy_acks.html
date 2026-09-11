@@ -1,0 +1,30 @@
+{% extends 'core/layouts/list.html' %}
+{% block page_title %}{{ policy.title }} — Acknowledgements{% endblock %}
+
+{% block layout_header %}
+{% url 'core:hr_policy_list' as back_fallback %}
+{% include 'core/components/page_header.html' with title=policy.title description='Acknowledgement status' icon='fa-file-circle-check' back_url=back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_table %}
+<div class="card"><div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead><tr><th>Employee</th><th>Emp No</th><th>Department</th><th>Acknowledged</th></tr></thead>
+        <tbody>
+            {% for r in rows %}
+                <tr>
+                    <td><a href="{% url 'core:employee_detail' r.employee_id %}">{{ r.name }}</a></td>
+                    <td class="font-monospace"><small>{{ r.employee_number }}</small></td>
+                    <td>{{ r.department|default:"—" }}</td>
+                    <td>
+                        {% if r.acknowledged_at %}<span class="badge bg-success">{{ r.acknowledged_at|slice:":10" }}</span>
+                        {% else %}<span class="badge bg-warning">Outstanding</span>{% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr class="empty-state"><td colspan="4">No active employees.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div></div>
+{% endblock %}

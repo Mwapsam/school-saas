@@ -1,0 +1,144 @@
+{% extends 'core/layouts/form.html' %}
+
+{% block layout_header %}
+{% url 'core:hr_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-file-invoice-dollar' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block page_title %}Generate Payslips{% endblock %}
+
+{% block layout_form %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Generate for an Individual Employee</h5></div>
+            <div class="card-body">
+                <div id="single-generate-errors" class="alert alert-danger d-none"></div>
+                <div class="mb-3">
+                    <label for="single-employee" class="form-label">Employee *</label>
+                    <select class="form-select" id="single-employee">
+                        <option value="">Select employee...</option>
+                        {% for emp in employees %}
+                            <option value="{{ emp.id }}">{{ emp.first_name }} {{ emp.last_name }} ({{ emp.employee_number }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="single-period-start" class="form-label">Period Start *</label>
+                        <input type="date" class="form-control" id="single-period-start">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="single-period-end" class="form-label">Period End *</label>
+                        <input type="date" class="form-control" id="single-period-end">
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="generateSinglePayslip()">
+                    <i class="fas fa-file-invoice-dollar"></i> Generate Payslip
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Generate for a Payroll Group</h5></div>
+            <div class="card-body">
+                <div id="group-generate-errors" class="alert alert-danger d-none"></div>
+                <div class="mb-3">
+                    <label for="group-select" class="form-label">Payroll Group *</label>
+                    <select class="form-select" id="group-select">
+                        <option value="">Select payroll group...</option>
+                        {% for group in payroll_groups %}
+                            <option value="{{ group.id }}">{{ group.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="group-period-start" class="form-label">Period Start *</label>
+                        <input type="date" class="form-control" id="group-period-start">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="group-period-end" class="form-label">Period End *</label>
+                        <input type="date" class="form-control" id="group-period-end">
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="generateGroupPayslips()">
+                    <i class="fas fa-users"></i> Generate Payslips for Group
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<a href="{% url 'core:hr_payslip_list' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-list"></i> View Payslip List
+</a>
+
+<script>
+function csrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function generateSinglePayslip() {
+    const errorDiv = document.getElementById('single-generate-errors');
+    errorDiv.classList.add('d-none');
+    const body = new FormData();
+    body.append('employee_id', document.getElementById('single-employee').value);
+    body.append('period_start', document.getElementById('single-period-start').value);
+    body.append('period_end', document.getElementById('single-period-end').value);
+
+    fetch("{% url 'core:hr_payslip_generate_single' %}", {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken() },
+        body: body,
+    })
+        .then((r) => r.json())
+        .then((data) => {
+            if (data.success) {
+                showAlert(`Payslip generated (net pay: ${data.net_pay})`, 'success');
+            } else {
+                errorDiv.textContent = data.error || 'An error occurred';
+                errorDiv.classList.remove('d-none');
+            }
+        });
+}
+
+function generateGroupPayslips() {
+    const errorDiv = document.getElementById('group-generate-errors');
+    errorDiv.classList.add('d-none');
+    const body = new FormData();
+    body.append('payroll_group_id', document.getElementById('group-select').value);
+    body.append('period_start', document.getElementById('group-period-start').value);
+    body.append('period_end', document.getElementById('group-period-end').value);
+
+    fetch("{% url 'core:hr_payslip_generate_group' %}", {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken() },
+        body: body,
+    })
+        .then((r) => r.json())
+        .then((data) => {
+            if (data.success) {
+                let msg = `Generated ${data.generated} payslip(s)`;
+                if (data.errors && data.errors.length) msg += ` (${data.errors.length} skipped)`;
+                showAlert(msg, data.errors && data.errors.length ? 'warning' : 'success');
+            } else {
+                errorDiv.textContent = data.error || 'An error occurred';
+                errorDiv.classList.remove('d-none');
+            }
+        });
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+    alertDiv.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => { if (alertDiv.parentNode) alertDiv.parentNode.removeChild(alertDiv); }, 4000);
+}
+</script>
+{% csrf_token %}
+{% endblock %}

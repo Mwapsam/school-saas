@@ -1,0 +1,239 @@
+{% load core_extras %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ data.student.full_name }} – {{ template.report_title }}</title>
+<style>
+@page { size: A4 portrait; margin: 12mm 12mm; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Arial Narrow', Arial, Helvetica, sans-serif; font-size: 9pt; line-height: 1.45; color: #1a1a1a; }
+table { width: 100%; border-collapse: collapse; }
+.green-text { color: {{ data.template.primary_color }}; }
+.bold { font-weight: bold; }
+
+.hdr-table { margin-bottom: 6pt; }
+.hdr-table td { vertical-align: middle; }
+.hdr-logo-l { width: 60pt; text-align: left; }
+.hdr-logo-r { width: 60pt; text-align: right; }
+.hdr-logo-l img, .hdr-logo-r img { max-height: 50pt; max-width: 58pt; width: auto; height: auto; }
+.hdr-mid { text-align: center; }
+.hdr-name { font-size: 18pt; font-weight: bold; color: {{ data.template.primary_color_dark }}; line-height: 1.1; }
+.hdr-sub  { font-size: 7.5pt; color: #555; margin-top: 2pt; }
+
+.banner {
+    background: {{ data.template.primary_color_light }}; color: {{ data.template.primary_color_dark }};
+    text-align: center; font-weight: bold; font-size: 11pt;
+    padding: 5pt; margin: 6pt 0 8pt 0; border: 0.4pt solid {{ data.template.primary_color_dark }};
+    letter-spacing: 0.5pt;
+}
+
+.si-table { margin-bottom: 8pt; }
+.si-table td { vertical-align: top; padding: 3pt 9pt 5pt 0; }
+.si-lbl { font-size: 8pt; color: #444; }
+.si-val { font-size: 9.5pt; font-weight: bold; color: {{ data.template.primary_color_dark }}; }
+
+/* Full academic exam table — dual grouped header */
+.et { margin-bottom: 8pt; }
+.et th, .et td { border: 0.4pt solid #9c9c9c; padding: 4pt 5pt; text-align: center; vertical-align: middle; }
+.et th { background: {{ data.template.primary_color_light }}; color: #1a1a1a; font-weight: bold; font-size: 8.5pt; }
+.et td { font-size: 8.5pt; }
+.et .subj { text-align: left; }
+.et .muted { color: #999; }
+
+.box { width: 100%; border-collapse: collapse; border: 0.4pt solid #9c9c9c; break-inside: avoid; margin-bottom: 8pt; }
+.box th, .box td { padding: 5pt 8pt; font-size: 8.5pt; border-bottom: 0.4pt solid #e0e0e0; }
+.box tr:last-child td { border-bottom: none; }
+.box th { background: {{ data.template.primary_color_light }}; font-weight: bold; text-align: center; border-bottom: 0.4pt solid #9c9c9c; }
+.box th:not(:only-child) { border-right: 0.4pt solid #9c9c9c; }
+.box .row-lbl:not(:only-child) { text-align: left; width: 50%; border-right: 0.4pt solid #9c9c9c; }
+.box .row-lbl:only-child { text-align: left; }
+.box .row-val { text-align: left; width: 50%; }
+
+.grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; margin-bottom: 8pt; break-inside: avoid; }
+.grid-2col > .box { margin-bottom: 0; }
+
+.scale { width: 100%; border-collapse: collapse; }
+.scale th, .scale td { border: 0.4pt solid #9c9c9c; padding: 5pt 6pt; text-align: center; font-size: 8.5pt; }
+.scale .scale-title { background: #fff; font-weight: bold; text-align: center; }
+.scale .row-lbl { background: {{ data.template.primary_color_light }}; text-align: left; font-weight: bold; white-space: nowrap; }
+
+.footer { margin-top: 10pt; }
+.sig-table td { vertical-align: bottom; }
+.sig-img { max-height: 46pt; }
+.sig-line { border-top: 0.5pt solid #333; width: 170pt; margin-left: auto; padding-top: 4pt; text-align: center; font-weight: bold; font-size: 9pt; }
+.verse { text-align: center; font-style: italic; font-size: 8pt; color: {{ data.template.primary_color_dark }}; margin-top: 10pt; }
+
+.tc-box { margin-bottom: 8pt; break-inside: avoid; }
+.tc-title { font-weight: bold; font-size: 8.5pt; background: {{ data.template.primary_color_light }}; border: 0.4pt solid #9c9c9c; padding: 4pt 6pt; }
+.tc-line { border-bottom: 0.4pt solid #9c9c9c; min-height: 16pt; padding: 2pt 6pt; font-size: 8.5pt; border-left: 0.4pt solid #9c9c9c; border-right: 0.4pt solid #9c9c9c; }
+.tc-sig-wrap { margin-top: 8pt; }
+.tc-sig-line { border-top: 0.5pt solid #333; width: 170pt; padding-top: 4pt; text-align: center; font-weight: bold; font-size: 9pt; }
+</style>
+</head>
+<body>
+
+<table class="hdr-table">
+  <tr>
+    {% if data.school.logo_url %}<td class="hdr-logo-l"><img src="{{ data.school.logo_url }}" alt=""></td>{% endif %}
+    <td class="hdr-mid">
+      <div class="hdr-name">{{ data.school.name }}</div>
+      <div class="hdr-sub">{{ data.school.address }}</div>
+      <div class="hdr-sub">{{ data.school.contact }}{% if data.school.email %} | {{ data.school.email }}{% endif %}{% if data.school.website %} | {{ data.school.website }}{% endif %}</div>
+    </td>
+    {% if data.school.logo_secondary_url %}<td class="hdr-logo-r"><img src="{{ data.school.logo_secondary_url }}" alt=""></td>{% endif %}
+  </tr>
+</table>
+
+<div class="banner">{{ data.school.report_title|default:"ASSESSMENT REPORT" }}</div>
+
+<table class="si-table">
+  <tr>
+    <td style="width:24%"><div class="si-lbl">Name of pupil</div><div class="si-val">{{ data.student.full_name }}</div></td>
+    <td style="width:14%"><div class="si-lbl">Class</div><div class="si-val">{{ data.student.class_name|default:"—" }}</div></td>
+    <td style="width:12%"><div class="si-lbl">Admn No.</div><div class="si-val">{{ data.student.admission_number|default:"—" }}</div></td>
+    <td style="width:16%"><div class="si-lbl">Age</div><div class="si-val">{{ data.student.age|default:"—" }}</div></td>
+    <td style="width:16%"><div class="si-lbl">Average age of grade</div><div class="si-val">{{ data.student.average_age_of_grade|default:"—" }}</div></td>
+    <td style="width:18%"><div class="si-lbl">Class teacher(s)</div><div class="si-val">{% for t in data.student.class_teachers %}{{ t }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</div></td>
+  </tr>
+  <tr>
+    <td><div class="si-lbl">Term</div><div class="si-val">{{ data.term_info.term|default:"—" }}</div></td>
+    <td colspan="4"></td>
+    <td><div class="si-lbl">Next term commences</div><div class="si-val">{{ data.term_info.next_term_start|date:"d/m/Y"|default:"—" }}</div></td>
+  </tr>
+</table>
+
+{% for section in data.template.section_order %}
+
+  {% if section == 'exam_scores' %}
+  {% if template.include_exam_scores and data.exam_results %}
+  <table class="et">
+    <thead>
+      <tr>
+        <th rowspan="2" class="subj" style="width:30%">SUBJECTS</th>
+        <th colspan="3">EXAMINATION/TEST</th>
+        <th colspan="2">TERM</th>
+      </tr>
+      <tr>
+        <th style="width:13%">MARKS (%)</th>
+        <th style="width:11%">GRADE</th>
+        <th style="width:15%">CLASS AV. (%)</th>
+        <th style="width:15%">ATTAINMENT</th>
+        <th style="width:11%">EFFORT</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in data.exam_results %}
+      <tr>
+        <td class="subj">{{ r.subject }}</td>
+        {% if r.is_absent %}
+          <td class="muted">—</td><td class="bold">{{ r.grade|default:"—" }}</td>
+        {% else %}
+          <td>{{ r.percentage|floatformat:0 }}</td><td class="bold">{{ r.grade|default:"—" }}</td>
+        {% endif %}
+        <td>{% with ca=data.class_averages|get_item:r.subject %}{% if ca is not None %}{{ ca|floatformat:0 }}{% else %}—{% endif %}{% endwith %}</td>
+        <td>{{ r.attainment|default:"—" }}</td>
+        <td>{{ r.effort|default:"—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% endif %}
+
+  {% if section == 'homework_project' %}
+  {% if template.include_homework_assessment or template.include_project_work %}
+  <div class="grid-2col">
+    {% if template.include_homework_assessment %}
+    <table class="box">
+      <tr><th style="width:55%">HOMEWORK</th><th>{{ data.term_info.term|default:"" }}</th></tr>
+      <tr><td class="row-lbl">Submission</td><td class="row-val">{{ data.homework.submission|default:"—" }}</td></tr>
+      <tr><td class="row-lbl">Presentation</td><td class="row-val">{{ data.homework.presentation|default:"—" }}</td></tr>
+      <tr><td class="row-lbl">Effort</td><td class="row-val">{{ data.homework.effort|default:"—" }}</td></tr>
+    </table>
+    {% endif %}
+    {% if template.include_project_work %}
+    <table class="box">
+      <tr><th style="width:55%">PROJECT WORK</th><th>{{ data.term_info.term|default:"" }}</th></tr>
+      <tr><td class="row-lbl">Submission</td><td class="row-val">{{ data.project_work.submission|default:"—" }}</td></tr>
+      <tr><td class="row-lbl">Presentation</td><td class="row-val">{{ data.project_work.presentation|default:"—" }}</td></tr>
+      <tr><td class="row-lbl">Effort</td><td class="row-val">{{ data.project_work.effort|default:"—" }}</td></tr>
+    </table>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% endif %}
+
+  {% if section == 'clubs_sports' %}
+  {% if template.include_clubs or template.include_sports %}
+  <div class="grid-2col">
+    {% if template.include_clubs %}
+    <table class="box"><tr><th style="width:55%">CLUBS</th><th>{{ data.term_info.term|default:"" }}</th></tr>
+    {% for c in data.activities.clubs %}<tr><td class="row-lbl" colspan="2">{{ c }}</td></tr>{% empty %}<tr><td class="row-lbl" colspan="2" style="color:#999">—</td></tr>{% endfor %}
+    </table>
+    {% endif %}
+    {% if template.include_sports %}
+    <table class="box"><tr><th style="width:55%">SPORTS</th><th>{{ data.term_info.term|default:"" }}</th></tr>
+    {% for s in data.activities.sports %}<tr><td class="row-lbl" colspan="2">{{ s }}</td></tr>{% empty %}<tr><td class="row-lbl" colspan="2" style="color:#999">—</td></tr>{% endfor %}
+    </table>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% endif %}
+
+  {% if section == 'other_activities' %}
+  {% if template.include_other_activities and data.activities.other %}
+  <div class="grid-2col">
+    <table class="box"><tr><th style="width:55%">OTHER</th><th>{{ data.term_info.term|default:"" }}</th></tr>
+      {% for o in data.activities.other %}<tr><td class="row-lbl" colspan="2">{{ o }}</td></tr>{% endfor %}
+    </table>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  {% if section == 'attendance_scale' %}
+  {% if template.include_attendance or template.include_grading_scale %}
+  <div class="grid-2col">
+    {% if template.include_attendance %}
+    <table class="box">
+      <tr><th style="width:65%">Attendance</th><th>{{ data.term_info.term|default:"" }}</th></tr>
+      <tr><td class="row-lbl">No. of days present</td><td style="text-align:center">{{ data.attendance.days_present|floatformat:1 }}</td></tr>
+      <tr><td class="row-lbl">No. of days absent</td><td style="text-align:center;background:{{ data.template.primary_color_light }}">{{ data.attendance.days_absent|floatformat:1 }}</td></tr>
+    </table>
+    {% endif %}
+    {% if template.include_grading_scale and data.grading_scale %}
+    <table class="scale">
+      <tr><td class="scale-title" colspan="{{ data.grading_scale|length|add:1 }}">Scholastic Grade Scale: Grades are awarded on a {{ data.grading_scale|length }} point grading scale as follows</td></tr>
+      <tr><td class="row-lbl">Grade</td>{% for g in data.grading_scale %}<td class="bold">{{ g.grade }}</td>{% endfor %}</tr>
+      <tr><td class="row-lbl">Minimum score</td>{% for g in data.grading_scale %}<td>{{ g.minimum_score|floatformat:1 }}</td>{% endfor %}</tr>
+      <tr><td class="row-lbl">Description</td>{% for g in data.grading_scale %}<td>{{ g.description|default:"—" }}</td>{% endfor %}</tr>
+    </table>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% endif %}
+
+{% endfor %}
+
+<div class="tc-box">
+  <div class="tc-title">CLASS TEACHER'S COMMENTS</div>
+  {% if data.teacher_comment %}<div class="tc-line" style="white-space:pre-wrap; padding: 8px 4px;">{{ data.teacher_comment }}</div>{% endif %}
+</div>
+<div class="tc-sig-wrap">
+  {% if data.teacher_signature %}<img src="{{ data.teacher_signature }}" alt="Signature" style="max-height:46pt;display:block;margin-bottom:2pt"><br>{% endif %}
+  <div class="tc-sig-line">Signature</div>
+</div>
+
+<div class="footer">
+  <table class="sig-table"><tr>
+    <td style="width:60%"></td>
+    <td style="width:40%; text-align:center">
+      {% if data.school.signature_url %}<img src="{{ data.school.signature_url }}" class="sig-img" alt="Signature"><br>{% endif %}
+      <div class="sig-line">{{ data.school.signature_title|default:"Head of School" }}</div>
+    </td>
+  </tr></table>
+</div>
+
+{% if data.school.footer_quote %}<div class="verse">{{ data.school.footer_quote }}</div>{% endif %}
+
+</body>
+</html>

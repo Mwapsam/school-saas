@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Attendance Report</title>
+<style>
+  @page { size: A4; margin: 18mm 14mm; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #222; margin: 0; }
+  h1 { font-size: 14pt; text-align: center; margin: 0 0 2px 0; }
+  .subtitle { text-align: center; font-size: 9pt; color: #555; margin-bottom: 12px; }
+  .school-name { font-size: 11pt; font-weight: bold; text-align: center; margin-bottom: 2px; }
+  hr { border: none; border-top: 1.5px solid #333; margin: 8px 0; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th { background: #2e7d32; color: white; font-weight: bold; padding: 5px 6px; text-align: left; font-size: 8.5pt; }
+  td { padding: 4px 6px; border-bottom: 1px solid #e0e0e0; font-size: 8.5pt; }
+  tr:nth-child(even) td { background: #f9fbe7; }
+  .pct-high { color: #1b5e20; font-weight: bold; }
+  .pct-mid { color: #e65100; font-weight: bold; }
+  .pct-low { color: #b71c1c; font-weight: bold; }
+  .summary-box { border: 1px solid #ccc; border-radius: 4px; padding: 8px 12px; margin-top: 14px; display: inline-block; background: #f9f9f9; }
+  .summary-box span { margin-right: 20px; }
+  .footer { margin-top: 20px; font-size: 7.5pt; color: #888; text-align: center; }
+  .pill-p { background:#c8e6c9; color:#1b5e20; padding:1px 5px; border-radius:3px; }
+  .pill-a { background:#ffcdd2; color:#b71c1c; padding:1px 5px; border-radius:3px; }
+  .pill-h { background:#fff9c4; color:#f57f17; padding:1px 5px; border-radius:3px; }
+</style>
+</head>
+<body>
+
+<div class="school-name">{{ tenant.name }}</div>
+<h1>Attendance Report</h1>
+<div class="subtitle">
+  Period: {{ start_date }} — {{ end_date }}
+</div>
+<hr>
+
+{% if format_type == 'student' %}
+  {# ── Student individual report ── #}
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Forenoon</th>
+        <th>Afternoon</th>
+        <th>Status</th>
+        <th>Reason</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for rec in report_data.attendance_records %}
+      <tr>
+        <td>{{ rec.date }}</td>
+        <td>{% if rec.forenoon %}<span class="pill-p">Present</span>{% else %}<span class="pill-a">Absent</span>{% endif %}</td>
+        <td>{% if rec.afternoon %}<span class="pill-p">Present</span>{% else %}<span class="pill-a">Absent</span>{% endif %}</td>
+        <td>
+          {% if rec.forenoon and rec.afternoon %}<span class="pill-p">Full Day</span>
+          {% elif rec.forenoon or rec.afternoon %}<span class="pill-h">Half Day</span>
+          {% else %}<span class="pill-a">Absent</span>{% endif %}
+        </td>
+        <td>{{ rec.reason|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" style="text-align:center;color:#888">No records for this period.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% with s=report_data %}
+  <div class="summary-box" style="margin-top:14px">
+    <span><strong>Total Days:</strong> {{ s.total_days }}</span>
+    <span><strong>Present:</strong> {{ s.present_days }}</span>
+    <span><strong>Absent:</strong> {{ s.absent_days }}</span>
+    <span><strong>Attendance:</strong>
+      {% if s.attendance_percentage >= 90 %}<span class="pct-high">{{ s.attendance_percentage|floatformat:1 }}%</span>
+      {% elif s.attendance_percentage >= 75 %}<span class="pct-mid">{{ s.attendance_percentage|floatformat:1 }}%</span>
+      {% else %}<span class="pct-low">{{ s.attendance_percentage|floatformat:1 }}%</span>{% endif %}
+    </span>
+  </div>
+  {% endwith %}
+
+{% else %}
+  {# ── Batch summary report ── #}
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Student Name</th>
+        <th>Admission No.</th>
+        <th style="text-align:center">Present Days</th>
+        <th style="text-align:center">Absent Days</th>
+        <th style="text-align:center">Attendance %</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in report_data.student_summaries %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ s.student_name }}</td>
+        <td>{{ s.student_id }}</td>
+        <td style="text-align:center">{{ s.present_days }}</td>
+        <td style="text-align:center">{{ s.absent_days }}</td>
+        <td style="text-align:center">
+          {% if s.attendance_percentage >= 90 %}<span class="pct-high">{{ s.attendance_percentage|floatformat:1 }}%</span>
+          {% elif s.attendance_percentage >= 75 %}<span class="pct-mid">{{ s.attendance_percentage|floatformat:1 }}%</span>
+          {% else %}<span class="pct-low">{{ s.attendance_percentage|floatformat:1 }}%</span>{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" style="text-align:center;color:#888">No students found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% with bd=report_data.batch_summary %}
+  {% if bd %}
+  <div class="summary-box">
+    <span><strong>Batch average:</strong>
+      {% if bd.average_attendance >= 90 %}<span class="pct-high">{{ bd.average_attendance|floatformat:1 }}%</span>
+      {% elif bd.average_attendance >= 75 %}<span class="pct-mid">{{ bd.average_attendance|floatformat:1 }}%</span>
+      {% else %}<span class="pct-low">{{ bd.average_attendance|floatformat:1 }}%</span>{% endif %}
+    </span>
+    <span><strong>Students:</strong> {{ bd.total_students }}</span>
+  </div>
+  {% endif %}
+  {% endwith %}
+{% endif %}
+
+<div class="footer">Generated by Pinewood School Management System &mdash; {{ start_date }} to {{ end_date }}</div>
+</body>
+</html>

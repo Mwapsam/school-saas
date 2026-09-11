@@ -1,0 +1,105 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}Finance Reports{% endblock %}
+
+{% block layout_header %}
+{% url 'core:finance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Finance Reports" description="Collections, dues, cash book, statistics, defaulters and concessions." icon='fa-chart-line' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+
+{% block extra_css %}
+{% include 'core/finance/_finance_ui_styles.html' %}
+{% endblock %}
+
+{% block layout_filters %}
+<!-- Filters will be extracted and moved here -->
+{% endblock %}
+
+{% block layout_table %}
+    <!-- Workflow Nav -->
+    {% include 'core/finance/_workflow_nav.html' %}
+
+    <!-- Reports Modules Grid -->
+    <div class="row g-3">
+        <div class="col-md-6">
+            <a href="{% url 'core:particular_wise_student_transaction_report' %}" class="gb-card">
+                <div class="gb-card-icon"><i class="fas fa-receipt"></i></div>
+                <div class="gb-card-body">
+                    <p class="gb-card-title">Fee Collection Report</p>
+                    <p class="gb-card-desc">Collections by particular and student, with CSV/PDF export.</p>
+                </div>
+                <i class="fas fa-chevron-right gb-card-arrow"></i>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a href="{% url 'core:fee_year_reports' %}" class="gb-card">
+                <div class="gb-card-icon"><i class="fas fa-hourglass-half"></i></div>
+                <div class="gb-card-body">
+                    <p class="gb-card-title">Fee Due Report</p>
+                    <p class="gb-card-desc">Outstanding fees by student and batch.</p>
+                </div>
+                <i class="fas fa-chevron-right gb-card-arrow"></i>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a href="{% url 'core:finance_day_book' %}" class="gb-card">
+                <div class="gb-card-icon"><i class="fas fa-book"></i></div>
+                <div class="gb-card-body">
+                    <p class="gb-card-title">Day Book (Cash Book)</p>
+                    <p class="gb-card-desc">All receipts &amp; payments, chronological.</p>
+                </div>
+                <i class="fas fa-chevron-right gb-card-arrow"></i>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a href="{% url 'core:fee_statistics_report' %}" class="gb-card">
+                <div class="gb-card-icon"><i class="fas fa-chart-pie"></i></div>
+                <div class="gb-card-body">
+                    <p class="gb-card-title">Fee Statistics Report</p>
+                    <p class="gb-card-desc">Collection by category, batch and mode.</p>
+                </div>
+                <i class="fas fa-chevron-right gb-card-arrow"></i>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a href="{% url 'core:fee_defaulters_report' %}" class="gb-card">
+                <div class="gb-card-icon"><i class="fas fa-user-clock"></i></div>
+                <div class="gb-card-body">
+                    <p class="gb-card-title">Defaulters Report</p>
+                    <p class="gb-card-desc">Students who still owe on a collection past its due date.</p>
+                </div>
+                <i class="fas fa-chevron-right gb-card-arrow"></i>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <div class="gb-card gb-card-multi">
+                <div class="gb-card-icon"><i class="fas fa-hand-holding-dollar"></i></div>
+                <div class="gb-card-body">
+                    <a href="{% url 'core:fee_waivers' %}" class="gb-card-link-wrap">
+                        <p class="gb-card-title">Concession Report</p>
+                        <p class="gb-card-desc">Discounts, waivers and write-offs.</p>
+                    </a>
+                    <div class="mt-2 small">
+                        <a href="{% url 'core:fee_discounts' %}" class="gb-card-sublink me-3">Discounts &rarr;</a>
+                        <a href="{% url 'core:fee_waivers' %}#grantWaiverModal" class="gb-card-sublink">Grant Waiver &rarr;</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin correction — not a report -->
+    <div class="d-flex justify-content-end mt-3">
+        <span class="text-muted small">
+            <i class="fas fa-undo me-1"></i>
+            Need to undo a payment? Reverse it from
+            <a href="{% url 'core:collect_fees' %}">Collect Fees</a>.
+        </span>
+    </div>
+{% endblock %}
+
+{% block layout_pagination %}{% endblock %}
+
+{% block layout_extra %}{% endblock %}

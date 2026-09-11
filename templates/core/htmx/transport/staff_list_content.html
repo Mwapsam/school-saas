@@ -1,0 +1,47 @@
+<div class="pinewood-table-responsive">
+  <table class="pinewood-table">
+    <thead>
+      <tr>
+        <th>No.</th><th>Name</th><th>Role</th><th class="d-none d-md-table-cell">Phone</th>
+        <th class="d-none d-lg-table-cell">Licence</th><th>Status</th><th width="140">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+        <tr>
+          <td class="text-center">{{ forloop.counter0|add:page_obj.start_index }}</td>
+          <td><strong>{{ item.full_name }}</strong></td>
+          <td><span class="badge bg-info text-dark">{{ item.get_staff_type_display }}</span></td>
+          <td class="d-none d-md-table-cell">{{ item.phone }}</td>
+          <td class="d-none d-lg-table-cell">
+            {{ item.license_number|default:"—" }}
+            {% if item.license_expiry %}<small class="text-muted d-block">exp {{ item.license_expiry|date:'Y-m-d' }}</small>{% endif %}
+          </td>
+          <td>
+            {% if item.is_active %}<span class="badge bg-success">Active</span>
+            {% else %}<span class="badge bg-warning">Inactive</span>{% endif %}
+          </td>
+          <td class="table-actions">
+            <div class="btn-group btn-group-sm" role="group">
+              <button type="button" class="btn btn-outline-secondary btn-sm" title="Edit"
+                data-entity="staff"
+                data-row='{"id":"{{ item.id }}","staff_type":"{{ item.staff_type }}","full_name":"{{ item.full_name|escapejs }}","phone":"{{ item.phone|escapejs }}","alt_phone":"{{ item.alt_phone|escapejs }}","email":"{{ item.email|escapejs }}","national_id":"{{ item.national_id|escapejs }}","license_number":"{{ item.license_number|escapejs }}","license_expiry":"{{ item.license_expiry|date:'Y-m-d' }}","emergency_contact_name":"{{ item.emergency_contact_name|escapejs }}","emergency_contact_phone":"{{ item.emergency_contact_phone|escapejs }}"}'
+                onclick="transportOpenEdit(this)"><i class="fas fa-edit"></i></button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" title="Toggle status"
+                onclick="transportAction('staff','toggle','{{ item.id }}')">
+                <i class="fas {% if item.is_active %}fa-pause{% else %}fa-play{% endif %}"></i></button>
+              <button type="button" class="btn btn-outline-danger btn-sm" title="Delete"
+                onclick="transportAction('staff','delete','{{ item.id }}','Delete {{ item.full_name|escapejs }}?')">
+                <i class="fas fa-trash"></i></button>
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4">
+          No drivers or attendants yet. <a href="#" onclick="transportOpenAdd('staff');return false;">Add the first one</a>.
+        </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include 'core/htmx/transport/_pager.html' with list_url='/transport/staff/list/' entity='staff' %}

@@ -1,0 +1,1152 @@
+{% extends 'core/layouts/detail.html' %}
+{% load static %}
+
+{% block page_title %}Collect Fees{% endblock %}
+
+{% block extra_css %}
+{% include 'core/finance/_finance_ui_styles.html' %}
+{% endblock %}
+
+{% block layout_header %}
+<div class="fee-collect-page">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'core:finance_dashboard' %}">Finance</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Collect Fees</li>
+        </ol>
+    </nav>
+
+    {% url 'core:finance_dashboard' as back_fallback %}
+    {% include 'core/components/page_header.html' with title="Fee Collection" description="Record student payments with quick collection methods" icon="fa-receipt" back_url=back_url|default:back_fallback %}
+
+    <div class="fee-toolbar mb-4">
+        <div class="fee-toolbar__actions">
+            {% include 'core/finance/_year_selector.html' %}
+            {% if student and fee_collections %}
+            <form method="get" id="feeCollectionForm" class="d-inline-block">
+                <input type="hidden" name="student_id" value="{{ student.id }}">
+                <input type="hidden" name="academic_year" value="{{ selected_year_id }}">
+                {% if batch_id %}<input type="hidden" name="batch_id" value="{{ batch_id }}">{% endif %}
+                <select name="fee_collection" class="form-select form-select-sm" style="min-width: 200px;"
+                        onchange="document.getElementById('feeCollectionForm').submit()"
+                        aria-label="Select fee collection">
+                    {% for collection in fee_collections %}
+                    <option value="{{ collection.id }}" {% if collection.id|stringformat:'s' == selected_fee_collection_id %}selected{% endif %}>
+                        {{ collection.name }}{% if collection.batch %} — {{ collection.batch.name }}{% endif %}{% if collection.term %} ({{ collection.term.name }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% endif %}
+        </div>
+        <div class="fee-toolbar__actions">
+            <a href="{% url 'core:finance_fee_receipts' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-history me-1"></i> Payment History
+            </a>
+            <a href="{% url 'core:finance_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i> Back
+            </a>
+        </div>
+    </div>
+
+    {% include 'core/finance/_workflow_nav.html' with active_step=3 %}
+
+    {% if student and year_mismatch %}
+    <div class="alert alert-warning py-2 mt-3">
+        <i class="fas fa-triangle-exclamation me-1"></i>
+        Financial year must be present for selected transaction date.
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block layout_sections %}
+    {% if not student %}
+    <!-- STUDENT SEARCH SECTION -->
+    <div class="row justify-content-center mt-2">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body p-4">
+                    <h5 class="mb-4 card-section-title"><i class="fas fa-search"></i>Find a Student</h5>
+
+                    <!-- Batch Filter -->
+                    <div class="mb-4">
+                        <label for="batchSelect" class="form-label fw-600">Filter by Batch (Optional)</label>
+                        <select class="form-select" id="batchSelect">
+                            <option value="">All Batches</option>
+                            {% for batch in batches %}
+                            <option value="{{ batch.id }}">{{ batch.course.course_name }} — {{ batch.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text small">Narrow down results by selecting a specific batch</div>
+                    </div>
+
+                    <!-- Student Search -->
+                    <div class="mb-3">
+                        <label for="studentSearch" class="form-label fw-600">Search by Name or Admission #</label>
+                        <input type="text" class="form-control form-control-lg" id="studentSearch"
+                               placeholder="e.g. John Doe or ADM-2024-001"
+                               autocomplete="off" aria-label="Search for a student">
+                    </div>
+
+                    <!-- Search Results -->
+                    <div id="studentSearchResults" class="d-none mt-3">
+                        <!-- Results populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- ========================================
+         STUDENT SELECTED - MAIN COLLECTION VIEW
+         ======================================== -->
+
+    <!-- STATEMENT-STYLE NAV BAR: prev arrow / student name / next arrow -->
+    <div class="statement-navbar">
+        {% if has_prev %}
+        <a href="{{ prev_url }}" class="btn-nav-arrow" title="Previous student"><i class="fas fa-caret-left fa-lg"></i></a>
+        {% else %}
+        <button class="btn-nav-arrow" disabled title="First student"><i class="fas fa-caret-left fa-lg"></i></button>
+        {% endif %}
+
+        <div class="statement-navbar__name">{{ student.first_name }} {{ student.last_name }}</div>
+
+        {% if has_next %}
+        <a href="{{ next_url }}" class="btn-nav-arrow" title="Next student"><i class="fas fa-caret-right fa-lg"></i></a>
+        {% else %}
+        <button class="btn-nav-arrow" disabled title="Last student"><i class="fas fa-caret-right fa-lg"></i></button>
+        {% endif %}
+    </div>
+
+    <div class="student-meta-strip">
+        <span><strong>Admission:</strong> {{ student.admission_no }}</span>
+        {% if current_batch %}<span><strong>Batch:</strong> {{ current_batch.batch.name }}</span>{% endif %}
+        {% if student.student_category %}<span><strong>Category:</strong> {{ student.student_category.name }}</span>{% endif %}
+        <span><strong>Guardian:</strong> {{ guardian_name|default:"—" }}</span>
+        <span><strong>Outstanding:</strong> {{ currency_symbol }}{{ total_outstanding|floatformat:2 }}</span>
+        {% include 'core/finance/_status_badge.html' with status=overall_status %}
+    </div>
+
+    <!-- MAIN CONTENT AREA -->
+
+    <!-- STATEMENT-STYLE FEE SUMMARY TABLE (Sl No / Particulars / Amount) -->
+    <div class="statement-card">
+        <div class="table-responsive">
+            <table class="table table-statement mb-0">
+                <thead>
+                    <tr>
+                        <th class="sl-no">Sl No.</th>
+                        <th>Particulars</th>
+                        <th class="amount-col">Amount ({{ currency_symbol }})</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if outstanding_fees %}
+                    <tr class="section-row"><td colspan="3">Outstanding Fees — Academic Year: {{ selected_year.name }}</td></tr>
+                    {% for fee in outstanding_fees %}
+                    <tr>
+                        <td class="sl-no">{{ forloop.counter }}</td>
+                        <td>
+                            {{ fee.fee_category.name }}
+                            {% if fee.fee_category.description %}<br><small class="text-muted">{{ fee.fee_category.description|truncatewords:6 }}</small>{% endif %}
+                            <span class="text-muted small">— {{ fee.transaction_date|date:"M d, Y" }}</span>
+                            {% include 'core/finance/_status_badge.html' with status=fee.display_status %}
+                        </td>
+                        <td class="amount-col">
+                            {{ currency_symbol }}{{ fee.balance|floatformat:2 }}
+                            <div class="btn-group btn-group-sm mt-1" role="group">
+                                <button class="btn btn-outline-success btn-sm"
+                                        onclick="showPaymentModal('{{ fee.fee_category.id }}', '{{ fee.fee_category.name }}', {{ fee.balance }})"
+                                        title="Record payment">
+                                    <i class="fas fa-credit-card"></i>
+                                </button>
+                                {% if fee.remove_charge_txn_id %}
+                                <button class="btn btn-outline-danger btn-sm"
+                                        onclick="showRemoveChargeModal('{{ fee.remove_charge_txn_id }}', '{{ fee.fee_category.name|escapejs }}', {{ fee.balance }})"
+                                        title="Remove this one-time charge">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted py-4">
+                            <i class="fas fa-check-circle text-success me-1"></i> No outstanding fees for this student
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    {% if collection_summary %}
+                    <tr class="section-row"><td colspan="3">Summary</td></tr>
+                    <tr class="summary-row">
+                        <td class="sl-no">1</td>
+                        <td>Total Fees</td>
+                        <td class="amount-col">{{ currency_symbol }}{{ collection_summary.total_fees|floatformat:2 }}</td>
+                    </tr>
+                    <tr class="summary-row">
+                        <td class="sl-no">2</td>
+                        <td>Total Discount</td>
+                        <td class="amount-col">{{ currency_symbol }}{{ collection_summary.total_discount|floatformat:2 }}</td>
+                    </tr>
+                    <tr class="grand-total-row">
+                        <td></td>
+                        <td>Total amount to pay</td>
+                        <td class="amount-col">{{ currency_symbol }}{{ collection_summary.amount_to_pay|floatformat:2 }}</td>
+                    </tr>
+                    <tr class="grand-total-row">
+                        <td></td>
+                        <td>Total amount paid</td>
+                        <td class="amount-col">
+                            {{ currency_symbol }}{{ collection_summary.payment_done|floatformat:2 }}
+                            {% if collection_summary.amount_to_pay <= 0 %}<i class="fas fa-check text-success ms-1"></i>{% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr class="grand-total-row">
+                        <td></td>
+                        <td>Total Outstanding</td>
+                        <td class="amount-col">{{ currency_symbol }}{{ total_outstanding|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="statement-footer">
+            <span class="fees-status">
+                {% if collection_summary.amount_to_pay <= 0 %}Fees paid{% else %}Balance due{% endif %}
+            </span>
+            <a target="_blank" class="btn btn-print-summary btn-sm"
+               href="{% url 'core:fee_student_statement_pdf' %}?student_id={{ student.id }}&fee_collection={{ selected_fee_collection_id }}">
+                <i class="fas fa-print me-1"></i> Print summary
+            </a>
+        </div>
+    </div>
+
+    <!-- QUICK ACTIONS TOOLBAR -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-primary btn-sm" onclick="showPaymentModal()">
+                    <i class="fas fa-credit-card me-1"></i> Record Payment
+                </button>
+                <button type="button" class="btn btn-outline-info btn-sm" onclick="showWaiverModal()">
+                    <i class="fas fa-hand-holding-heart me-1"></i> Grant Waiver
+                </button>
+                <span class="vr d-none d-md-inline mx-1"></span>
+                <button type="button" class="btn btn-outline-warning btn-sm" onclick="showAddParticularModal()">
+                    <i class="fas fa-plus-circle me-1"></i> Add Particular
+                </button>
+                <button type="button" class="btn btn-outline-success btn-sm" onclick="showAddDiscountModal()">
+                    <i class="fas fa-percent me-1"></i> Apply Discount
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="showAddFineModal()">
+                    <i class="fas fa-gavel me-1"></i> Add Fine
+                </button>
+                <span class="vr d-none d-md-inline mx-1"></span>
+                <a href="{% url 'core:fee_waivers' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-list me-1"></i> View Waivers
+                </a>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="goToStatement()">
+                    <i class="fas fa-file-pdf me-1"></i> Print Statement
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAYMENT HISTORY (statement-style plain table) -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 card-section-title"><i class="fas fa-history"></i>Payment History</h5>
+            {% if fee_transactions %}<small class="text-muted">{{ fee_transactions|length }} transaction{{ fee_transactions|length|pluralize }}</small>{% endif %}
+        </div>
+        {% if fee_transactions %}
+        <div class="table-responsive">
+            <table class="table table-payment-history mb-0">
+                <thead>
+                    <tr>
+                        <th>Receipt No.</th>
+                        <th>Payment date</th>
+                        <th>Payment mode</th>
+                        <th>Payment notes</th>
+                        <th>Cashier</th>
+                        <th class="amount-col">Amount ({{ currency_symbol }})</th>
+                        <th class="actions-col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for group in ledger_receipts %}
+                    {% with transaction=group.transactions.0 %}
+                    <tr>
+                        <td>{{ transaction.reference_number|default:"—" }}</td>
+                        <td>{{ transaction.transaction_date|date:"d/m/Y" }}</td>
+                        <td>
+                            {% if transaction.transaction_type == 'payment' %}
+                                {{ transaction.get_payment_method_display|default:"Payment" }}
+                            {% elif transaction.transaction_type == 'discount' %}Discount
+                            {% elif transaction.transaction_type == 'fine' %}Fine
+                            {% elif transaction.transaction_type == 'refund' %}Refund
+                            {% else %}Charge{% endif %}
+                        </td>
+                        <td>
+                            {% if group.transactions|length > 1 %}
+                            <button class="btn btn-sm btn-link p-0 text-decoration-none" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#receipt-{{ forloop.counter }}"
+                                    aria-expanded="false" aria-label="Show particulars for this receipt">
+                                {{ group.transactions|length }} particulars <i class="fas fa-chevron-down small"></i>
+                            </button>
+                            <div class="collapse mt-2" id="receipt-{{ forloop.counter }}">
+                                {% for t in group.transactions %}
+                                <div class="d-flex justify-content-between align-items-center py-1 small">
+                                    <span>{{ t.fee_particular.name|default:t.fee_category.name|default:"-" }}</span>
+                                    <span class="fw-600">{{ currency_symbol }}{{ t.amount|floatformat:2 }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            {{ transaction.description|default:"—" }}
+                            {% endif %}
+                        </td>
+                        <td>{{ transaction.collected_by.full_name|default:"—" }}</td>
+                        <td class="amount-col">{{ currency_symbol }}{{ group.total_amount|floatformat:2 }}</td>
+                        <td class="actions-col">
+                            {% if transaction.transaction_type == 'payment' and selected_fee_collection_id %}
+                            <a class="btn btn-sm btn-link" target="_blank"
+                               href="{% url 'core:fee_collection_payment_receipt_pdf' %}?student_id={{ student.id }}&fee_collection={{ selected_fee_collection_id }}&receipt_no={{ transaction.reference_number|urlencode }}"
+                               title="Print receipt">
+                                <i class="fas fa-print"></i>
+                            </a>
+                            {% endif %}
+                            {% if transaction.transaction_type == 'payment' and group.transactions|length == 1 %}
+                            <button class="btn btn-sm btn-link"
+                                    onclick="showReversalModal('{{ transaction.id }}', '{{ transaction.amount|floatformat:2 }}')"
+                                    title="Reverse this payment">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endwith %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="card-body text-center py-5">
+            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+            <h6 class="text-muted">No Transactions</h6>
+            <p class="text-muted mb-0">No payments, charges, or adjustments recorded yet</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block layout_extra %}
+<!-- ========================================
+     MODALS - Organized by function
+     ======================================== -->
+
+<!-- 1. PAYMENT MODAL -->
+<form id="paymentForm">
+{% include 'core/components/modal.html' with id="paymentModal" title="Record Payment" icon="fa-credit-card text-success" %}
+                    {% csrf_token %}
+                    <input type="hidden" id="studentId" name="student_id" value="{{ student.id }}">
+                    <input type="hidden" id="paymentAcademicYear" name="academic_year" value="{{ selected_year_id }}">
+
+                    {% if selected_year %}
+                    <div class="alert alert-info py-2 small mb-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Payment recorded for <strong>{{ selected_year.name }}</strong>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="feeCategoryId" class="form-label fw-600">Fee Category <span class="text-danger">*</span></label>
+                        <select class="form-select" id="feeCategoryId" name="fee_category_id" required>
+                            <option value="">Select a fee category</option>
+                            {% for fee in outstanding_fees %}
+                            <option value="{{ fee.fee_category.id }}" data-balance="{{ fee.balance }}">
+                                {{ fee.fee_category.name }} (Due: {{ currency_symbol }}{{ fee.balance|floatformat:2 }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="paymentAmount" class="form-label fw-600">Amount <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">{{ currency_symbol }}</span>
+                            <input type="number" class="form-control" id="paymentAmount" name="payment_amount"
+                                   min="0.01" step="0.01" placeholder="0.00" required>
+                        </div>
+                        <div class="form-text small">Max: <span id="maxPayment">0.00</span></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="paymentMethod" class="form-label fw-600">Payment Method</label>
+                        <select class="form-select" id="paymentMethod" name="payment_method">
+                            <option value="cash">Cash</option>
+                            <option value="card">Card</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="mobile_money">Mobile Money</option>
+                            <option value="cheque">Cheque</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-600">Cashier</label>
+                        <div class="dropdown" id="paymentCashierCombo">
+                            <input type="hidden" id="paymentCashier" name="cashier_employee_id" value="">
+                            <button type="button" class="form-select text-start" data-bs-toggle="dropdown"
+                                    data-bs-auto-close="outside" aria-expanded="false" id="paymentCashierToggle">
+                                <span id="paymentCashierLabel" class="text-muted">Select staff member</span>
+                            </button>
+                            <div class="dropdown-menu w-100 p-2" style="max-height: 260px; overflow-y: auto;">
+                                <input type="text" class="form-control form-control-sm mb-2" id="paymentCashierFilter"
+                                       placeholder="Type to filter staff…" autocomplete="off">
+                                <ul class="list-unstyled mb-0" id="paymentCashierOptions">
+                                    <li><button type="button" class="dropdown-item" data-value="">Select staff member</button></li>
+                                    {% for employee in employees %}
+                                    <li><button type="button" class="dropdown-item" data-value="{{ employee.id }}">{{ employee.full_name }}</button></li>
+                                    {% endfor %}
+                                </ul>
+                                <div class="dropdown-item-text text-muted small d-none" id="paymentCashierNoMatch">No matching staff</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="paymentReference" class="form-label fw-600">Reference / Receipt #</label>
+                        <input type="text" class="form-control" id="paymentReference" name="reference_number"
+                               placeholder="e.g. bank/cheque reference">
+                        <div class="form-text small">Helps prevent duplicate entries</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="paymentDescription" class="form-label fw-600">Notes</label>
+                        <textarea class="form-control" id="paymentDescription" name="description" rows="2"
+                                  placeholder="Additional payment details"></textarea>
+                    </div>
+{% include 'core/components/modal_close.html' with footer=payment_footer %}
+</form>
+
+<!-- 2. REVERSAL MODAL -->
+<form id="reversalForm">
+{% include 'core/components/modal.html' with id="reversalModal" title="Reverse Payment" icon="fa-undo text-danger" %}
+                    {% csrf_token %}
+                    <input type="hidden" id="reversalTxnId" name="fee_transaction_id">
+
+                    <div class="alert alert-warning py-2 small mb-3">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        This will reverse a payment of <strong>{{ currency_symbol }}<span id="reversalAmount">0.00</span></strong> and restore the outstanding balance.
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="reversalReason" class="form-label fw-600">Reason <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="reversalReason" name="reason" rows="3"
+                                  placeholder="Why is this payment being reversed?" required></textarea>
+                    </div>
+{% include 'core/components/modal_close.html' with footer=reversal_footer %}
+</form>
+
+<!-- 3. REMOVE CHARGE MODAL -->
+<form id="removeChargeForm">
+{% include 'core/components/modal.html' with id="removeChargeModal" title="Remove Charge" icon="fa-trash-alt text-danger" %}
+                    {% csrf_token %}
+                    <input type="hidden" id="removeChargeTxnId" name="fee_transaction_id">
+
+                    <div class="alert alert-warning py-2 small mb-3">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        This will permanently remove the <strong id="removeChargeCategory"></strong> charge of
+                        <strong>{{ currency_symbol }}<span id="removeChargeAmount">0.00</span></strong>. Only
+                        available while the charge hasn't been paid, discounted, or fined against.
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="removeChargeReason" class="form-label fw-600">Reason</label>
+                        <textarea class="form-control" id="removeChargeReason" name="reason" rows="3"
+                                  placeholder="Why is this charge being removed?"></textarea>
+                    </div>
+{% include 'core/components/modal_close.html' with footer=remove_charge_footer %}
+</form>
+
+<!-- 4. WAIVER/SCHOLARSHIP MODAL -->
+<form id="waiverForm">
+{% include 'core/components/modal.html' with id="waiverModal" title="Grant Waiver / Scholarship" icon="fa-hand-holding-heart text-info" %}
+                    {% csrf_token %}
+                    <input type="hidden" name="student_id" value="{{ student.id }}">
+                    <input type="hidden" name="academic_year" value="{{ selected_year_id }}">
+
+                    {% if selected_year %}
+                    <div class="alert alert-info py-2 small mb-3">
+                        Applied to <strong>{{ selected_year.name }}</strong>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="waiverCategory" class="form-label fw-600">Fee Category <span class="text-danger">*</span></label>
+                        <select class="form-select" id="waiverCategory" name="fee_category_id" required>
+                            <option value="">Select a fee category</option>
+                            {% for fee in outstanding_fees %}
+                            <option value="{{ fee.fee_category.id }}">
+                                {{ fee.fee_category.name }} (Due: {{ currency_symbol }}{{ fee.balance|floatformat:2 }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="waiverType" class="form-label fw-600">Waiver Type</label>
+                        <select class="form-select" id="waiverType" name="waiver_type">
+                            <option value="SCHOLARSHIP">Scholarship</option>
+                            <option value="DISCOUNT">Discount</option>
+                            <option value="WAIVER">Fee Waiver</option>
+                            <option value="STAFF_CHILD">Staff Child</option>
+                            <option value="SIBLING">Sibling Discount</option>
+                        </select>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label for="waiverPercentage" class="form-label fw-600 small">Percentage (%)</label>
+                            <input type="number" class="form-control" id="waiverPercentage" name="percentage"
+                                   min="0" max="100" step="0.01" placeholder="e.g. 50">
+                        </div>
+                        <div class="col-6">
+                            <label for="waiverAmount" class="form-label fw-600 small">or Fixed Amount</label>
+                            <input type="number" class="form-control" id="waiverAmount" name="amount"
+                                   min="0" step="0.01" placeholder="e.g. 500">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="waiverReason" class="form-label fw-600">Reason <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="waiverReason" name="reason" rows="2" required
+                                  placeholder="Why is this waiver being granted?"></textarea>
+                    </div>
+{% include 'core/components/modal_close.html' with footer=waiver_footer %}
+</form>
+
+<!-- 5. ADD PARTICULAR MODAL -->
+<form id="addParticularForm">
+{% include 'core/components/modal.html' with id="addParticularModal" title="Add Particular" icon="fa-plus-circle text-warning" %}
+                    {% csrf_token %}
+                    <input type="hidden" id="particularStudentId" name="student_id" value="{{ student.id }}">
+
+                    <div class="mb-3">
+                        <label for="particularSelect" class="form-label fw-600">Particular <span class="text-danger">*</span></label>
+                        <select class="form-select" id="particularSelect" name="master_particular_id" required>
+                            <option value="">Select a particular</option>
+                            {% for mp in master_particulars %}
+                            <option value="{{ mp.id }}">{{ mp.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="particularAmount" class="form-label fw-600">Amount <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">{{ currency_symbol }}</span>
+                            <input type="number" class="form-control" id="particularAmount" name="amount"
+                                   min="0.01" step="0.01" placeholder="0.00" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="particularDescription" class="form-label fw-600">Description</label>
+                        <input type="text" class="form-control" id="particularDescription" name="description"
+                               placeholder="e.g. Lab fees, Sports day">
+                    </div>
+{% include 'core/components/modal_close.html' with footer=add_particular_footer %}
+</form>
+
+<!-- 6. ADD DISCOUNT MODAL -->
+<form id="addDiscountForm">
+{% include 'core/components/modal.html' with id="addDiscountModal" title="Apply Discount" icon="fa-percent text-success" %}
+                    {% csrf_token %}
+                    <input type="hidden" id="discountStudentId" name="student_id" value="{{ student.id }}">
+
+                    <div class="mb-3">
+                        <label for="discountCategory" class="form-label fw-600">Fee Category <span class="text-danger">*</span></label>
+                        <select class="form-select" id="discountCategory" name="fee_category_id" required>
+                            <option value="">Select a fee category</option>
+                            {% for cat in fee_categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="discountType" class="form-label fw-600">Discount Type <span class="text-danger">*</span></label>
+                        <select class="form-select" id="discountType" name="discount_id" required>
+                            <option value="">Select a discount</option>
+                            {% for discount in discounts %}
+                            <option value="{{ discount.id }}" data-mode="{{ discount.mode }}" data-value="{{ discount.value }}">
+                                {{ discount.name }}
+                                ({% if discount.mode == 'percentage' %}{{ discount.value }}%{% else %}{{ currency_symbol }}{{ discount.value|floatformat:2 }}{% endif %})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="discountAmount" class="form-label fw-600">Override Amount (Optional)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">{{ currency_symbol }}</span>
+                            <input type="number" class="form-control" id="discountAmount" name="override_amount"
+                                   min="0" step="0.01" placeholder="Leave blank to use default">
+                        </div>
+                        <div class="form-text small">Leave blank to apply the discount template as-is</div>
+                    </div>
+{% include 'core/components/modal_close.html' with footer=add_discount_footer %}
+</form>
+
+<!-- 7. ADD FINE MODAL -->
+<form id="addFineForm">
+{% include 'core/components/modal.html' with id="addFineModal" title="Add Fine / Penalty" icon="fa-gavel text-danger" %}
+                    {% csrf_token %}
+                    <input type="hidden" id="fineStudentId" name="student_id" value="{{ student.id }}">
+
+                    <div class="mb-3">
+                        <label for="fineCategory" class="form-label fw-600">Fee Category <span class="text-danger">*</span></label>
+                        <select class="form-select" id="fineCategory" name="fee_category_id" required>
+                            <option value="">Select a fee category</option>
+                            {% for cat in fee_categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="fineSlab" class="form-label fw-600">Fine Slab <span class="text-danger">*</span></label>
+                        <select class="form-select" id="fineSlab" name="fine_slab_id" required>
+                            <option value="">Select a fine slab</option>
+                            {% for slab in fine_slabs %}
+                            <option value="{{ slab.id }}" data-amount="{{ slab.amount }}">
+                                {{ slab.fine_name }} - Day {{ slab.days_after_due }}
+                                ({{ slab.amount }}{% if slab.mode == 'percentage' %}%{% else %}{% endif %})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text small">Select the applicable fine schedule</div>
+                    </div>
+{% include 'core/components/modal_close.html' with footer=add_fine_footer %}
+</form>
+
+<!-- Toast Notifications -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="successToast" class="toast align-items-center text-bg-success border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+    <div id="errorToast" class="toast align-items-center text-bg-danger border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Global variables
+let studentSearchTimeout;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Cashier selector: searchable dropdown (staff list is long)
+    const cashierCombo = document.getElementById('paymentCashierCombo');
+    if (cashierCombo) {
+        const cashierHidden = document.getElementById('paymentCashier');
+        const cashierLabel = document.getElementById('paymentCashierLabel');
+        const cashierFilter = document.getElementById('paymentCashierFilter');
+        const cashierNoMatch = document.getElementById('paymentCashierNoMatch');
+        const cashierItems = Array.from(cashierCombo.querySelectorAll('#paymentCashierOptions button'));
+
+        function filterCashiers() {
+            const q = cashierFilter.value.trim().toLowerCase();
+            let visible = 0;
+            cashierItems.forEach(btn => {
+                // The blank "Select staff member" row only shows on an empty query
+                const isBlank = btn.dataset.value === '';
+                const match = isBlank ? q === '' : btn.textContent.toLowerCase().includes(q);
+                btn.closest('li').classList.toggle('d-none', !match);
+                if (match && !isBlank) visible++;
+            });
+            cashierNoMatch.classList.toggle('d-none', visible > 0 || q === '');
+        }
+
+        cashierFilter.addEventListener('input', filterCashiers);
+        // Keep the dropdown open while typing / clicking the search box
+        cashierFilter.addEventListener('click', e => e.stopPropagation());
+
+        cashierItems.forEach(btn => {
+            btn.addEventListener('click', function() {
+                cashierHidden.value = this.dataset.value;
+                cashierLabel.textContent = this.textContent;
+                cashierLabel.classList.toggle('text-muted', this.dataset.value === '');
+                bootstrap.Dropdown.getOrCreateInstance(
+                    document.getElementById('paymentCashierToggle')
+                ).hide();
+            });
+        });
+
+        // Focus the search box when the dropdown opens
+        cashierCombo.addEventListener('shown.bs.dropdown', function() {
+            cashierFilter.focus();
+        });
+
+        // Reset selection + filter each time the payment modal opens
+        const paymentModalEl = document.getElementById('paymentModal');
+        if (paymentModalEl) {
+            paymentModalEl.addEventListener('show.bs.modal', function() {
+                cashierHidden.value = '';
+                cashierLabel.textContent = 'Select staff member';
+                cashierLabel.classList.add('text-muted');
+                cashierFilter.value = '';
+                filterCashiers();
+            });
+        }
+    }
+
+    // Batch filter functionality
+    const batchSelect = document.getElementById('batchSelect');
+    const studentSearchInput = document.getElementById('studentSearch');
+
+    if (batchSelect) {
+        batchSelect.addEventListener('change', function() {
+            const batchId = this.value;
+            studentSearchInput.value = '';
+            document.getElementById('studentSearchResults').classList.add('d-none');
+            if (batchId) {
+                loadBatchStudents(batchId);
+            }
+        });
+    }
+
+    // Student search functionality
+    if (studentSearchInput) {
+        studentSearchInput.addEventListener('input', function() {
+            clearTimeout(studentSearchTimeout);
+            const query = this.value.trim();
+            const batchId = batchSelect ? batchSelect.value : '';
+
+            if (query.length < 2) {
+                if (batchId && query.length === 0) {
+                    loadBatchStudents(batchId);
+                } else {
+                    document.getElementById('studentSearchResults').classList.add('d-none');
+                }
+                return;
+            }
+
+            studentSearchTimeout = setTimeout(() => {
+                searchStudents(query, batchId);
+            }, 300);
+        });
+    }
+
+    // Payment form
+    const paymentForm = document.getElementById('paymentForm');
+    if (paymentForm) {
+        paymentForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            processPayment();
+        });
+
+        const feeCategorySelect = document.getElementById('feeCategoryId');
+        feeCategorySelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const balance = selectedOption.getAttribute('data-balance') || '0.00';
+            document.getElementById('maxPayment').textContent = parseFloat(balance).toFixed(2);
+            document.getElementById('paymentAmount').max = balance;
+        });
+    }
+
+    // Reversal form
+    const reversalForm = document.getElementById('reversalForm');
+    if (reversalForm) {
+        reversalForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitReversal();
+        });
+    }
+
+    // Remove Charge form
+    const removeChargeForm = document.getElementById('removeChargeForm');
+    if (removeChargeForm) {
+        removeChargeForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitRemoveCharge();
+        });
+    }
+
+    // Waiver form
+    const waiverForm = document.getElementById('waiverForm');
+    if (waiverForm) {
+        waiverForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitWaiver();
+        });
+    }
+
+    // Add Particular form
+    const addParticularForm = document.getElementById('addParticularForm');
+    if (addParticularForm) {
+        addParticularForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitAddParticular();
+        });
+    }
+
+    // Add Discount form
+    const addDiscountForm = document.getElementById('addDiscountForm');
+    if (addDiscountForm) {
+        addDiscountForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitAddDiscount();
+        });
+    }
+
+    // Add Fine form
+    const addFineForm = document.getElementById('addFineForm');
+    if (addFineForm) {
+        addFineForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitAddFine();
+        });
+    }
+});
+
+// Utility functions
+function loadBatchStudents(batchId) {
+    if (!batchId) {
+        document.getElementById('studentSearchResults').classList.add('d-none');
+        return;
+    }
+
+    fetch(`/api/batches/${batchId}/students/for-collection/`)
+        .then(response => response.json())
+        .then(data => {
+            const resultsContainer = document.getElementById('studentSearchResults');
+            if (data.students && data.students.length > 0) {
+                let html = '<div class="border-top pt-3"><h6 class="text-muted mb-3">Students in Batch:</h6>';
+                data.students.forEach(student => {
+                    html += `<div class="student-search-item p-2 mb-2 border rounded cursor-pointer" onclick="selectStudent('${student.id}')">
+                        <div class="d-flex justify-content-between">
+                            <div><div class="fw-semibold small">${student.name}</div><small class="text-muted">${student.admission_number}</small></div>
+                            <div class="text-end"><small class="text-warning">Outstanding: {{ currency_symbol }}${student.outstanding_balance.toFixed(2)}</small></div>
+                        </div>
+                    </div>`;
+                });
+                html += '</div>';
+                resultsContainer.innerHTML = html;
+                resultsContainer.classList.remove('d-none');
+            } else {
+                resultsContainer.innerHTML = '<div class="border-top pt-3"><p class="text-muted">No students in this batch</p></div>';
+                resultsContainer.classList.remove('d-none');
+            }
+        })
+        .catch(error => { console.error(error); showError('Error loading students'); });
+}
+
+function searchStudents(query, batchId = '') {
+    let url = `/api/students/fee-search/?q=${encodeURIComponent(query)}`;
+    if (batchId) url += `&batch_id=${batchId}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const resultsContainer = document.getElementById('studentSearchResults');
+            if (data.results && data.results.length > 0) {
+                let html = `<div class="border-top pt-3"><h6 class="text-muted mb-3">Search Results:</h6>`;
+                data.results.forEach(student => {
+                    html += `<div class="student-search-item p-2 mb-2 border rounded cursor-pointer" onclick="selectStudent('${student.id}')">
+                        <div class="d-flex justify-content-between">
+                            <div><div class="fw-semibold small">${student.name}</div><small class="text-muted">${student.admission_number}</small></div>
+                            <div class="text-end"><small class="text-warning">Outstanding: {{ currency_symbol }}${student.outstanding_balance.toFixed(2)}</small></div>
+                        </div>
+                    </div>`;
+                });
+                html += '</div>';
+                resultsContainer.innerHTML = html;
+                resultsContainer.classList.remove('d-none');
+            } else {
+                resultsContainer.innerHTML = '<div class="border-top pt-3"><p class="text-muted">No students found</p></div>';
+                resultsContainer.classList.remove('d-none');
+            }
+        })
+        .catch(error => { console.error(error); showError('Error searching students'); });
+}
+
+function selectStudent(studentId) {
+    window.location.href = `{% url 'core:collect_fees' %}?student_id=${studentId}`;
+}
+
+// Modal functions
+function showPaymentModal(feeCategoryId = '', categoryName = '', balance = 0) {
+    const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    if (feeCategoryId) {
+        document.getElementById('feeCategoryId').value = feeCategoryId;
+        document.getElementById('maxPayment').textContent = parseFloat(balance).toFixed(2);
+        document.getElementById('paymentAmount').max = balance;
+    }
+    modal.show();
+}
+
+function showWaiverModal() {
+    new bootstrap.Modal(document.getElementById('waiverModal')).show();
+}
+
+function showReversalModal(txnId, amount) {
+    document.getElementById('reversalTxnId').value = txnId;
+    document.getElementById('reversalAmount').textContent = amount;
+    new bootstrap.Modal(document.getElementById('reversalModal')).show();
+}
+
+function showRemoveChargeModal(txnId, categoryName, amount) {
+    document.getElementById('removeChargeTxnId').value = txnId;
+    document.getElementById('removeChargeCategory').textContent = categoryName;
+    document.getElementById('removeChargeAmount').textContent = parseFloat(amount).toFixed(2);
+    new bootstrap.Modal(document.getElementById('removeChargeModal')).show();
+}
+
+function showAddParticularModal() {
+    new bootstrap.Modal(document.getElementById('addParticularModal')).show();
+}
+
+function showAddDiscountModal(feeCategoryId) {
+    if (feeCategoryId) {
+        document.getElementById('discountCategory').value = feeCategoryId;
+    }
+    new bootstrap.Modal(document.getElementById('addDiscountModal')).show();
+}
+
+function showAddFineModal() {
+    new bootstrap.Modal(document.getElementById('addFineModal')).show();
+}
+
+// Form submission functions
+function processPayment() {
+    const form = document.getElementById('paymentForm');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Processing...';
+
+    fetch('/fees/student-payment/', {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess(data.message);
+            bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+            openPaymentReceipt(data.receipt_no);
+            setTimeout(() => window.location.reload(), 2500);
+        } else {
+            showError(data.error || 'Payment failed');
+        }
+    })
+    .catch(() => showError('Network error'))
+    .finally(() => { submitBtn.disabled = false; submitBtn.innerHTML = 'Process Payment'; });
+}
+
+function openPaymentReceipt(receiptNo) {
+    const feeCollectionSelect = document.querySelector('select[name="fee_collection"]');
+    const feeCollectionId = feeCollectionSelect ? feeCollectionSelect.value : '';
+    if (!receiptNo || !feeCollectionId) return;
+    const url = `{% url 'core:fee_collection_payment_receipt_pdf' %}?student_id={{ student.id }}&fee_collection=${feeCollectionId}&receipt_no=${encodeURIComponent(receiptNo)}`;
+    window.open(url, '_blank');
+}
+
+function submitReversal() {
+    const form = document.getElementById('reversalForm');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Reversing...';
+
+    fetch('{% url "core:fee_payment_reversal" %}', {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess(data.message);
+            bootstrap.Modal.getInstance(document.getElementById('reversalModal')).hide();
+            setTimeout(() => window.location.reload(), 2500);
+        } else {
+            showError(data.error || 'Failed to reverse payment');
+        }
+    })
+    .catch(() => showError('Network error'))
+    .finally(() => { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-undo me-1"></i> Reverse Payment'; });
+}
+
+function submitRemoveCharge() {
+    const form = document.getElementById('removeChargeForm');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Removing...';
+
+    fetch('{% url "core:fee_remove_student_charge" %}', {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess(data.message);
+            bootstrap.Modal.getInstance(document.getElementById('removeChargeModal')).hide();
+            setTimeout(() => window.location.reload(), 2000);
+        } else {
+            showError(data.error || 'Failed to remove charge');
+        }
+    })
+    .catch(() => showError('Network error'))
+    .finally(() => { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-trash-alt me-1"></i> Remove Charge'; });
+}
+
+function submitWaiver() {
+    const form = document.getElementById('waiverForm');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Granting...';
+
+    fetch('{% url "core:fee_grant_waiver" %}', {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess(data.message);
+            bootstrap.Modal.getInstance(document.getElementById('waiverModal')).hide();
+            setTimeout(() => window.location.reload(), 2500);
+        } else {
+            showError(data.error || 'Failed to grant waiver');
+        }
+    })
+    .catch(() => showError('Network error'))
+    .finally(() => { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-check me-1"></i> Grant Waiver'; });
+}
+
+function submitAddParticular() {
+    const form = document.getElementById('addParticularForm');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Adding...';
+
+    fetch('{% url "core:fee_add_student_particular" %}', {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess(data.message);
+            bootstrap.Modal.getInstance(document.getElementById('addParticularModal')).hide();
+            setTimeout(() => window.location.reload(), 2500);
+        } else {
+            showError(data.error || 'Failed');
+        }
+    })
+    .catch(() => showError('Network error'))
+    .finally(() => { submitBtn.disabled = false; submitBtn.innerHTML = 'Add Particular'; });
+}
+
+function submitAddDiscount() {
+    const form = document.getElementById('addDiscountForm');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Applying...';
+
+    fetch('{% url "core:fee_add_student_discount" %}', {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess(data.message);
+            bootstrap.Modal.getInstance(document.getElementById('addDiscountModal')).hide();
+            setTimeout(() => window.location.reload(), 2500);
+        } else {
+            showError(data.error || 'Failed');
+        }
+    })
+    .catch(() => showError('Network error'))
+    .finally(() => { submitBtn.disabled = false; submitBtn.innerHTML = 'Apply Discount'; });
+}
+
+function submitAddFine() {
+    const form = document.getElementById('addFineForm');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Applying...';
+
+    fetch('{% url "core:fee_add_student_fine" %}', {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess(data.message);
+            bootstrap.Modal.getInstance(document.getElementById('addFineModal')).hide();
+            setTimeout(() => window.location.reload(), 2500);
+        } else {
+            showError(data.error || 'Failed');
+        }
+    })
+    .catch(() => showError('Network error'))
+    .finally(() => { submitBtn.disabled = false; submitBtn.innerHTML = 'Add Fine'; });
+}
+
+function goToStatement() {
+    const studentId = document.getElementById('studentId').value;
+    const year = document.getElementById('paymentAcademicYear').value;
+    window.location.href = `/fees/student-statement/?student_id=${studentId}&academic_year=${year}`;
+}
+
+// Toast utilities
+function showSuccess(message) {
+    const toast = document.getElementById('successToast');
+    toast.querySelector('.toast-body').textContent = message;
+    new bootstrap.Toast(toast).show();
+}
+
+function showError(message) {
+    const toast = document.getElementById('errorToast');
+    toast.querySelector('.toast-body').textContent = message;
+    new bootstrap.Toast(toast).show();
+}
+
+// Custom CSS for student search items
+document.addEventListener('DOMContentLoaded', function() {
+    const style = document.createElement('style');
+    style.textContent = `.student-search-item { cursor: pointer; transition: all 0.2s; } .student-search-item:hover { background-color: #f8f9fa; }`;
+    document.head.appendChild(style);
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,75 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead>
+            <tr>
+                <th>Employee</th>
+                <th class="d-none d-md-table-cell">Payroll Group</th>
+                <th>Period</th>
+                <th>Net Pay</th>
+                <th>Status</th>
+                <th width="200">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for payslip in payslips %}
+                <tr>
+                    <td><strong>{{ payslip.employee.first_name }} {{ payslip.employee.last_name }}</strong></td>
+                    <td class="d-none d-md-table-cell">{{ payslip.payroll_group_name_snapshot|default:"—" }}</td>
+                    <td><small>{{ payslip.period_start|date:"M j" }} &ndash; {{ payslip.period_end|date:"M j, Y" }}</small></td>
+                    <td>{{ payslip.net_pay }}</td>
+                    <td>
+                        {% if payslip.status == 'paid' %}
+                            <span class="badge bg-success">Paid</span>
+                        {% elif payslip.status == 'approved' %}
+                            <span class="badge bg-info">Approved</span>
+                        {% elif payslip.status == 'rejected' %}
+                            <span class="badge bg-danger">Rejected</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Generated</span>
+                        {% endif %}
+                        {% if payslip.version > 1 %}<small class="text-muted">v{{ payslip.version }}</small>{% endif %}
+                    </td>
+                    <td class="table-actions">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a class="btn btn-outline-secondary btn-sm" title="View PDF" target="_blank" href="/hr/payroll/payslips/{{ payslip.id }}/pdf/">
+                                <i class="fas fa-file-pdf"></i>
+                            </a>
+                            {% if payslip.status == 'generated' %}
+                                <button type="button" class="btn btn-outline-success btn-sm" title="Approve" onclick="approvePayslip('{{ payslip.id }}')"><i class="fas fa-check"></i></button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" title="Reject" onclick="rejectPayslip('{{ payslip.id }}')"><i class="fas fa-times"></i></button>
+                            {% elif payslip.status == 'rejected' %}
+                                <button type="button" class="btn btn-outline-primary btn-sm" title="Regenerate" onclick="regeneratePayslip('{{ payslip.id }}')"><i class="fas fa-redo"></i></button>
+                            {% elif payslip.status == 'approved' %}
+                                <button type="button" class="btn btn-outline-success btn-sm" title="Mark Paid" onclick="markPayslipPaid('{{ payslip.id }}')"><i class="fas fa-money-check-alt"></i></button>
+                            {% elif payslip.status == 'paid' %}
+                                <button type="button" class="btn btn-outline-secondary btn-sm" title="Reopen" onclick="unmarkPayslipPaid('{{ payslip.id }}')"><i class="fas fa-undo"></i></button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr class="empty-state"><td colspan="6">No payslips found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if is_paginated %}
+    <div class="pinewood-table-pagination">
+        <nav>
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" hx-get="{% url 'core:hr_payslip_list' %}?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.payroll_group %}&payroll_group={{ request.GET.payroll_group }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}" hx-target="#payslip-list-content" data-loading>Previous</a>
+                    </li>
+                {% endif %}
+                <li class="page-item active"><span class="page-link">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span></li>
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" hx-get="{% url 'core:hr_payslip_list' %}?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.payroll_group %}&payroll_group={{ request.GET.payroll_group }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}" hx-target="#payslip-list-content" data-loading>Next</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+{% endif %}

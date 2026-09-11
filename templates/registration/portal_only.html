@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Account - Pinewood Preparatory School</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+            padding: 16px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #cccccc;
+            border-radius: 6px;
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            padding: 32px 28px;
+        }
+
+        h1 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            color: #222;
+        }
+
+        p {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .btn-portal {
+            display: inline-block;
+            background-color: #007bff;
+            color: #fff;
+            text-decoration: none;
+            padding: 10px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .btn-logout {
+            display: block;
+            margin-top: 16px;
+            font-size: 13px;
+            color: #777;
+            background: none;
+            border: none;
+            text-decoration: underline;
+            cursor: pointer;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>This account can't access the staff dashboard</h1>
+        <p>
+            Your account is set up for the Parent &amp; Teacher Portal, not the
+            staff dashboard. Please log in there instead.
+        </p>
+        <a class="btn-portal" href="{{ portal_app_url }}">Go to the Parent &amp; Teacher Portal</a>
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-logout">Log out of this session</button>
+        </form>
+    </div>
+</body>
+</html>

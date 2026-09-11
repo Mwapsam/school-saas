@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fee Note {{ invoice.invoice_number }}</title>
+<style>
+@page { size: A4; margin: 14mm; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #1a1a1a; }
+
+.hdr { text-align: center; border-bottom: 2pt solid #17833f; padding-bottom: 6pt; margin-bottom: 12pt; }
+.hdr-name { font-size: 18pt; font-weight: bold; color: #17833f; }
+.hdr-sub { font-size: 8pt; color: #555; margin-top: 2pt; }
+
+.title { text-align: center; font-size: 13pt; font-weight: bold; letter-spacing: 1pt;
+         background: #e8f5e8; color: #125e2d; padding: 5pt; margin-bottom: 12pt; }
+
+.meta { width: 100%; margin-bottom: 14pt; }
+.meta td { padding: 3pt 4pt; font-size: 9.5pt; vertical-align: top; }
+.meta .lbl { color: #666; width: 22%; }
+.meta .val { font-weight: bold; }
+
+.status { display: inline-block; padding: 2pt 8pt; border-radius: 3pt; font-size: 8pt; font-weight: bold; }
+.status-open { background: #fff3cd; color: #856404; }
+.status-paid { background: #d4edda; color: #155724; }
+.status-void { background: #f8d7da; color: #721c24; }
+
+.section { margin-top: 14pt; }
+.section-title { font-size: 10.5pt; font-weight: bold; color: #125e2d; border-bottom: 1pt solid #cfe8d6;
+                 padding-bottom: 3pt; margin-bottom: 6pt; }
+
+table.lines { width: 100%; border-collapse: collapse; margin-bottom: 6pt; }
+table.lines th { text-align: left; font-size: 8.5pt; text-transform: uppercase; color: #666;
+                  border-bottom: 1pt solid #ccc; padding: 4pt; }
+table.lines td { font-size: 9.5pt; padding: 5pt 4pt; border-bottom: 0.5pt solid #eee; }
+table.lines td.amt, table.lines th.amt { text-align: right; }
+
+.totals { width: 60%; margin-left: auto; margin-top: 10pt; }
+.totals td { padding: 3pt 4pt; font-size: 9.5pt; }
+.totals .lbl { color: #666; }
+.totals .val { text-align: right; font-weight: bold; }
+.totals .grand td { border-top: 1pt solid #333; font-size: 11pt; padding-top: 6pt; }
+
+.note { text-align: center; font-size: 7.5pt; color: #999; margin-top: 20pt; font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+    <div class="hdr-name">{{ school.name }}</div>
+    <div class="hdr-sub">
+        {% if school.address_line1 %}{{ school.address_line1 }}{% endif %}{% if school.city %}, {{ school.city }}{% endif %}
+        {% if school.phone %} | {{ school.phone }}{% endif %}{% if school.email %} | {{ school.email }}{% endif %}
+    </div>
+</div>
+
+<div class="title">FEE NOTE</div>
+
+<table class="meta">
+    <tr>
+        <td class="lbl">Fee Note No.</td>
+        <td class="val">{{ invoice.invoice_number }}</td>
+        <td class="lbl">Academic Year</td>
+        <td class="val">{{ invoice.academic_year.name }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">Bill To</td>
+        <td class="val">{{ invoice.guardian.first_name }} {{ invoice.guardian.last_name }}</td>
+        <td class="lbl">Status</td>
+        <td class="val"><span class="status status-{{ invoice.status }}">{{ invoice.get_status_display }}</span></td>
+    </tr>
+    <tr>
+        <td class="lbl">Contact</td>
+        <td class="val">{{ invoice.guardian.email|default:"—" }}{% if invoice.guardian.mobile_phone %} | {{ invoice.guardian.mobile_phone }}{% endif %}</td>
+        <td class="lbl">Due Date</td>
+        <td class="val">{{ invoice.due_date|date:"d/m/Y"|default:"—" }}</td>
+    </tr>
+</table>
+
+{% for student_id, group in students_grouped.items %}
+<div class="section">
+    <div class="section-title">{{ group.student }}{% if group.batch %} — {{ group.batch }}{% endif %}</div>
+    <table class="lines">
+        <thead>
+            <tr><th>Description</th><th class="amt">Amount</th></tr>
+        </thead>
+        <tbody>
+        {% for line in group.lines %}
+            <tr><td>{{ line.description }}</td><td class="amt">{{ line.amount_display }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endfor %}
+
+<table class="totals">
+    <tr><td class="lbl">Subtotal</td><td class="val">{{ subtotal_display }}</td></tr>
+    <tr><td class="lbl">Amount Paid</td><td class="val">{{ amount_paid_display }}</td></tr>
+    <tr class="grand"><td class="lbl">Balance Due</td><td class="val">{{ balance_due_display }}</td></tr>
+</table>
+
+{% if school.fee_note_early_bird_discount_enabled or school.fee_note_terms %}
+<div class="section">
+    <div class="section-title">PLEASE NOTE</div>
+    {% if school.fee_note_early_bird_discount_enabled %}
+    <p style="font-size: 9.5pt; margin-bottom: 8pt;">There is an early bird discount of {{ school.fee_note_early_bird_discount_percent }}% for payments made by the due date.</p>
+    {% endif %}
+    {% if school.fee_note_terms %}
+    <p style="font-size: 9.5pt; white-space: pre-line; margin: 0;">{{ school.fee_note_terms }}</p>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="note">This is a computer-generated fee note. Generated {{ invoice.last_updated_at|date:"d/m/Y H:i" }}.</div>
+
+</body>
+</html>

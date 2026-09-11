@@ -1,0 +1,494 @@
+<!-- Add/Edit Teacher Modal -->
+<div class="modal fade" id="teacherModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <form hx-post="/teachers/create/"
+                  hx-target="#teacher-list-content"
+                  hx-swap="outerHTML"
+                  hx-on="htmx:afterRequest: handleTeacherFormResponse(event)">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <span id="modal-title">Add New Teacher</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div id="form-errors" class="alert alert-danger d-none"></div>
+
+                    <input type="hidden" id="teacher-id" name="teacher_id" value="">
+
+                    <ul class="nav nav-tabs" id="teacherFormTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="basic-info-tab" data-bs-toggle="tab" data-bs-target="#basic-info-pane" type="button" role="tab" aria-controls="basic-info-pane" aria-selected="true">
+                                Basic Info
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="job-info-tab" data-bs-toggle="tab" data-bs-target="#job-info-pane" type="button" role="tab" aria-controls="job-info-pane" aria-selected="false">
+                                Job Info
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="subjects-info-tab" data-bs-toggle="tab" data-bs-target="#subjects-info-pane" type="button" role="tab" aria-controls="subjects-info-pane" aria-selected="false" disabled>
+                                Subjects
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="payroll-info-tab" data-bs-toggle="tab" data-bs-target="#payroll-info-pane" type="button" role="tab" aria-controls="payroll-info-pane" aria-selected="false" disabled>
+                                Payroll
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="roles-info-tab" data-bs-toggle="tab" data-bs-target="#roles-info-pane" type="button" role="tab" aria-controls="roles-info-pane" aria-selected="false" disabled>
+                                Roles &amp; Access
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="contact-info-tab" data-bs-toggle="tab" data-bs-target="#contact-info-pane" type="button" role="tab" aria-controls="contact-info-pane" aria-selected="false">
+                                Contact Info
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content border border-top-0 rounded-bottom p-3 mb-3" id="teacherFormTabsContent">
+                        <!-- Basic Information -->
+                        <div class="tab-pane fade show active" id="basic-info-pane" role="tabpanel" aria-labelledby="basic-info-tab" tabindex="0">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="employee-number" class="form-label">Employee Number *</label>
+                                        <input type="text" class="form-control" id="employee-number" name="employee_number" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="joining-date" class="form-label">Joining Date *</label>
+                                        <input type="date" class="form-control" id="joining-date" name="joining_date" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="first-name" class="form-label">First Name *</label>
+                                        <input type="text" class="form-control" id="first-name" name="first_name" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="middle-name" class="form-label">Middle Name</label>
+                                        <input type="text" class="form-control" id="middle-name" name="middle_name">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="last-name" class="form-label">Last Name *</label>
+                                        <input type="text" class="form-control" id="last-name" name="last_name" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="gender" class="form-label">Gender *</label>
+                                        <select class="form-select" id="gender" name="gender" required>
+                                            <option value="">Select gender...</option>
+                                            <option value="true">Male</option>
+                                            <option value="false">Female</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="date-of-birth" class="form-label">Date of Birth</label>
+                                        <input type="date" class="form-control" id="date-of-birth" name="date_of_birth">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="marital-status" class="form-label">Marital Status</label>
+                                        <select class="form-select" id="marital-status" name="marital_status">
+                                            <option value="">Select status...</option>
+                                            <option value="single">Single</option>
+                                            <option value="married">Married</option>
+                                            <option value="divorced">Divorced</option>
+                                            <option value="widowed">Widowed</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="teacher-active" name="status" checked>
+                                <label class="form-check-label" for="teacher-active">
+                                    Active teacher
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Job Information -->
+                        <div class="tab-pane fade" id="job-info-pane" role="tabpanel" aria-labelledby="job-info-tab" tabindex="0">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="job-title" class="form-label">Job Title</label>
+                                        <input type="text" class="form-control" id="job-title" name="job_title" placeholder="e.g., Mathematics Teacher">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="qualification" class="form-label">Qualification</label>
+                                        <input type="text" class="form-control" id="qualification" name="qualification" placeholder="e.g., B.Ed, M.Sc Mathematics">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="teacher-department" class="form-label">Department</label>
+                                        <select class="form-select" id="teacher-department" name="employee_department_id">
+                                            <option value="">Select department...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="category" class="form-label">Category</label>
+                                        <select class="form-select" id="category" name="employee_category_id">
+                                            <option value="">Select category...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="position" class="form-label">Position</label>
+                                        <select class="form-select" id="position" name="employee_position_id">
+                                            <option value="">Select position...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="grade" class="form-label">Grade</label>
+                                        <select class="form-select" id="grade" name="employee_grade_id">
+                                            <option value="">Select grade...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="experience-year" class="form-label">Experience (Years)</label>
+                                        <input type="number" class="form-control" id="experience-year" name="experience_year" min="0">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="experience-month" class="form-label">Experience (Months)</label>
+                                        <input type="number" class="form-control" id="experience-month" name="experience_month" min="0" max="11">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is-teaching-staff" name="is_teaching_staff">
+                                <label class="form-check-label" for="is-teaching-staff">
+                                    Teaching staff
+                                </label>
+                                <div class="form-text">Auto-suggested from the selected category, but you can override it.</div>
+                            </div>
+                        </div>
+
+                        <!-- Subjects (existing employees only — saved independently of the form above) -->
+                        <div class="tab-pane fade" id="subjects-info-pane" role="tabpanel" aria-labelledby="subjects-info-tab" tabindex="0">
+                            <div id="employee-subjects-content" class="text-muted small">
+                                Save this employee first, then assign subjects.
+                            </div>
+                        </div>
+
+                        <!-- Payroll (existing employees only — saved independently of the form above) -->
+                        <div class="tab-pane fade" id="payroll-info-pane" role="tabpanel" aria-labelledby="payroll-info-tab" tabindex="0">
+                            <div id="employee-payroll-content" class="text-muted small">
+                                Save this employee first, then set up their payroll profile.
+                            </div>
+                        </div>
+
+                        <!-- Roles & Access (existing employees only — saved independently of the form above) -->
+                        <div class="tab-pane fade" id="roles-info-pane" role="tabpanel" aria-labelledby="roles-info-tab" tabindex="0">
+                            <div id="employee-roles-content" class="text-muted small">
+                                Save this employee first, then assign portal roles.
+                            </div>
+                        </div>
+
+                        <!-- Contact Information -->
+                        <div class="tab-pane fade" id="contact-info-pane" role="tabpanel" aria-labelledby="contact-info-tab" tabindex="0">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="email" class="form-label">Email</label>
+                                        <input type="email" class="form-control" id="email" name="email">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="mobile-phone" class="form-label">Mobile Phone</label>
+                                        <input type="tel" class="form-control" id="mobile-phone" name="mobile_phone">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="home-address-line1" class="form-label">Home Address Line 1</label>
+                                        <input type="text" class="form-control" id="home-address-line1" name="home_address_line1">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="home-address-line2" class="form-label">Home Address Line 2</label>
+                                        <input type="text" class="form-control" id="home-address-line2" name="home_address_line2">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="home-city" class="form-label">City</label>
+                                        <input type="text" class="form-control" id="home-city" name="home_city">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="home-state" class="form-label">State</label>
+                                        <input type="text" class="form-control" id="home-state" name="home_state">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="home-pin-code" class="form-label">Pin Code</label>
+                                        <input type="text" class="form-control" id="home-pin-code" name="home_pin_code">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-loading>
+                        <span id="submit-text">Create Teacher</span>
+                        <div class="htmx-indicator loading-spinner d-inline-block ms-2"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load form data when modal is opened
+document.addEventListener('DOMContentLoaded', function() {
+    const teacherModal = document.getElementById('teacherModal');
+    if (teacherModal) {
+        teacherModal.addEventListener('show.bs.modal', function() {
+            loadTeacherFormData();
+        });
+    }
+
+    // Auto-suggest "Teaching staff" from the selected category's name, but
+    // only while adding a new employee — never silently flip it while editing.
+    const categorySelect = document.getElementById('category');
+    if (categorySelect) {
+        categorySelect.addEventListener('change', function() {
+            if (document.getElementById('teacher-id').value) return;
+            const selectedText = categorySelect.options[categorySelect.selectedIndex]?.text || '';
+            document.getElementById('is-teaching-staff').checked = /teach/i.test(selectedText);
+        });
+    }
+});
+
+function loadTeacherFormData() {
+    // Department options are shared with the page's filter bar (see loadDepartments() in teachers.html)
+    loadDepartments('teacher-department');
+
+    // Load categories
+    fetch('/api/employee-categories/')
+        .then(response => response.json())
+        .then(data => {
+            const catSelect = document.getElementById('category');
+            catSelect.innerHTML = '<option value="">Select category...</option>';
+            data.categories.forEach(cat => {
+                catSelect.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+            });
+        });
+
+    // Load positions
+    fetch('/api/employee-positions/')
+        .then(response => response.json())
+        .then(data => {
+            const posSelect = document.getElementById('position');
+            posSelect.innerHTML = '<option value="">Select position...</option>';
+            data.positions.forEach(pos => {
+                posSelect.innerHTML += `<option value="${pos.id}">${pos.name}</option>`;
+            });
+        });
+
+    // Load grades
+    fetch('/api/employee-grades/')
+        .then(response => response.json())
+        .then(data => {
+            const gradeSelect = document.getElementById('grade');
+            gradeSelect.innerHTML = '<option value="">Select grade...</option>';
+            data.grades.forEach(grade => {
+                gradeSelect.innerHTML += `<option value="${grade.id}">${grade.name}</option>`;
+            });
+        });
+}
+
+function handleTeacherFormResponse(event) {
+    if (event.detail.xhr.status === 200) {
+        // Success - close modal and reset form
+        const modal = bootstrap.Modal.getInstance(document.getElementById('teacherModal'));
+        modal.hide();
+        resetTeacherForm();
+        showAlert('Teacher saved successfully!', 'success');
+    } else {
+        // Error - show form errors
+        try {
+            const errors = JSON.parse(event.detail.xhr.responseText);
+            showFormErrors(errors);
+        } catch (e) {
+            showAlert('An error occurred while saving the teacher.', 'danger');
+        }
+    }
+}
+
+function showFormErrors(errors) {
+    const errorDiv = document.getElementById('form-errors');
+    let errorHtml = '';
+
+    for (const [field, messages] of Object.entries(errors)) {
+        errorHtml += `<strong>${field}:</strong> ${messages.join(', ')}<br>`;
+    }
+
+    errorDiv.innerHTML = errorHtml;
+    errorDiv.classList.remove('d-none');
+}
+
+function resetTeacherForm() {
+    // Reset all form fields
+    const form = document.querySelector('#teacherModal form');
+    form.reset();
+
+    // Reset hidden fields and titles
+    document.getElementById('teacher-id').value = '';
+    document.getElementById('modal-title').textContent = 'Add New Teacher';
+    document.getElementById('submit-text').textContent = 'Create Teacher';
+    document.getElementById('teacher-active').checked = true;
+
+    // Reset form action
+    form.setAttribute('hx-post', '/teachers/create/');
+
+    // Subjects and payroll can only be set up for an existing employee
+    const subjectsTab = document.getElementById('subjects-info-tab');
+    subjectsTab.setAttribute('disabled', 'disabled');
+    document.getElementById('employee-subjects-content').innerHTML =
+        'Save this employee first, then assign subjects.';
+
+    const payrollTab = document.getElementById('payroll-info-tab');
+    payrollTab.setAttribute('disabled', 'disabled');
+    document.getElementById('employee-payroll-content').innerHTML =
+        'Save this employee first, then set up their payroll profile.';
+
+    const rolesTab = document.getElementById('roles-info-tab');
+    rolesTab.setAttribute('disabled', 'disabled');
+    document.getElementById('employee-roles-content').innerHTML =
+        'Save this employee first, then assign portal roles.';
+
+    // Jump back to the first tab
+    const firstTabButton = document.getElementById('basic-info-tab');
+    if (firstTabButton) {
+        bootstrap.Tab.getOrCreateInstance(firstTabButton).show();
+    }
+
+    // Hide errors
+    const errorDiv = document.getElementById('form-errors');
+    errorDiv.classList.add('d-none');
+}
+
+function openEditTeacher(teacherId) {
+    // Fetch teacher data and populate form
+    fetch(`/api/teachers/${teacherId}/`)
+        .then(response => response.json())
+        .then(teacher => {
+            // Populate form fields
+            document.getElementById('teacher-id').value = teacher.id;
+            document.getElementById('employee-number').value = teacher.employee_number;
+            document.getElementById('joining-date').value = teacher.joining_date;
+            document.getElementById('first-name').value = teacher.first_name;
+            document.getElementById('middle-name').value = teacher.middle_name || '';
+            document.getElementById('last-name').value = teacher.last_name;
+            document.getElementById('gender').value = teacher.gender.toString();
+            document.getElementById('date-of-birth').value = teacher.date_of_birth || '';
+            document.getElementById('marital-status').value = teacher.marital_status || '';
+            document.getElementById('job-title').value = teacher.job_title || '';
+            document.getElementById('qualification').value = teacher.qualification || '';
+            document.getElementById('experience-year').value = teacher.experience_year || '';
+            document.getElementById('experience-month').value = teacher.experience_month || '';
+            document.getElementById('email').value = teacher.email || '';
+            document.getElementById('mobile-phone').value = teacher.mobile_phone || '';
+            document.getElementById('home-address-line1').value = teacher.home_address_line1 || '';
+            document.getElementById('home-address-line2').value = teacher.home_address_line2 || '';
+            document.getElementById('home-city').value = teacher.home_city || '';
+            document.getElementById('home-state').value = teacher.home_state || '';
+            document.getElementById('home-pin-code').value = teacher.home_pin_code || '';
+            document.getElementById('teacher-active').checked = teacher.status;
+            document.getElementById('is-teaching-staff').checked = teacher.is_teaching_staff;
+
+            // Set dropdown values after loading options
+            setTimeout(() => {
+                if (teacher.employee_department_id) document.getElementById('teacher-department').value = teacher.employee_department_id;
+                if (teacher.employee_category_id) document.getElementById('category').value = teacher.employee_category_id;
+                if (teacher.employee_position_id) document.getElementById('position').value = teacher.employee_position_id;
+                if (teacher.employee_grade_id) document.getElementById('grade').value = teacher.employee_grade_id;
+            }, 500);
+
+            // Update form
+            document.getElementById('modal-title').textContent = 'Edit Teacher';
+            document.getElementById('submit-text').textContent = 'Update Teacher';
+
+            // Change form action to update
+            const form = document.querySelector('#teacherModal form');
+            form.setAttribute('hx-post', `/teachers/${teacherId}/edit/`);
+
+            // Enable and load the Subjects and Payroll tabs now that we have an employee id
+            const subjectsTab = document.getElementById('subjects-info-tab');
+            subjectsTab.removeAttribute('disabled');
+            htmx.ajax('GET', `/employees/${teacherId}/subjects/`, { target: '#employee-subjects-content' });
+
+            const payrollTab = document.getElementById('payroll-info-tab');
+            payrollTab.removeAttribute('disabled');
+            htmx.ajax('GET', `/employees/${teacherId}/payroll/`, { target: '#employee-payroll-content' });
+
+            const rolesTab = document.getElementById('roles-info-tab');
+            rolesTab.removeAttribute('disabled');
+            htmx.ajax('GET', `/employees/${teacherId}/roles/`, { target: '#employee-roles-content' });
+
+            // Show modal
+            new bootstrap.Modal(document.getElementById('teacherModal')).show();
+        })
+        .catch(error => {
+            showAlert('Error loading teacher data.', 'danger');
+        });
+}
+</script>

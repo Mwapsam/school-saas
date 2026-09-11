@@ -1,0 +1,18 @@
+{% extends 'core/layouts/dashboard.html' %}
+
+{% block page_title %}Gradebook{% endblock %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Gradebook" description="Exams, marks entry, skills assessment and reports" icon="fa-star" actions=header_actions back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_primary %}
+<div class="row g-3">
+    {% for tile in dashboard_tiles %}
+    <div class="col-md-6">
+        {% include 'core/components/nav_tile.html' with icon=tile.icon title=tile.title description=tile.description url=tile.url %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends 'core/layouts/dashboard.html' %}
+{% block page_title %}Transport{% endblock %}
+
+{% block layout_header %}
+  {% url 'core:dashboard' as back_fallback %}
+  {% include 'core/components/page_header.html' with title="Transport" description="Fleet, routes, stops, crew and student transport billing." icon="fa-bus" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_stats %}
+  {% include 'core/components/stat_cards.html' with stats=stat_cards %}
+{% endblock %}
+
+{% block layout_primary %}
+  <div class="row g-3">
+    {% for tile in dashboard_tiles %}
+      <div class="col-md-6">
+        {% include 'core/components/nav_tile.html' with icon=tile.icon title=tile.title description=tile.description url=tile.url %}
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}
+
+{% block layout_secondary %}
+  {% include 'core/htmx/transport/dashboard_content.html' %}
+{% endblock %}

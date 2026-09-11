@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fee Statement - {{ student.first_name }} {{ student.last_name }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #212529;
+            line-height: 1.6;
+            font-size: 11pt;
+            background: #fff;
+        }
+
+        .container {
+            max-width: 8.5in;
+            margin: 0 auto;
+            padding: 0.5in;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 1.5in;
+            border-bottom: 3px solid #28a745;
+            padding-bottom: 0.5in;
+        }
+
+        .school-name {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #28a745;
+            margin-bottom: 0.2in;
+        }
+
+        .school-address {
+            font-size: 10pt;
+            color: #666;
+            margin-bottom: 0.3in;
+        }
+
+        .statement-title {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #212529;
+            margin-top: 0.3in;
+        }
+
+        .student-info {
+            display: table;
+            width: 100%;
+            margin-bottom: 0.8in;
+            font-size: 10pt;
+        }
+
+        .info-row {
+            display: table-row;
+        }
+
+        .info-label {
+            display: table-cell;
+            font-weight: 500;
+            width: 30%;
+            padding: 0.15in 0 0.15in 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .info-value {
+            display: table-cell;
+            padding: 0.15in 0.2in 0.15in 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .statement-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 0.6in;
+        }
+
+        .statement-table thead {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #28a745;
+        }
+
+        .statement-table th {
+            padding: 0.2in;
+            text-align: left;
+            font-weight: 600;
+            font-size: 10pt;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .statement-table td {
+            padding: 0.15in 0.2in;
+            font-size: 10pt;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .statement-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .text-end {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.1in 0.2in;
+            border-radius: 0.1in;
+            font-size: 9pt;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .badge-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .badge-success {
+            background-color: #198754;
+            color: white;
+        }
+
+        .badge-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .summary-section {
+            margin-top: 0.6in;
+            padding: 0.3in;
+            background-color: #f8f9fa;
+            border-left: 4px solid #28a745;
+        }
+
+        .summary-row {
+            display: table;
+            width: 100%;
+            margin-bottom: 0.15in;
+            font-size: 10pt;
+        }
+
+        .summary-label {
+            display: table-cell;
+            width: 50%;
+            font-weight: 400;
+        }
+
+        .summary-value {
+            display: table-cell;
+            text-align: right;
+            font-weight: 500;
+        }
+
+        .summary-total {
+            display: table;
+            width: 100%;
+            margin-top: 0.2in;
+            padding-top: 0.2in;
+            border-top: 2px solid #28a745;
+            font-size: 11pt;
+            font-weight: bold;
+        }
+
+        .summary-total .summary-label {
+            font-weight: 600;
+        }
+
+        .summary-total .summary-value {
+            font-weight: 700;
+        }
+
+        .outstanding {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .settled {
+            color: #198754;
+            font-weight: 600;
+        }
+
+        footer {
+            margin-top: 1in;
+            padding-top: 0.3in;
+            border-top: 1px solid #e9ecef;
+            font-size: 9pt;
+            color: #666;
+            text-align: center;
+        }
+
+        .generated-info {
+            font-size: 8pt;
+            color: #999;
+            margin-top: 0.2in;
+            text-align: right;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+            .container {
+                padding: 0;
+            }
+        }
+
+        /* Page break handling */
+        @page {
+            size: A4;
+            margin: 0.5in;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="school-name">{{ school.name }}</div>
+            <div class="school-address">
+                {% if school.address %}{{ school.address }}{% else %}School Address{% endif %}
+            </div>
+            <div class="statement-title">Fee Statement</div>
+        </header>
+
+        <!-- Student Information -->
+        <div class="student-info">
+            <div class="info-row">
+                <div class="info-label">Student Name:</div>
+                <div class="info-value">{{ statement.student_name }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Admission No:</div>
+                <div class="info-value">{{ statement.admission_no }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Academic Year:</div>
+                <div class="info-value">{{ statement.academic_year }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Generated:</div>
+                <div class="info-value">{{ generated_at|date:"M d, Y H:i" }}</div>
+            </div>
+        </div>
+
+        <!-- Transaction Details Table -->
+        {% if statement.line_items %}
+        <table class="statement-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Description</th>
+                    <th class="text-end">Debit</th>
+                    <th class="text-end">Credit</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in statement.line_items %}
+                <tr>
+                    <td>{{ item.date|date:"M d, Y" }}</td>
+                    <td>
+                        <span class="badge badge-secondary">{{ item.type }}</span>
+                    </td>
+                    <td>{{ item.fee_category }}</td>
+                    <td>{{ item.description }}</td>
+                    <td class="text-end">
+                        {% if item.debit %}{{ currency_symbol }}{{ item.debit|floatformat:2 }}{% else %}-{% endif %}
+                    </td>
+                    <td class="text-end">
+                        {% if item.credit %}{{ currency_symbol }}{{ item.credit|floatformat:2 }}{% else %}-{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="padding: 0.5in; text-align: center; color: #999; border: 1px solid #e9ecef;">
+            No transactions recorded for this period.
+        </div>
+        {% endif %}
+
+        <!-- Summary Section -->
+        <div class="summary-section">
+            <div class="summary-row">
+                <div class="summary-label">Total Charged:</div>
+                <div class="summary-value">{{ currency_symbol }}{{ statement.total_charged|floatformat:2 }}</div>
+            </div>
+            <div class="summary-row">
+                <div class="summary-label">Total Paid:</div>
+                <div class="summary-value" style="color: #198754;">{{ currency_symbol }}{{ statement.total_paid|floatformat:2 }}</div>
+            </div>
+            <div class="summary-row">
+                <div class="summary-label">Total Discounts/Waivers:</div>
+                <div class="summary-value">{{ currency_symbol }}{{ statement.total_discounts|floatformat:2 }}</div>
+            </div>
+            {% if statement.total_refunds %}
+            <div class="summary-row">
+                <div class="summary-label">Total Refunds:</div>
+                <div class="summary-value">{{ currency_symbol }}{{ statement.total_refunds|floatformat:2 }}</div>
+            </div>
+            {% endif %}
+
+            <div class="summary-total">
+                <div class="summary-label">Closing Balance:</div>
+                <div class="summary-value">
+                    {% if statement.current_outstanding > 0 %}
+                    <span class="outstanding">{{ currency_symbol }}{{ statement.current_outstanding|floatformat:2 }}</span>
+                    {% else %}
+                    <span class="settled">{{ currency_symbol }}{{ statement.current_outstanding|floatformat:2 }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>This is an official fee statement from {{ school.name }}.</p>
+            <p>For inquiries, please contact the school finance office.</p>
+            <div class="generated-info">
+                Generated on {{ generated_at|date:"M d, Y \a\t H:i:s" }}
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

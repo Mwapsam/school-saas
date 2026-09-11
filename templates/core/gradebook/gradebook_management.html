@@ -1,0 +1,131 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}Classes with Exams - Gradebook Management{% endblock %}
+
+
+{% block layout_header %}
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Classes with Exams" description="Create and manage exams for individual batches" icon="fa-list-check" crumbs=crumbs back_url=back_url|default:back_fallback %}
+<div class="mb-4 mt-3">
+    {% include 'core/components/stat_cards.html' with stats=stats %}
+</div>
+{% endblock %}
+
+{% block layout_filters %}
+<div class="gb-management">
+<div class="gm-year-strip">
+    Academic Year: <strong>{{ selected_academic_year.name|default:"—" }}</strong>
+    <a href="#" class="gm-year-link" data-bs-toggle="modal" data-bs-target="#changeAcademicYearModal">Change</a>
+</div>
+</div>
+{% endblock %}
+
+{% block layout_table %}
+<div class="gb-management">
+{% include 'core/components/table_open.html' with columns=table_columns %}
+    <tbody>
+        {% for class_info in class_data %}
+        <tr>
+            <td>{{ class_info.course.course_name }}</td>
+            <td>{{ class_info.batch_count|default:"-" }}</td>
+            <td>
+                {% if class_info.active_exams %}
+                <span class="pw-badge pw-badge-active">{{ class_info.active_exams }}</span>
+                {% else %}
+                <span class="pw-badge pw-badge-zero">0</span>
+                {% endif %}
+            </td>
+            <td>{% if class_info.upcoming_exams %}{{ class_info.upcoming_exams }}{% else %}<span style="color:var(--color-muted)">—</span>{% endif %}</td>
+            <td>
+                {% if class_info.course %}
+                <a href="{% url 'core:class_exam_planner' class_info.course.id %}" class="gm-manage-link">Manage Exams</a>
+                {% else %}—{% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" class="text-center py-4" style="color:var(--color-muted)">
+                <i class="fas fa-graduation-cap fa-2x mb-2 d-block opacity-50"></i>
+                No classes found for the selected academic year.
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+{% include 'core/components/table_close.html' %}
+</div>
+{% endblock %}
+
+{% block layout_extra %}
+<div class="gb-management">
+<!-- Change Academic Year Modal -->
+<form id="changeAcademicYearForm">
+{% include 'core/components/modal.html' with id="changeAcademicYearModal" title="Set Active Academic Year" icon="fa-calendar" %}
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="academicYearSelect" class="form-label fw-semibold">Select Academic Year</label>
+        <select class="pw-form-control" id="academicYearSelect" name="academic_year_id" required>
+            <option value="">Choose academic year…</option>
+            {% for year in all_academic_years %}
+            <option value="{{ year.id }}"
+                    {% if current_academic_year and year.id == current_academic_year.id %}selected{% endif %}
+                    data-start-date="{{ year.start_date|date:'F j, Y' }}"
+                    data-end-date="{{ year.end_date|date:'F j, Y' }}">
+                {{ year.name }}{% if year.is_active %} (Current){% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div id="yearPreview" class="gm-year-preview" style="display:none">
+        <p><strong>Duration:</strong> <span id="previewDuration"></span></p>
+        <p><strong>Status:</strong> <span id="previewStatus"></span></p>
+    </div>
+{% include 'core/components/modal_close.html' with footer=change_year_footer %}
+</form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('academicYearSelect').addEventListener('change', function() {
+    const yearPreview = document.getElementById('yearPreview');
+    if (this.value) {
+        const opt = this.options[this.selectedIndex];
+        document.getElementById('previewDuration').textContent = opt.dataset.startDate + ' – ' + opt.dataset.endDate;
+        document.getElementById('previewStatus').textContent = opt.textContent.includes('(Current)') ? 'Active' : 'Inactive';
+        yearPreview.style.display = '';
+    } else {
+        yearPreview.style.display = 'none';
+    }
+});
+
+document.getElementById('saveAcademicYear').addEventListener('click', function() {
+    const selectedYearId = document.getElementById('academicYearSelect').value;
+    if (!selectedYearId) { showToast('Please select an academic year.', 'warning'); return; }
+
+    const btn = this;
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Changing…';
+    btn.disabled = true;
+
+    const formData = new FormData();
+    formData.append('academic_year_id', selectedYearId);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+    fetch('{% url "core:set_active_academic_year_api" %}', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            showToast(data.error || 'Failed to change academic year', 'danger');
+            btn.innerHTML = origHtml; btn.disabled = false;
+        }
+    })
+    .catch(() => {
+        showToast('Failed to change academic year. Please try again.', 'danger');
+        btn.innerHTML = origHtml; btn.disabled = false;
+    });
+});
+</script>
+{% endblock %}

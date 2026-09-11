@@ -1,0 +1,168 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title=terms.batch_plural icon='fa-sitemap' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block page_title %}Batches{% endblock %}
+
+{% block layout_table %}
+<div x-data="batchList()">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <p class="text-muted small mb-0">
+            {% if active_academic_year %}
+                {{ active_academic_year.name }}{% if is_paginated %} &mdash; {{ paginator.count }} total{% endif %}
+            {% else %}
+                No active academic year set
+            {% endif %}
+        </p>
+        <button type="button" class="btn btn-primary btn-sm"
+                data-bs-toggle="modal" data-bs-target="#batchModal" onclick="resetBatchForm()">
+            <i class="fas fa-plus me-1"></i> Add Batch
+        </button>
+    </div>
+
+    <!-- Search -->
+    <div class="card mb-4" style="border-radius:0">
+        <div class="card-header bg-light d-flex align-items-center justify-content-between py-2">
+            <span class="fw-semibold" style="font-size:13px">Search</span>
+            {% if active_academic_year %}
+                <span class="badge bg-success" style="font-size:11px">{{ active_academic_year.name }}</span>
+            {% else %}
+                <span class="badge bg-warning text-dark" style="font-size:11px">No active academic year</span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3" hx-get="{% url 'core:batch_list' %}" hx-target="#batch-list-content" hx-trigger="submit, input delay:500ms from:input[name=search]">
+                <div class="col-md-8">
+                    <input type="text" class="form-control" id="search" name="search"
+                           value="{{ request.GET.search }}" placeholder="Batch name or course…"
+                           style="border-radius:0"
+                           {% if not active_academic_year %}disabled title="No active academic year set"{% endif %}>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-secondary w-100" data-loading
+                            style="border-radius:0"
+                            {% if not active_academic_year %}disabled{% endif %}>
+                        <i class="fas fa-search"></i>
+                        <div class="htmx-indicator loading-spinner d-inline-block ms-2"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Batch List -->
+    <div class="card" style="border-radius:0">
+        <div class="card-header">
+            <h5 class="mb-0" style="font-size:14px">
+                Batches{% if active_academic_year %} &mdash; {{ active_academic_year.name }}{% endif %}
+                {% if is_paginated %}
+                    <small class="text-muted">({{ paginator.count }} total)</small>
+                {% endif %}
+            </h5>
+        </div>
+        <div id="batch-list-content">
+            {% include 'core/htmx/batch_list_content.html' %}
+        </div>
+    </div>
+
+    <!-- Batch Students Modal -->
+    <div class="modal fade" id="batchStudentsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content" style="border-radius:0">
+                <div class="modal-header pw-brand">
+                    <h5 class="modal-title" id="batchStudentsModalTitle">Batch Students</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div id="batch-students-content" class="p-3">
+                        <div class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                            Loading students…
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <span id="batch-students-count" class="text-muted me-auto small"></span>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include Batch Form Modal -->
+{% include 'core/htmx/batch_form_modal.html' %}
+
+<script>
+function batchList() {
+    return {
+        viewStudents(batchId, batchName) {
+            const content = document.getElementById('batch-students-content');
+            const countEl = document.getElementById('batch-students-count');
+            document.getElementById('batchStudentsModalTitle').textContent = batchName;
+            content.innerHTML = `
+                <div class="text-center text-muted py-4">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                    Loading students…
+                </div>`;
+            countEl.textContent = '';
+            new bootstrap.Modal(document.getElementById('batchStudentsModal')).show();
+
+            fetch(`/api/batches/${batchId}/students/`)
+                .then(r => r.json())
+                .then(data => {
+                    const students = data.students || [];
+                    countEl.textContent = `${students.length} student${students.length !== 1 ? 's' : ''}`;
+
+                    if (!students.length) {
+                        content.innerHTML = `
+                            <div class="text-center text-muted py-5">
+                                <i class="fas fa-users fa-2x mb-3 d-block"></i>
+                                No students enrolled in this batch.
+                            </div>`;
+                        return;
+                    }
+
+                    const rows = students.map((s, i) => `
+                        <tr>
+                            <td class="text-center text-muted">${i + 1}</td>
+                            <td>${s.full_name}</td>
+                            <td><span class="badge bg-light text-dark border">${s.admission_no}</span></td>
+                            <td class="text-center">${s.age != null ? s.age : '—'}</td>
+                            <td class="text-center">
+                                <a href="/students/${s.id}/" class="btn btn-link btn-sm p-0">View</a>
+                            </td>
+                        </tr>`).join('');
+
+                    content.innerHTML = `
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center" style="width:50px">#</th>
+                                    <th>Name</th>
+                                    <th>Admission No.</th>
+                                    <th class="text-center">Age</th>
+                                    <th class="text-center" style="width:80px">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>`;
+                })
+                .catch(() => {
+                    content.innerHTML = `
+                        <div class="text-center text-danger py-4">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            Failed to load students.
+                        </div>`;
+                });
+        }
+    }
+}
+</script>
+
+{% csrf_token %}
+{% endblock %}

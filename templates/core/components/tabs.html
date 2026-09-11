@@ -1,0 +1,23 @@
+{% comment %}
+Pinewood tabs — a row of tab triggers. Renders markup only; pair with your
+own show/hide logic (e.g. htmx hx-get per tab, or a matching set of
+`{% if active == "x" %}` panels below).
+
+Usage:
+  {% include 'core/components/tabs.html' with items=items active=active_key %}
+  {# items: list of {key, label, url?} — if `url` is given the tab is an <a>,
+     otherwise it renders as a <button data-tab-key="..."> for JS-driven tabs #}
+
+Params:
+  items  (required) — list of {key, label, url?}
+  active (required) — the current item's `key`
+{% endcomment %}
+<div class="pw-tabs">
+  {% for item in items %}
+    {% if item.url %}
+      <a href="{{ item.url }}" class="pw-tab{% if item.key == active %} active{% endif %}">{{ item.label }}</a>
+    {% else %}
+      <button type="button" class="pw-tab{% if item.key == active %} active{% endif %}" data-tab-key="{{ item.key }}">{{ item.label }}</button>
+    {% endif %}
+  {% endfor %}
+</div>

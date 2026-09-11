@@ -1,0 +1,213 @@
+<!-- Add/Edit Batch Modal -->
+<div class="modal fade" id="batchModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form hx-post="{% url 'core:batch_create' %}" 
+                  hx-target="#batch-list-content" 
+                  hx-swap="outerHTML"
+                  hx-on="htmx:afterRequest: handleBatchFormResponse(event)">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <span id="modal-title">Add New Batch</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                
+                <div class="modal-body">
+                    <div id="form-errors" class="alert alert-danger d-none"></div>
+                    
+                    <input type="hidden" id="batch-id" name="batch_id" value="">
+                    
+                    <div class="mb-3">
+                        <label for="batch-name" class="form-label">Batch Name *</label>
+                        <input type="text" class="form-control" id="batch-name" name="name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="batch-course" class="form-label">Course *</label>
+                        <select class="form-select" id="batch-course" name="course_id" required>
+                            <option value="">Select a course...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="batch-academic-year" class="form-label">Academic Year *</label>
+                        <select class="form-select" id="batch-academic-year" name="academic_year_id" required>
+                            <option value="">Select academic year...</option>
+                        </select>
+                        <small class="form-text text-muted">Batch will follow the dates of the selected academic year</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="batch-teacher" class="form-label">Assigned Teacher</label>
+                        <select class="form-select" id="batch-teacher" name="employee_id">
+                            <option value="">No teacher assigned</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="batch-grading-type" class="form-label">Grading Type</label>
+                        <select class="form-select" id="batch-grading-type" name="grading_type">
+                            <option value="">Use course default</option>
+                            <option value="percentage">Percentage (0-100)</option>
+                            <option value="gpa">GPA (0.0-4.0)</option>
+                            <option value="letter">Letter Grades (A-F)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="batch-active" name="is_active" checked>
+                        <label class="form-check-label" for="batch-active">
+                            Active batch
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-loading>
+                        <span id="submit-text">Create Batch</span>
+                        <div class="htmx-indicator loading-spinner d-inline-block ms-2"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Cached dropdown data so we only fetch once per page load
+let _batchFormCache = null;
+
+function _loadBatchFormData() {
+    if (_batchFormCache) return Promise.resolve(_batchFormCache);
+
+    return Promise.all([
+        fetch('/api/courses/').then(r => r.json()),
+        fetch('/api/academic-years/').then(r => r.json()),
+        fetch('/api/employees/').then(r => r.json()),
+    ]).then(([courseData, yearData, employeeData]) => {
+        _batchFormCache = { courseData, yearData, employeeData };
+        return _batchFormCache;
+    });
+}
+
+function _populateDropdowns({ courseData, yearData, employeeData }, selectedValues = {}) {
+    const courseSelect = document.getElementById('batch-course');
+    courseSelect.innerHTML = '<option value="">Select a course...</option>';
+    courseData.courses.forEach(c => {
+        const opt = new Option(`${c.name} (${c.code})`, c.id, false, c.id === selectedValues.course_id);
+        courseSelect.add(opt);
+    });
+
+    const yearSelect = document.getElementById('batch-academic-year');
+    yearSelect.innerHTML = '<option value="">Select academic year...</option>';
+    yearData.academic_years.forEach(y => {
+        const label = `${y.name} (${y.start_date} – ${y.end_date})`;
+        const opt = new Option(label, y.id, false, y.id === selectedValues.academic_year_id);
+        yearSelect.add(opt);
+    });
+    // Pre-select the only/active year if nothing specified
+    if (!selectedValues.academic_year_id && yearData.academic_years.length === 1) {
+        yearSelect.value = yearData.academic_years[0].id;
+    }
+
+    const teacherSelect = document.getElementById('batch-teacher');
+    teacherSelect.innerHTML = '<option value="">No teacher assigned</option>';
+    employeeData.employees.forEach(e => {
+        const opt = new Option(e.full_name, e.id, false, e.id === selectedValues.employee_id);
+        teacherSelect.add(opt);
+    });
+}
+
+// The form's response is a rendered batch list partial, only useful on pages
+// that actually have a #batch-list-content container (e.g. the batch list page).
+// On other pages (e.g. batch detail) there's nothing to swap into, so we
+// discard the response and reload instead so the page picks up the change.
+function _applyBatchFormTarget(form) {
+    const hasListContainer = !!document.getElementById('batch-list-content');
+    if (hasListContainer) {
+        form.setAttribute('hx-target', '#batch-list-content');
+        form.setAttribute('hx-swap', 'outerHTML');
+    } else {
+        form.setAttribute('hx-target', 'this');
+        form.setAttribute('hx-swap', 'none');
+    }
+}
+
+function resetBatchForm() {
+    document.getElementById('batch-id').value = '';
+    document.getElementById('batch-name').value = '';
+    document.getElementById('batch-grading-type').value = '';
+    document.getElementById('batch-active').checked = true;
+    document.getElementById('modal-title').textContent = 'Add New Batch';
+    document.getElementById('submit-text').textContent = 'Create Batch';
+    document.getElementById('form-errors').classList.add('d-none');
+
+    const form = document.querySelector('#batchModal form');
+    form.setAttribute('hx-post', '{% url "core:batch_create" %}');
+    _applyBatchFormTarget(form);
+    htmx.process(form);
+
+    _loadBatchFormData()
+        .then(data => _populateDropdowns(data))
+        .catch(() => showToast('Failed to load form data.', 'danger'));
+}
+
+function openEditBatch(batchId) {
+    Promise.all([
+        fetch(`/api/batches/${batchId}/`).then(r => r.json()),
+        _loadBatchFormData(),
+    ])
+    .then(([batch, formData]) => {
+        _populateDropdowns(formData, {
+            course_id:        batch.course_id,
+            academic_year_id: batch.academic_year_id,
+            employee_id:      batch.employee_id,
+        });
+
+        document.getElementById('batch-id').value            = batch.id;
+        document.getElementById('batch-name').value          = batch.name;
+        document.getElementById('batch-grading-type').value  = batch.grading_type || '';
+        document.getElementById('batch-active').checked      = batch.is_active;
+        document.getElementById('modal-title').textContent   = 'Edit Batch';
+        document.getElementById('submit-text').textContent   = 'Update Batch';
+        document.getElementById('form-errors').classList.add('d-none');
+
+        const form = document.querySelector('#batchModal form');
+        form.setAttribute('hx-post', `/batches/${batchId}/edit/`);
+        _applyBatchFormTarget(form);
+        htmx.process(form);
+
+        new bootstrap.Modal(document.getElementById('batchModal')).show();
+    })
+    .catch(() => showToast('Error loading batch data.', 'danger'));
+}
+
+function handleBatchFormResponse(event) {
+    if (event.detail.xhr.status === 200) {
+        bootstrap.Modal.getInstance(document.getElementById('batchModal')).hide();
+        _batchFormCache = null; // invalidate cache so list refreshes correctly
+        showToast('Batch saved successfully!', 'success');
+
+        if (document.getElementById('batch-list-content')) {
+            resetBatchForm();
+        } else {
+            // No list container on this page (e.g. batch detail) — reload to show changes.
+            window.location.reload();
+        }
+    } else {
+        try {
+            const errors = JSON.parse(event.detail.xhr.responseText);
+            const errorDiv = document.getElementById('form-errors');
+            errorDiv.innerHTML = Object.entries(errors)
+                .map(([f, msgs]) => `<strong>${f}:</strong> ${msgs.join(', ')}`)
+                .join('<br>');
+            errorDiv.classList.remove('d-none');
+        } catch {
+            showToast('An error occurred while saving the batch.', 'danger');
+        }
+    }
+}
+</script>

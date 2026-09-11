@@ -1,0 +1,20 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead><tr><th>Period</th><th>Date</th><th>Reviewer</th><th>Rating</th><th>Status</th><th width="70"></th></tr></thead>
+        <tbody>
+            {% for r in reviews %}
+                <tr>
+                    <td>{{ r.review_period }}</td>
+                    <td><small>{{ r.review_date|date:"M j, Y" }}</small></td>
+                    <td><small>{{ r.reviewer.first_name }} {{ r.reviewer.last_name }}</small></td>
+                    <td>{{ r.overall_rating|default:"—" }}</td>
+                    <td>{{ r.get_status_display }}</td>
+                    <td><a class="btn btn-outline-primary btn-sm" href="{% url 'core:hr_performance_detail' r.id %}">Open</a></td>
+                </tr>
+            {% empty %}
+                <tr class="empty-state"><td colspan="6">No performance reviews for this employee.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<a class="btn btn-outline-secondary btn-sm mt-2" href="{% url 'core:hr_performance_list' %}">Go to Performance</a>

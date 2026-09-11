@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>503 - Service Unavailable</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/logo.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
+    <style>
+        :root {
+            --color-brand: #1a7a3c;
+            --color-brand-dark: #145f2e;
+            --color-text: #1a1a1a;
+            --color-muted: #555f6d;
+            --color-danger: #c0392b;
+            --font-heading: 'Georgia', 'Times New Roman', serif;
+            --font-body: 'Trebuchet MS', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
+            --radius-md: 8px;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-body);
+            background: linear-gradient(135deg, #f5f5f5 0%, #fde8e8 100%);
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .error-container {
+            background: white;
+            border-radius: var(--radius-md);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 60px 40px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .error-code {
+            font-family: var(--font-heading);
+            font-size: 120px;
+            font-weight: 700;
+            color: var(--color-danger);
+            line-height: 1;
+            margin: 0 0 20px 0;
+            opacity: 0.9;
+        }
+
+        .error-title {
+            font-family: var(--font-heading);
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-text);
+            margin: 0 0 16px 0;
+        }
+
+        .error-description {
+            font-size: 16px;
+            color: var(--color-muted);
+            line-height: 1.6;
+            margin: 0 0 32px 0;
+        }
+
+        .error-icon {
+            font-size: 80px;
+            color: var(--color-danger);
+            margin-bottom: 20px;
+            opacity: 0.7;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .error-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 32px;
+        }
+
+        .btn-primary-error {
+            display: inline-block;
+            background-color: var(--color-brand);
+            color: white;
+            padding: 12px 28px;
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 150ms ease-out;
+            border: none;
+            cursor: pointer;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-primary-error:hover {
+            background-color: var(--color-brand-dark);
+            text-decoration: none;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26, 122, 60, 0.2);
+        }
+
+        .btn-secondary-error {
+            display: inline-block;
+            background-color: transparent;
+            color: var(--color-brand);
+            padding: 12px 28px;
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 150ms ease-out;
+            border: 2px solid var(--color-brand);
+            cursor: pointer;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-secondary-error:hover {
+            background-color: var(--color-brand);
+            color: white;
+            text-decoration: none;
+        }
+
+        .error-footer {
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 13px;
+            color: var(--color-muted);
+        }
+
+        .error-footer a {
+            color: var(--color-brand);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .error-footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            .error-container {
+                padding: 40px 24px;
+            }
+
+            .error-code {
+                font-size: 80px;
+                margin-bottom: 16px;
+            }
+
+            .error-title {
+                font-size: 24px;
+            }
+
+            .error-description {
+                font-size: 14px;
+            }
+
+            .error-icon {
+                font-size: 60px;
+            }
+
+            .error-actions {
+                flex-direction: column;
+            }
+
+            .btn-primary-error,
+            .btn-secondary-error {
+                width: 100%;
+            }
+        }
+
+        /* Accessibility */
+        .btn-primary-error:focus-visible,
+        .btn-secondary-error:focus-visible {
+            outline: 2px solid var(--color-brand);
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-icon">
+            <i class="fas fa-tools"></i>
+        </div>
+        <div class="status-badge">Maintenance in Progress</div>
+        <div class="error-code">503</div>
+        <h1 class="error-title">Service Unavailable</h1>
+        <p class="error-description">
+            We're currently performing maintenance and improvements. The service should be back online shortly.
+        </p>
+        <div class="error-actions">
+            <a href="javascript:location.reload()" class="btn-primary-error">
+                <i class="fas fa-sync-alt" style="margin-right: 8px;"></i> Try Again
+            </a>
+            <a href="/" class="btn-secondary-error">
+                <i class="fas fa-home" style="margin-right: 8px;"></i> Return to Home
+            </a>
+        </div>
+        <div class="error-footer">
+            For updates, <a href="/">check our status page</a>
+        </div>
+    </div>
+</body>
+</html>

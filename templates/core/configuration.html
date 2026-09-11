@@ -1,0 +1,190 @@
+{% extends 'core/layouts/form.html' %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-cogs' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Configuration{% endblock %}
+
+
+
+{% block layout_form %}
+<div class="gb-header">
+    <div class="gb-header-icon"><i class="fas fa-cogs"></i></div>
+    <div>
+        <h2>Configuration</h2>
+        <p>School settings, academic setup and system preferences</p>
+    </div>
+    <a href="{% url 'core:dashboard' %}" class="btn btn-secondary btn-sm ms-auto">
+        <i class="fas fa-arrow-left me-1"></i> Dashboard
+    </a>
+</div>
+
+<!-- Featured: School Settings -->
+<a href="{% url 'core:school_settings' %}" class="cfg-featured">
+    <div class="cfg-icon"><i class="fas fa-school"></i></div>
+    <div style="flex:1">
+        <p class="cfg-title">School Settings</p>
+        <p class="cfg-desc">Logos, Head of School signature, address, phone, email, website and report branding shown on report cards</p>
+    </div>
+    <i class="fas fa-chevron-right" style="color:#ccc; font-size:13px"></i>
+</a>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <a href="{% url 'core:manage_class_batch' %}" class="gb-card">
+            <div class="gb-card-icon"><i class="fas fa-chalkboard"></i></div>
+            <div class="gb-card-body">
+                <p class="gb-card-title">Manage Class / Batch</p>
+                <p class="gb-card-desc">Add a new class or batch for this academic year</p>
+            </div>
+            <i class="fas fa-chevron-right gb-card-arrow"></i>
+        </a>
+    </div>
+
+    <div class="col-md-4">
+        <a href="{% url 'core:academic_year_list' %}" class="gb-card">
+            <div class="gb-card-icon"><i class="fas fa-calendar-alt"></i></div>
+            <div class="gb-card-body">
+                <p class="gb-card-title">Academic Years</p>
+                <p class="gb-card-desc">Manage students, exams, and batches per academic year</p>
+            </div>
+            <i class="fas fa-chevron-right gb-card-arrow"></i>
+        </a>
+    </div>
+
+    <div class="col-md-4">
+        <a href="{% url 'core:report_template_list' %}" class="gb-card">
+            <div class="gb-card-icon"><i class="fas fa-file-alt"></i></div>
+            <div class="gb-card-body">
+                <p class="gb-card-title">Report Templates</p>
+                <p class="gb-card-desc">Layout, grading scheme, sections and branding per batch</p>
+            </div>
+            <i class="fas fa-chevron-right gb-card-arrow"></i>
+        </a>
+    </div>
+
+    <div class="col-md-4">
+        <a href="{% url 'core:subjects_center' %}" class="gb-card">
+            <div class="gb-card-icon"><i class="fas fa-book"></i></div>
+            <div class="gb-card-body">
+                <p class="gb-card-title">Manage Subjects</p>
+                <p class="gb-card-desc">Manage subjects corresponding to different classes</p>
+            </div>
+            <i class="fas fa-chevron-right gb-card-arrow"></i>
+        </a>
+    </div>
+
+    <div class="col-md-4">
+        <a href="{% url 'core:general_settings' %}" class="gb-card">
+            <div class="gb-card-icon"><i class="fas fa-sliders-h"></i></div>
+            <div class="gb-card-body">
+                <p class="gb-card-title">General Settings</p>
+                <p class="gb-card-desc">General configuration for institution, attendance and more</p>
+            </div>
+            <i class="fas fa-chevron-right gb-card-arrow"></i>
+        </a>
+    </div>
+
+    <div class="col-md-4">
+        <a href="{% url 'core:student_category_config' %}" class="gb-card">
+            <div class="gb-card-icon"><i class="fas fa-tags"></i></div>
+            <div class="gb-card-body">
+                <p class="gb-card-title">Student Category</p>
+                <p class="gb-card-desc">Add and manage student categories</p>
+            </div>
+            <i class="fas fa-chevron-right gb-card-arrow"></i>
+        </a>
+    </div>
+
+    <div class="col-md-4">
+        <a href="{% url 'core:document_category_config' %}" class="gb-card">
+            <div class="gb-card-icon"><i class="fas fa-folder-open"></i></div>
+            <div class="gb-card-body">
+                <p class="gb-card-title">Document Categories</p>
+                <p class="gb-card-desc">Create categories for managing student documents</p>
+            </div>
+            <i class="fas fa-chevron-right gb-card-arrow"></i>
+        </a>
+    </div>
+
+    <div class="col-md-4">
+        <a href="{% url 'core:feature_access_config' %}" class="gb-card">
+            <div class="gb-card-icon"><i class="fas fa-key"></i></div>
+            <div class="gb-card-body">
+                <p class="gb-card-title">Feature Access</p>
+                <p class="gb-card-desc">Manage feature access settings for parents and guardians</p>
+            </div>
+            <i class="fas fa-chevron-right gb-card-arrow"></i>
+        </a>
+    </div>
+
+    <div class="col-md-4">
+        <a href="{% url 'core:notification_control_config' %}" class="gb-card">
+            <div class="gb-card-icon"><i class="fas fa-bell"></i></div>
+            <div class="gb-card-body">
+                <p class="gb-card-title">Notification Control</p>
+                <p class="gb-card-desc">Manage notification control settings</p>
+            </div>
+            <i class="fas fa-chevron-right gb-card-arrow"></i>
+        </a>
+    </div>
+
+    <div class="col-md-4">
+        <a href="{% url 'core:admission_details_config' %}" class="gb-card">
+            <div class="gb-card-icon"><i class="fas fa-clipboard-list"></i></div>
+            <div class="gb-card-body">
+                <p class="gb-card-title">Admission Details</p>
+                <p class="gb-card-desc">Set additional details for admission applications</p>
+            </div>
+            <i class="fas fa-chevron-right gb-card-arrow"></i>
+        </a>
+    </div>
+
+    <div class="col-md-4">
+        <a href="{% url 'core:exempted_students_config' %}" class="gb-card">
+            <div class="gb-card-icon"><i class="fas fa-user-slash"></i></div>
+            <div class="gb-card-body">
+                <p class="gb-card-title">Exempted Students</p>
+                <p class="gb-card-desc">Students exempted from academic report blocking</p>
+            </div>
+            <i class="fas fa-chevron-right gb-card-arrow"></i>
+        </a>
+    </div>
+
+    <div class="col-md-4">
+        <a href="{% url 'core:students_sorting_config' %}" class="gb-card">
+            <div class="gb-card-icon"><i class="fas fa-sort"></i></div>
+            <div class="gb-card-body">
+                <p class="gb-card-title">Students Sorting</p>
+                <p class="gb-card-desc">Configure sort order on report cards and mark entry</p>
+            </div>
+            <i class="fas fa-chevron-right gb-card-arrow"></i>
+        </a>
+    </div>
+
+    <div class="col-md-4">
+        <a href="{% url 'core:custom_words_config' %}" class="gb-card">
+            <div class="gb-card-icon"><i class="fas fa-spell-check"></i></div>
+            <div class="gb-card-body">
+                <p class="gb-card-title">Custom Words</p>
+                <p class="gb-card-desc">Enable custom words and manage variations</p>
+            </div>
+            <i class="fas fa-chevron-right gb-card-arrow"></i>
+        </a>
+    </div>
+
+    <div class="col-md-4">
+        <a href="{% url 'core:manage_clients_config' %}" class="gb-card">
+            <div class="gb-card-icon"><i class="fas fa-briefcase"></i></div>
+            <div class="gb-card-body">
+                <p class="gb-card-title">Manage Clients</p>
+                <p class="gb-card-desc">Manage client apps and integrations</p>
+            </div>
+            <i class="fas fa-chevron-right gb-card-arrow"></i>
+        </a>
+    </div>
+</div>
+{% endblock %}

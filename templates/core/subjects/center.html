@@ -1,0 +1,349 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-home' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Subjects Center{% endblock %}
+
+{% block layout_table %}
+<div class="subjects-center-container">
+    <!-- Breadcrumb -->
+    
+
+    <!-- Page Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <div class="header-icon-wrap bg-success-subtle rounded-3 d-flex align-items-center justify-content-center" style="width:48px;height:48px;">
+                <i class="fas fa-graduation-cap text-success"></i>
+            </div>
+            <div>
+                <h4 class="mb-0 fw-semibold">Subjects Center</h4>
+                <p class="text-muted small mb-0">Manage subjects, skill sets, and elective groups</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subject Center Navigation Menu -->
+    <div class="subjects-center-menu">
+        <div class="row justify-content-start">
+            <!-- Class Subjects Link -->
+            <div class="col-lg-6 col-md-6 mb-4">
+                <a href="{% url 'core:class_subjects' %}" class="subject-menu-link text-decoration-none">
+                    <div class="card h-100 border-0 shadow-sm subject-menu-card">
+                        <div class="card-body text-center py-4">
+                            <div class="header-icon-wrap bg-success-subtle rounded-3 d-inline-flex align-items-center justify-content-center mb-3" style="width:56px;height:56px;">
+                                <i class="fas fa-book text-success fa-lg"></i>
+                            </div>
+                            <h5 class="card-title fw-semibold text-dark">Class Subjects</h5>
+                            <p class="card-text text-muted small">Manage Subject Groups, Elective Groups and Subjects on the Class level</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Skill Sets Link -->
+            <div class="col-lg-6 col-md-6 mb-4">
+                <a href="{% url 'core:skill_sets_list' %}" class="subject-menu-link text-decoration-none">
+                    <div class="card h-100 border-0 shadow-sm subject-menu-card">
+                        <div class="card-body text-center py-4">
+                            <div class="header-icon-wrap bg-success-subtle rounded-3 d-inline-flex align-items-center justify-content-center mb-3" style="width:56px;height:56px;">
+                                <i class="fas fa-tools text-success fa-lg"></i>
+                            </div>
+                            <h5 class="card-title fw-semibold text-dark">Skill Sets</h5>
+                            <p class="card-text text-muted small">Manage Subject Skill Sets, Skill Sets and Sub Skills</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Link Batches Link -->
+            <div class="col-lg-6 col-md-6 mb-4">
+                <a href="{% url 'core:link_batches' %}" class="subject-menu-link text-decoration-none">
+                    <div class="card h-100 border-0 shadow-sm subject-menu-card">
+                        <div class="card-body text-center py-4">
+                            <div class="header-icon-wrap bg-success-subtle rounded-3 d-inline-flex align-items-center justify-content-center mb-3" style="width:56px;height:56px;">
+                                <i class="fas fa-link text-success fa-lg"></i>
+                            </div>
+                            <h5 class="card-title fw-semibold text-dark">Link Batches</h5>
+                            <p class="card-text text-muted small">Link Class Subjects to Batches</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Subject Modal -->
+<div class="modal fade" id="createSubjectModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-semibold">Create Subject</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="createSubjectForm">
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="subject_name" class="form-label text-muted small fw-medium mb-1">Class Subject Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="subject_name" name="subject_name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="subject_code" class="form-label text-muted small fw-medium mb-1">Code <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="subject_code" name="subject_code" required>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="weekly_classes" class="form-label text-muted small fw-medium mb-1">Weekly Classes</label>
+                            <input type="number" class="form-control" id="weekly_classes" name="weekly_classes" min="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="skill_set_select" class="form-label text-muted small fw-medium mb-1">Skill Set</label>
+                            <select class="form-select" id="skill_set_select" name="skill_set_id">
+                                <option value="">None</option>
+                                {% for skill_set in skill_sets %}
+                                <option value="{{ skill_set.id }}">{{ skill_set.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_activity" name="is_activity">
+                            <label class="form-check-label" for="is_activity">Is Activity</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="no_exams" name="no_exams">
+                            <label class="form-check-label" for="no_exams">No Exam</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="exclude_for_total_score" name="exclude_for_total_score">
+                            <label class="form-check-label" for="exclude_for_total_score">Exclude from Total</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Create Subject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Create Skill Set Modal -->
+<div class="modal fade" id="createSkillSetModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-semibold">Create Skill Set</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="createSkillSetForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="skill_set_name" class="form-label text-muted small fw-medium mb-1">Skill Set Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="skill_set_name" name="skill_set_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="skill_set_code" class="form-label text-muted small fw-medium mb-1">Code <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="skill_set_code" name="skill_set_code" required>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="skill_set_is_active" name="is_active" checked>
+                        <label class="form-check-label" for="skill_set_is_active">Is Active</label>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Create Skill Set</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Create Elective Group Modal -->
+<div class="modal fade" id="createElectiveGroupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-semibold">Create Elective Group</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="createElectiveGroupForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="elective_group_name" class="form-label text-muted small fw-medium mb-1">Group Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="elective_group_name" name="elective_group_name" required>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="allow_floating_subjects" name="allow_floating_subjects">
+                        <label class="form-check-label" for="allow_floating_subjects">Allow Floating Subjects</label>
+                        <div class="form-text text-muted">A floating subject can be assigned individually to a class when not all subjects in the group are available simultaneously.</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Create Elective Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Import Subjects Modal -->
+<div class="modal fade" id="importSubjectsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-semibold">Import Subjects</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="importSubjectsForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="form-group mb-3">
+                        <label for="import_class" class="form-label">Class</label>
+                        <select class="form-select" id="import_class" name="import_class" required>
+                            <option value="">Select Class</option>
+                            {% for batch in batches %}
+                            <option value="{{ batch.id }}">{{ batch.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="subjects-import-list">
+                        <div class="subject-import-header">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="select_all" name="select_all">
+                                <label class="form-check-label fw-bold" for="select_all">BEGINNERS</label>
+                            </div>
+                        </div>
+                        <div class="subject-import-options">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="subjects[]" value="grade">
+                                <label class="form-check-label">GRADE</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="subjects[]" value="grade_1">
+                                <label class="form-check-label">GRADE 1</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="subjects[]" value="grade_2">
+                                <label class="form-check-label">GRADE 2</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="subjects[]" value="grade_3">
+                                <label class="form-check-label">GRADE 3</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="subjects[]" value="grade_4">
+                                <label class="form-check-label">GRADE 4</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="subjects[]" value="grade_5">
+                                <label class="form-check-label">GRADE 5</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="subjects[]" value="grade_6">
+                                <label class="form-check-label">GRADE 6</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="subjects[]" value="middle">
+                                <label class="form-check-label">MIDDLE</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="subjects[]" value="middle_1_class">
+                                <label class="form-check-label">MIDDLE 1 CLASS</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="subjects[]" value="reception">
+                                <label class="form-check-label">RECEPTION</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Import Subjects</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    function post(url, formData) {
+        return fetch(url, { method: 'POST', body: formData, headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
+            .then(r => r.json());
+    }
+
+    function closeModal(id) {
+        const el = document.getElementById(id);
+        if (el) bootstrap.Modal.getInstance(el)?.hide();
+    }
+
+    document.getElementById('createSubjectForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        post('{% url "core:create_subject_api" %}', new FormData(this))
+            .then(data => {
+                if (data.success) { closeModal('createSubjectModal'); location.reload(); }
+                else showToast(data.error || 'Failed to create subject.', 'danger');
+            })
+            .catch(() => showToast('Failed to create subject.', 'danger'));
+    });
+
+    document.getElementById('createSkillSetForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        post('{% url "core:create_skill_set_api" %}', new FormData(this))
+            .then(data => {
+                if (data.success) { closeModal('createSkillSetModal'); location.reload(); }
+                else showToast(data.error || 'Failed to create skill set.', 'danger');
+            })
+            .catch(() => showToast('Failed to create skill set.', 'danger'));
+    });
+
+    document.getElementById('createElectiveGroupForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        post('{% url "core:create_elective_group_api" %}', new FormData(this))
+            .then(data => {
+                if (data.success) { closeModal('createElectiveGroupModal'); location.reload(); }
+                else showToast(data.error || 'Failed to create elective group.', 'danger');
+            })
+            .catch(() => showToast('Failed to create elective group.', 'danger'));
+    });
+
+    document.getElementById('importSubjectsForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        post('{% url "core:import_subjects_api" %}', new FormData(this))
+            .then(data => {
+                if (data.success) { closeModal('importSubjectsModal'); location.reload(); }
+                else showToast(data.error || 'Failed to import subjects.', 'danger');
+            })
+            .catch(() => showToast('Failed to import subjects.', 'danger'));
+    });
+
+    // Select-all for import subjects list
+    document.getElementById('select_all').addEventListener('change', function () {
+        document.querySelectorAll('input[name="subjects[]"]').forEach(cb => cb.checked = this.checked);
+    });
+    document.querySelectorAll('input[name="subjects[]"]').forEach(cb => {
+        cb.addEventListener('change', function () {
+            const all = document.querySelectorAll('input[name="subjects[]"]');
+            document.getElementById('select_all').checked =
+                document.querySelectorAll('input[name="subjects[]"]:checked').length === all.length;
+        });
+    });
+});
+</script>
+{% endblock %}

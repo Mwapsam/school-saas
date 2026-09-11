@@ -1,0 +1,32 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead><tr><th>Employee</th><th>Training</th><th>Category</th><th>Date</th><th>Expiry</th><th>Mandatory</th><th>Status</th></tr></thead>
+        <tbody>
+            {% for r in records %}
+                <tr>
+                    <td>
+                        <a href="{% url 'core:employee_detail' r.employee_id %}"><strong>{{ r.employee.first_name }} {{ r.employee.last_name }}</strong></a>
+                    </td>
+                    <td>{{ r.name }}</td>
+                    <td>{{ r.get_category_display }}</td>
+                    <td><small>{{ r.training_date|date:"M j, Y"|default:"—" }}</small></td>
+                    <td><small>{{ r.expiry_date|date:"M j, Y"|default:"—" }}</small></td>
+                    <td>{% if r.is_mandatory %}<i class="fas fa-check text-success"></i>{% else %}—{% endif %}</td>
+                    <td>{{ r.get_status_display }}</td>
+                </tr>
+            {% empty %}
+                <tr class="empty-state"><td colspan="7">No training records.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if is_paginated %}
+<div class="pinewood-table-pagination">
+    <nav><ul class="pagination pagination-sm justify-content-center mb-0">
+        {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" hx-get="{% url 'core:hr_training_list' %}?page={{ page_obj.previous_page_number }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" hx-target="#training-list-content">Previous</a></li>{% endif %}
+        <li class="page-item active"><span class="page-link">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}<li class="page-item"><a class="page-link" hx-get="{% url 'core:hr_training_list' %}?page={{ page_obj.next_page_number }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" hx-target="#training-list-content">Next</a></li>{% endif %}
+    </ul></nav>
+</div>
+{% endif %}

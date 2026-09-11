@@ -1,0 +1,384 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:attendance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title=page_title icon='fa-file-alt' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+
+
+
+{% block layout_table %}
+<div class="attendance-report-page">
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+            {% endif %}
+            
+            <!-- Filter Panel -->
+            <div class="filter-panel">
+                <form method="get" id="reportFilterForm">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="reportType">Report Type</label>
+                            <select name="report_type" id="reportType" class="form-control">
+                                <option value="student" {% if report_type == 'student' %}selected{% endif %}>Student Report</option>
+                                <option value="batch" {% if report_type == 'batch' %}selected{% endif %}>Batch Report</option>
+                                <option value="daily" {% if report_type == 'daily' %}selected{% endif %}>Daily Report</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3" id="studentSelectContainer" {% if report_type != 'student' %}style="display:none"{% endif %}>
+                            <label for="studentSelect">Student</label>
+                            <select name="student_id" id="studentSelect" class="form-control">
+                                <option value="">Select Student</option>
+                                {% for student in students %}
+                                    <option value="{{ student.id }}" {% if student.id|stringformat:"s" == student_id %}selected{% endif %}>
+                                        {{ student.first_name }} {{ student.last_name }} ({{ student.student_id }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3" id="batchSelectContainer" {% if report_type == 'student' %}style="display:none"{% endif %}>
+                            <label for="batchSelect">Batch</label>
+                            <select name="batch_id" id="batchSelect" class="form-control">
+                                <option value="">Select Batch</option>
+                                {% for batch in batches %}
+                                    <option value="{{ batch.id }}" {% if batch.id|stringformat:"s" == batch_id %}selected{% endif %}>
+                                        {{ batch.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="startDate">
+                                {% if report_type == 'daily' %}Date{% else %}Start Date{% endif %}
+                            </label>
+                            <input type="date" name="start_date" id="startDate" class="form-control" value="{{ start_date }}">
+                        </div>
+                        <div class="col-md-3" id="endDateContainer" {% if report_type == 'daily' %}style="display:none"{% endif %}>
+                            <label for="endDate">End Date</label>
+                            <input type="date" name="end_date" id="endDate" class="form-control" value="{{ end_date }}">
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">Generate Report</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            {% if report_data %}
+                <!-- Export Actions -->
+                <div class="export-actions">
+                    <button class="btn btn-outline-success" onclick="exportReport('csv')">
+                        Export CSV
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="exportReport('pdf')">
+                        Export PDF
+                    </button>
+                </div>
+                
+                {% if report_type == 'student' %}
+                    <!-- Student Report -->
+                    <div class="report-card">
+                        <div class="report-header">
+                            <h4>{{ report_data.student.first_name }} {{ report_data.student.last_name }}</h4>
+                            <small>Student ID: {{ report_data.student.student_id }} | Period: {{ start_date }} to {{ end_date }}</small>
+                        </div>
+                        
+                        <div class="p-3">
+                            <div class="report-summary">
+                                <div class="summary-card">
+                                    <div class="summary-number text-primary">{{ report_data.total_days }}</div>
+                                    <div class="summary-label">Total Days</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-number text-success">{{ report_data.present_days }}</div>
+                                    <div class="summary-label">Present Days</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-number text-danger">{{ report_data.absent_days }}</div>
+                                    <div class="summary-label">Absent Days</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-number text-warning">{{ report_data.partial_days }}</div>
+                                    <div class="summary-label">Partial Days</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-number 
+                                        {% if report_data.attendance_percentage >= 90 %}text-success
+                                        {% elif report_data.attendance_percentage >= 75 %}text-info
+                                        {% elif report_data.attendance_percentage >= 60 %}text-warning
+                                        {% else %}text-danger{% endif %}">
+                                        {{ report_data.attendance_percentage|floatformat:1 }}%
+                                    </div>
+                                    <div class="summary-label">Attendance %</div>
+                                </div>
+                            </div>
+                            
+                            <table class="report-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Forenoon</th>
+                                        <th>Afternoon</th>
+                                        <th>Status</th>
+                                        <th>Reason</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for record in report_data.attendance_records %}
+                                        <tr>
+                                            <td>{{ record.date }}</td>
+                                            <td>
+                                                {% if record.forenoon %}
+                                                    <span class="badge badge-success">Present</span>
+                                                {% else %}
+                                                    <span class="badge badge-danger">Absent</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if record.afternoon %}
+                                                    <span class="badge badge-success">Present</span>
+                                                {% else %}
+                                                    <span class="badge badge-danger">Absent</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if record.forenoon and record.afternoon %}
+                                                    <span class="badge badge-success">Present</span>
+                                                {% elif not record.forenoon and not record.afternoon %}
+                                                    <span class="badge badge-danger">Absent</span>
+                                                {% else %}
+                                                    <span class="badge badge-warning">Partial</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ record.reason|default:"N/A" }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                {% elif report_type == 'batch' %}
+                    <!-- Batch Report -->
+                    <div class="report-card">
+                        <div class="report-header">
+                            <h4>{{ report_data.batch.name }} - Attendance Report</h4>
+                            <small>Period: {{ start_date }} to {{ end_date }}</small>
+                        </div>
+                        
+                        <div class="p-3">
+                            <div class="report-summary">
+                                <div class="summary-card">
+                                    <div class="summary-number text-primary">{{ report_data.total_students }}</div>
+                                    <div class="summary-label">Total Students</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-number text-success">{{ report_data.average_attendance|floatformat:1 }}%</div>
+                                    <div class="summary-label">Average Attendance</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-number text-info">{{ report_data.total_days }}</div>
+                                    <div class="summary-label">School Days</div>
+                                </div>
+                            </div>
+                            
+                            <table class="report-table">
+                                <thead>
+                                    <tr>
+                                        <th>Student Name</th>
+                                        <th>Student ID</th>
+                                        <th>Present Days</th>
+                                        <th>Absent Days</th>
+                                        <th>Partial Days</th>
+                                        <th>Attendance %</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for student in report_data.student_summaries %}
+                                        <tr>
+                                            <td>{{ student.student_name }}</td>
+                                            <td>{{ student.student_id }}</td>
+                                            <td>{{ student.present_days }}</td>
+                                            <td>{{ student.absent_days }}</td>
+                                            <td>{{ student.partial_days }}</td>
+                                            <td>
+                                                <span class="attendance-percentage 
+                                                    {% if student.attendance_percentage >= 90 %}percentage-excellent
+                                                    {% elif student.attendance_percentage >= 75 %}percentage-good
+                                                    {% elif student.attendance_percentage >= 60 %}percentage-average
+                                                    {% else %}percentage-poor{% endif %}">
+                                                    {{ student.attendance_percentage|floatformat:1 }}%
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                {% elif report_type == 'daily' %}
+                    <!-- Daily Report -->
+                    <div class="report-card">
+                        <div class="report-header">
+                            <h4>{{ report_data.batch.name }} - Daily Attendance</h4>
+                            <small>Date: {{ start_date }}</small>
+                        </div>
+                        
+                        <div class="p-3">
+                            <div class="report-summary">
+                                <div class="summary-card">
+                                    <div class="summary-number text-primary">{{ report_data.total_students }}</div>
+                                    <div class="summary-label">Total Students</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-number text-success">{{ report_data.present_count }}</div>
+                                    <div class="summary-label">Present</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-number text-danger">{{ report_data.absent_count }}</div>
+                                    <div class="summary-label">Absent</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-number text-warning">{{ report_data.partial_count }}</div>
+                                    <div class="summary-label">Partial</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-number text-info">{{ report_data.attendance_percentage|floatformat:1 }}%</div>
+                                    <div class="summary-label">Attendance %</div>
+                                </div>
+                            </div>
+                            
+                            <table class="report-table">
+                                <thead>
+                                    <tr>
+                                        <th>Student Name</th>
+                                        <th>Student ID</th>
+                                        <th>Forenoon</th>
+                                        <th>Afternoon</th>
+                                        <th>Status</th>
+                                        <th>Reason</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for student in report_data.student_attendance %}
+                                        <tr>
+                                            <td>{{ student.student_name }}</td>
+                                            <td>{{ student.student_id }}</td>
+                                            <td>
+                                                {% if student.forenoon %}
+                                                    <span class="badge badge-success">Present</span>
+                                                {% else %}
+                                                    <span class="badge badge-danger">Absent</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if student.afternoon %}
+                                                    <span class="badge badge-success">Present</span>
+                                                {% else %}
+                                                    <span class="badge badge-danger">Absent</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if student.forenoon and student.afternoon %}
+                                                    <span class="badge badge-success">Present</span>
+                                                {% elif not student.forenoon and not student.afternoon %}
+                                                    <span class="badge badge-danger">Absent</span>
+                                                {% else %}
+                                                    <span class="badge badge-warning">Partial</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ student.reason|default:"N/A" }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}
+                
+            {% else %}
+                <div class="no-data">
+                    <h5>No Report Data</h5>
+                    <p class="text-muted">Select filters above and click "Generate Report" to view attendance data.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Handle report type change to show/hide relevant fields
+    document.getElementById('reportType').addEventListener('change', function() {
+        const reportType = this.value;
+        const studentContainer = document.getElementById('studentSelectContainer');
+        const batchContainer = document.getElementById('batchSelectContainer');
+        const endDateContainer = document.getElementById('endDateContainer');
+        
+        if (reportType === 'student') {
+            studentContainer.style.display = 'block';
+            batchContainer.style.display = 'none';
+            endDateContainer.style.display = 'block';
+        } else if (reportType === 'daily') {
+            studentContainer.style.display = 'none';
+            batchContainer.style.display = 'block';
+            endDateContainer.style.display = 'none';
+        } else {
+            studentContainer.style.display = 'none';
+            batchContainer.style.display = 'block';
+            endDateContainer.style.display = 'block';
+        }
+    });
+    
+    // Export functionality
+    function exportReport(format) {
+        const form = document.getElementById('reportFilterForm');
+        const formData = new FormData(form);
+        
+        const params = new URLSearchParams();
+        for (const [key, value] of formData.entries()) {
+            if (value) params.append(key, value);
+        }
+        params.append('type', format);
+        params.append('format', '{{ report_type }}');
+        
+        const url = `/academic/export-attendance-report/?${params.toString()}`;
+        
+        // Create a temporary link and click it to download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = true;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    
+    // Set default dates
+    document.addEventListener('DOMContentLoaded', function() {
+        const startDate = document.getElementById('startDate');
+        const endDate = document.getElementById('endDate');
+        
+        if (!startDate.value) {
+            // Set to first day of current month
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            startDate.value = firstDay.toISOString().split('T')[0];
+        }
+        
+        if (!endDate.value) {
+            // Set to today
+            const today = new Date();
+            endDate.value = today.toISOString().split('T')[0];
+        }
+    });
+</script>
+{% endblock %}

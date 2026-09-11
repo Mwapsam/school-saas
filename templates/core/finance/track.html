@@ -1,0 +1,49 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}Track & Monitor{% endblock %}
+
+{% block layout_header %}
+{% url 'core:finance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Track &amp; Monitor" description="Student ledgers and consolidated family accounts" icon='fa-chart-line' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+
+{% block extra_css %}
+{% include 'core/finance/_finance_ui_styles.html' %}
+{% endblock %}
+
+{% block layout_filters %}
+<!-- Filters will be extracted and moved here -->
+{% endblock %}
+
+{% block layout_table %}
+    {% include 'core/finance/_workflow_nav.html' %}
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <a href="{% url 'core:fee_student_statement' %}" class="gb-card">
+                <div class="gb-card-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                <div class="gb-card-body">
+                    <p class="gb-card-title">Student Ledger</p>
+                    <p class="gb-card-desc">Overview, transactions, payments and adjustments per student.</p>
+                </div>
+                <i class="fas fa-chevron-right gb-card-arrow"></i>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a href="{% url 'core:family_accounts' %}" class="gb-card">
+                <div class="gb-card-icon"><i class="fas fa-users"></i></div>
+                <div class="gb-card-body">
+                    <p class="gb-card-title">Family Accounts</p>
+                    <p class="gb-card-desc">Consolidated dues and payments per guardian.</p>
+                </div>
+                <i class="fas fa-chevron-right gb-card-arrow"></i>
+            </a>
+        </div>
+    </div>
+{% endblock %}
+
+{% block layout_pagination %}{% endblock %}
+
+{% block layout_extra %}{% endblock %}

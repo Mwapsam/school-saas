@@ -1,0 +1,516 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+{% load currency_tags %}
+
+{% block page_title %}Fee Particulars{% endblock %}
+
+{% block layout_header %}
+{% url 'core:fee_structure' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Fee Particulars" description="Line items inside each fee group, built from master particular templates" icon='fa-list' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+
+{% block layout_filters %}
+<!-- Filters will be extracted and moved here -->
+{% endblock %}
+
+{% block layout_table %}
+<div class="container-lg py-4">
+
+    {% include 'core/finance/_workflow_nav.html' %}
+
+    <!-- Financial Year Display -->
+    {% if current_academic_year %}
+    <div class="alert alert-info mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-calendar-alt me-2"></i>Financial Year: {{ current_academic_year.name }}</span>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Particulars List -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Fee Particulars</h5>
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createParticularModal">
+                <i class="fas fa-plus me-1"></i> Add Particular
+            </button>
+        </div>
+        <div class="card-body">
+            {% if particulars %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Fee Category</th>
+                            <th scope="col" class="text-end">Amount</th>
+                            <th scope="col">Due Date</th>
+                            <th scope="col">Fine Slab</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Created</th>
+                            <th scope="col" class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for particular in particulars %}
+                        <tr>
+                            <td class="fw-bold">{{ particular.name }}</td>
+                            <td>
+                                <span class="badge badge-brand">{{ particular.fee_category.name }}</span>
+                            </td>
+                            <td class="text-end">{% currency_format particular.amount %}</td>
+                            <td>{{ particular.due_date|date:"M d, Y"|default:"—" }}</td>
+                            <td>{{ particular.fine_slab.fine_name|default:"—" }}</td>
+                            <td>{{ particular.description|default:"—" }}</td>
+                            <td>{{ particular.created_at|date:"M d, Y" }}</td>
+                            <td class="text-end">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-primary edit-particular"
+                                            aria-label="Edit {{ particular.name }}"
+                                            data-id="{{ particular.id }}"
+                                            data-name="{{ particular.name }}"
+                                            data-description="{{ particular.description }}"
+                                            data-category="{{ particular.fee_category.id }}"
+                                            data-amount="{{ particular.amount }}"
+                                            data-due-date="{{ particular.due_date|date:'Y-m-d' }}"
+                                            data-fine-slab="{{ particular.fine_slab.fine_name|default:'' }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-particular"
+                                            aria-label="Delete {{ particular.name }}"
+                                            data-id="{{ particular.id }}"
+                                            data-name="{{ particular.name }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state__icon"><i class="fas fa-clipboard-list"></i></div>
+                <h5 class="empty-state__title">No Fee Particulars Created</h5>
+                <p class="empty-state__description">Create your first fee particular to get started.</p>
+                <button type="button" class="btn btn-primary empty-state__action" data-bs-toggle="modal" data-bs-target="#createParticularModal">
+                    <i class="fas fa-plus me-1"></i> Create First Particular
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Create Particular Modal -->
+<div class="modal fade" id="createParticularModal" tabindex="-1" aria-labelledby="createParticularModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-600 text-brand" id="createParticularModalLabel"><i class="fas fa-plus me-2"></i>Create Fee Particular</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="particularForm" action="{% url 'core:fee_particulars_create' %}" method="post">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Master Particular <span class="text-danger">*</span></label>
+                                <select class="form-select" id="name" name="name" required>
+                                    <option value="">Select a master particular</option>
+                                    {% for master in master_particulars %}
+                                    <option value="{{ master.name }}">{{ master.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Select a master particular to base this fee on</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="category" class="form-label">Select a category <span class="text-danger">*</span></label>
+                                <select class="form-select" id="category" name="fee_category" required>
+                                    <option value="">Select category</option>
+                                    {% for category in fee_categories %}
+                                    <option value="{{ category.id }}">{{ category.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" 
+                                  placeholder="Enter fee description (optional)"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="amount" class="form-label">Amount <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">{% currency_symbol %}</span>
+                                    <input type="number" class="form-control" id="amount" name="amount"
+                                           placeholder="0.00" step="0.01" min="0" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="due_date" class="form-label">Due Date</label>
+                                <input type="date" class="form-control" id="due_date" name="due_date">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="fine_slab" class="form-label">Fine Slab (optional)</label>
+                        <select class="form-select" id="fine_slab" name="fine_slab">
+                            <option value="">No fine slab</option>
+                            {% for slab_name in fine_slab_names %}
+                            <option value="{{ slab_name }}">{{ slab_name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Applies the fine slab ladder for this name after the due date.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Create
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Particular Modal -->
+<div class="modal fade" id="editParticularModal" tabindex="-1" aria-labelledby="editParticularModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-600 text-brand" id="editParticularModalLabel"><i class="fas fa-edit me-2"></i>Edit Fee Particular</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editParticularForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <input type="hidden" id="editParticularId" name="particular_id">
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="editName" class="form-label">Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editName" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="editCategory" class="form-label">Select a category <span class="text-danger">*</span></label>
+                                <select class="form-select" id="editCategory" name="fee_category" required>
+                                    <option value="">Select category</option>
+                                    {% for category in fee_categories %}
+                                    <option value="{{ category.id }}">{{ category.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="editDescription" name="description" rows="3"
+                                  placeholder="Enter fee description (optional)"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editAmount" class="form-label">Amount <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">{% currency_symbol %}</span>
+                                    <input type="number" class="form-control" id="editAmount" name="amount"
+                                           placeholder="0.00" step="0.01" min="0" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editDueDate" class="form-label">Due Date</label>
+                                <input type="date" class="form-control" id="editDueDate" name="due_date">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editFineSlab" class="form-label">Fine Slab (optional)</label>
+                        <select class="form-select" id="editFineSlab" name="fine_slab">
+                            <option value="">No fine slab</option>
+                            {% for slab_name in fine_slab_names %}
+                            <option value="{{ slab_name }}">{{ slab_name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Applies the fine slab ladder for this name after the due date.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Update
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Particular Modal -->
+<div class="modal fade" id="deleteParticularModal" tabindex="-1" aria-labelledby="deleteParticularModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteParticularModalLabel">Delete Fee Particular</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the fee particular <strong id="deleteParticularName"></strong>?</p>
+                <p class="text-danger"><i class="fas fa-triangle-exclamation"></i> This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteParticular">Delete Particular</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block layout_pagination %}{% endblock %}
+
+{% block layout_extra %}{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    // Form submission
+    $('#particularForm').submit(function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        $.ajax({
+            url: '{% url "core:fee_particulars_create" %}',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRFToken': csrftoken
+            },
+            success: function(response) {
+                if (response.success) {
+                    showAlert('success', response.message);
+                    $('#createParticularModal').modal('hide');
+                    // Reset form
+                    document.getElementById('particularForm').reset();
+                    // Reload page after delay
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showAlert('danger', response.error || 'Creation failed');
+                }
+            },
+            error: function(xhr) {
+                const response = xhr.responseJSON;
+                showAlert('danger', response?.error || 'Creation failed');
+            }
+        });
+    });
+
+    // Edit Particular Button Click
+    $('.edit-particular').on('click', function() {
+        $('#editParticularId').val($(this).data('id'));
+        $('#editName').val($(this).data('name'));
+        $('#editDescription').val($(this).data('description') || '');
+        $('#editCategory').val($(this).data('category'));
+        $('#editAmount').val($(this).data('amount'));
+        $('#editDueDate').val($(this).data('due-date') || '');
+        $('#editFineSlab').val($(this).data('fine-slab') || '');
+
+        $('#editParticularModal').modal('show');
+    });
+
+    // Edit Particular Form Submission
+    $('#editParticularForm').submit(function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        formData.append('action', 'update');
+
+        $.ajax({
+            url: '{% url "core:fee_particulars_create" %}',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRFToken': csrftoken
+            },
+            success: function(response) {
+                if (response.success) {
+                    showAlert('success', response.message);
+                    $('#editParticularModal').modal('hide');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showAlert('danger', response.error || 'Update failed');
+                }
+            },
+            error: function(xhr) {
+                const response = xhr.responseJSON;
+                showAlert('danger', response?.error || 'Update failed');
+            }
+        });
+    });
+
+    // Delete Particular Button Click
+    $('.delete-particular').on('click', function() {
+        $('#deleteParticularName').text($(this).data('name'));
+        $('#confirmDeleteParticular').data('id', $(this).data('id'));
+
+        $('#deleteParticularModal').modal('show');
+    });
+
+    // Confirm Delete Particular
+    $('#confirmDeleteParticular').on('click', function() {
+        const particularId = $(this).data('id');
+
+        $.ajax({
+            url: '{% url "core:fee_particulars_create" %}',
+            method: 'POST',
+            data: {
+                action: 'delete',
+                particular_id: particularId
+            },
+            headers: {
+                'X-CSRFToken': csrftoken
+            },
+            success: function(response) {
+                if (response.success) {
+                    showAlert('success', response.message);
+                    $('#deleteParticularModal').modal('hide');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showAlert('danger', response.error || 'Delete failed');
+                }
+            },
+            error: function(xhr) {
+                const response = xhr.responseJSON;
+                showAlert('danger', response?.error || 'Delete failed');
+            }
+        });
+    });
+
+    function showAlert(type, message) {
+        const alertHtml = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>`;
+        
+        $('.alert-dismissible').remove();
+        $('.container-lg').prepend(alertHtml);
+        
+        setTimeout(() => {
+            $('.alert-dismissible').alert('close');
+        }, 5000);
+    }
+
+    // Reset modal on close
+    $('#createParticularModal').on('hidden.bs.modal', function() {
+        document.getElementById('particularForm').reset();
+    });
+    $('#editParticularModal').on('hidden.bs.modal', function() {
+        document.getElementById('editParticularForm').reset();
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.gb-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    background: #fff;
+    border: 1px solid var(--p-gray-border);
+    border-left: 4px solid var(--color-brand);
+    margin-bottom: 24px;
+}
+.gb-header-icon {
+    width: 48px; height: 48px;
+    background: var(--color-brand-bg);
+    color: var(--color-brand);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+}
+.gb-header h2 { margin: 0 0 2px; font-size: 1.3rem; }
+.gb-header p  { margin: 0; font-size: 13px; color: var(--color-muted); }
+
+.card {
+    border: 1px solid var(--p-gray-border);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--color-muted);
+    background: var(--color-brand-bg);
+    border-bottom: 2px solid var(--p-gray-border);
+    white-space: nowrap;
+}
+
+.btn-group .btn:not(:last-child) {
+    margin-right: 0.25rem;
+}
+
+.badge {
+    font-weight: 500;
+}
+
+.badge-brand {
+    background: var(--color-brand-bg);
+    color: var(--color-brand);
+}
+</style>
+{% endblock %}

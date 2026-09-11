@@ -1,0 +1,1030 @@
+{% extends 'core/layouts/form.html' %}
+
+{% load static %}
+
+
+
+{% block page_title %}Create Exam{% endblock %}
+
+
+
+
+
+{% block layout_header %}
+
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Create Exam" description="Exams are the various types of assessments done in an academic year. You can add exams for subjects or create non subject based exams here." icon="fa-file-circle-plus" back_url=back_url|default:back_fallback crumbs=crumbs %}
+
+{% endblock %}
+
+
+
+{% block layout_form %}
+<div class="gb-create-exam">
+
+<form id="create-exam-form" method="post">
+
+        {% csrf_token %}
+
+        
+
+        <!-- Basic Information -->
+
+        <div class="form-section">
+
+            <h2 class="section-title">Basic Information</h2>
+
+            
+
+            <div class="row">
+
+                <div class="col-md-4">
+
+                    <div class="form-group">
+
+                        <label class="form-label" for="exam_name">Exam Name</label>
+
+                        <input type="text" class="form-control" id="exam_name" name="exam_name" required>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <div class="form-group">
+
+                        <label class="form-label" for="exam_code">Code</label>
+
+                        <input type="text" class="form-control" id="exam_code" name="exam_code">
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <div class="form-group">
+
+                        <label class="form-label" for="display_name">Display Name</label>
+
+                        <input type="text" class="form-control" id="display_name" name="display_name">
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Exam Type -->
+
+        <div class="form-section">
+
+            <h2 class="section-title">Exam Type</h2>
+
+            
+
+            <div class="row">
+
+                <div class="col-md-6">
+
+                    <div class="exam-type-option" data-type="subject">
+
+                        <div class="d-flex align-items-start">
+
+                            <input type="radio" class="form-check-input exam-type-radio" name="exam_type" value="Subject Exams" id="subject_exams" checked>
+
+                            <div>
+
+                                <label class="exam-type-label" for="subject_exams">Subject Exams</label>
+
+                                <p class="exam-type-description">Exams conducted for the subjects in the linked class</p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-6">
+
+                    <div class="exam-type-option" data-type="activity">
+
+                        <div class="d-flex align-items-start">
+
+                            <input type="radio" class="form-check-input exam-type-radio" name="exam_type" value="Activity Exams" id="activity_exams">
+
+                            <div>
+
+                                <label class="exam-type-label" for="activity_exams">Activity Exams</label>
+
+                                <p class="exam-type-description">Non subject based exams to test the learning and development skills</p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Subject Selection -->
+
+        <div class="form-section" id="subject-selection">
+
+            <h2 class="section-title">Subject Exams Mode</h2>
+
+            
+
+            <div class="row">
+
+                <div class="col-md-6">
+
+                    <div class="scoring-option selected" data-mode="direct">
+
+                        <div class="d-flex align-items-start">
+
+                            <input type="radio" class="form-check-input exam-type-radio" name="subject_exam_mode" value="Direct Grading" id="direct_grading" checked>
+
+                            <div>
+
+                                <label class="exam-type-label" for="direct_grading">Direct Grading</label>
+
+                                <p class="exam-type-description">A single mark or grade is entered for each subject of this exam</p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-6">
+
+                    <div class="scoring-option" data-mode="attributes">
+
+                        <div class="d-flex align-items-start">
+
+                            <input type="radio" class="form-check-input exam-type-radio" name="subject_exam_mode" value="Attributes Based Grading" id="attributes_grading">
+
+                            <div>
+
+                                <label class="exam-type-label" for="attributes_grading">Attributes Based Grading</label>
+
+                                <p class="exam-type-description">Marks are given for parameters or attributes of the subject. Select the applicable attribute profile</p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Class Selection -->
+
+        <div class="form-section">
+
+            <h2 class="section-title">Class Selection</h2>
+
+            
+
+            <div class="form-group">
+
+                <label class="form-label" for="batch_id">Select Class</label>
+
+                <select class="form-select" id="batch_id" name="batch_id" required>
+
+                    <option value="">Choose a class...</option>
+
+                    {% for batch_option in batches %}
+
+                        <option value="{{ batch_option.id }}" {% if batch and batch.id == batch_option.id %}selected{% endif %}>
+
+                            {{ batch_option.name }} ({{ batch_option.course.name }})
+
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+
+            <!-- Subjects for selected class -->
+
+            <div id="subjects-container" style="{% if not batch %}display: none;{% endif %}">
+
+                <label class="form-label">Subjects</label>
+
+                <div class="subjects-selection" id="subjects-list">
+
+                    {% for subject in subjects %}
+
+                        <div class="subject-checkbox">
+
+                            <div class="form-check">
+
+                                <input class="form-check-input" type="checkbox" name="subjects" value="{{ subject.id }}" id="subject_{{ subject.id }}" checked>
+
+                                <label class="form-check-label subject-label" for="subject_{{ subject.id }}">
+
+                                    {{ subject.name }}{% if subject.code %} ({{ subject.code }}){% endif %}
+
+                                </label>
+
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+                <div class="help-text">Select the subjects that have different exam marks</div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Scoring Configuration -->
+
+        <div class="form-section">
+
+            <h2 class="section-title">Scoring</h2>
+
+
+
+            <div class="row">
+
+                <div class="col-md-4">
+
+                    <div class="scoring-option selected" data-scoring="marks">
+
+                        <div class="d-flex align-items-center">
+
+                            <input type="radio" class="form-check-input exam-type-radio" name="scoring_type" value="Marks" id="scoring_marks" checked>
+
+                            <label class="exam-type-label" for="scoring_marks">Marks</label>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <div class="scoring-option" data-scoring="grades">
+
+                        <div class="d-flex align-items-center">
+
+                            <input type="radio" class="form-check-input exam-type-radio" name="scoring_type" value="Grades" id="scoring_grades">
+
+                            <label class="exam-type-label" for="scoring_grades">Grades</label>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <div class="scoring-option" data-scoring="both">
+
+                        <div class="d-flex align-items-center">
+
+                            <input type="radio" class="form-check-input exam-type-radio" name="scoring_type" value="Marks and Grades" id="scoring_both">
+
+                            <label class="exam-type-label" for="scoring_both">Marks and Grades</label>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- Grading Scale Selection (shown when Grades or Both is selected) -->
+
+            <div id="grading-scale-section" class="mt-4" style="display: none;">
+
+                <div class="alert alert-info">
+
+                    <i class="fas fa-info-circle me-2"></i>
+
+                    <strong>Grading Scale Configuration</strong><br>
+
+                    Select the grading scale for this exam. This determines which grade options (A/B/C, Good/Satisfactory, etc.)
+
+                    will be shown during marks entry. If not selected, the subject's default grading scale will be used.
+
+                </div>
+
+
+
+                <div class="row">
+
+                    <div class="col-md-6">
+
+                        <div class="form-group">
+
+                            <label class="form-label" for="grading_scale_id">
+
+                                <i class="fas fa-star-half-alt me-1"></i>
+
+                                Grading Scale
+
+                            </label>
+
+                            <select class="form-select" id="grading_scale_id" name="grading_scale_id">
+
+                                <option value="">Use Subject Default</option>
+
+                                <!-- Populated via API -->
+
+                            </select>
+
+                            <small class="form-text text-muted">
+
+                                Choose a grading scale to override the subject's default setting.
+
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <div class="form-group">
+
+                            <label class="form-label">
+
+                                <i class="fas fa-eye me-1"></i>
+
+                                Grade Preview
+
+                            </label>
+
+                            <div id="grade-preview" class="p-3 border rounded bg-light" style="min-height: 80px;">
+
+                                <small class="text-muted">Select a grading scale to preview available grades...</small>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="row mt-3">
+
+                <div class="col-md-6">
+
+                    <div class="form-group">
+
+                        <label class="form-label" for="maximum_marks">Maximum marks</label>
+
+                        <input type="number" class="form-control" id="maximum_marks" name="maximum_marks" value="100" min="1">
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-6">
+
+                    <div class="form-group">
+
+                        <label class="form-label" for="pass_criteria">Pass Criteria</label>
+
+                        <div class="input-group">
+
+                            <input type="number" class="form-control" id="pass_criteria" name="pass_criteria" value="50" min="0">
+
+                            <span class="input-group-text">and above</span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Advanced Settings -->
+
+        <div class="form-section">
+
+            <h2 class="section-title">Advanced Settings</h2>
+
+            
+
+            <div class="advanced-settings">
+
+                <div class="row">
+
+                    <div class="col-md-6">
+
+                        <div class="form-check">
+
+                            <input class="form-check-input" type="checkbox" id="disable_scheduling" name="disable_scheduling">
+
+                            <label class="form-check-label" for="disable_scheduling">
+
+                                <strong>Disable Exam Scheduling</strong>
+
+                            </label>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                
+
+                <div class="row mt-3">
+
+                    <div class="col-md-6">
+
+                        <div class="form-group">
+
+                            <label class="form-label" for="exam_date">Exam Date</label>
+
+                            <input type="date" class="form-control" id="exam_date" name="exam_date" value="{{ current_academic_year.start_date|date:'Y-m-d'|default:'2025-01-01' }}">
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <h5 class="mt-3 mb-2">Mark Entry Mode</h5>
+
+                <div class="form-check">
+
+                    <input class="form-check-input" type="checkbox" id="enable_skill_entry" name="enable_skill_entry">
+
+                    <label class="form-check-label" for="enable_skill_entry">
+
+                        <strong>Enable Skill level mark entry</strong>
+
+                        <div class="help-text">Enable this option to create skill exams and enter marks for the same.</div>
+
+                    </label>
+
+                </div>
+
+
+
+                <h5 class="mt-3 mb-2">Attendance</h5>
+
+                <div class="form-check">
+
+                    <input class="form-check-input" type="checkbox" id="enable_attendance" name="enable_attendance">
+
+                    <label class="form-check-label" for="enable_attendance">
+
+                        <strong>Enable Attendance</strong>
+
+                        <div class="help-text">Select this option to enable attendance for this assessment group.</div>
+
+                    </label>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+</div>
+{% endblock %}
+
+
+
+{% block layout_validation %}
+
+{% endblock %}
+
+
+
+{% block layout_actions %}
+<div class="gb-create-exam">
+
+    <div class="d-flex justify-content-between">
+
+        <a href="{{ back_url }}" class="btn btn-outline-secondary btn-lg">
+
+            Cancel
+
+        </a>
+
+        <button type="submit" class="btn btn-primary btn-lg">
+
+            <i class="fas fa-plus me-1"></i>
+
+            Create Exam
+
+        </button>
+
+    </div>
+
+    </form>
+
+</div>
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+$(document).ready(function() {
+
+    // Handle exam type selection
+
+    $('.exam-type-option').on('click', function() {
+
+        $('.exam-type-option').removeClass('selected');
+
+        $(this).addClass('selected');
+
+        $(this).find('input[type="radio"]').prop('checked', true);
+
+        
+
+        const examType = $(this).data('type');
+
+        if (examType === 'subject') {
+
+            $('#subject-selection').show();
+
+        } else {
+
+            $('#subject-selection').hide();
+
+        }
+
+    });
+
+    
+
+    // Handle scoring option selection
+
+    $('.scoring-option').on('click', function() {
+
+        const parent = $(this).closest('.form-section');
+
+        parent.find('.scoring-option').removeClass('selected');
+
+        $(this).addClass('selected');
+
+        $(this).find('input[type="radio"]').prop('checked', true);
+
+    });
+
+    
+
+    // Handle batch selection change
+
+    $('#batch_id').on('change', function() {
+
+        const batchId = $(this).val();
+
+        if (batchId) {
+
+            loadSubjectsForBatch(batchId);
+
+        } else {
+
+            $('#subjects-container').hide();
+
+        }
+
+    });
+
+    
+
+    // Load subjects for selected batch
+
+    function loadSubjectsForBatch(batchId) {
+
+        $.ajax({
+
+            url: `/api/gradebook/batch-subjects/${batchId}/`,
+
+            method: 'GET',
+
+            success: function(response) {
+
+                if (response.success) {
+
+                    updateSubjectsList(response.subjects);
+
+                    $('#subjects-container').show();
+
+                }
+
+            },
+
+            error: function() {
+
+                console.error('Failed to load subjects for batch');
+
+            }
+
+        });
+
+    }
+
+    
+
+    // Update subjects list
+
+    function updateSubjectsList(subjects) {
+
+        const subjectsList = $('#subjects-list');
+
+        subjectsList.empty();
+
+
+
+        subjects.forEach(function(subject) {
+
+            const subjectHtml = `
+
+                <div class="subject-checkbox">
+
+                    <div class="form-check">
+
+                        <input class="form-check-input" type="checkbox" name="subjects" value="${subject.id}" id="subject_${subject.id}" checked>
+
+                        <label class="form-check-label subject-label" for="subject_${subject.id}">
+
+                            ${subject.name}${subject.code ? ' (' + subject.code + ')' : ''}
+
+                        </label>
+
+                    </div>
+
+                </div>
+
+            `;
+
+            subjectsList.append(subjectHtml);
+
+        });
+
+    }
+
+
+
+    // Load available grading scales
+
+    let availableScales = [];
+
+
+
+    function loadGradingScales() {
+
+        $.ajax({
+
+            url: '/api/grading/scales/',
+
+            method: 'GET',
+
+            success: function(response) {
+
+                if (response.grading_scales) {
+
+                    availableScales = response.grading_scales;
+
+                    const select = $('#grading_scale_id');
+
+
+
+                    // Clear existing options (except first)
+
+                    select.find('option:not(:first)').remove();
+
+
+
+                    // Populate dropdown
+
+                    response.grading_scales.forEach(function(scale) {
+
+                        const optionText = `${scale.name} (${scale.type_display})${scale.is_default ? ' [Default]' : ''}`;
+
+                        const option = $('<option>')
+
+                            .val(scale.id)
+
+                            .text(optionText)
+
+                            .data('scale', scale);
+
+                        select.append(option);
+
+                    });
+
+                }
+
+            },
+
+            error: function() {
+
+                console.error('Failed to load grading scales');
+
+            }
+
+        });
+
+    }
+
+
+
+    // Load grading scales on page load
+
+    loadGradingScales();
+
+
+
+    // Handle scoring type selection
+
+    $('input[name="scoring_type"]').on('change', function() {
+
+        const scoringType = $(this).val();
+
+
+
+        // Update UI based on selection
+
+        $('.scoring-option').removeClass('selected');
+
+        $(this).closest('.scoring-option').addClass('selected');
+
+
+
+        // Show/hide grading scale section
+
+        if (scoringType === 'Grades' || scoringType === 'Marks and Grades') {
+
+            $('#grading-scale-section').slideDown();
+
+
+
+            // Hide marks section if only grades
+
+            if (scoringType === 'Grades') {
+
+                $('#maximum_marks').closest('.row').slideUp();
+
+            } else {
+
+                $('#maximum_marks').closest('.row').slideDown();
+
+            }
+
+        } else {
+
+            $('#grading-scale-section').slideUp();
+
+            $('#maximum_marks').closest('.row').slideDown();
+
+        }
+
+    });
+
+
+
+    // Preview grades when scale is selected
+
+    $('#grading_scale_id').on('change', function() {
+
+        const selectedOption = $(this).find('option:selected');
+
+        const scaleData = selectedOption.data('scale');
+
+
+
+        if (!scaleData) {
+
+            $('#grade-preview').html(
+
+                '<small class="text-muted">Using subject default grading scale</small>'
+
+            );
+
+            return;
+
+        }
+
+
+
+        // Show grade preview
+
+        let previewHtml = '<div class="d-flex flex-wrap gap-2">';
+
+        const gradesToShow = scaleData.grades ? scaleData.grades.slice(0, 10) : [];
+
+
+
+        gradesToShow.forEach(function(grade) {
+
+            const badgeClass = grade.is_passing ? 'bg-success' : 'bg-danger';
+
+            previewHtml += `
+
+                <span class="badge ${badgeClass}" style="font-size: 0.9rem;">
+
+                    ${grade.name}
+
+                </span>
+
+            `;
+
+        });
+
+
+
+        if (scaleData.grade_count && scaleData.grade_count > 10) {
+
+            previewHtml += `
+
+                <span class="text-muted small">
+
+                    ... and ${scaleData.grade_count - 10} more
+
+                </span>
+
+            `;
+
+        }
+
+        previewHtml += '</div>';
+
+
+
+        $('#grade-preview').html(previewHtml);
+
+    });
+
+    
+
+    // Handle form submission
+
+    $('#create-exam-form').on('submit', function(e) {
+
+        e.preventDefault();
+
+
+
+        const formData = {
+
+            exam_name: $('#exam_name').val(),
+
+            exam_code: $('#exam_code').val(),
+
+            display_name: $('#display_name').val(),
+
+            exam_type: $('input[name="exam_type"]:checked').val(),
+
+            subject_exam_mode: $('input[name="subject_exam_mode"]:checked').val(),
+
+            batch_id: $('#batch_id').val(),
+
+            subjects: $('input[name="subjects"]:checked').map(function() { return this.value; }).get(),
+
+            scoring_type: $('input[name="scoring_type"]:checked').val(),
+
+            grading_scale_id: $('#grading_scale_id').val() || null,
+
+            maximum_marks: parseInt($('#maximum_marks').val()),
+
+            pass_criteria: parseInt($('#pass_criteria').val()),
+
+            exam_date: $('#exam_date').val(),
+
+            enable_skill_entry: $('#enable_skill_entry').is(':checked'),
+
+            enable_attendance: $('#enable_attendance').is(':checked'),
+
+            disable_scheduling: $('#disable_scheduling').is(':checked')
+
+        };
+
+        
+
+        // Validate form
+
+        if (!formData.exam_name || !formData.batch_id || formData.subjects.length === 0) {
+
+            alert('Please fill in all required fields and select at least one subject.');
+
+            return;
+
+        }
+
+        
+
+        // Submit form
+
+        $.ajax({
+
+            url: '{% url "core:create_exam_api" %}',
+
+            method: 'POST',
+
+            headers: {
+
+                'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val(),
+
+                'Content-Type': 'application/json',
+
+            },
+
+            data: JSON.stringify(formData),
+
+            success: function(response) {
+
+                if (response.success) {
+
+                    alert(response.message);
+
+                    // Redirect to appropriate page
+
+                    if (formData.batch_id) {
+
+                        window.location.href = '/gradebook/class/' + formData.batch_id + '/';
+
+                    } else {
+
+                        window.location.href = '{% url "core:gradebook_management" %}';
+
+                    }
+
+                } else {
+
+                    alert('Error creating exam: ' + response.error);
+
+                }
+
+            },
+
+            error: function() {
+
+                alert('Error creating exam. Please try again.');
+
+            }
+
+        });
+
+    });
+
+});
+
+</script>
+
+{% endblock %}

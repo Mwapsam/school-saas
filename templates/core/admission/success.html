@@ -1,0 +1,236 @@
+{% extends base_template|default:'core/base.html' %}
+{% load static %}
+
+{% block page_title %}Application Submitted Successfully{% endblock %}
+
+{% block content %}
+<div class="container-lg py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            {% if error %}
+                <div class="card shadow-sm border-danger">
+                    <div class="card-header bg-danger text-white text-center">
+                        <h4 class="mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Application Not Found
+                        </h4>
+                    </div>
+                    <div class="card-body text-center">
+                        <p class="mb-3">{{ error }}</p>
+                        <a href="{% url 'core:admission_apply' %}" class="btn btn-success">
+                            <i class="fas fa-plus me-1"></i> Submit New Application
+                        </a>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card shadow-sm border-success">
+                    <div class="card-header bg-success text-white text-center">
+                        <h4 class="mb-0 text-white">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Application Submitted Successfully!
+                        </h4>
+                    </div>
+                    
+                    <div class="card-body">
+                        <div class="text-center mb-4">
+                            <div class="success-icon mb-3">
+                                <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+                            </div>
+                            <h5 class="text-success">Thank you for applying!</h5>
+                            <p class="text-muted">Your admission application has been received and is being processed.</p>
+                        </div>
+                        
+                        {% if application %}
+                        <div class="application-details">
+                            <h6 class="border-bottom pb-2 mb-3">Application Details</h6>
+                            
+                            <div class="row mb-3">
+                                <div class="col-sm-4 font-weight-bold">Application Number:</div>
+                                <div class="col-sm-8">
+                                    <strong class="text-success">{{ application.application_number }}</strong>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-sm-4 font-weight-bold">Applicant Name:</div>
+                                <div class="col-sm-8">{{ application.first_name }} {{ application.last_name }}</div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-sm-4 font-weight-bold">Course Applied:</div>
+                                <div class="col-sm-8">{{ application.course_applied.course_name }}</div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-sm-4 font-weight-bold">Application Date:</div>
+                                <div class="col-sm-8">{{ application.application_date|date:"d F Y" }}</div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-sm-4 font-weight-bold">Status:</div>
+                                <div class="col-sm-8">
+                                    <span class="badge bg-warning text-dark">{{ application.status|title }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">Important Information:</h6>
+                            <ul class="mb-0">
+                                <li><strong>Keep your application number safe:</strong> {{ application.application_number|default:"N/A" }}</li>
+                                <li>You will be contacted via phone or email about your application status</li>
+                                <li>Processing time is typically 5-7 business days</li>
+                                <li>You can check your application status using the application number</li>
+                            </ul>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <!-- Status Check Card -->
+                <div class="card shadow-sm mt-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">Check Application Status</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3">
+                            You can check your application status anytime using your application number.
+                        </p>
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Enter application number" 
+                                   id="statusCheck" value="{{ application.application_number|default:'' }}">
+                            <button class="btn btn-outline-success" type="button" onclick="checkStatus()">
+                                <i class="fas fa-search me-1"></i> Check Status
+                            </button>
+                        </div>
+                        <div id="statusResult" class="mt-3"></div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.success-icon {
+    animation: bounce 2s infinite;
+}
+
+.shadow-sm {
+    box-shadow: inset 0px 0rem 0.3rem rgba(0, 0, 0, 0.075) !important;
+}
+
+@keyframes bounce {
+    0%, 20%, 60%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-20px);
+    }
+    80% {
+        transform: translateY(-10px);
+    }
+}
+
+.card {
+    border: none;
+    border-radius: 12px;
+}
+
+.card-body {
+    border: 0.5px solid #ede8e8;
+    border-radius: 6px;
+    margin-top: 1rem;
+}
+
+.application-details .row {
+    border-bottom: 1px solid #f8f9fa;
+    padding: 0.5rem 0;
+}
+
+.application-details .row:last-child {
+    border-bottom: none;
+}
+
+@media print {
+    .btn-group, .card:last-child {
+        display: none !important;
+    }
+    
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6 !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .container-lg {
+        padding: 10px;
+    }
+    
+    .btn-group {
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        flex: 1;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function checkStatus() {
+    const appNumber = document.getElementById('statusCheck').value.trim();
+    const resultDiv = document.getElementById('statusResult');
+    
+    if (!appNumber) {
+        resultDiv.innerHTML = '<div class="alert alert-warning">Please enter an application number</div>';
+        return;
+    }
+    
+    resultDiv.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Checking...</div>';
+    
+    fetch(`{% url 'core:admission_status_api' app_number='APP_NUMBER_PLACEHOLDER' %}`.replace('APP_NUMBER_PLACEHOLDER', encodeURIComponent(appNumber)))
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            } else {
+                let statusBadge = '';
+                if (data.status === 'Pending') {
+                    statusBadge = '<span class="badge bg-warning text-dark">Pending</span>';
+                } else if (data.status === 'Approved') {
+                    statusBadge = '<span class="badge bg-success">Approved</span>';
+                } else if (data.status === 'Rejected') {
+                    statusBadge = '<span class="badge bg-danger">Rejected</span>';
+                }
+                
+                resultDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <h6>Application Found!</h6>
+                        <p class="mb-1"><strong>Applicant:</strong> ${data.applicant_name}</p>
+                        <p class="mb-1"><strong>Course:</strong> ${data.course_applied}</p>
+                        <p class="mb-1"><strong>Status:</strong> ${statusBadge}</p>
+                        <p class="mb-1"><strong>Applied:</strong> ${data.application_date}</p>
+                        ${data.remarks ? `<p class="mb-0"><strong>Remarks:</strong> ${data.remarks}</p>` : ''}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            resultDiv.innerHTML = '<div class="alert alert-danger">Error checking status. Please try again.</div>';
+        });
+}
+
+document.getElementById('statusCheck').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        checkStatus();
+    }
+});
+</script>
+{% endblock %}

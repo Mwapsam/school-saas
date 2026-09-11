@@ -1,0 +1,573 @@
+{% extends 'core/layouts/detail.html' %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title=guardian.first_name|add:" "|add:guardian.last_name icon='fa-user-tie' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}{{ guardian.first_name }} {{ guardian.last_name }} - Parent Management{% endblock %}
+
+{% block layout_sections %}
+<div class="container-lg py-4">
+    <!-- Breadcrumb -->
+    
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <p class="text-muted mb-0">
+            {% if guardian.relation %}<i class="fas fa-link me-1"></i>{{ guardian.relation }}{% endif %}
+            {% if has_login %} &bull; <i class="fas fa-key me-1 text-success"></i>Portal Access{% endif %}
+            &bull; Linked Children: {{ linked_children_count }}
+        </p>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                <i class="fas fa-edit me-1"></i> Edit Profile
+            </button>
+            <a href="{% url 'core:user_management' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i> Back to Users
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left Column: Profile + Portal Access -->
+        <div class="col-lg-4">
+            <!-- Guardian Profile Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-id-card me-2"></i>Profile Information</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="mb-0 small">
+                        {% if guardian.relation %}
+                        <dt class="text-muted">Relationship</dt>
+                        <dd>{{ guardian.relation }}</dd>
+                        {% endif %}
+
+                        {% if guardian.email %}
+                        <dt class="text-muted">Email</dt>
+                        <dd><a href="mailto:{{ guardian.email }}">{{ guardian.email }}</a></dd>
+                        {% endif %}
+
+                        {% if guardian.mobile_phone %}
+                        <dt class="text-muted">Mobile</dt>
+                        <dd><a href="tel:{{ guardian.mobile_phone }}">{{ guardian.mobile_phone }}</a></dd>
+                        {% endif %}
+
+                        {% if guardian.office_phone %}
+                        <dt class="text-muted">Office</dt>
+                        <dd><a href="tel:{{ guardian.office_phone }}">{{ guardian.office_phone }}</a></dd>
+                        {% endif %}
+
+                        {% if guardian.occupation %}
+                        <dt class="text-muted">Occupation</dt>
+                        <dd>{{ guardian.occupation }}</dd>
+                        {% endif %}
+
+                        {% if guardian.education %}
+                        <dt class="text-muted">Education</dt>
+                        <dd>{{ guardian.education }}</dd>
+                        {% endif %}
+
+                        {% if guardian.dob %}
+                        <dt class="text-muted">Date of Birth</dt>
+                        <dd>{{ guardian.dob|date:"M d, Y" }}</dd>
+                        {% endif %}
+
+                        <dt class="text-muted">Status</dt>
+                        <dd>
+                            {% if is_active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Residential Address Card -->
+            {% if guardian.office_address_line1 or guardian.office_address_line2 or guardian.city or guardian.state %}
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-home me-2"></i>Residential Address</h6>
+                </div>
+                <div class="card-body">
+                    <address class="mb-0">
+                        {% if guardian.office_address_line1 %}
+                        {{ guardian.office_address_line1 }}<br>
+                        {% endif %}
+                        {% if guardian.office_address_line2 %}
+                        {{ guardian.office_address_line2 }}<br>
+                        {% endif %}
+                        {% if guardian.city or guardian.state %}
+                        <div class="mt-2">
+                            {% if guardian.city %}{{ guardian.city }}{% if guardian.state %}, {% endif %}{% endif %}{% if guardian.state %}{{ guardian.state }}{% endif %}
+                        </div>
+                        {% endif %}
+                    </address>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Portal Access Card -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-key me-2"></i>Portal Access</h6>
+                </div>
+                <div class="card-body">
+                    {% if has_login %}
+                    <div class="mb-3">
+                        <label class="small text-muted d-block">Username</label>
+                        <code>{{ username }}</code>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-muted d-block">Last Login</label>
+                        {% if last_login %}
+                        <span>{{ last_login|date:"M d, Y g:i A" }}</span>
+                        {% else %}
+                        <span class="text-muted">Never</span>
+                        {% endif %}
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#resetPasswordModal">
+                            <i class="fas fa-key me-1"></i> Reset Password
+                        </button>
+                        <form method="post" onsubmit="event.preventDefault(); showDanger('Deactivate portal login?', () => this.submit());">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="deactivate_login">
+                            <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                <i class="fas fa-user-slash me-1"></i> Deactivate Login
+                            </button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <p class="text-muted small mb-3">No portal login yet. Enable to allow this guardian to access the parent portal.</p>
+                    <button class="btn btn-sm btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#enableLoginModal">
+                        <i class="fas fa-id-badge me-1"></i> Enable Portal Login
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Children, Financial, Invoices, Receipts, Agreements -->
+        <div class="col-lg-8">
+            <!-- Linked Children -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="fas fa-children me-2"></i>Linked Children ({{ linked_children_count }})</h6>
+                </div>
+                {% if guardian_relations %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0 small">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Batch</th>
+                                <th>Relationship</th>
+                                <th class="text-center">Primary</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for relation in guardian_relations %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'core:student_detail' relation.student.id %}">
+                                        {{ relation.student.first_name }} {{ relation.student.last_name }}
+                                    </a>
+                                    <br><small class="text-muted">Adm: {{ relation.student.admission_no }}</small>
+                                </td>
+                                <td>
+                                    {% with batch=relation.student.student_batches.filter|first %}
+                                    {% if batch %}{{ batch.batch.name }}{% else %}-{% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <form method="post" class="d-flex gap-1" style="min-width: 140px;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="update_relationship">
+                                        <input type="hidden" name="student_id" value="{{ relation.student.id }}">
+                                        <select name="relation" class="form-select form-select-sm" onchange="this.form.querySelector('.relation-save-btn').classList.remove('d-none')">
+                                            <option value="Father" {% if relation.relation == "Father" %}selected{% endif %}>Father</option>
+                                            <option value="Mother" {% if relation.relation == "Mother" %}selected{% endif %}>Mother</option>
+                                            <option value="Guardian" {% if relation.relation == "Guardian" %}selected{% endif %}>Guardian</option>
+                                            {% if relation.relation != "Father" and relation.relation != "Mother" and relation.relation != "Guardian" %}
+                                            <option value="{{ relation.relation }}" selected>{{ relation.relation }}</option>
+                                            {% endif %}
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary relation-save-btn d-none" title="Save relationship">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                                <td class="text-center">
+                                    {% if relation.is_immediate_contact %}
+                                    <span class="badge bg-success" title="Primary contact for this student">
+                                        <i class="fas fa-star me-1"></i>Primary
+                                    </span>
+                                    {% else %}
+                                    <form method="post" style="display:inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="set_primary_contact">
+                                        <input type="hidden" name="student_id" value="{{ relation.student.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-warning" title="Click to set as primary contact for this student" data-bs-toggle="tooltip">
+                                            <i class="fas fa-star me-1"></i> Set Primary
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <form method="post" style="display:inline;" onsubmit="event.preventDefault(); showDanger('Unlink {{ relation.student.first_name }}?', () => this.submit());">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="unlink_student">
+                                        <input type="hidden" name="student_id" value="{{ relation.student.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-unlink"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="card-body text-center py-4 text-muted">
+                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                    <p>No children linked to this guardian yet.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Financial Summary -->
+            <div class="row mb-4 g-3">
+                <div class="col-6">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <p class="text-muted small mb-1">Total Outstanding</p>
+                            <h4 class="{% if total_outstanding > 0 %}text-danger{% else %}text-success{% endif %} mb-0">
+                                {{ currency_symbol }}{{ total_outstanding|floatformat:2 }}
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <p class="text-muted small mb-1">Total Paid</p>
+                            <h4 class="text-success mb-0">{{ currency_symbol }}{{ total_amount_paid|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Family Invoices -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="fas fa-file-invoice me-2"></i>Family Invoices ({{ family_invoices|length }})</h6>
+                    {% if open_invoices_count %}
+                    <span class="badge bg-warning">{{ open_invoices_count }} Open</span>
+                    {% endif %}
+                </div>
+                {% if family_invoices %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0 small">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Year</th>
+                                <th>Status</th>
+                                <th class="text-end">Total</th>
+                                <th class="text-end">Paid</th>
+                                <th class="text-end">Balance</th>
+                                <th>Due Date</th>
+                                <th class="text-end">Fee Note</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in family_invoices %}
+                            <tr>
+                                <td><strong>{{ invoice.invoice_number }}</strong></td>
+                                <td>{{ invoice.academic_year.name }}</td>
+                                <td>
+                                    {% if invoice.status == 'open' %}
+                                    <span class="badge bg-warning">Open</span>
+                                    {% elif invoice.status == 'paid' %}
+                                    <span class="badge bg-success">Paid</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ invoice.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">{{ currency_symbol }}{{ invoice.total_amount|floatformat:2 }}</td>
+                                <td class="text-end text-success">{{ currency_symbol }}{{ invoice.amount_paid|floatformat:2 }}</td>
+                                <td class="text-end {% if invoice.balance_due > 0 %}text-danger{% endif %}">
+                                    {{ currency_symbol }}{{ invoice.balance_due|floatformat:2 }}
+                                </td>
+                                <td>
+                                    {% if invoice.due_date %}
+                                    <small>{{ invoice.due_date|date:"M d, Y" }}</small>
+                                    {% else %}
+                                    <small class="text-muted">—</small>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{% url 'core:family_invoice_pdf' invoice.id %}"
+                                       target="_blank" rel="noopener"
+                                       class="btn btn-sm btn-outline-primary"
+                                       title="Open the generated fee note (PDF)">
+                                        <i class="fas fa-file-pdf me-1"></i>View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="card-body text-center py-4 text-muted">
+                    <p>No invoices yet.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Payment Receipts -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-receipt me-2"></i>Payment Receipts ({{ receipts|length }})</h6>
+                </div>
+                {% if receipts %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0 small">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Receipt #</th>
+                                <th>Student</th>
+                                <th class="text-end">Amount</th>
+                                <th>Paid On</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for receipt in receipts %}
+                            <tr>
+                                <td><strong>{{ receipt.reference_number }}</strong></td>
+                                <td>{{ receipt.student_name }}</td>
+                                <td class="text-end text-success">{{ currency_symbol }}{{ receipt.total_amount|floatformat:2 }}</td>
+                                <td><small>{{ receipt.paid_on|date:"M d, Y" }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="card-body text-center py-4 text-muted">
+                    <p>No payments recorded yet.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Payment Agreements -->
+            {% if payment_agreements %}
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-handshake me-2"></i>Payment Agreements ({{ payment_agreements|length }})</h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0 small">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Status</th>
+                                <th class="text-end">Amount</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for agreement in payment_agreements %}
+                            <tr>
+                                <td>
+                                    {% if agreement.status == 'active' %}
+                                    <span class="badge bg-success">Active</span>
+                                    {% elif agreement.status == 'draft' %}
+                                    <span class="badge bg-secondary">Draft</span>
+                                    {% elif agreement.status == 'completed' %}
+                                    <span class="badge bg-info">Completed</span>
+                                    {% elif agreement.status == 'defaulted' %}
+                                    <span class="badge bg-danger">Defaulted</span>
+                                    {% else %}
+                                    <span class="badge">{{ agreement.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">{{ currency_symbol }}{{ agreement.total_amount|floatformat:2 }}</td>
+                                <td><small>{{ agreement.created_at|date:"M d, Y" }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- MODALS -->
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_profile">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Guardian Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">First Name</label>
+                            <input type="text" class="form-control" name="first_name" value="{{ guardian.first_name }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" class="form-control" name="last_name" value="{{ guardian.last_name }}" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Relationship</label>
+                        <input type="text" class="form-control" name="relation" value="{{ guardian.relation|default:'' }}" placeholder="e.g., Father, Mother, Guardian">
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email" value="{{ guardian.email|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mobile Phone</label>
+                            <input type="tel" class="form-control" name="mobile_phone" value="{{ guardian.mobile_phone|default:'' }}">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Office Phone</label>
+                            <input type="tel" class="form-control" name="office_phone" value="{{ guardian.office_phone|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date of Birth</label>
+                            <input type="date" class="form-control" name="dob" value="{{ guardian.dob|date:'Y-m-d'|default:'' }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Address Line 1</label>
+                        <input type="text" class="form-control" name="office_address_line1" value="{{ guardian.office_address_line1|default:'' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Address Line 2</label>
+                        <input type="text" class="form-control" name="office_address_line2" value="{{ guardian.office_address_line2|default:'' }}">
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">City</label>
+                            <input type="text" class="form-control" name="city" value="{{ guardian.city|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">State</label>
+                            <input type="text" class="form-control" name="state" value="{{ guardian.state|default:'' }}">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Occupation</label>
+                            <input type="text" class="form-control" name="occupation" value="{{ guardian.occupation|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Education</label>
+                            <input type="text" class="form-control" name="education" value="{{ guardian.education|default:'' }}">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Enable Portal Login Modal -->
+<div class="modal fade" id="enableLoginModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="enable_login">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Enable Portal Login</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Username <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="username" placeholder="min. 3 characters" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Temporary Password <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" name="password" placeholder="min. 8 characters" required>
+                    </div>
+                    <p class="small text-muted">The guardian will need to change their password on first login.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Enable Login</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="reset_password">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Reset Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">New Password <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" name="new_password" placeholder="min. 8 characters" required>
+                    </div>
+                    <p class="small text-muted">The guardian will be required to change this password on their next login.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Reset Password</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+function showDanger(message, callback) {
+    if (confirm(message)) {
+        callback();
+    }
+}
+</script>
+{% endblock %}

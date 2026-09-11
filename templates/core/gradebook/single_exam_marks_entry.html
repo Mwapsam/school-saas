@@ -1,0 +1,1982 @@
+{% extends 'core/layouts/form.html' %}
+
+
+{% load static %}
+
+
+
+
+
+{% block page_title %}{{ exam.subject.name }} - Mark Entry{% endblock %}
+
+
+
+
+
+
+
+
+{% block layout_header %}
+
+
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with title=exam.subject.name description=mark_entry_description icon="fa-pen" back_url=back_url|default:back_fallback crumbs=crumbs %}
+
+
+{% endblock %}
+
+
+
+
+
+{% block layout_form %}
+<div class="gb-marks-entry">
+
+
+
+
+
+<!-- Exam Group Info -->
+
+
+<div class="pw-card mb-3">
+
+
+    <div class="pw-card-header"><span class="pw-card-title">Exam Group Details</span></div>
+
+
+    <div style="padding:1rem 1.25rem">
+
+
+        <div class="me-info-grid">
+
+
+            <div class="me-info-label">Exam Group</div>
+
+
+            <div class="me-info-value">{{ exam_group.name }}</div>
+
+
+            <div class="me-info-label">Exam Type</div>
+
+
+            <div class="me-info-value">{{ exam_type_display }}</div>
+
+
+            <div class="me-info-label">Class</div>
+
+
+            <div class="me-info-value">{{ batch.course.course_name }}</div>
+
+
+            <div class="me-info-label">Batch</div>
+
+
+            <div class="me-info-value">{{ batch.name }}</div>
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+
+
+
+<!-- Subject Exam Details Strip -->
+
+
+<div class="me-detail-strip">
+
+
+    <div class="me-detail-cell">
+
+
+        <div class="me-detail-label">Subject Exam</div>
+
+
+        <div class="me-detail-value">{{ exam.subject.name }}</div>
+
+
+    </div>
+
+
+    <div class="me-detail-cell">
+
+
+        <div class="me-detail-label">Exam Date</div>
+
+
+        <div class="me-detail-value">
+
+
+            {% if exam.start_time %}{{ exam.start_time|date:"d/m/Y H:i A" }}
+
+
+            {% else %}{{ exam_group.exam_date|date:"d/m/Y" }} 07:00 AM{% endif %}
+
+
+        </div>
+
+
+    </div>
+
+
+    {% if scoring_type != 'grades' %}
+
+
+    <div class="me-detail-cell">
+
+
+        <div class="me-detail-label">Maximum Marks</div>
+
+
+        <div class="me-detail-value">{{ exam.maximum_marks|floatformat:1 }}</div>
+
+
+    </div>
+
+
+    {% endif %}
+
+
+    <div class="me-detail-cell">
+
+
+        <div class="me-detail-label">Grading Profile</div>
+
+
+        <div class="me-detail-value">{{ batch.course.course_name }}</div>
+
+
+    </div>
+
+
+    <div class="me-detail-cell">
+
+
+        <div class="me-detail-label">Mark Entry Last Date</div>
+
+
+        <div class="me-detail-value">
+
+
+            {% if exam.end_time %}{{ exam.end_time|date:"d/m/Y" }}
+
+
+            {% else %}{{ exam_group.exam_date|date:"d/m/Y" }}{% endif %}
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+
+
+
+{% if scoring_type != 'levels' %}
+
+
+<p class="me-warning">
+
+
+    <i class="fas fa-info-circle me-1"></i>
+
+
+    Submitting marks will lock mark entry for this subject — you will not be able to modify marks after submission.
+
+
+</p>
+
+
+{% endif %}
+
+
+
+
+
+{% if not is_activated %}
+
+
+<div style="text-align:center;padding:2.5rem;color:var(--color-muted);border:1px dashed var(--p-gray-border,#e0e0e0)">
+
+
+    <i class="fas fa-lock fa-2x mb-2" style="opacity:0.35;display:block"></i>
+
+
+    <strong>This exam plan has not been activated yet</strong>
+
+
+    <p class="mt-1 mb-0" style="font-size:0.85rem">
+
+
+        Marks cannot be entered until it is published from the Exam Planner.
+
+
+    </p>
+
+
+</div>
+
+
+{% else %}
+
+
+
+
+
+{% if scoring_type == 'levels' %}
+
+
+<div class="pw-card mb-3" style="padding:0.75rem 1.25rem">
+
+
+    <div class="row g-2 align-items-center">
+
+
+        <div class="col-auto">
+
+
+            <label class="form-label mb-0 fw-semibold" style="font-size:0.82rem">Academic Year</label>
+
+
+            <select id="sk-year" class="pw-form-control" style="width:200px">
+
+
+                {% for ay in academic_years %}
+
+
+                <option value="{{ ay.id }}"{% if ay == active_year %} selected{% endif %}>{{ ay.name }}</option>
+
+
+                {% endfor %}
+
+
+            </select>
+
+
+        </div>
+
+
+        <div class="col-auto">
+
+
+            <label class="form-label mb-0 fw-semibold" style="font-size:0.82rem">Term</label>
+
+
+            <input id="sk-term" type="text" class="pw-form-control" style="width:140px"
+
+
+                   value="{{ term_name }}" placeholder="e.g. Term 1">
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+
+
+
+<div class="row">
+
+
+    <div class="col-md-4">
+
+
+        <div class="pw-card" style="padding:0">
+
+
+            <div class="pw-card-header"><span class="pw-card-title">Students ({{ students_with_scores|length }})</span></div>
+
+
+            <div class="list-group list-group-flush me-sk-sidebar" style="max-height:calc(100vh - 380px);overflow-y:auto">
+
+
+                {% for item in students_with_scores %}
+
+
+                <a href="#" class="list-group-item list-group-item-action sk-student"
+
+
+                   data-student-id="{{ item.student.id }}"
+
+
+                   data-student-name="{{ item.student.first_name }} {{ item.student.last_name }}">
+
+
+                    <div class="d-flex justify-content-between align-items-center">
+
+
+                        <div>
+
+
+                            <div class="fw-medium" style="font-size:0.88rem">{{ item.student.first_name }} {{ item.student.last_name }}</div>
+
+
+                            <small class="text-muted">{{ item.student.admission_no|default:"" }}</small>
+
+
+                        </div>
+
+
+                        <i class="fas fa-chevron-right text-muted" style="font-size:0.75rem"></i>
+
+
+                    </div>
+
+
+                </a>
+
+
+                {% endfor %}
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+    <div class="col-md-8">
+
+
+        <div class="pw-card" style="padding:0">
+
+
+            <div class="pw-card-header">
+
+
+                <span class="pw-card-title" id="sk-panel-title">Select a student to begin</span>
+
+
+                <button id="sk-save-btn" class="btn btn-primary btn-sm d-none" onclick="skSave()">
+
+
+                    <i class="fas fa-save me-1"></i>Save
+
+
+                </button>
+
+
+            </div>
+
+
+            <div id="sk-panel" style="max-height:calc(100vh - 380px);overflow-y:auto">
+
+
+                <div class="text-center text-muted py-5">
+
+
+                    <i class="fas fa-user fa-3x mb-3 opacity-25"></i>
+
+
+                    <p>Select a student from the list to view or record their skills.</p>
+
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+
+
+
+<div class="me-actions mt-3">
+
+
+    <button type="button" class="btn btn-primary submit-marks-btn" onclick="submitMarks()">Submit Assessment</button>
+
+
+    <button type="button" class="btn btn-outline-secondary" onclick="goBack()">Cancel</button>
+
+
+</div>
+
+
+{% endif %}
+
+
+
+
+
+{% if scoring_type != 'levels' %}
+
+
+<div class="me-entry-header">
+
+
+    {% if scoring_type == 'grades' %}Enter Grades for Students{% else %}Enter Marks for Students{% endif %}
+
+
+</div>
+
+
+
+
+
+<div class="pw-table-wrap" style="margin-bottom:0">
+
+
+    <table class="pw-table">
+
+
+        <thead>
+
+
+            <tr>
+
+
+                <th style="width:50px">No.</th>
+
+
+                <th style="width:200px">Student</th>
+
+
+                <th style="width:110px">Admission No.</th>
+
+
+                <th style="width:70px;text-align:center">Absent</th>
+
+
+                {% if scoring_type == 'grades' %}
+
+
+                <th style="width:160px">Grade</th>
+
+
+                <th>Result</th>
+
+
+                {% else %}
+
+
+                <th style="width:100px;text-align:center">Marks</th>
+
+
+                <th style="width:80px;text-align:center">Grade</th>
+
+
+                <th>Result</th>
+
+
+                {% endif %}
+
+
+            </tr>
+
+
+        </thead>
+
+
+        <tbody>
+
+
+            {% for item in students_with_scores %}
+
+
+            <tr data-student-id="{{ item.student.id }}">
+
+
+                <td style="color:var(--color-muted);font-size:0.82rem">{{ forloop.counter }}</td>
+
+
+                <td style="font-weight:500">{{ item.student.first_name }} {{ item.student.last_name }}</td>
+
+
+                <td style="font-size:0.8rem;color:var(--color-muted)">{{ item.student.admission_no|default:"-" }}</td>
+
+
+                <td style="text-align:center">
+
+
+                    <input type="checkbox"
+
+
+                           class="absent-checkbox"
+
+
+                           style="transform:scale(1.2)"
+
+
+                           data-student-id="{{ item.student.id }}"
+
+
+                           {% if item.score and item.score.is_absent %}checked{% endif %}
+
+
+                           onchange="toggleAbsent(this)">
+
+
+                </td>
+
+
+                {% if scoring_type == 'grades' %}
+
+
+                <td>
+
+
+                    <select class="me-grade-select"
+
+
+                            data-student-id="{{ item.student.id }}"
+
+
+                            {% if item.score and item.score.is_absent %}disabled{% endif %}
+
+
+                            onchange="onGradeSelected(this)">
+
+
+                        <option value="">-- Select --</option>
+
+
+                        {% for gv in grade_values %}
+
+
+                        <option value="{{ gv.id }}" {% if item.grade_value_id == gv.id|stringformat:"s" %}selected{% endif %}>{{ gv.name }}</option>
+
+
+                        {% endfor %}
+
+
+                    </select>
+
+
+                </td>
+
+
+                <td>
+
+
+                    <span class="result-display" data-student-id="{{ item.student.id }}">
+
+
+                        {% if item.score and not item.score.is_absent and item.score.grade_value %}
+
+
+                            {% if item.score.grade_value.is_passing %}<span class="me-result-pass">Pass</span>{% else %}<span class="me-result-fail">Fail</span>{% endif %}
+
+
+                        {% endif %}
+
+
+                    </span>
+
+
+                </td>
+
+
+                {% else %}
+
+
+                <td style="text-align:center">
+
+
+                    <input type="number"
+
+
+                           class="me-marks-input"
+
+
+                           data-student-id="{{ item.student.id }}"
+
+
+                           value="{% if item.score and not item.score.is_absent %}{{ item.score.marks|floatformat:1 }}{% endif %}"
+
+
+                           min="0" max="{{ exam.maximum_marks }}" step="0.1"
+
+
+                           {% if item.score and item.score.is_absent %}disabled{% endif %}
+
+
+                           onchange="calculateGrade(this)">
+
+
+                </td>
+
+
+                <td style="text-align:center">
+
+
+                    <span class="me-grade-display" data-student-id="{{ item.student.id }}">
+
+
+                        {% if item.score and not item.score.is_absent %}{{ item.score.grading_level.name|default:"" }}{% endif %}
+
+
+                    </span>
+
+
+                </td>
+
+
+                <td>
+
+
+                    <span class="result-display" data-student-id="{{ item.student.id }}">
+
+
+                        {% if item.score and not item.score.is_absent %}
+
+
+                            {% if item.score.marks >= exam.minimum_marks %}<span class="me-result-pass">Pass</span>{% else %}<span class="me-result-fail">Fail</span>{% endif %}
+
+
+                        {% endif %}
+
+
+                    </span>
+
+
+                </td>
+
+
+                {% endif %}
+
+
+            </tr>
+
+
+            {% endfor %}
+
+
+        </tbody>
+
+
+    </table>
+
+
+</div>
+
+
+
+
+
+<div class="me-actions">
+
+
+    <button type="button" class="btn btn-primary submit-marks-btn" onclick="submitMarks()" disabled>
+
+
+        {% if scoring_type == 'grades' %}Submit Grades{% else %}Submit Marks{% endif %}
+
+
+    </button>
+
+
+    <button type="button" class="btn btn-outline-secondary" onclick="goBack()">Cancel</button>
+
+
+</div>
+
+
+{% endif %}
+
+
+
+
+
+{% endif %}{# end is_activated #}
+
+
+
+
+
+{% csrf_token %}
+
+
+
+
+
+</div>
+{% endblock %}
+
+
+
+
+
+{% block layout_validation %}
+
+
+{% endblock %}
+
+
+
+
+
+{% block layout_actions %}
+
+
+{% endblock %}
+
+
+
+
+
+{% block layout_extra %}
+<div class="gb-marks-entry">
+
+
+<!-- Submit Confirmation Modal -->
+
+
+<div class="modal fade" id="submitConfirmModal" tabindex="-1">
+
+
+    <div class="modal-dialog modal-sm">
+
+
+        <div class="modal-content" style="border-radius:0">
+
+
+            <div class="modal-header pw-brand py-2">
+
+
+                <h6 class="modal-title mb-0">
+
+
+                    <i class="fas fa-paper-plane me-2"></i>
+
+
+                    {% if scoring_type == 'levels' %}Save Assessment{% elif scoring_type == 'grades' %}Submit Grades{% else %}Submit Marks{% endif %}
+
+
+                </h6>
+
+
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+
+
+            </div>
+
+
+            <div class="modal-body">
+
+
+                <p class="mb-1">
+
+
+                    {% if scoring_type == 'levels' %}Save skills assessment{% elif scoring_type == 'grades' %}Submit grades{% else %}Submit marks{% endif %}
+
+
+                    for <strong>{{ exam.subject.name }}</strong>?
+
+
+                </p>
+
+
+                <p class="text-muted small mb-0">This will save all entries. You can re-submit to correct them before publishing.</p>
+
+
+            </div>
+
+
+            <div class="modal-footer py-2">
+
+
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+
+
+                <button type="button" class="btn btn-primary btn-sm" id="confirm-submit-btn">
+
+
+                    <i class="fas fa-check me-1"></i>Submit
+
+
+                </button>
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+
+
+
+<!-- Result Modal -->
+
+
+<div class="modal fade" id="resultModal" tabindex="-1" data-bs-backdrop="static">
+
+
+    <div class="modal-dialog modal-sm">
+
+
+        <div class="modal-content" style="border-radius:0">
+
+
+            <div class="modal-header py-2" id="result-modal-header">
+
+
+                <h6 class="modal-title mb-0" id="result-modal-title"></h6>
+
+
+            </div>
+
+
+            <div class="modal-body" id="result-modal-body"></div>
+
+
+            <div class="modal-footer py-2">
+
+
+                <button type="button" class="btn btn-sm" id="result-modal-btn" data-bs-dismiss="modal">OK</button>
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+</div>
+{% endblock %}
+
+
+
+
+
+{% block extra_js %}
+
+
+<script>
+
+
+const SCORING_TYPE = '{{ scoring_type }}';
+
+
+const maxMarks = {{ exam.maximum_marks }};
+
+
+const minMarks = {{ exam.minimum_marks|default:0 }};
+
+
+
+
+
+const gradeValuesData = {{ grade_values_json|safe }};
+
+
+const gradeValueMap = {};
+
+
+gradeValuesData.forEach(function(gv) { gradeValueMap[gv.id] = gv; });
+
+
+
+
+
+let gradeLevels = [];
+
+
+
+
+
+document.addEventListener('DOMContentLoaded', function() {
+
+
+    if (SCORING_TYPE === 'marks' || SCORING_TYPE === 'marks_and_grades') {
+
+
+        fetch('{% url "core:get_grade_levels_api" batch_id=batch.id %}')
+
+
+            .then(function(r) { return r.json(); })
+
+
+            .then(function(data) {
+
+
+                if (data.success && data.grade_levels) {
+
+
+                    gradeLevels = data.grade_levels.sort(function(a, b) {
+
+
+                        return parseFloat(b.min_score) - parseFloat(a.min_score);
+
+
+                    });
+
+
+                }
+
+
+                document.querySelectorAll('.me-marks-input').forEach(function(input) { if (input.value) calculateGrade(input); });
+
+
+            });
+
+
+        document.querySelectorAll('.me-marks-input').forEach(function(input) { if (input.value) calculateGrade(input); });
+
+
+    }
+
+
+});
+
+
+
+
+
+function checkSubmitReady() {
+
+
+    if (SCORING_TYPE === 'levels') return;
+
+
+    let allComplete = true;
+
+
+    document.querySelectorAll('tr[data-student-id]').forEach(function(row) {
+
+
+        const absCb = row.querySelector('.absent-checkbox');
+
+
+        if (absCb && absCb.checked) return;
+
+
+        if (SCORING_TYPE === 'grades') {
+
+
+            const sel = row.querySelector('.me-grade-select');
+
+
+            if (!sel || !sel.value) { allComplete = false; }
+
+
+        } else {
+
+
+            const inp = row.querySelector('.me-marks-input');
+
+
+            if (!inp || inp.value === '') { allComplete = false; }
+
+
+        }
+
+
+    });
+
+
+    const btn = document.querySelector('.submit-marks-btn');
+
+
+    if (btn) btn.disabled = !allComplete;
+
+
+}
+
+
+
+
+
+function toggleAbsent(checkbox) {
+
+
+    const studentId = checkbox.dataset.studentId;
+
+
+    const resultDisplay = document.querySelector('.result-display[data-student-id="' + studentId + '"]');
+
+
+
+
+
+    if (SCORING_TYPE === 'levels') {
+
+
+        document.querySelectorAll('.level-radio[data-student-id="' + studentId + '"]').forEach(function(r) {
+
+
+            r.disabled = checkbox.checked;
+
+
+            if (checkbox.checked) r.checked = false;
+
+
+        });
+
+
+    } else if (SCORING_TYPE === 'grades') {
+
+
+        const gradeSelect = document.querySelector('.me-grade-select[data-student-id="' + studentId + '"]');
+
+
+        if (gradeSelect) { gradeSelect.disabled = checkbox.checked; if (checkbox.checked) gradeSelect.value = ''; }
+
+
+        if (checkbox.checked && resultDisplay) resultDisplay.innerHTML = '';
+
+
+    } else {
+
+
+        const marksInput = document.querySelector('.me-marks-input[data-student-id="' + studentId + '"]');
+
+
+        const gradeDisplay = document.querySelector('.me-grade-display[data-student-id="' + studentId + '"]');
+
+
+        if (marksInput) { marksInput.disabled = checkbox.checked; if (checkbox.checked) marksInput.value = ''; }
+
+
+        if (checkbox.checked) {
+
+
+            if (gradeDisplay) gradeDisplay.textContent = '';
+
+
+            if (resultDisplay) resultDisplay.innerHTML = '';
+
+
+        }
+
+
+    }
+
+
+    checkSubmitReady();
+
+
+}
+
+
+
+
+
+function onGradeSelected(select) {
+
+
+    checkSubmitReady();
+
+
+    const studentId = select.dataset.studentId;
+
+
+    const resultDisplay = document.querySelector('.result-display[data-student-id="' + studentId + '"]');
+
+
+    const gradeValueId = select.value;
+
+
+    if (!gradeValueId) { if (resultDisplay) resultDisplay.innerHTML = ''; return; }
+
+
+    const gv = gradeValueMap[gradeValueId];
+
+
+    if (gv && resultDisplay) {
+
+
+        resultDisplay.innerHTML = gv.is_passing
+
+
+            ? '<span class="me-result-pass">Pass</span>'
+
+
+            : '<span class="me-result-fail">Fail</span>';
+
+
+    }
+
+
+}
+
+
+
+
+
+function calculateGrade(input) {
+
+
+    checkSubmitReady();
+
+
+    const studentId = input.dataset.studentId;
+
+
+    const marks = parseFloat(input.value);
+
+
+    const gradeDisplay = document.querySelector('.me-grade-display[data-student-id="' + studentId + '"]');
+
+
+    const resultDisplay = document.querySelector('.result-display[data-student-id="' + studentId + '"]');
+
+
+
+
+
+    if (isNaN(marks) || marks < 0 || marks > maxMarks) {
+
+
+        if (gradeDisplay) gradeDisplay.textContent = '';
+
+
+        if (resultDisplay) resultDisplay.innerHTML = '';
+
+
+        return;
+
+
+    }
+
+
+
+
+
+    const pct = maxMarks > 0 ? (marks / maxMarks) * 100 : 0;
+
+
+    let grade = 'F';
+
+
+    if (gradeLevels.length) {
+
+
+        const match = gradeLevels.find(function(gl) { return pct >= parseFloat(gl.min_score); });
+
+
+        grade = match ? match.name : gradeLevels[gradeLevels.length - 1].name;
+
+
+    } else {
+
+
+        if (pct >= 90) grade = 'A';
+
+
+        else if (pct >= 80) grade = 'B';
+
+
+        else if (pct >= 70) grade = 'C';
+
+
+        else if (pct >= 60) grade = 'D';
+
+
+    }
+
+
+    if (gradeDisplay) gradeDisplay.textContent = grade;
+
+
+    if (resultDisplay) resultDisplay.innerHTML = marks >= minMarks
+
+
+        ? '<span class="me-result-pass">Pass</span>'
+
+
+        : '<span class="me-result-fail">Fail</span>';
+
+
+}
+
+
+
+
+
+const submitConfirmModal = new bootstrap.Modal(document.getElementById('submitConfirmModal'));
+
+
+const resultModal = new bootstrap.Modal(document.getElementById('resultModal'));
+
+
+
+
+
+document.addEventListener('DOMContentLoaded', checkSubmitReady);
+
+
+
+
+
+function showResult(success, message) {
+
+
+    const header = document.getElementById('result-modal-header');
+
+
+    const title  = document.getElementById('result-modal-title');
+
+
+    const body   = document.getElementById('result-modal-body');
+
+
+    const btn    = document.getElementById('result-modal-btn');
+
+
+    if (success) {
+
+
+        header.className = 'modal-header py-2 pw-brand';
+
+
+        title.innerHTML  = '<i class="fas fa-check-circle me-2"></i>Saved';
+
+
+        btn.className    = 'btn btn-primary btn-sm';
+
+
+    } else {
+
+
+        header.className = 'modal-header py-2 pw-danger';
+
+
+        title.innerHTML  = '<i class="fas fa-exclamation-triangle me-2"></i>Error';
+
+
+        btn.className    = 'btn btn-danger btn-sm';
+
+
+    }
+
+
+    body.textContent = message;
+
+
+    resultModal.show();
+
+
+}
+
+
+
+
+
+function submitMarks() { submitConfirmModal.show(); }
+
+
+
+
+
+document.getElementById('confirm-submit-btn').addEventListener('click', function() {
+
+
+    submitConfirmModal.hide();
+
+
+    if (SCORING_TYPE === 'levels') {
+
+
+        const allStudents = [];
+
+
+        document.querySelectorAll('.sk-student').forEach(function(el) {
+
+
+            allStudents.push({ student_id: el.dataset.studentId, marks: null, grade_value_id: null, is_absent: false });
+
+
+        });
+
+
+        const submitBtn = document.querySelector('.submit-marks-btn');
+
+
+        if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Submitting…';
+
+
+        document.querySelectorAll('button').forEach(function(b) { b.disabled = true; });
+
+
+        fetch('{% url "core:save_marks_api" %}', {
+
+
+            method: 'POST',
+
+
+            headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value, 'Content-Type': 'application/json' },
+
+
+            body: JSON.stringify({ exam_id: '{{ exam.id }}', marks: allStudents })
+
+
+        })
+
+
+        .then(function(r) { return r.json(); })
+
+
+        .then(function(response) {
+
+
+            document.querySelectorAll('button').forEach(function(b) { b.disabled = false; });
+
+
+            if (response.success) {
+
+
+                showResult(true, 'Assessment submitted successfully.');
+
+
+                document.getElementById('result-modal-btn').addEventListener('click', function() { goBack(); }, { once: true });
+
+
+            } else {
+
+
+                if (submitBtn) submitBtn.innerHTML = 'Submit Assessment';
+
+
+                if (response.failed_count) {
+
+
+                    showResult(false, 'Saved ' + response.saved_count + ' of ' + response.attempted_count + '. ' + (response.errors || []).join('; '));
+
+
+                } else {
+
+
+                    showResult(false, response.error || 'Failed to submit assessment.');
+
+
+                }
+
+
+            }
+
+
+        })
+
+
+        .catch(function() {
+
+
+            document.querySelectorAll('button').forEach(function(b) { b.disabled = false; });
+
+
+            if (submitBtn) submitBtn.innerHTML = 'Submit Assessment';
+
+
+            showResult(false, 'Network error. Please try again.');
+
+
+        });
+
+
+        return;
+
+
+    }
+
+
+    const marksData = [];
+
+
+    const btnLabel = SCORING_TYPE === 'grades' ? 'Submit Grades' : 'Submit Marks';
+
+
+
+
+
+    if (SCORING_TYPE === 'grades') {
+
+
+        document.querySelectorAll('.me-grade-select').forEach(function(select) {
+
+
+            const studentId    = select.dataset.studentId;
+
+
+            const gradeValueId = select.value || null;
+
+
+            const absCb        = document.querySelector('.absent-checkbox[data-student-id="' + studentId + '"]');
+
+
+            const isAbsent     = absCb ? absCb.checked : false;
+
+
+            marksData.push({ student_id: studentId, grade_value_id: isAbsent ? null : gradeValueId, marks: null, is_absent: isAbsent });
+
+
+        });
+
+
+    } else {
+
+
+        document.querySelectorAll('.me-marks-input').forEach(function(input) {
+
+
+            const studentId = input.dataset.studentId;
+
+
+            const absCb     = document.querySelector('.absent-checkbox[data-student-id="' + studentId + '"]');
+
+
+            const isAbsent  = absCb ? absCb.checked : false;
+
+
+            marksData.push({ student_id: studentId, marks: isAbsent ? null : (input.value ? parseFloat(input.value) : null), is_absent: isAbsent });
+
+
+        });
+
+
+    }
+
+
+
+
+
+    document.querySelectorAll('button').forEach(function(b) { b.disabled = true; });
+
+
+    const submitBtn = document.querySelector('.submit-marks-btn');
+
+
+    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Submitting…';
+
+
+
+
+
+    fetch('{% url "core:save_marks_api" %}', {
+
+
+        method: 'POST',
+
+
+        headers: {
+
+
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+
+
+            'Content-Type': 'application/json',
+
+
+        },
+
+
+        body: JSON.stringify({ exam_id: '{{ exam.id }}', marks: marksData })
+
+
+    })
+
+
+    .then(function(r) { return r.json(); })
+
+
+    .then(function(response) {
+
+
+        document.querySelectorAll('button').forEach(function(b) { b.disabled = false; });
+
+
+        if (submitBtn) submitBtn.innerHTML = btnLabel;
+
+
+        if (response.success) {
+
+
+            const msg = SCORING_TYPE === 'grades' ? 'Grades saved successfully.' : 'Marks saved successfully.';
+
+
+            showResult(true, msg);
+
+
+            document.getElementById('result-modal-btn').addEventListener('click', function() { goBack(); }, { once: true });
+
+
+        } else if (response.failed_count) {
+
+
+            const noun = SCORING_TYPE === 'grades' ? 'grades' : 'marks';
+
+
+            showResult(false, 'Saved ' + response.saved_count + ' of ' + response.attempted_count + ' ' + noun + '. Failed: ' + (response.errors || []).join('; '));
+
+
+        } else {
+
+
+            showResult(false, response.error || 'Failed to submit.');
+
+
+        }
+
+
+    })
+
+
+    .catch(function() {
+
+
+        document.querySelectorAll('button').forEach(function(b) { b.disabled = false; });
+
+
+        if (submitBtn) submitBtn.innerHTML = btnLabel;
+
+
+        showResult(false, 'Network error. Please try again.');
+
+
+    });
+
+
+});
+
+
+
+
+
+function goBack() {
+
+
+    window.location.href = '{% url "core:exam_group_marks_entry" exam_group.id %}';
+
+
+}
+
+
+
+
+
+{% if scoring_type == 'levels' %}
+
+
+const SK_SAVE_URL = "{% url 'core:save_skills_assessment_api' %}";
+
+
+const SK_LOAD_URL = "{% url 'core:load_skills_assessment_api' %}";
+
+
+const SK_CSRF = "{{ csrf_token }}";
+
+
+
+
+
+{% if skill_category %}
+
+
+const SK_CATEGORY = "{{ skill_category.name|escapejs }}";
+
+
+const SK_ITEMS = {{ skill_items_json|safe }};
+
+
+const SK_MULTI_CAT = false;
+
+
+{% else %}
+
+
+const SK_CATEGORY = null;
+
+
+const SK_ITEMS = [];
+
+
+const SK_ALL_CATS = {{ all_skill_cats_json|safe }};
+
+
+const SK_MULTI_CAT = true;
+
+
+{% endif %}
+
+
+
+
+
+const SK_LEVELS = {{ grade_values_json|safe }};
+
+
+let skCurrentStudentId = null;
+
+
+
+
+
+document.addEventListener('DOMContentLoaded', function() {
+
+
+    document.querySelectorAll('.sk-student').forEach(function(el) {
+
+
+        el.addEventListener('click', function(e) {
+
+
+            e.preventDefault();
+
+
+            document.querySelectorAll('.sk-student').forEach(function(i) { i.classList.remove('active'); });
+
+
+            this.classList.add('active');
+
+
+            skCurrentStudentId = this.dataset.studentId;
+
+
+            document.getElementById('sk-panel-title').textContent = 'Assessment for ' + this.dataset.studentName;
+
+
+            skLoad();
+
+
+        });
+
+
+    });
+
+
+    document.getElementById('sk-year').addEventListener('change', function() { if (skCurrentStudentId) skLoad(); });
+
+
+    document.getElementById('sk-term').addEventListener('change', function() { if (skCurrentStudentId) skLoad(); });
+
+
+});
+
+
+
+
+
+function skLoad() {
+
+
+    const panel = document.getElementById('sk-panel');
+
+
+    panel.innerHTML = '<div class="text-center py-4"><div class="spinner-border" style="color:var(--color-brand)"></div></div>';
+
+
+    document.getElementById('sk-save-btn').classList.add('d-none');
+
+
+    const params = new URLSearchParams({
+
+
+        student_id: skCurrentStudentId,
+
+
+        academic_year_id: document.getElementById('sk-year').value,
+
+
+        term_name: document.getElementById('sk-term').value.trim(),
+
+
+    });
+
+
+    fetch(SK_LOAD_URL + '?' + params.toString())
+
+
+        .then(function(r) { return r.json(); })
+
+
+        .then(function(data) { skRender(data.levels || {}); })
+
+
+        .catch(function() { panel.innerHTML = '<div class="alert alert-danger m-3">Failed to load assessment data.</div>'; });
+
+
+}
+
+
+
+
+
+function skRender(existingLevels) {
+
+
+    const panel = document.getElementById('sk-panel');
+
+
+    if (SK_LEVELS.length === 0) { panel.innerHTML = '<div class="alert alert-warning m-3">No grade values found for this grading scale.</div>'; return; }
+
+
+    const noItems = !SK_MULTI_CAT && SK_ITEMS.length === 0;
+
+
+    if (noItems && (!window.SK_ALL_CATS || SK_ALL_CATS.length === 0)) {
+
+
+        panel.innerHTML = '<div class="alert alert-warning m-3">No skill items found. Run <code>python manage.py seed_skill_categories --all</code>.</div>'; return;
+
+
+    }
+
+
+    let html = '<div id="sk-save-status" class="px-3 pt-2"></div>';
+
+
+    html += '<table class="table table-bordered table-sm mb-0"><thead class="table-light"><tr><th style="width:45%">Skill</th>';
+
+
+    SK_LEVELS.forEach(function(lv) { html += '<th class="text-center" style="font-size:.78rem">' + escHtml(lv.name) + '</th>'; });
+
+
+    html += '</tr></thead><tbody>';
+
+
+    function renderItems(items) {
+
+
+        items.forEach(function(item) {
+
+
+            html += '<tr><td class="ps-3 small">' + escHtml(item.description) + '</td>';
+
+
+            SK_LEVELS.forEach(function(lv) {
+
+
+                const code = lv.code || lv.name;
+
+
+                const checked = existingLevels[item.id] === code ? ' checked' : '';
+
+
+                html += '<td class="text-center"><input type="radio" name="sk_' + item.id + '" value="' + escHtml(code) + '"' + checked + '></td>';
+
+
+            });
+
+
+            html += '</tr>';
+
+
+        });
+
+
+    }
+
+
+    if (SK_MULTI_CAT) {
+
+
+        SK_ALL_CATS.forEach(function(cat) {
+
+
+            html += '<tr class="table-secondary"><td colspan="' + (SK_LEVELS.length + 1) + '" class="fw-bold">' + escHtml(cat.name) + '</td></tr>';
+
+
+            renderItems(cat.items);
+
+
+        });
+
+
+    } else {
+
+
+        if (SK_CATEGORY) html += '<tr class="table-secondary"><td colspan="' + (SK_LEVELS.length + 1) + '" class="fw-bold">' + escHtml(SK_CATEGORY) + '</td></tr>';
+
+
+        renderItems(SK_ITEMS);
+
+
+    }
+
+
+    html += '</tbody></table>';
+
+
+    panel.innerHTML = html;
+
+
+    document.getElementById('sk-save-btn').classList.remove('d-none');
+
+
+}
+
+
+
+
+
+function skSave() {
+
+
+    const yearId   = document.getElementById('sk-year').value;
+
+
+    const termName = document.getElementById('sk-term').value.trim();
+
+
+    const statusEl = document.getElementById('sk-save-status');
+
+
+    const saveBtn  = document.getElementById('sk-save-btn');
+
+
+    const skillScores = [];
+
+
+    function collectItems(items) {
+
+
+        items.forEach(function(item) {
+
+
+            const checked = document.querySelector('input[name="sk_' + item.id + '"]:checked');
+
+
+            if (checked) skillScores.push({ skill_item_id: item.id, level: checked.value });
+
+
+        });
+
+
+    }
+
+
+    if (SK_MULTI_CAT) { SK_ALL_CATS.forEach(function(cat) { collectItems(cat.items); }); }
+
+
+    else { collectItems(SK_ITEMS); }
+
+
+
+
+
+    statusEl.innerHTML = '<div class="alert alert-info py-1 mb-2">Saving…</div>';
+
+
+    saveBtn.disabled = true;
+
+
+    const formData = new FormData();
+
+
+    formData.append('csrfmiddlewaretoken', SK_CSRF);
+
+
+    formData.append('student_id', skCurrentStudentId);
+
+
+    formData.append('academic_year_id', yearId);
+
+
+    formData.append('term_name', termName);
+
+
+    formData.append('assessment_data', JSON.stringify({ skill_scores: skillScores }));
+
+
+    fetch(SK_SAVE_URL, { method: 'POST', body: formData })
+
+
+        .then(function(r) { return r.json(); })
+
+
+        .then(function(data) {
+
+
+            saveBtn.disabled = false;
+
+
+            if (data.success) {
+
+
+                statusEl.innerHTML = '<div class="alert alert-success py-1 mb-2"><i class="fas fa-check"></i> ' + data.message + '</div>';
+
+
+                setTimeout(function() { statusEl.innerHTML = ''; }, 3000);
+
+
+            } else {
+
+
+                statusEl.innerHTML = '<div class="alert alert-danger py-1 mb-2">Error: ' + data.error + '</div>';
+
+
+            }
+
+
+        })
+
+
+        .catch(function() {
+
+
+            saveBtn.disabled = false;
+
+
+            statusEl.innerHTML = '<div class="alert alert-danger py-1 mb-2">Network error — please try again.</div>';
+
+
+        });
+
+
+}
+
+
+
+
+
+function escHtml(str) {
+
+
+    if (!str) return '';
+
+
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+
+}
+
+
+{% endif %}
+
+
+</script>
+
+
+{% endblock %}
+
+

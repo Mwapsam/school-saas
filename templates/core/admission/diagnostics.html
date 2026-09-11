@@ -1,0 +1,325 @@
+{% extends 'core/layouts/form.html' %}
+
+{% block layout_header %}
+{% url 'core:admission_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Admission System Diagnostics" description="Health check for admission configuration — academic years, courses, and required data" icon="fa-stethoscope" back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Admission Diagnostics{% endblock %}
+
+
+
+{% block layout_form %}
+<div class="d-flex justify-content-end gap-2 mb-3">
+    <a href="{% url 'core:admission_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Back
+    </a>
+    <button type="button" class="btn btn-primary btn-sm" onclick="location.reload()">
+        <i class="fas fa-sync-alt me-1" aria-hidden="true"></i>Refresh
+    </button>
+</div>
+
+{# ── Overall status ── #}
+<div class="diag-status" role="status">
+    {% if diagnostics.overall_status == 'pass' %}
+    <div class="diag-status-icon pass" aria-hidden="true"><i class="fas fa-check-circle"></i></div>
+    <div class="diag-status-body">
+        <h4 style="color:#2e7d32">System Ready</h4>
+        <p>All checks passed — the admission system is fully operational</p>
+    </div>
+    {% elif diagnostics.overall_status == 'warning' %}
+    <div class="diag-status-icon warn" aria-hidden="true"><i class="fas fa-exclamation-triangle"></i></div>
+    <div class="diag-status-body">
+        <h4 style="color:#f57c00">System Functional</h4>
+        <p>The system is working but some improvements are recommended</p>
+    </div>
+    {% else %}
+    <div class="diag-status-icon fail" aria-hidden="true"><i class="fas fa-times-circle"></i></div>
+    <div class="diag-status-body">
+        <h4 style="color:var(--color-danger)">System Issues Detected</h4>
+        <p>Critical problems found — please resolve them before accepting applications</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row g-3">
+
+    {# ── Left column ── #}
+    <div class="col-md-8">
+
+        {% if diagnostics.checks %}
+        <div class="pw-card" style="margin-bottom:16px">
+            <div class="pw-card-header">
+                <span class="pw-card-title">
+                    <i class="fas fa-check-circle me-2" style="color:#2e7d32" aria-hidden="true"></i>
+                    Passed Checks
+                </span>
+                <span class="pw-card-meta">{{ diagnostics.checks|length }} check{{ diagnostics.checks|length|pluralize }}</span>
+            </div>
+            <div style="padding:16px 20px">
+                {% for check in diagnostics.checks %}
+                <div class="diag-check-row">
+                    <i class="fas fa-check-circle diag-check-icon pass" aria-hidden="true"></i>
+                    <div>
+                        <div class="diag-check-name">{{ check.name }}</div>
+                        <div class="diag-check-msg">{{ check.message }}</div>
+                        {% if check.details %}
+                        <div style="font-size:12px;color:var(--color-muted)">
+                            {% for detail in check.details %}{{ detail }}<br>{% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if diagnostics.warnings %}
+        <div class="pw-card" style="margin-bottom:16px">
+            <div class="pw-card-header">
+                <span class="pw-card-title">
+                    <i class="fas fa-exclamation-triangle me-2" style="color:#f57c00" aria-hidden="true"></i>
+                    Warnings
+                </span>
+                <span class="pw-card-meta">{{ diagnostics.warnings|length }} warning{{ diagnostics.warnings|length|pluralize }}</span>
+            </div>
+            <div style="padding:16px 20px">
+                {% for warning in diagnostics.warnings %}
+                <div class="diag-check-row">
+                    <i class="fas fa-exclamation-triangle diag-check-icon warn" aria-hidden="true"></i>
+                    <div style="flex:1">
+                        <div class="diag-check-name">{{ warning.name }}</div>
+                        <div class="diag-check-msg">{{ warning.message }}</div>
+                        {% if warning.fix %}
+                        <div class="diag-fix warn">
+                            <strong>Recommended Fix:</strong> {{ warning.fix }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if diagnostics.errors %}
+        <div class="pw-card" style="margin-bottom:16px">
+            <div class="pw-card-header">
+                <span class="pw-card-title">
+                    <i class="fas fa-exclamation-circle me-2" style="color:var(--color-danger)" aria-hidden="true"></i>
+                    Critical Issues
+                </span>
+                <span class="pw-card-meta">{{ diagnostics.errors|length }} error{{ diagnostics.errors|length|pluralize }}</span>
+            </div>
+            <div style="padding:16px 20px">
+                {% for error in diagnostics.errors %}
+                <div class="diag-check-row">
+                    <i class="fas fa-times-circle diag-check-icon fail" aria-hidden="true"></i>
+                    <div style="flex:1">
+                        <div class="diag-check-name">{{ error.name }}</div>
+                        <div class="diag-check-msg">{{ error.message }}</div>
+                        {% if error.fix %}
+                        <div class="diag-fix fail">
+                            <strong>Required Fix:</strong> {{ error.fix }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if diagnostics.recommendations %}
+        <div class="pw-card">
+            <div class="pw-card-header">
+                <span class="pw-card-title">
+                    <i class="fas fa-lightbulb me-2" style="color:#1565c0" aria-hidden="true"></i>
+                    Recommendations
+                </span>
+            </div>
+            <div style="padding:16px 20px">
+                {% for rec in diagnostics.recommendations %}
+                <div class="diag-rec-item">
+                    <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    {{ rec }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    {# ── Right column ── #}
+    <div class="col-md-4">
+
+        {# Application statistics #}
+        <div class="pw-card" style="margin-bottom:16px">
+            <div class="pw-card-header">
+                <span class="pw-card-title">
+                    <i class="fas fa-chart-bar me-2" style="color:var(--color-brand)" aria-hidden="true"></i>
+                    Application Statistics
+                </span>
+            </div>
+            <div style="padding:16px 20px">
+                {% if application_stats.error %}
+                <div style="font-size:13px;color:var(--color-danger);padding:10px 0">
+                    <i class="fas fa-exclamation-circle me-1" aria-hidden="true"></i>
+                    {{ application_stats.error }}
+                </div>
+                {% else %}
+                <div class="diag-stat-row">
+                    <div class="diag-stat-cell">
+                        <div class="diag-stat-num">{{ application_stats.total_applications }}</div>
+                        <div class="diag-stat-label">Total</div>
+                    </div>
+                    <div class="diag-stat-cell">
+                        <div class="diag-stat-num" style="color:#1565c0">{{ application_stats.recent_applications }}</div>
+                        <div class="diag-stat-label">This Month</div>
+                    </div>
+                    <div class="diag-stat-cell">
+                        <div class="diag-stat-num" style="color:#2e7d32">{{ application_stats.submitted_applications }}</div>
+                        <div class="diag-stat-label">Submitted</div>
+                    </div>
+                    <div class="diag-stat-cell">
+                        <div class="diag-stat-num" style="color:var(--color-muted)">{{ application_stats.draft_applications }}</div>
+                        <div class="diag-stat-label">Draft</div>
+                    </div>
+                </div>
+                {% if application_stats.status_breakdown %}
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-muted);margin-bottom:10px">
+                    Status Breakdown
+                </div>
+                {% for status_name, count in application_stats.status_breakdown.items %}
+                <div class="diag-breakdown-row">
+                    <span class="diag-breakdown-label">{{ status_name }}</span>
+                    <span class="diag-breakdown-count">{{ count }}</span>
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        {# Quick actions #}
+        <div class="pw-card" style="margin-bottom:16px">
+            <div class="pw-card-header">
+                <span class="pw-card-title">
+                    <i class="fas fa-tools me-2" style="color:var(--color-brand)" aria-hidden="true"></i>
+                    Quick Actions
+                </span>
+            </div>
+            <div style="padding:16px 20px">
+                {% if diagnostics.errors %}
+                <button type="button" class="diag-action-btn primary" onclick="initializeBasicData(this)">
+                    <i class="fas fa-play" aria-hidden="true"></i>Initialize Basic Data
+                </button>
+                {% endif %}
+                <button type="button" class="diag-action-btn" onclick="ensureBasicData(this)">
+                    <i class="fas fa-check" aria-hidden="true"></i>Ensure Basic Data
+                </button>
+                <a href="{% url 'core:academic_year_list' %}" class="diag-action-btn">
+                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>Manage Academic Years
+                </a>
+                <a href="{% url 'core:course_list' %}" class="diag-action-btn">
+                    <i class="fas fa-graduation-cap" aria-hidden="true"></i>Manage Courses
+                </a>
+            </div>
+        </div>
+
+        {# School information #}
+        <div class="pw-card">
+            <div class="pw-card-header">
+                <span class="pw-card-title">
+                    <i class="fas fa-school me-2" style="color:var(--color-brand)" aria-hidden="true"></i>
+                    School Information
+                </span>
+            </div>
+            <div style="padding:16px 20px">
+                <div class="diag-info-row">
+                    <span class="diag-info-label">Name</span>
+                    <span class="diag-info-value">{{ school.name }}</span>
+                </div>
+                <div class="diag-info-row">
+                    <span class="diag-info-label">Code</span>
+                    <span class="diag-info-value">{{ school.code }}</span>
+                </div>
+                <div class="diag-info-row">
+                    <span class="diag-info-label">Domain</span>
+                    <span class="diag-info-value">{{ school.domain_url }}</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function _csrf() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+async function initializeBasicData(btn) {
+    showConfirmModal(
+        'This will initialize basic configuration data for this school. Continue?',
+        async function () {
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Initializing…';
+            btn.disabled = true;
+            try {
+                const r = await fetch(window.location.href, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': _csrf() },
+                    body: 'action=initialize_data'
+                });
+                const data = await r.json();
+                if (data.success) {
+                    window.location.href = data.redirect || window.location.href;
+                } else {
+                    showToast(data.error || 'Initialization failed', 'danger');
+                }
+            } catch (err) {
+                showToast('Network error: ' + err.message, 'danger');
+            } finally {
+                btn.innerHTML = orig;
+                btn.disabled = false;
+            }
+        },
+        { heading: 'Initialize Data', okLabel: 'Proceed' }
+    );
+}
+
+async function ensureBasicData(btn) {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking…';
+    btn.disabled = true;
+    try {
+        const r = await fetch(window.location.href, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': _csrf() },
+            body: 'action=ensure_basic_data'
+        });
+        const data = await r.json();
+        if (data.success) {
+            showToast('Data check complete', 'success');
+            if (data.redirect) window.location.href = data.redirect;
+            else location.reload();
+        } else {
+            showToast(data.error || 'Check failed', 'danger');
+        }
+    } catch (err) {
+        showToast('Network error: ' + err.message, 'danger');
+    } finally {
+        btn.innerHTML = orig;
+        btn.disabled = false;
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,290 @@
+{% extends 'core/layouts/form.html' %}
+
+{% block layout_header %}
+{% url 'core:attendance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Attendance Settings" icon='fa-cog' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+{% load core_extras %}
+
+{% block page_title %}Attendance Settings{% endblock %}
+
+{% block layout_form %}
+<form method="post" id="attendance-settings-form">
+    {% csrf_token %}
+
+    <!-- Custom Attendance Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Custom Attendance</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">
+                Custom attendance allows an institution to record late comings by students. It also enables you to rename status names and codes for absent and late comings.
+            </p>
+
+            <div class="form-check mb-4">
+                <input class="form-check-input" type="checkbox" id="enable_custom_attendance" name="enable_custom_attendance"
+                    {% if attendance_settings.enable_custom_attendance %}checked{% endif %}>
+                <label class="form-check-label" for="enable_custom_attendance">
+                    <strong>Enable Custom Attendance</strong>
+                </label>
+                <span class="ms-2">
+                    <i class="fas fa-question-circle text-muted" data-bs-toggle="tooltip"
+                        title="Enable this to use custom attendance status types"></i>
+                </span>
+            </div>
+
+            {% if attendance_labels %}
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Sl.No.</th>
+                            <th>Status Name</th>
+                            <th>Code</th>
+                            <th>Type</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for label in attendance_labels %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ label.name }}</td>
+                                <td>{{ label.code }}</td>
+                                <td>{{ label.name }}</td>
+                                <td>
+                                    <a href="{% url 'core:attendance_label_edit' label.id %}" class="text-primary text-decoration-none">
+                                        Edit
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <!-- Default attendance status display -->
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Sl.No.</th>
+                            <th>Status Name</th>
+                            <th>Code</th>
+                            <th>Type</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>Present</td>
+                            <td>P</td>
+                            <td>Present</td>
+                            <td><a href="#" class="text-primary text-decoration-none">Edit</a></td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>Absent</td>
+                            <td>A</td>
+                            <td>Absent</td>
+                            <td><a href="#" class="text-primary text-decoration-none">Edit</a></td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>Late</td>
+                            <td>L</td>
+                            <td>Late</td>
+                            <td><a href="#" class="text-primary text-decoration-none">Edit</a></td>
+                        </tr>
+                    </tbody>
+                </table>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Attendance Report Calculation Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Attendance Report Calculation</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">
+                Choose the mode of attendance calculation for this academic year. Switching between modes after marking the attendance would lead to an incorrect calculation in the attendance report.
+            </p>
+
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="calculation_method" id="student_admission"
+                    value="student_admission" {% if attendance_settings.calculation_method == 'student_admission' %}checked{% endif %}>
+                <label class="form-check-label" for="student_admission">
+                    Student admission date
+                </label>
+            </div>
+
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="calculation_method" id="batch_start"
+                    value="batch_start" {% if attendance_settings.calculation_method == 'batch_start' %}checked{% endif %}>
+                <label class="form-check-label" for="batch_start">
+                    Batch start date
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Mark Frequency Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Attendance Mark Frequency</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">
+                Enable the lock mode in order to freeze the attendance after a certain set duration. When enabled, editing or marking after the allowed date can only be done by a privileged user or admin.
+            </p>
+
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="mark_frequency" id="open"
+                    value="open" {% if attendance_settings.mark_frequency == 'open' %}checked{% endif %}>
+                <label class="form-check-label" for="open">
+                    Open
+                </label>
+            </div>
+
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="radio" name="mark_frequency" id="lock"
+                    value="lock" {% if attendance_settings.mark_frequency == 'lock' %}checked{% endif %}>
+                <label class="form-check-label" for="lock">
+                    Lock
+                </label>
+            </div>
+
+            <!-- Lock Settings (shown when Lock is selected) -->
+            <div id="lock-settings" class="border rounded p-3 bg-light"
+                style="{% if attendance_settings.mark_frequency != 'lock' %}display: none;{% endif %}">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="lock_after_days" class="form-label">Lock after (days)</label>
+                        <input type="number" class="form-control" id="lock_after_days" name="lock_after_days"
+                            value="{{ attendance_settings.lock_after_days }}" min="1" max="365">
+                    </div>
+                </div>
+
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="allow_admin_unlock" name="allow_admin_unlock"
+                        {% if attendance_settings.allow_admin_unlock %}checked{% endif %}>
+                    <label class="form-check-label" for="allow_admin_unlock">
+                        Allow admin to unlock
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Settings Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Notification Settings</h5>
+        </div>
+        <div class="card-body">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="send_absence_notifications" name="send_absence_notifications"
+                    {% if attendance_settings.send_absence_notifications %}checked{% endif %}>
+                <label class="form-check-label" for="send_absence_notifications">
+                    Send absence notifications
+                </label>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <label for="notification_threshold" class="form-label">Notification threshold (consecutive absences)</label>
+                    <input type="number" class="form-control" id="notification_threshold" name="notification_threshold"
+                        value="{{ attendance_settings.notification_threshold }}" min="1" max="30">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- School Calendar / Working Days Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">School Calendar & Working Days</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">
+                Configure which days of the week are school days. Attendance reports will exclude non-working days and holidays.
+            </p>
+
+            <div class="mb-3">
+                <label class="form-label">Select working days (school operates on these days):</label>
+                {% with weekdays="Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday" %}
+                {% for i in "0123456" %}
+                    {% with day=weekdays|slice:i weekday_names="Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday"|split:"," %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="working_days" value="{{ i }}" id="weekday_{{ i }}"
+                            {% if i|add:"0"|stringformat:"d" in attendance_settings.working_days|stringformat:"s" %}checked{% endif %}>
+                        <label class="form-check-label" for="weekday_{{ i }}">
+                            {% if i == "0" %}Monday{% elif i == "1" %}Tuesday{% elif i == "2" %}Wednesday{% elif i == "3" %}Thursday{% elif i == "4" %}Friday{% elif i == "5" %}Saturday{% elif i == "6" %}Sunday{% endif %}
+                        </label>
+                    </div>
+                    {% endwith %}
+                {% endfor %}
+                {% endwith %}
+            </div>
+
+            <div class="alert alert-info mt-3">
+                <small><strong>Note:</strong> To manage holidays and other school events, visit the <a href="{% url 'core:school_calendar' %}">School Calendar</a> page.</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Button -->
+    <div class="d-flex justify-content-center">
+        <button type="submit" class="btn btn-primary px-4">Save</button>
+    </div>
+</form>
+{% endblock %}
+
+
+
+{% block extra_js %}
+<script>
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+// Handle lock/open radio button changes
+document.querySelectorAll('input[name="mark_frequency"]').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+        const lockSettings = document.getElementById('lock-settings');
+        if (this.value === 'lock') {
+            lockSettings.style.display = 'block';
+        } else {
+            lockSettings.style.display = 'none';
+        }
+    });
+});
+
+// Handle form submission
+document.getElementById('attendance-settings-form').addEventListener('submit', function(e) {
+    // Show loading state
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Saving...';
+    submitBtn.disabled = true;
+
+    // Re-enable button after a delay (form will submit)
+    setTimeout(function() {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    }, 2000);
+});
+
+// Edit label function (placeholder)
+function editLabel(labelId) {
+    alert('Edit label functionality would open a modal to edit attendance label with ID: ' + labelId);
+    // TODO: Implement modal for editing attendance labels
+}
+</script>
+{% endblock %}

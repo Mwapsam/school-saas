@@ -1,0 +1,141 @@
+{% extends 'core/layouts/form.html' %}
+{% load static %}
+
+{% block page_title %}Create Exam Plan{% endblock %}
+
+
+{% block layout_header %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <span class="pw-breadcrumb">
+        <a href="{% url 'core:dashboard' %}">Home</a>
+        <span class="pw-breadcrumb-sep">›</span>
+        <a href="{% url 'core:gradebook_index' %}">Gradebook</a>
+        <span class="pw-breadcrumb-sep">›</span>
+        <a href="{% url 'core:exam_planners_list' %}">Exam Planner</a>
+        <span class="pw-breadcrumb-sep">›</span>
+        <span class="pw-breadcrumb-current">Create Exam Plan</span>
+    </span>
+</nav>
+{% url 'core:exam_planners_list' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Create an Exam Plan" description="Set up exam structure with terms and apply it as a template to classes" icon="fa-plus-circle" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_form %}
+<div class="gb-create-exam-plan">
+<div class="pw-card" style="max-width:800px;margin:0 auto;">
+    <div class="pw-card-header">
+        <span class="pw-card-title">Exam Plan Details</span>
+    </div>
+    <div style="padding:1.5rem">
+        <form id="createExamPlanForm">
+            {% csrf_token %}
+
+            <!-- Basic Information -->
+            <div class="mb-4">
+                <div class="ep-section-title">Basic Information</div>
+
+                {% include 'core/components/form_field.html' with name="name" label="Exam Plan Name" required=True placeholder="e.g., 2025 Academic Year Plan" attrs='id="examPlanName"' %}
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Academic Year</label>
+                    {% if active_academic_year %}
+                        <div class="pw-form-control" style="background:var(--pw-bg-subtle,#f8f9fa);">{{ active_academic_year.name }} (Active)</div>
+                        <div class="form-text">Exam plans are always created in the current active academic year.</div>
+                    {% else %}
+                        <div class="pw-form-control text-danger">No active academic year is configured.</div>
+                    {% endif %}
+                </div>
+
+                {% include 'core/components/form_field.html' with name="course_id" label="Class / Course" type="select" required=True options=course_options help_text="Exams added to this planner apply to every batch of the selected class for the academic year." attrs='id="examPlanCourse"' %}
+            </div>
+
+            <!-- Select Terms -->
+            <div class="mb-4">
+                <div class="ep-section-title">Select Terms</div>
+                {% if available_terms %}
+                    <div class="form-text mb-3">Choose which terms to use for this exam plan. Terms are managed separately under Academic Year settings.</div>
+                    <div style="display: grid; gap: 0.75rem;">
+                        {% for term in available_terms %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="term_ids[]" id="term{{ term.id }}" value="{{ term.id }}">
+                                <label class="form-check-label" for="term{{ term.id }}">
+                                    <strong>{{ term.name }}</strong>
+                                    <span style="color: var(--color-muted, #555f6d); font-size: 0.85rem;">
+                                        ({{ term.start_date|date:"M d, Y" }} - {{ term.end_date|date:"M d, Y" }})
+                                    </span>
+                                </label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="pw-alert pw-alert-warning">
+                        <span><strong>No terms available.</strong> Create terms first under
+                            <a href="{% url 'core:academic_year_list' %}">Academic Year management</a>
+                            before creating exam plans.</span>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- GPA Configuration -->
+            <div class="mb-4">
+                <div class="ep-section-title">GPA Settings</div>
+                {% include 'core/components/form_field.html' with name="enable_gpa" label="Enable GPA" type="checkbox" attrs='id="enableGPA"' help_text="Enable this to use the planner for GPA calculation. Once enabled, only GPA courses can be linked to this planner." %}
+            </div>
+</div>
+{% endblock %}
+
+{% block layout_actions %}
+<div class="gb-create-exam-plan">
+            <div class="ep-actions">
+                <a href="{% url 'core:exam_planners_list' %}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus me-1"></i>Create Exam Plan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('createExamPlanForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        createExamPlan();
+    });
+});
+
+function createExamPlan() {
+    const formData = new FormData(document.getElementById('createExamPlanForm'));
+
+    const submitBtn = document.querySelector('button[type="submit"]');
+    const originalHtml = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creating...';
+    submitBtn.disabled = true;
+
+    fetch('{% url "core:create_exam_plan_api" %}', {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Exam plan created.', 'success');
+            setTimeout(() => { window.location.href = '{% url "core:exam_planners_list" %}'; }, 700);
+        } else {
+            showToast('Create failed: ' + (data.error || 'Unknown error'), 'danger');
+            submitBtn.innerHTML = originalHtml;
+            submitBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        showToast('Create failed: ' + error.message, 'danger');
+        submitBtn.innerHTML = originalHtml;
+        submitBtn.disabled = false;
+    });
+}
+</script>
+{% endblock %}

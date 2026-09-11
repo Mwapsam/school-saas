@@ -1,0 +1,51 @@
+{% extends 'core/layouts/list.html' %}
+{% block page_title %}Attendance Records{% endblock %}
+
+{% block layout_header %}
+  {% url 'core:hr_dashboard' as back_fallback %}
+  {% include 'core/components/page_header.html' with title="Attendance Records" description="Browse and filter marked employee attendance" icon="fa-list" back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_filters %}
+  <form method="get" class="pw-card mb-3" hx-get="{% url 'core:hr_attendance_records' %}" hx-target="#hr-attendance-records-content" hx-trigger="submit">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-2">
+        <label class="pw-form-label" for="start_date">From</label>
+        <input type="date" class="pw-form-control" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+      </div>
+      <div class="col-md-2">
+        <label class="pw-form-label" for="end_date">To</label>
+        <input type="date" class="pw-form-control" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+      </div>
+      <div class="col-md-3">
+        <label class="pw-form-label" for="department">Department</label>
+        <select class="pw-form-select" id="department" name="department">
+          <option value="">All departments</option>
+          {% for dept in departments %}
+            <option value="{{ dept.id }}" {% if request.GET.department == dept.id|stringformat:'s' %}selected{% endif %}>{{ dept.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="pw-form-label" for="status">Status</label>
+        <select class="pw-form-select" id="status" name="status">
+          <option value="">Any</option>
+          {% for value, label in status_choices %}
+            <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-auto">
+        <button type="submit" class="pw-btn pw-btn-primary pw-btn-sm"><i class="fas fa-filter me-1"></i>Filter</button>
+      </div>
+    </div>
+  </form>
+{% endblock %}
+
+{% block layout_table %}
+  <div class="pinewood-table-container">
+    <div id="hr-attendance-records-content">
+      {% include 'core/htmx/hr/attendance_records_content.html' %}
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,473 @@
+/* Multi-Step Form Styles */
+.multi-step-form {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Progress Bar Styles */
+.progress-container {
+    margin-bottom: 3rem;
+}
+
+.progress-steps {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+}
+
+.progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.step-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e9ecef;
+    border: 2px solid #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.step-circle.active {
+    background: #000000;
+    border-color: #000000;
+    color: white;
+    transform: scale(1.1);
+}
+
+.step-circle.completed {
+    background: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+.step-number {
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.step-check {
+    font-size: 1rem;
+}
+
+.step-label {
+    font-size: 0.8rem;
+    text-align: center;
+    color: #6c757d;
+    margin-top: 0.25rem;
+    transition: color 0.3s ease;
+}
+
+.progress-step.active .step-label {
+    color: #000000;
+    font-weight: 600;
+}
+
+.step-connector {
+    flex: 1;
+    height: 2px;
+    background: #dee2e6;
+    margin: 0 1rem;
+    position: relative;
+    top: -20px;
+}
+
+/* Form Step Styles */
+.form-step {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e9ecef;
+    margin-bottom: 2rem;
+}
+
+.form-step h3 {
+    color: #333;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.form-step h3 i {
+    margin-right: 0.5rem;
+    color: #000000;
+}
+
+/* Form Controls */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.required::after {
+    content: " *";
+    color: #dc3545;
+}
+
+.form-control {
+    border-radius: 8px;
+    border: 1px solid #ced4da;
+    padding: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus {
+    border-color: #000000;
+    box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.25);
+}
+
+.form-control.is-invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.error-message {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+}
+
+/* File Upload Styles */
+.file-upload-container {
+    position: relative;
+}
+
+.file-upload-zone {
+    border: 2px dashed #ced4da;
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.file-upload-zone:hover {
+    border-color: #000000;
+    background: #f0f0f0;
+}
+
+.file-upload-zone.dragover {
+    border-color: #000000;
+    background: #f0f0f0;
+    transform: scale(1.02);
+}
+
+.file-upload-input {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+.file-upload-icon {
+    font-size: 2.5rem;
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+.file-upload-text {
+    color: #6c757d;
+    font-size: 0.95rem;
+}
+
+.file-upload-text strong {
+    color: #000000;
+}
+
+/* File Preview */
+.file-preview {
+    margin-top: 1rem;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+}
+
+.file-preview .card-body {
+    background: #f8f9fa;
+}
+
+/* Document Requirements */
+.document-requirements {
+    background: #e7f3ff;
+    border: 1px solid #b8daff;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.document-requirements h5 {
+    color: #004085;
+    margin-bottom: 0.75rem;
+}
+
+.document-requirements ul {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.document-requirements li {
+    color: #004085;
+    margin-bottom: 0.25rem;
+}
+
+/* Two Column Layout */
+.form-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-col {
+    flex: 1;
+}
+
+.form-col-2 {
+    flex: 2;
+}
+
+/* Navigation Buttons */
+.form-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 2rem;
+    margin-top: 2rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.btn-navigation {
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-navigation:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-prev {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-prev:hover:not(:disabled) {
+    background: #5a6268;
+}
+
+.btn-next {
+    background: #000000;
+    color: white;
+}
+
+.btn-next:hover:not(:disabled) {
+    background: #333333;
+}
+
+.btn-submit {
+    background: #28a745;
+    color: white;
+}
+
+.btn-submit:hover:not(:disabled) {
+    background: #218838;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Declaration and Terms */
+.terms-container {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    padding: 1rem;
+    background: #f8f9fa;
+    margin-bottom: 1rem;
+}
+
+.terms-container h6 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.terms-container p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+}
+
+.declaration-checkbox {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.declaration-checkbox .form-check-input {
+    transform: scale(1.2);
+}
+
+.declaration-checkbox .form-check-label {
+    margin-left: 0.5rem;
+    font-weight: 500;
+}
+
+/* Summary Section */
+.summary-section {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.summary-section h5 {
+    color: #495057;
+    margin-bottom: 1rem;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.summary-item:last-child {
+    border-bottom: none;
+}
+
+.summary-label {
+    font-weight: 500;
+    color: #6c757d;
+}
+
+.summary-value {
+    font-weight: 600;
+    color: #495057;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .multi-step-form {
+        padding: 1rem;
+    }
+    
+    .form-step {
+        padding: 1.5rem;
+    }
+    
+    .progress-steps {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .progress-step {
+        flex: none;
+        width: calc(25% - 0.75rem);
+    }
+    
+    .step-connector {
+        display: none;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .form-navigation {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .btn-navigation {
+        width: 100%;
+        padding: 1rem;
+    }
+    
+    .step-label {
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .progress-step {
+        width: calc(33.333% - 0.5rem);
+    }
+    
+    .step-circle {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .step-number {
+        font-size: 0.8rem;
+    }
+}
+
+/* Animation Classes */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.slide-in-left {
+    animation: slideInLeft 0.3s ease-out;
+}
+
+@keyframes slideInLeft {
+    from { transform: translateX(-20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}

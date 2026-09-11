@@ -1,0 +1,112 @@
+{% extends 'core/layouts/list.html' %}
+{% block page_title %}Assign Transport{% endblock %}
+
+{% block layout_header %}
+  <nav aria-label="breadcrumb" class="mb-3"><ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'core:transport' %}">Transport</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Assign Transport</li>
+  </ol></nav>
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+    {% url 'core:transport' as back_fallback %}
+    {% include 'core/components/page_header.html' with title="Assign Transport" description="Put students on routes and raise their transport fee." icon="fa-user-graduate" back_url=back_url|default:back_fallback %}
+    <button type="button" class="pw-btn pw-btn-primary" onclick="transportOpenAdd('assignments')"><i class="fas fa-plus me-1"></i>Assign Student</button>
+  </div>
+{% endblock %}
+
+{% block layout_filters %}
+  <form method="get" class="pw-card mb-3" hx-get="{% url 'core:transport_assignment_list' %}" hx-target="#transport-assignments-content" hx-trigger="submit">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-5">
+        <label class="pw-form-label" for="search">Search</label>
+        <input class="pw-form-control" type="text" id="search" name="search" placeholder="Student or route">
+      </div>
+      <div class="col-md-4">
+        <label class="pw-form-label" for="route">Route</label>
+        <select class="pw-form-control" id="route" name="route">
+          <option value="">All routes</option>
+          {% for r in all_routes %}<option value="{{ r.id }}">{{ r.route_name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-auto"><button type="submit" class="pw-btn pw-btn-primary pw-btn-sm">Filter</button></div>
+    </div>
+  </form>
+{% endblock %}
+
+{% block layout_table %}
+  <div class="pinewood-table-container">
+    <div id="transport-assignments-content" hx-get="{% url 'core:transport_assignment_list' %}" hx-trigger="load" hx-target="this">
+      {% include 'core/components/loading_state.html' with message="Loading assignments…" %}
+    </div>
+  </div>
+{% endblock %}
+
+{% block layout_extra %}
+  {% include 'core/transport/modals/assignment_modal.html' %}
+{% endblock %}
+
+{% block extra_js %}
+  {% include 'core/htmx/transport/_scripts.html' %}
+  <script>
+  (function () {
+    function csrftoken() { var m = document.cookie.match(/csrftoken=([^;]+)/); return m ? m[1] : ''; }
+
+    var searchBox, hidden, results, routeSel, stopSel;
+    document.addEventListener('DOMContentLoaded', function () {
+      searchBox = document.getElementById('assign-student-search');
+      hidden = document.querySelector('#tform-assignments input[name=student]');
+      results = document.getElementById('assign-student-results');
+      routeSel = document.querySelector('#tform-assignments select[name=route]');
+      stopSel = document.querySelector('#tform-assignments select[name=boarding_stop]');
+      if (searchBox) searchBox.addEventListener('input', onSearch);
+      if (routeSel) routeSel.addEventListener('change', loadStops);
+    });
+
+    var timer;
+    function onSearch() {
+      hidden.value = '';
+      clearTimeout(timer);
+      var q = searchBox.value.trim();
+      if (q.length < 2) { results.innerHTML = ''; return; }
+      timer = setTimeout(function () {
+        fetch('/transport/students/search/?q=' + encodeURIComponent(q))
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            results.innerHTML = (j.results || []).map(function (s) {
+              return '<button type="button" class="list-group-item list-group-item-action" data-id="' + s.id + '">' + s.text + '</button>';
+            }).join('');
+            Array.prototype.forEach.call(results.querySelectorAll('button'), function (b) {
+              b.addEventListener('click', function () {
+                hidden.value = b.dataset.id; searchBox.value = b.textContent; results.innerHTML = '';
+              });
+            });
+          });
+      }, 250);
+    }
+
+    function loadStops() {
+      stopSel.innerHTML = '<option value="">— none —</option>';
+      if (!routeSel.value) return;
+      fetch('/transport/routes/' + routeSel.value + '/stop-options/')
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          (j.stops || []).forEach(function (s) {
+            var o = document.createElement('option'); o.value = s.id; o.textContent = s.name; stopSel.appendChild(o);
+          });
+        });
+    }
+
+    window.transportModalReset_assignments = function () {
+      if (searchBox) { searchBox.value = ''; }
+      if (hidden) hidden.value = '';
+      if (results) results.innerHTML = '';
+      if (stopSel) stopSel.innerHTML = '<option value="">— none —</option>';
+    };
+
+    window.transportChargeAssignment = function (id, fare) {
+      var amt = window.prompt('Charge amount for this assignment:', fare || '');
+      if (amt === null) return;
+      transportAction('assignments', 'charge', id, null, { amount: amt });
+    };
+  })();
+  </script>
+{% endblock %}

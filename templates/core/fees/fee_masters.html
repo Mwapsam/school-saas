@@ -1,0 +1,703 @@
+{% extends 'core/layouts/detail.html' %}
+{% load static %}
+
+{% block page_title %}Fee Masters{% endblock %}
+
+{% block layout_header %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb breadcrumb-sm">
+        <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'core:finance_dashboard' %}">Finance</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'core:fee_structure' %}">Fee Structure</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Fee Masters</li>
+    </ol>
+</nav>
+
+<!-- Workflow Nav -->
+{% include 'core/finance/_workflow_nav.html' %}
+
+{% url 'core:fee_structure' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Fee Masters" description="Configure reusable fee particulars, discounts, and applicability rules" icon="fa-layer-group" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_tabs %}
+    <!-- Tabs for Masters -->
+    <ul class="nav nav-tabs mb-4" role="tablist" style="border-bottom: 2px solid #e9ecef;">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="particulars-tab" data-bs-toggle="tab" data-bs-target="#particulars-content" type="button" role="tab" aria-controls="particulars-content" aria-selected="true">
+                <i class="fas fa-list me-2"></i>Master Particulars
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="discounts-tab" data-bs-toggle="tab" data-bs-target="#discounts-content" type="button" role="tab" aria-controls="discounts-content" aria-selected="false">
+                <i class="fas fa-percentage me-2"></i>Master Discounts
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="rules-tab" data-bs-toggle="tab" data-bs-target="#rules-content" type="button" role="tab" aria-controls="rules-content" aria-selected="false">
+                <i class="fas fa-filter me-2"></i>Applicability Rules
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Master Particulars Tab -->
+        <div class="tab-pane fade show active" id="particulars-content" role="tabpanel" aria-labelledby="particulars-tab">
+            <div class="card">
+                <div class="card-header bg-light border-0 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-list me-2 text-primary"></i>Master Particulars
+                    </h6>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#particularModal" onclick="resetParticularForm()">
+                        <i class="fas fa-plus me-2"></i>New Particular
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    {% if master_particulars %}
+                    {% include 'core/components/table_open.html' with columns=particular_columns %}
+                            <tbody>
+                                {% for master in master_particulars %}
+                                <tr id="particular-row-{{ master.id }}" class="align-middle">
+                                    <td class="fw-500">{{ master.name }}</td>
+                                    <td><small class="text-muted">{{ master.description|default:"—" }}</small></td>
+                                    <td class="text-center">
+                                        {% if master.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-link btn-sm" style="text-decoration:none; padding:0; color:#28a745;" onclick="viewParticularUsage('{{ master.id }}')">
+                                            <strong>{{ master.particulars.count }}</strong> particular{{ master.particulars.count|pluralize }}
+                                        </button>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-outline-primary" title="Edit" data-bs-toggle="modal" data-bs-target="#particularModal" onclick="editParticular('{{ master.id }}', '{{ master.name|escapejs }}', '{{ master.description|escapejs }}', {{ master.is_active|lower }})">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger" title="Delete" onclick="deleteParticular('{{ master.id }}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                    {% include 'core/components/table_close.html' %}
+                    {% else %}
+                    {% include 'core/components/empty_state.html' with title="No Master Particulars" message="Create reusable particulars that can be linked to multiple fee categories." icon="fa-layer-group" %}
+                    <div class="text-center pb-4">
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#particularModal" onclick="resetParticularForm()">
+                            <i class="fas fa-plus me-2"></i>Create First Particular
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Master Discounts Tab -->
+        <div class="tab-pane fade" id="discounts-content" role="tabpanel" aria-labelledby="discounts-tab">
+            <div class="card">
+                <div class="card-header bg-light border-0 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-percentage me-2 text-primary"></i>Master Discounts
+                    </h6>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#discountModal" onclick="resetDiscountForm()">
+                        <i class="fas fa-plus me-2"></i>New Discount
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    {% if master_discounts %}
+                    {% include 'core/components/table_open.html' with columns=discount_columns %}
+                            <tbody>
+                                {% for master in master_discounts %}
+                                <tr id="discount-row-{{ master.id }}" class="align-middle">
+                                    <td class="fw-500">{{ master.name }}</td>
+                                    <td class="text-center">
+                                        {% if master.discount_type == 'percentage' %}
+                                        <span class="badge bg-info">%</span>
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark">₭</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if master.discount_type == 'percentage' %}
+                                        <strong>{{ master.value }}%</strong>
+                                        {% else %}
+                                        <strong>₭{{ master.value|floatformat:2 }}</strong>
+                                        {% endif %}
+                                    </td>
+                                    <td><small class="text-muted">{{ master.description|default:"—" }}</small></td>
+                                    <td class="text-center">
+                                        {% if master.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-link btn-sm" style="text-decoration:none; padding:0; color:#28a745;" onclick="viewDiscountUsage('{{ master.id }}')">
+                                            <strong>{{ master.discounts.count }}</strong> discount{{ master.discounts.count|pluralize }}
+                                        </button>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-outline-primary" title="Edit" data-bs-toggle="modal" data-bs-target="#discountModal" onclick="editDiscount('{{ master.id }}', '{{ master.name|escapejs }}', '{{ master.discount_type }}', '{{ master.value }}', '{{ master.description|escapejs }}', {{ master.is_active|lower }})">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger" title="Delete" onclick="deleteDiscount('{{ master.id }}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                    {% include 'core/components/table_close.html' %}
+                    {% else %}
+                    {% include 'core/components/empty_state.html' with title="No Master Discounts" message="Create reusable discounts that can be applied to multiple fee items." icon="fa-percentage" %}
+                    <div class="text-center pb-4">
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#discountModal" onclick="resetDiscountForm()">
+                            <i class="fas fa-plus me-2"></i>Create First Discount
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Applicability Rules Tab -->
+        <div class="tab-pane fade" id="rules-content" role="tabpanel" aria-labelledby="rules-tab">
+            <div class="card">
+                <div class="card-header bg-light border-0 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-filter me-2 text-primary"></i>Applicability Rules
+                    </h6>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#ruleModal" onclick="resetRuleForm()">
+                        <i class="fas fa-plus me-2"></i>New Rule
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    {% if applicability_rules %}
+                    {% include 'core/components/table_open.html' with columns=rule_columns %}
+                            <tbody>
+                                {% for rule in applicability_rules %}
+                                <tr id="rule-row-{{ rule.id }}" class="align-middle">
+                                    <td>
+                                        <span class="badge bg-light text-dark fw-500">
+                                            <i class="fas fa-tag me-1"></i>{{ rule.get_rule_type_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if rule.rule_type == 'all' %}
+                                        <small><strong>All Students</strong> — applies to every student</small>
+                                        {% elif rule.rule_type == 'admission_number' %}
+                                        <small><strong>Admission #</strong> {{ rule.admission_number }}</small>
+                                        {% elif rule.rule_type == 'student_category' %}
+                                        <small><strong>Category:</strong> {{ rule.student_category.name }}</small>
+                                        {% elif rule.rule_type == 'batch' %}
+                                        <small><strong>Batch:</strong> {{ rule.batch.name }}</small>
+                                        {% elif rule.rule_type == 'individual_student' %}
+                                        <small><strong>Student:</strong> {{ rule.student.admission_no }} - {{ rule.student.first_name }} {{ rule.student.last_name }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if rule.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-outline-primary" title="Edit" data-bs-toggle="modal" data-bs-target="#ruleModal" onclick="editRule('{{ rule.id }}', '{{ rule.rule_type }}', '{{ rule.admission_number|default:'' }}', '{{ rule.student_category_id|default:'' }}', '{{ rule.batch_id|default:'' }}', '{{ rule.student_id|default:'' }}', {{ rule.is_active|lower }})">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger" title="Delete" onclick="deleteRule('{{ rule.id }}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                    {% include 'core/components/table_close.html' %}
+                    {% else %}
+                    {% include 'core/components/empty_state.html' with title="No Rules Configured" message="Rules control which students or groups are subject to specific fees." icon="fa-filter" %}
+                    <div class="text-center pb-4">
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#ruleModal" onclick="resetRuleForm()">
+                            <i class="fas fa-plus me-2"></i>Create First Rule
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block layout_extra %}
+<!-- Master Particular Modal -->
+<form id="particularForm">
+{% include 'core/components/modal.html' with id="particularModal" title="Create Master Particular" title_id="particularModalTitle" subtitle="Define a reusable fee component" icon="fa-list" %}
+                    <input type="hidden" id="particularId">
+                    <div class="mb-3">
+                        <label for="particularName" class="form-label fw-500">Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="particularName" placeholder="e.g., Tuition Fee" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="particularDescription" class="form-label fw-500">Description</label>
+                        <textarea class="form-control" id="particularDescription" rows="3" placeholder="e.g., Monthly tuition fee for academic activities"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="particularIsActive" checked>
+                        <label class="form-check-label" for="particularIsActive">
+                            <strong>Active</strong> — This particular is available for use
+                        </label>
+                    </div>
+{% include 'core/components/modal_close.html' with footer=particular_footer %}
+</form>
+
+<!-- Master Discount Modal -->
+<form id="discountForm">
+{% include 'core/components/modal.html' with id="discountModal" title="Create Master Discount" title_id="discountModalTitle" subtitle="Define a reusable discount type" icon="fa-percentage" %}
+                    <input type="hidden" id="discountId">
+                    <div class="mb-3">
+                        <label for="discountName" class="form-label fw-500">Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="discountName" placeholder="e.g., Staff Discount" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="discountType" class="form-label fw-500">Type <span class="text-danger">*</span></label>
+                                <select class="form-select" id="discountType" required>
+                                    <option value="">Select type</option>
+                                    <option value="percentage">Percentage (%)</option>
+                                    <option value="fixed">Fixed Amount</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="discountValue" class="form-label fw-500">Value <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="discountValue" placeholder="0.00" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="discountDescription" class="form-label fw-500">Description</label>
+                        <textarea class="form-control" id="discountDescription" rows="3" placeholder="When and why this discount applies"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="discountIsActive" checked>
+                        <label class="form-check-label" for="discountIsActive">
+                            <strong>Active</strong> — This discount is available for use
+                        </label>
+                    </div>
+{% include 'core/components/modal_close.html' with footer=discount_footer %}
+</form>
+
+<!-- Applicability Rule Modal -->
+<form id="ruleForm">
+{% include 'core/components/modal.html' with id="ruleModal" title="Create Applicability Rule" title_id="ruleModalTitle" subtitle="Control who is subject to specific fees" icon="fa-filter" %}
+                    <input type="hidden" id="ruleId">
+                    <div class="mb-4">
+                        <label for="ruleType" class="form-label fw-500">Scope <span class="text-danger">*</span></label>
+                        <select class="form-select" id="ruleType" required onchange="updateRuleTypeFields()">
+                            <option value="">Select who this applies to...</option>
+                            <option value="all">All Students</option>
+                            <option value="admission_number">Specific Admission Number</option>
+                            <option value="student_category">Student Category</option>
+                            <option value="batch">Batch</option>
+                            <option value="individual_student">Individual Student</option>
+                        </select>
+                        <small class="text-muted d-block mt-2">Choose which students this rule applies to</small>
+                    </div>
+
+                    <div class="mb-3" id="admissionNumberGroup" style="display: none;">
+                        <label for="admissionNumber" class="form-label fw-500">Admission Number <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="admissionNumber" placeholder="e.g., ADM-2025-001">
+                    </div>
+
+                    <div class="mb-3" id="studentCategoryGroup" style="display: none;">
+                        <label for="studentCategory" class="form-label fw-500">Category <span class="text-danger">*</span></label>
+                        <select class="form-select" id="studentCategory">
+                            <option value="">Select category</option>
+                            {% for cat in student_categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="batchGroup" style="display: none;">
+                        <label for="batch" class="form-label fw-500">Batch <span class="text-danger">*</span></label>
+                        <select class="form-select" id="batch">
+                            <option value="">Select batch</option>
+                            {% for b in batches %}
+                            <option value="{{ b.id }}">{{ b.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="studentGroup" style="display: none;">
+                        <label for="student" class="form-label fw-500">Student <span class="text-danger">*</span></label>
+                        <select class="form-select" id="student">
+                            <option value="">Search and select student</option>
+                            {% for s in students %}
+                            <option value="{{ s.id }}">{{ s.admission_no }} - {{ s.first_name }} {{ s.last_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="ruleIsActive" checked>
+                        <label class="form-check-label" for="ruleIsActive">
+                            <strong>Active</strong> — This rule is currently in effect
+                        </label>
+                    </div>
+{% include 'core/components/modal_close.html' with footer=rule_footer %}
+</form>
+
+<!-- Usage Modal (for viewing where masters are used) -->
+{% include 'core/components/modal.html' with id="usageModal" title="Usage Details" icon="fa-link" size="lg" %}
+    <div id="usageContent"></div>
+{% include 'core/components/modal_close.html' %}
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+const CSRF_TOKEN = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                   document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1] || '';
+
+function resetParticularForm() {
+    document.getElementById('particularId').value = '';
+    document.getElementById('particularForm').reset();
+    document.getElementById('particularModalTitle').textContent = 'Create Master Particular';
+    document.getElementById('particularIsActive').checked = true;
+}
+
+function editParticular(id, name, description, isActive) {
+    document.getElementById('particularId').value = id;
+    document.getElementById('particularName').value = name;
+    document.getElementById('particularDescription').value = description;
+    document.getElementById('particularIsActive').checked = isActive;
+    document.getElementById('particularModalTitle').textContent = 'Edit Master Particular';
+}
+
+function resetDiscountForm() {
+    document.getElementById('discountId').value = '';
+    document.getElementById('discountForm').reset();
+    document.getElementById('discountModalTitle').textContent = 'Create Master Discount';
+    document.getElementById('discountIsActive').checked = true;
+}
+
+function editDiscount(id, name, type, value, description, isActive) {
+    document.getElementById('discountId').value = id;
+    document.getElementById('discountName').value = name;
+    document.getElementById('discountType').value = type;
+    document.getElementById('discountValue').value = value;
+    document.getElementById('discountDescription').value = description;
+    document.getElementById('discountIsActive').checked = isActive;
+    document.getElementById('discountModalTitle').textContent = 'Edit Master Discount';
+}
+
+document.getElementById('particularForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('particularId').value;
+    const data = {
+        id: id || null,
+        name: document.getElementById('particularName').value,
+        description: document.getElementById('particularDescription').value,
+        is_active: document.getElementById('particularIsActive').checked
+    };
+
+    try {
+        const response = await fetch('{% url "core:fee_master_particular_save" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': CSRF_TOKEN
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        if (response.ok && result.success) {
+            showAlert('success', result.message);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('particularModal'));
+            modal.hide();
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', result.error || 'An error occurred');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('danger', 'Failed to save master particular');
+    }
+});
+
+document.getElementById('discountForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('discountId').value;
+    const data = {
+        id: id || null,
+        name: document.getElementById('discountName').value,
+        discount_type: document.getElementById('discountType').value,
+        value: parseFloat(document.getElementById('discountValue').value),
+        description: document.getElementById('discountDescription').value,
+        is_active: document.getElementById('discountIsActive').checked
+    };
+
+    try {
+        const response = await fetch('{% url "core:fee_master_discount_save" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': CSRF_TOKEN
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        if (response.ok && result.success) {
+            showAlert('success', result.message);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('discountModal'));
+            modal.hide();
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', result.error || 'An error occurred');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('danger', 'Failed to save master discount');
+    }
+});
+
+function deleteParticular(id) {
+    if (!confirm('Are you sure you want to delete this master particular?')) {
+        return;
+    }
+
+    fetch(`/fees/masters/particular/${id}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': CSRF_TOKEN
+        }
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showAlert('success', result.message);
+            const row = document.getElementById(`particular-row-${id}`);
+            if (row) {
+                row.fadeOut(() => row.remove());
+            }
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', result.error || 'Failed to delete');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', 'Failed to delete master particular');
+    });
+}
+
+function deleteDiscount(id) {
+    if (!confirm('Are you sure you want to delete this master discount?')) {
+        return;
+    }
+
+    fetch(`/fees/masters/discount/${id}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': CSRF_TOKEN
+        }
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showAlert('success', result.message);
+            const row = document.getElementById(`discount-row-${id}`);
+            if (row) {
+                row.fadeOut(() => row.remove());
+            }
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', result.error || 'Failed to delete');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', 'Failed to delete master discount');
+    });
+}
+
+function showAlert(type, message) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('afterbegin', alertHtml);
+}
+
+function resetRuleForm() {
+    document.getElementById('ruleId').value = '';
+    document.getElementById('ruleForm').reset();
+    document.getElementById('ruleModalTitle').textContent = 'Create Applicability Rule';
+    document.getElementById('ruleIsActive').checked = true;
+    updateRuleTypeFields();
+}
+
+function updateRuleTypeFields() {
+    const ruleType = document.getElementById('ruleType').value;
+    document.getElementById('admissionNumberGroup').style.display = ruleType === 'admission_number' ? 'block' : 'none';
+    document.getElementById('studentCategoryGroup').style.display = ruleType === 'student_category' ? 'block' : 'none';
+    document.getElementById('batchGroup').style.display = ruleType === 'batch' ? 'block' : 'none';
+    document.getElementById('studentGroup').style.display = ruleType === 'individual_student' ? 'block' : 'none';
+}
+
+function editRule(id, ruleType, admissionNumber, studentCategoryId, batchId, studentId, isActive) {
+    document.getElementById('ruleId').value = id;
+    document.getElementById('ruleType').value = ruleType;
+    document.getElementById('admissionNumber').value = admissionNumber;
+    document.getElementById('studentCategory').value = studentCategoryId;
+    document.getElementById('batch').value = batchId;
+    document.getElementById('student').value = studentId;
+    document.getElementById('ruleIsActive').checked = isActive;
+    document.getElementById('ruleModalTitle').textContent = 'Edit Applicability Rule';
+    updateRuleTypeFields();
+}
+
+document.getElementById('ruleForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('ruleId').value;
+    const ruleType = document.getElementById('ruleType').value;
+    const isActive = document.getElementById('ruleIsActive').checked;
+
+    const data = {
+        id: id || null,
+        rule_type: ruleType,
+        is_active: isActive
+    };
+
+    if (ruleType === 'admission_number') {
+        data.admission_number = document.getElementById('admissionNumber').value;
+    } else if (ruleType === 'student_category') {
+        data.student_category_id = document.getElementById('studentCategory').value;
+    } else if (ruleType === 'batch') {
+        data.batch_id = document.getElementById('batch').value;
+    } else if (ruleType === 'individual_student') {
+        data.student_id = document.getElementById('student').value;
+    }
+
+    try {
+        const response = await fetch('{% url "core:fee_applicability_rule_save" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': CSRF_TOKEN
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        if (response.ok && result.success) {
+            showAlert('success', result.message);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('ruleModal'));
+            modal.hide();
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', result.error || 'An error occurred');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('danger', 'Failed to save applicability rule');
+    }
+});
+
+function deleteRule(id) {
+    if (!confirm('Are you sure you want to delete this applicability rule?')) {
+        return;
+    }
+
+    fetch(`/fees/masters/rule/${id}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': CSRF_TOKEN
+        }
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showAlert('success', result.message);
+            const row = document.getElementById(`rule-row-${id}`);
+            if (row) {
+                row.fadeOut(() => row.remove());
+            }
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', result.error || 'Failed to delete');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', 'Failed to delete applicability rule');
+    });
+}
+
+function viewParticularUsage(masterId) {
+    fetch(`/fees/masters/particular/${masterId}/usage/`)
+    .then(response => response.json())
+    .then(data => {
+        let html = '<p class="text-muted">Linked Particulars:</p>';
+        if (data.items && data.items.length > 0) {
+            html += '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Name</th><th>Fee Category</th><th>Amount</th></tr></thead><tbody>';
+            data.items.forEach(item => {
+                html += `<tr><td>${item.name}</td><td>${item.fee_category}</td><td>${item.amount}</td></tr>`;
+            });
+            html += '</tbody></table></div>';
+        } else {
+            html += '<p class="text-muted text-center">No linked particulars found.</p>';
+        }
+        document.getElementById('usageContent').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('usageModal')).show();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', 'Failed to fetch usage details');
+    });
+}
+
+function viewDiscountUsage(masterId) {
+    fetch(`/fees/masters/discount/${masterId}/usage/`)
+    .then(response => response.json())
+    .then(data => {
+        let html = '<p class="text-muted">Linked Discounts:</p>';
+        if (data.items && data.items.length > 0) {
+            html += '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Name</th><th>Fee Category</th><th>Mode</th><th>Value</th></tr></thead><tbody>';
+            data.items.forEach(item => {
+                const display = item.mode === 'percentage' ? item.value + '%' : item.value;
+                html += `<tr><td>${item.name}</td><td>${item.fee_category}</td><td>${item.mode}</td><td>${display}</td></tr>`;
+            });
+            html += '</tbody></table></div>';
+        } else {
+            html += '<p class="text-muted text-center">No linked discounts found.</p>';
+        }
+        document.getElementById('usageContent').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('usageModal')).show();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', 'Failed to fetch usage details');
+    });
+}
+</script>
+{% endblock %}

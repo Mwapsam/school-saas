@@ -1,0 +1,34 @@
+<h2 class="h6 fw-bold">Disciplinary cases</h2>
+<div class="pinewood-table-responsive mb-4">
+    <table class="pinewood-table">
+        <thead><tr><th>Title</th><th>Type</th><th>Severity</th><th>Outcome</th><th>Status</th></tr></thead>
+        <tbody>
+            {% for c in cases %}
+                <tr>
+                    <td>{{ c.title }}</td>
+                    <td>{{ c.get_case_type_display }}</td>
+                    <td>{{ c.get_severity_display }}</td>
+                    <td>{{ c.get_outcome_display }}</td>
+                    <td>{{ c.get_status_display }}</td>
+                </tr>
+            {% empty %}
+                <tr class="empty-state"><td colspan="5">No disciplinary cases on record.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h2 class="h6 fw-bold">Grievances raised</h2>
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead><tr><th>Title</th><th>Category</th><th>Status</th></tr></thead>
+        <tbody>
+            {% for g in grievances %}
+                <tr><td>{{ g.title }}</td><td>{{ g.get_category_display }}</td><td>{{ g.get_status_display }}</td></tr>
+            {% empty %}
+                <tr class="empty-state"><td colspan="3">No grievances raised by this employee.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<a class="btn btn-outline-secondary btn-sm mt-2" href="{% url 'core:hr_relations' %}">Open Employee Relations</a>

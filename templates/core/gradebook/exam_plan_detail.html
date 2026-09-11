@@ -1,0 +1,1224 @@
+{% extends 'core/layouts/detail.html' %}
+{% load static %}
+
+{% block page_title %}{{ exam_plan.name }} - Exam Planner{% endblock %}
+
+
+{% block layout_header %}
+{% url 'core:exam_planners_list' as back_fallback %}
+{% include 'core/components/page_header.html' with title=exam_plan.name description="Exam plan terms, structure, and linked classes." icon="fa-graduation-cap" back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% block layout_summary %}
+<div class="gb-exam-plan-detail">
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <p class="text-muted small mb-0">
+        {% if planner_course %}Class: <strong>{{ planner_course.course_name }}</strong> &middot; {{ covered_classes }} batch{{ covered_classes|pluralize:"es" }} this year{% endif %}
+    </p>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <button class="btn btn-outline-secondary btn-sm" onclick="syncToAllClasses()" title="Replicate every exam to all batches of the course">
+            <i class="fas fa-sync me-1"></i>Sync to All Classes
+        </button>
+        <a href="{% url 'core:manage_exam_plan_classes' exam_plan.id %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-cogs me-1"></i>Manage Classes
+        </a>
+        <div class="dropdown">
+            <button class="btn btn-light btn-sm rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="More actions" style="width:32px;height:32px;padding:0;">
+                <i class="fas fa-ellipsis-v text-muted" style="font-size:.8rem;"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3" style="min-width:180px;">
+                <li><a class="dropdown-item rounded-2 py-2" href="#"><i class="fas fa-edit me-2 text-muted" style="width:16px;"></i>Edit Plan</a></li>
+                <li><a class="dropdown-item rounded-2 py-2" href="#"><i class="fas fa-copy me-2 text-muted" style="width:16px;"></i>Duplicate Plan</a></li>
+                <li><a class="dropdown-item rounded-2 py-2" href="#"><i class="fas fa-download me-2 text-muted" style="width:16px;"></i>Export Plan</a></li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li><a class="dropdown-item rounded-2 py-2 text-danger" href="#" onclick="deletePlan(); return false;"><i class="fas fa-trash me-2" style="width:16px;"></i>Delete Plan</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Plan Info Card -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white border-bottom d-flex align-items-center py-3 px-4">
+        <h6 class="mb-0 fw-semibold"><i class="fas fa-info-circle text-success me-2"></i>Plan Information</h6>
+    </div>
+    <div class="ep-info-grid">
+        <div class="ep-info-item">
+            <label>Plan Name</label>
+            <div class="ep-info-value">{{ exam_plan.name }}</div>
+        </div>
+        <div class="ep-info-item">
+            <label>Academic Year</label>
+            <div class="ep-info-value">{{ exam_plan.academic_year.name }}</div>
+        </div>
+        <div class="ep-info-item">
+            <label>Terms</label>
+            <div class="ep-info-value">{{ exam_plan.terms_count }}</div>
+        </div>
+        <div class="ep-info-item">
+            <label>From</label>
+            <div class="ep-info-value">{{ exam_plan.start_date|date:"M Y" }}</div>
+        </div>
+        <div class="ep-info-item">
+            <label>To</label>
+            <div class="ep-info-value">{{ exam_plan.end_date|date:"M Y" }}</div>
+        </div>
+    </div>
+    <div class="ep-classes-strip">
+        <span class="text-muted small">
+            <strong class="text-dark">{{ exam_plan.classes_linked_count }}</strong>
+            class{{ exam_plan.classes_linked_count|pluralize:"es" }} linked
+        </span>
+        <a href="{% url 'core:manage_exam_plan_classes' exam_plan.id %}" class="ep-edit-link small">
+            Manage Classes <i class="fas fa-chevron-right fa-xs ms-1"></i>
+        </a>
+    </div>
+</div>
+
+<!-- Report Configuration -->
+<div class="card border-0 shadow-sm mb-3" data-exam-plan-id="{{ exam_plan.id }}" data-layout="{{ report_config.layout_type }}">
+    <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div>
+            <h6 class="mb-0 fw-semibold"><i class="fas fa-table-list text-success me-2"></i>Report Configuration</h6>
+            <p class="text-muted small mb-0">Controls which exams appear in each section of the report card.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <label for="reportFormatSelect" class="form-label text-muted small fw-medium mb-0">Report Format</label>
+            <select class="form-select form-select-sm" id="reportFormatSelect" style="width:auto;" onchange="setReportFormat(this.value)">
+                {% for value, label in report_config.layout_choices %}
+                    <option value="{{ value }}" {% if value == report_config.layout_type %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    {% if report_config.is_skills %}
+        <div class="ep-report-body">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="includeSkillsToggle"
+                       {% if report_config.include_skills %}checked{% endif %}
+                       onchange="setIncludeSkills(this.checked)">
+                <label class="form-check-label fw-semibold" for="includeSkillsToggle">Include skills checklist on the report</label>
+            </div>
+            <p class="text-muted small mb-2">This grade uses skills-based assessment. The following skill categories will appear on the report:</p>
+            {% if report_config.skill_categories %}
+                <ul class="ep-skills-list">{% for cat in report_config.skill_categories %}<li>{{ cat }}</li>{% endfor %}</ul>
+            {% else %}
+                <p class="text-muted small">No skill categories found. Create them in the Skills Assessment area first.</p>
+            {% endif %}
+            <a href="{% url 'core:skills_assessment_index' %}" class="btn btn-outline-secondary btn-sm mt-2">
+                <i class="fas fa-arrow-right me-1"></i>Go to Skills Assessment
+            </a>
+        </div>
+    {% else %}
+        <div class="ep-report-body">
+            <div class="ep-sections-grid">
+                {% for section in report_config.sections %}
+                    <div class="ep-section">
+                        <div class="ep-section-title">{{ section.title }}</div>
+                        <div class="ep-section-chips">
+                            {% for exam in section.exams %}
+                                <span class="ep-exam-chip" title="{{ exam.subject_count }} subject{{ exam.subject_count|pluralize }}">{{ exam.name|upper }}</span>
+                            {% empty %}
+                                <span class="text-muted small">No exams assigned</span>
+                            {% endfor %}
+                        </div>
+                        <div class="ep-section-assign">
+                            <select class="form-select form-select-sm assign-exam-select" style="flex:1;">
+                                <option value="">+ Assign exam…</option>
+                                {% for exam in report_config.all_exams %}
+                                    <option value="{{ exam.exam_ids_csv }}">{{ exam.name|upper }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" class="btn btn-primary btn-sm" onclick="assignExamToSlot(this, '{{ section.slot }}')">Assign</button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            {% if report_config.unassigned %}
+                <div class="ep-unassigned">
+                    <div class="ep-section-title text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Not on this report</div>
+                    <p class="text-muted small mb-2">These exams use a report column not in the current format. Reassign them using the controls above.</p>
+                    <div class="ep-section-chips">
+                        {% for exam in report_config.unassigned %}
+                            <span class="ep-exam-chip ep-exam-chip-muted">{{ exam.name|upper }}{% if exam.slot_display %} · {{ exam.slot_display }}{% endif %}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+<!-- Terms and Exams -->
+{% for term in terms %}
+    <div class="card border-0 shadow-sm ep-term">
+        <div class="ep-term-header">
+            <span class="ep-term-name">{{ term.name }}</span>
+            <div class="ep-term-actions">
+                <button class="btn btn-primary btn-sm" onclick="openAddExamModal('{{ term.id }}', '{{ term.name }}', '{{ exam_plan.id }}')">
+                    <i class="fas fa-plus me-1"></i>Add Exams
+                </button>
+                <div class="dropdown">
+                    <button class="btn btn-light btn-sm rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Term actions" style="padding:0;">
+                        <i class="fas fa-ellipsis-v text-muted" style="font-size:.75rem;"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3" style="min-width:170px;">
+                        <li><a class="dropdown-item rounded-2 py-2" href="#" onclick="openEditTermModal('{{ term.id }}', '{{ term.name|escapejs }}', '{{ term.start_date|date:"Y-m-d" }}', '{{ term.end_date|date:"Y-m-d" }}', {{ term.exams|length }}); return false;"><i class="fas fa-edit me-2 text-muted" style="width:16px;"></i>Edit Term</a></li>
+                        <li><a class="dropdown-item rounded-2 py-2" href="#" onclick="duplicateTerm('{{ term.id }}'); return false;"><i class="fas fa-copy me-2 text-muted" style="width:16px;"></i>Duplicate Term</a></li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li><a class="dropdown-item rounded-2 py-2 text-danger" href="#" onclick="deleteTerm('{{ term.id }}'); return false;"><i class="fas fa-trash me-2" style="width:16px;"></i>Delete Term</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive" style="overflow:visible">
+            {% if term.exams %}
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr style="font-size:.75rem;letter-spacing:.05em;">
+                            <th class="fw-medium text-muted text-uppercase ps-4">Exam</th>
+                            <th class="fw-medium text-muted text-uppercase">Mode</th>
+                            <th class="fw-medium text-muted text-uppercase">Scoring</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for exam in term.exams %}
+                            <tr>
+                                <td class="ps-4">
+                                    <strong>{{ exam.name|upper }}</strong>
+                                    <br><small class="text-muted">{{ exam.subject_count }} subject{{ exam.subject_count|pluralize }}</small>
+                                </td>
+                                <td><span class="ep-mode-badge rounded-pill">{{ exam.exam_mode }}</span></td>
+                                <td>
+                                    <span class="ep-score-badge rounded-pill">{{ exam.scoring }}</span>
+                                    {% if exam.slot_display %}<span class="badge bg-light text-secondary border ms-1" style="font-size:.7rem;">{{ exam.slot_display }}</span>{% endif %}
+                                </td>
+                                <td class="text-end pe-3" style="white-space:nowrap;width:120px;">
+                                    <a href="#" class="ep-edit-link me-2" onclick="openEditExamModal('{{ exam.representative_id }}', '{{ exam.exam_ids_csv }}'); return false;">Edit</a>
+                                    <div class="dropdown d-inline-block">
+                                        <button class="btn btn-light btn-sm rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="More" style="padding:0;">
+                                            <i class="fas fa-ellipsis-v text-muted" style="font-size:.75rem;"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3" style="min-width:170px;">
+                                            {% if exam.exam_name %}<li><a class="dropdown-item rounded-2 py-2" href="#"
+                                                data-term-id="{{ term.id }}"
+                                                data-plan-id="{{ exam_plan.id }}"
+                                                data-exam-name="{{ exam.exam_name }}"
+                                                data-exam-code="{{ exam.exam_code }}"
+                                                data-subject-ids="{{ exam.subject_ids_json }}"
+                                                onclick="openEditSubjectsModal(this); return false;"><i class="fas fa-list-check me-2 text-muted" style="width:16px;"></i>Edit Subjects</a></li>{% endif %}
+                                            <li><a class="dropdown-item rounded-2 py-2" href="#" onclick="duplicateExam('{{ exam.representative_id }}'); return false;"><i class="fas fa-copy me-2 text-muted" style="width:16px;"></i>Duplicate</a></li>
+                                            <li><a class="dropdown-item rounded-2 py-2" href="#" onclick="exportExam('{{ exam.representative_id }}'); return false;"><i class="fas fa-download me-2 text-muted" style="width:16px;"></i>Export</a></li>
+                                            <li><hr class="dropdown-divider my-1"></li>
+                                            <li><a class="dropdown-item rounded-2 py-2 text-danger" href="#" onclick="deleteExamGroup('{{ exam.exam_ids_csv }}', '{{ exam.name|escapejs }}'); return false;"><i class="fas fa-trash me-2" style="width:16px;"></i>Delete</a></li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        {% if forloop.last %}
+                            <tr class="bg-success-subtle">
+                                <td class="ps-4"><strong>FINAL SCORE</strong></td>
+                                <td><span class="ep-mode-badge rounded-pill">Final Term</span></td>
+                                <td><span class="ep-score-badge rounded-pill">Marks</span></td>
+                                <td class="text-end pe-3" style="white-space:nowrap;width:120px;">
+                                    <a href="#" class="ep-edit-link me-2">Edit</a>
+                                    <div class="dropdown d-inline-block">
+                                        <button class="btn btn-light btn-sm rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="width:28px;height:28px;padding:0;">
+                                            <i class="fas fa-ellipsis-v text-muted" style="font-size:.75rem;"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3" style="min-width:170px;">
+                                            <li><a class="dropdown-item rounded-2 py-2" href="#"><i class="fas fa-copy me-2 text-muted" style="width:16px;"></i>Duplicate</a></li>
+                                            <li><a class="dropdown-item rounded-2 py-2" href="#"><i class="fas fa-download me-2 text-muted" style="width:16px;"></i>Export</a></li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-calendar-times fa-2x text-muted mb-3 d-block" style="opacity:.35;"></i>
+                    <p class="text-muted mb-2">No exams added to this term yet.</p>
+                    <button class="btn btn-primary btn-sm" onclick="openAddExamModal('{{ term.id }}', '{{ term.name }}', '{{ exam_plan.id }}')">
+                        <i class="fas fa-plus me-1"></i>Add First Exam
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% empty %}
+    <div class="card border-0 shadow-sm">
+        <div class="text-center py-5">
+            <i class="fas fa-calendar-alt fa-2x text-muted mb-3 d-block" style="opacity:.35;"></i>
+            <strong class="d-block mb-1">No Terms Found</strong>
+            <p class="text-muted small mb-0">This exam plan doesn't have any terms yet.</p>
+        </div>
+    </div>
+{% endfor %}
+
+<!-- Add Exam Modal -->
+<div class="modal fade" id="addExamModal" tabindex="-1" aria-labelledby="addExamModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-semibold" id="addExamModalLabel">Add Exams to <span id="termNameDisplay" class="text-success"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
+                <form id="addExamForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="termId" name="term_id">
+                    <input type="hidden" id="examPlanId" name="exam_plan_id">
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="examName" class="form-label text-muted small fw-medium mb-1">Exam Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="examName" name="exam_name" placeholder="e.g., EXAMINATION" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="examCode" class="form-label text-muted small fw-medium mb-1">Code <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="examCode" name="exam_code" placeholder="e.g., EM2" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="displayName" class="form-label text-muted small fw-medium mb-1">Display Name</label>
+                            <input type="text" class="form-control" id="displayName" name="display_name" placeholder="Optional">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-medium mb-1">Exam Type</label>
+                        <div class="ep-form-check">
+                            <input class="form-check-input" type="radio" name="exam_type" id="subjectExams" value="subject" checked>
+                            <label class="form-check-label" for="subjectExams">
+                                <strong>Subject Exams</strong><br>
+                                <small class="text-muted">Exams conducted for the subjects in the linked class</small>
+                            </label>
+                        </div>
+                        <div class="ep-form-check">
+                            <input class="form-check-input" type="radio" name="exam_type" id="activityExams" value="activity">
+                            <label class="form-check-label" for="activityExams">
+                                <strong>Activity Exams</strong><br>
+                                <small class="text-muted">Non subject based exams to test learning and development skills</small>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3" id="subjectExamsModeSection">
+                        <label class="form-label text-muted small fw-medium mb-1">Subject Exams Mode</label>
+                        <div class="ep-form-check">
+                            <input class="form-check-input" type="radio" name="subject_exams_mode" id="directGrading" value="direct" checked>
+                            <label class="form-check-label" for="directGrading">
+                                <strong>Direct Grading</strong><br>
+                                <small class="text-muted">A single mark or grade is entered for each subject of this exam</small>
+                            </label>
+                        </div>
+                        <div class="ep-form-check">
+                            <input class="form-check-input" type="radio" name="subject_exams_mode" id="attributesGrading" value="attributes">
+                            <label class="form-check-label" for="attributesGrading">
+                                <strong>Attributes Based Grading</strong><br>
+                                <small class="text-muted">Marks are given for parameters or attributes of the subject</small>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3" id="subjectSelectionSection">
+                        <label class="form-label text-muted small fw-medium mb-1" id="selectionLabel">Select Subjects</label>
+                        <div class="border rounded p-2" style="max-height:200px;overflow-y:auto;">
+                            <div id="subjectsList"></div>
+                        </div>
+                        <div class="mt-2 d-flex gap-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="selectAllItems()">Select All</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="deselectAllItems()">Deselect All</button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 mt-2">
+                        <label class="form-label text-muted small fw-medium mb-1">Scoring</label>
+                        <div class="row g-2">
+                            <div class="col-6 col-md-3">
+                                <div class="ep-form-check">
+                                    <input class="form-check-input" type="radio" name="scoring_type" id="scoringMarks" value="marks" checked>
+                                    <label class="form-check-label fw-semibold" for="scoringMarks">Marks</label>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="ep-form-check">
+                                    <input class="form-check-input" type="radio" name="scoring_type" id="scoringGrades" value="grades">
+                                    <label class="form-check-label fw-semibold" for="scoringGrades">Grades</label>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="ep-form-check">
+                                    <input class="form-check-input" type="radio" name="scoring_type" id="scoringBoth" value="marks_and_grades">
+                                    <label class="form-check-label fw-semibold" for="scoringBoth">Marks &amp; Grades</label>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="ep-form-check">
+                                    <input class="form-check-input" type="radio" name="scoring_type" id="scoringSkills" value="skills">
+                                    <label class="form-check-label fw-semibold" for="scoringSkills">Skills</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="marksSection" class="mb-3">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="maximumMarks" class="form-label text-muted small fw-medium mb-1">Maximum Marks</label>
+                                <input type="number" class="form-control" id="maximumMarks" name="maximum_marks" value="100" min="1">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="passCriteria" class="form-label text-muted small fw-medium mb-1">Pass Criteria</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="passCriteria" name="pass_criteria" value="40" min="0">
+                                    <span class="input-group-text">and above</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="gradingProfileSection" class="mb-3" style="display:none">
+                        <label for="gradingScale" class="form-label text-muted small fw-medium mb-1">Grading Profile</label>
+                        <select class="form-control" id="gradingScale" name="grading_scale_id">
+                            <option value="">Choose a grading profile</option>
+                        </select>
+                    </div>
+
+                    <div id="assessmentSlotSection" class="mb-3">
+                        <label class="form-label text-muted small fw-medium mb-1">
+                            Report Column <small class="text-muted fw-normal">(what this exam feeds into on the report)</small>
+                        </label>
+                        <select class="form-control" id="assessmentSlot" name="assessment_slot">
+                            <option value="EXAM">Examination / Test (marks &amp; grade columns)</option>
+                            <option value="ATTAINMENT">Attainment (term grade — grades 3–7)</option>
+                            <option value="EFFORT">Effort (term grade — grades 3–7)</option>
+                            <option value="CLASSWORK">Classwork (grade column — grades 1–2)</option>
+                            <option value="TEST">Test / Marks (test % column — grades 1–2)</option>
+                        </select>
+                    </div>
+
+                    <div id="hideMarksSection" class="mb-3" style="display:none">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="hideMarks" name="hide_marks">
+                            <label class="form-check-label" for="hideMarks">Hide marks</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="createExams()">
+                    <i class="fas fa-plus me-1"></i>Create Exams
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Term Modal -->
+<div class="modal fade" id="editTermModal" tabindex="-1" aria-labelledby="editTermModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-semibold" id="editTermModalLabel">Edit Term</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editTermForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="editTermId" name="term_id">
+                    <div class="mb-3">
+                        <label for="editTermName" class="form-label text-muted small fw-medium mb-1">Term Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editTermName" name="name" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editTermStart" class="form-label text-muted small fw-medium mb-1">Start Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="editTermStart" name="start_date" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editTermEnd" class="form-label text-muted small fw-medium mb-1">End Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="editTermEnd" name="end_date" required>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Subjects Modal -->
+<div class="modal fade" id="editSubjectsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-semibold">Edit Subjects &mdash; <span id="editSubjectsExamName" class="text-success"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-2">Check subjects to include; uncheck to remove.</p>
+                <div class="d-flex gap-2 mb-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                            onclick="document.querySelectorAll('#editSubjectsList input[type=checkbox]').forEach(cb=>cb.checked=true)">Select All</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                            onclick="document.querySelectorAll('#editSubjectsList input[type=checkbox]').forEach(cb=>cb.checked=false)">Deselect All</button>
+                </div>
+                <div id="editSubjectsList" style="max-height:350px;overflow-y:auto;padding:0.25rem 0"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="editSubjectsSaveBtn"
+                        onclick="saveEditedSubjects()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Exam Modal -->
+<div class="modal fade" id="editExamModal" tabindex="-1" aria-labelledby="editExamModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-semibold" id="editExamModalLabel">Edit Exam: <span id="editExamSubjectName" class="text-success"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editExamForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="editExamId" name="exam_id">
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editExamDate" class="form-label text-muted small fw-medium mb-1">Exam Date</label>
+                            <input type="date" class="form-control" id="editExamDate" name="exam_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editExamTime" class="form-label text-muted small fw-medium mb-1">Exam Time</label>
+                            <input type="time" class="form-control" id="editExamTime" name="exam_time" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editDuration" class="form-label text-muted small fw-medium mb-1">Duration (minutes)</label>
+                            <input type="number" class="form-control" id="editDuration" name="duration" min="30" value="60">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-medium mb-1">Scoring</label>
+                        <div class="row g-2">
+                            <div class="col-6 col-md-3">
+                                <div class="ep-form-check">
+                                    <input class="form-check-input" type="radio" name="edit_scoring_type" id="editScoringMarks" value="marks">
+                                    <label class="form-check-label fw-semibold" for="editScoringMarks">Marks</label>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="ep-form-check">
+                                    <input class="form-check-input" type="radio" name="edit_scoring_type" id="editScoringGrades" value="grades">
+                                    <label class="form-check-label fw-semibold" for="editScoringGrades">Grades</label>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="ep-form-check">
+                                    <input class="form-check-input" type="radio" name="edit_scoring_type" id="editScoringBoth" value="marks_and_grades">
+                                    <label class="form-check-label fw-semibold" for="editScoringBoth">Marks &amp; Grades</label>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="ep-form-check">
+                                    <input class="form-check-input" type="radio" name="edit_scoring_type" id="editScoringSkills" value="skills">
+                                    <label class="form-check-label fw-semibold" for="editScoringSkills">Skills</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="editMarksSection" class="mb-3">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="editMaximumMarks" class="form-label text-muted small fw-medium mb-1">Maximum Marks</label>
+                                <input type="number" class="form-control" id="editMaximumMarks" name="maximum_marks" value="100" min="1">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editPassCriteria" class="form-label text-muted small fw-medium mb-1">Pass Criteria</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="editPassCriteria" name="pass_criteria" value="40" min="0">
+                                    <span class="input-group-text">and above</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="editGradingProfileSection" class="mb-3" style="display:none">
+                        <label for="editGradingScale" class="form-label text-muted small fw-medium mb-1">Grading Profile</label>
+                        <select class="form-control" id="editGradingScale" name="grading_scale_id">
+                            <option value="">Choose a grading profile</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-medium mb-1">
+                            Report Column <small class="text-muted fw-normal">(what this exam feeds into on the report)</small>
+                        </label>
+                        <select class="form-control" id="editAssessmentSlot" name="assessment_slot">
+                            <option value="EXAM">Examination / Test (marks &amp; grade columns)</option>
+                            <option value="ATTAINMENT">Attainment (term grade — grades 3–7)</option>
+                            <option value="EFFORT">Effort (term grade — grades 3–7)</option>
+                            <option value="CLASSWORK">Classwork (grade column — grades 1–2)</option>
+                            <option value="TEST">Test / Marks (test % column — grades 1–2)</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="updateExam()">
+                    <i class="fas fa-save me-1"></i>Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+{% block layout_sections %}{% endblock %}
+{% block layout_extra %}<!-- Modals will go here -->{% endblock %}
+
+
+{% block extra_js %}
+<script>
+function show(el) { if (el) el.style.display = 'block'; }
+function hide(el) { if (el) el.style.display = 'none'; }
+
+function showOnlyLevelScales(selectId) {
+    const select = document.querySelector(selectId);
+    if (!select) return;
+    let hasVisible = false;
+    Array.from(select.options).forEach(function(opt) {
+        if (!opt.value) return;
+        const isLevel = opt.dataset.scaleType === 'LEVEL';
+        opt.style.display = isLevel ? '' : 'none';
+        if (!isLevel && opt.selected) select.value = '';
+        if (isLevel) hasVisible = true;
+    });
+    let hint = document.getElementById('noLevelScaleHint');
+    if (!hasVisible) {
+        if (!hint) select.parentElement.insertAdjacentHTML('afterend',
+            '<small class="text-warning mt-1 d-block" id="noLevelScaleHint">No LEVEL-type grading profile found. Create one in Grading Settings first.</small>');
+    } else {
+        if (hint) hint.remove();
+    }
+}
+
+function showAllScales(selectId) {
+    const select = document.querySelector(selectId);
+    if (!select) return;
+    Array.from(select.options).forEach(function(opt) { opt.style.display = ''; });
+    const hint = document.getElementById('noLevelScaleHint');
+    if (hint) hint.remove();
+}
+
+function handleScoringTypeChange(scoringType) {
+    const m = document.getElementById('marksSection');
+    const g = document.getElementById('gradingProfileSection');
+    const h = document.getElementById('hideMarksSection');
+    if (scoringType === 'marks') { show(m); hide(g); hide(h); showAllScales('#gradingScale'); }
+    else if (scoringType === 'grades') { hide(m); show(g); hide(h); showAllScales('#gradingScale'); }
+    else if (scoringType === 'marks_and_grades') { show(m); show(g); show(h); showAllScales('#gradingScale'); }
+    else if (scoringType === 'skills') { hide(m); show(g); hide(h); showOnlyLevelScales('#gradingScale'); }
+}
+
+function handleEditScoringTypeChange(scoringType) {
+    const m = document.getElementById('editMarksSection');
+    const g = document.getElementById('editGradingProfileSection');
+    if (scoringType === 'marks') { show(m); hide(g); showAllScales('#editGradingScale'); }
+    else if (scoringType === 'grades') { hide(m); show(g); showAllScales('#editGradingScale'); }
+    else if (scoringType === 'marks_and_grades') { show(m); show(g); showAllScales('#editGradingScale'); }
+    else if (scoringType === 'skills') { hide(m); show(g); showOnlyLevelScales('#editGradingScale'); }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('input[name="scoring_type"]').forEach(function(r) {
+        r.addEventListener('change', function() { handleScoringTypeChange(this.value); });
+    });
+    document.querySelectorAll('input[name="exam_type"]').forEach(function(r) {
+        r.addEventListener('change', function() { handleExamTypeChange(this.value); });
+    });
+    document.querySelectorAll('input[name="edit_scoring_type"]').forEach(function(r) {
+        r.addEventListener('change', function() { handleEditScoringTypeChange(this.value); });
+    });
+
+    const slotEl = document.getElementById('assessmentSlot');
+    if (slotEl) {
+        slotEl.addEventListener('change', function() {
+            const slot = this.value;
+            if (['ATTAINMENT', 'EFFORT', 'CLASSWORK'].includes(slot)) {
+                document.querySelector('input[name="scoring_type"][value="grades"]').checked = true;
+                handleScoringTypeChange('grades');
+            } else if (slot === 'TEST') {
+                document.querySelector('input[name="scoring_type"][value="marks"]').checked = true;
+                handleScoringTypeChange('marks');
+            }
+        });
+    }
+
+    filterSlotOptions('assessmentSlot');
+    filterSlotOptions('editAssessmentSlot');
+});
+
+// ---- Add Exam Modal ----
+
+function openAddExamModal(termId, termName, examPlanId) {
+    document.getElementById('termId').value = termId;
+    document.getElementById('examPlanId').value = examPlanId;
+    document.getElementById('termNameDisplay').textContent = termName;
+    document.getElementById('subjectExams').checked = true;
+    document.getElementById('selectionLabel').textContent = 'Select Subjects';
+    loadSubjects(examPlanId);
+    loadGradingScales();
+    new bootstrap.Modal(document.getElementById('addExamModal')).show();
+}
+
+function loadGradingScales() {
+    fetch('/api/grading/scales/')
+        .then(r => r.json())
+        .then(data => {
+            const select = document.getElementById('gradingScale');
+            select.innerHTML = '<option value="">Choose a grading profile</option>';
+            if (data.grading_scales && data.grading_scales.length > 0) {
+                data.grading_scales.forEach(scale => {
+                    const opt = document.createElement('option');
+                    opt.value = scale.id;
+                    opt.textContent = scale.name + (scale.is_default ? ' [Default]' : '') + (scale.type === 'LEVEL' ? ' [Skills]' : '');
+                    opt.dataset.scaleType = scale.type;
+                    select.appendChild(opt);
+                });
+            }
+            const checked = document.querySelector('input[name="scoring_type"]:checked');
+            if (checked && checked.value === 'skills') showOnlyLevelScales('#gradingScale');
+        })
+        .catch(err => console.error('Failed to load grading scales:', err));
+}
+
+function loadSubjects(examPlanId) { displayDefaultSubjects(); }
+
+function displaySubjects(subjects) {
+    const list = document.getElementById('subjectsList');
+    list.innerHTML = '';
+    subjects.forEach(subject => {
+        list.insertAdjacentHTML('beforeend', `
+            <div class="form-check mb-1">
+                <input class="form-check-input" type="checkbox" value="${subject.id}" id="subject_${subject.id}" name="subjects">
+                <label class="form-check-label d-flex justify-content-between w-100" for="subject_${subject.id}">
+                    <span>${subject.name}</span><small class="text-muted">${subject.code}</small>
+                </label>
+            </div>
+        `);
+    });
+}
+
+function displayDefaultSubjects() {
+    document.getElementById('subjectsList').innerHTML =
+        '<div class="d-flex align-items-center gap-2 text-muted small py-2"><div class="spinner-border spinner-border-sm"></div>Loading subjects…</div>';
+    fetchSubjectsFromAPI();
+}
+
+function fetchSubjectsFromAPI() {
+    const examPlanId = document.getElementById('examPlanId').value;
+    fetch(`{% url "core:get_exam_plan_subjects_api" %}?exam_plan_id=${examPlanId}`, {
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(r => r.json())
+    .then(data => { if (data.success && data.subjects.length > 0) displaySubjects(data.subjects); else displayFallbackSubjects(); })
+    .catch(() => displayFallbackSubjects());
+}
+
+function displayFallbackSubjects() {
+    document.getElementById('subjectsList').innerHTML =
+        '<p class="mb-0" style="font-size:0.82rem;color:var(--color-muted);padding:0.5rem">No subjects found for this exam plan. Please create subjects for the associated batch first.</p>';
+}
+
+function selectAllItems() { document.querySelectorAll('#subjectsList input[type="checkbox"]').forEach(cb => { cb.checked = true; }); }
+function deselectAllItems() { document.querySelectorAll('#subjectsList input[type="checkbox"]').forEach(cb => { cb.checked = false; }); }
+
+function handleExamTypeChange(examType) {
+    const label = document.getElementById('selectionLabel');
+    const modeSection = document.getElementById('subjectExamsModeSection');
+    const slotSection = document.getElementById('assessmentSlotSection');
+    if (examType === 'activity') {
+        label.textContent = 'Select Skill Sets';
+        hide(modeSection); if (slotSection) hide(slotSection);
+        loadSkillSets();
+    } else {
+        label.textContent = 'Select Subjects';
+        show(modeSection); if (slotSection) show(slotSection);
+        displayDefaultSubjects();
+    }
+}
+
+function loadSkillSets() {
+    const sets = [
+        {id:'motor_skills', name:'Motor Skills', description:'Physical development and coordination skills'},
+        {id:'conceptual_skills', name:'Conceptual Skills', description:'Cognitive and academic readiness skills'},
+        {id:'communication_skills', name:'Communication Skills', description:'Language and expression skills'},
+        {id:'creative_skills', name:'Creative Skills', description:'Artistic and imaginative skills'},
+        {id:'social_skills', name:'Social Skills', description:'Interpersonal and collaborative skills'},
+        {id:'concentration_skills', name:'Concentration Skills', description:'Focus and attention skills'},
+    ];
+    const list = document.getElementById('subjectsList');
+    list.innerHTML = '';
+    sets.forEach(s => {
+        list.insertAdjacentHTML('beforeend', `
+            <div class="form-check mb-1">
+                <input class="form-check-input" type="checkbox" value="${s.id}" id="skillset_${s.id}" name="skill_sets">
+                <label class="form-check-label d-flex flex-column w-100" for="skillset_${s.id}">
+                    <span class="fw-bold">${s.name}</span>
+                    <small class="text-muted">${s.description}</small>
+                </label>
+            </div>
+        `);
+    });
+}
+
+function createExams() {
+    const form = document.getElementById('addExamForm');
+    const formData = new FormData(form);
+    const examType = document.querySelector('input[name="exam_type"]:checked').value;
+    const selectedItems = Array.from(document.querySelectorAll('#subjectsList input[type="checkbox"]:checked')).map(cb => cb.value);
+
+    if (selectedItems.length === 0) {
+        showToast('Please select at least one ' + (examType === 'activity' ? 'skill set' : 'subject') + '.', 'warning');
+        return;
+    }
+
+    if (examType === 'activity') {
+        formData.append('skill_sets', JSON.stringify(selectedItems));
+        formData.append('exam_type', 'activity');
+        formData.append('assessment_slot', 'EXAM');
+    } else {
+        formData.append('subjects', JSON.stringify(selectedItems));
+        formData.append('exam_type', 'subject');
+        const slot = document.getElementById('assessmentSlot');
+        formData.append('assessment_slot', slot ? slot.value : 'EXAM');
+    }
+
+    const btn = document.querySelector('#addExamModal .btn-primary');
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Creating…';
+    btn.disabled = true;
+
+    fetch('{% url "core:create_term_exams_api" %}', {
+        method: 'POST', body: formData,
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('addExamModal')).hide();
+            const skipped = (data.propagation && data.propagation.skipped_classes) || [];
+            showToast(data.message || 'Exams created', skipped.length ? 'warning' : 'success');
+            setTimeout(() => location.reload(), skipped.length ? 2200 : 700);
+        } else {
+            showToast('Failed to create exams: ' + (data.error || 'Unknown error'), 'danger');
+            btn.innerHTML = origHtml; btn.disabled = false;
+        }
+    })
+    .catch(error => { showToast('Failed: ' + error.message, 'danger'); btn.innerHTML = origHtml; btn.disabled = false; });
+}
+
+// ---- Actions ----
+
+function syncToAllClasses() {
+    showDanger(
+        'Replicate every exam in this planner to all batches of the course for this academic year?',
+        function() {
+            showToast('Syncing exams to all classes…', 'info');
+            fetch(`/api/gradebook/exam-plan/{{ exam_plan.id }}/propagate/`, {
+                method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const skipped = data.skipped_classes || [];
+                    showToast(data.message || 'Synced', skipped.length ? 'warning' : 'success');
+                    setTimeout(() => location.reload(), skipped.length ? 2600 : 900);
+                } else { showToast('Sync failed: ' + (data.error || 'Unknown error'), 'danger'); }
+            })
+            .catch(error => showToast('Sync failed: ' + error.message, 'danger'));
+        },
+        { heading: 'Sync to All Classes', okLabel: 'Sync' }
+    );
+}
+
+function openEditTermModal(termId, termName, startDate, endDate, examCount) {
+    document.getElementById('editTermId').value = termId;
+    document.getElementById('editTermName').value = termName;
+    document.getElementById('editTermStart').value = startDate;
+    document.getElementById('editTermEnd').value = endDate;
+    document.getElementById('editTermForm').dataset.examCount = examCount || 0;
+    new bootstrap.Modal(document.getElementById('editTermModal')).show();
+}
+
+document.getElementById('editTermForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const termId = document.getElementById('editTermId').value;
+    const start = document.getElementById('editTermStart').value;
+    const end = document.getElementById('editTermEnd').value;
+    if (start >= end) { showToast('Start date must be before end date.', 'danger'); return; }
+
+    const submit = () => {
+        fetch(`/api/gradebook/term/${termId}/update/`, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message || 'Term updated', 'success');
+                setTimeout(() => location.reload(), 700);
+            } else {
+                showToast('Failed: ' + (data.error || 'Unknown error'), 'danger');
+            }
+        })
+        .catch(error => showToast('Failed: ' + error.message, 'danger'));
+    };
+
+    const examCount = parseInt(form.dataset.examCount || '0', 10);
+    if (examCount > 0) {
+        showConfirm(
+            'This term has ' + examCount + ' scheduled exam(s). Editing its dates may affect attendance ranges and generated reports; renaming will not move existing homework or activity records. Save changes?',
+            submit, 'Edit Term', 'warning');
+    } else {
+        submit();
+    }
+});
+
+function duplicateTerm(termId) { showToast('Duplicate term will be implemented', 'info'); }
+
+function deleteTerm(termId) {
+    showConfirm('Delete this term? All exams scheduled in this term will also be deleted.', function() {
+        fetch(`/api/gradebook/term/${termId}/delete/`, {
+            method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) { showToast(data.message || 'Term deleted', 'success'); setTimeout(() => location.reload(), 700); }
+            else { showToast('Failed: ' + (data.error || 'Unknown error'), 'danger'); }
+        })
+        .catch(error => showToast('Failed: ' + error.message, 'danger'));
+    }, 'Delete Term', 'danger');
+}
+
+function deletePlan() {
+    showConfirm(
+        'Delete this entire exam planner? It will be removed from every class along with all terms, exams and marks. This cannot be undone.',
+        function() {
+            fetch(`/api/gradebook/exam-plan/{{ exam_plan.id }}/delete/`, {
+                method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message || 'Planner deleted', 'success');
+                    setTimeout(() => { window.location.href = '{% url "core:exam_planners_list" %}'; }, 800);
+                } else { showToast('Failed: ' + (data.error || 'Unknown error'), 'danger'); }
+            })
+            .catch(error => showToast('Failed: ' + error.message, 'danger'));
+        },
+        'Delete Planner', 'danger'
+    );
+}
+
+// ---- Edit Exam ----
+
+let currentEditExamIds = [];
+
+function openEditExamModal(examId, idsCsv) {
+    currentEditExamIds = idsCsv ? idsCsv.split(',').filter(Boolean) : [examId];
+    fetch(`/api/gradebook/exam/${examId}/`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const exam = data.exam;
+                document.getElementById('editExamId').value = exam.id;
+                document.getElementById('editExamSubjectName').textContent = exam.subject_name;
+                document.getElementById('editExamDate').value = exam.exam_date;
+                document.getElementById('editExamTime').value = exam.exam_time;
+                document.getElementById('editDuration').value = exam.duration;
+                document.getElementById('editMaximumMarks').value = exam.maximum_marks;
+                document.getElementById('editPassCriteria').value = exam.minimum_marks;
+                const radioMap = {marks:'editScoringMarks', grades:'editScoringGrades', marks_and_grades:'editScoringBoth', skills:'editScoringSkills'};
+                if (radioMap[exam.scoring_type]) document.getElementById(radioMap[exam.scoring_type]).checked = true;
+                handleEditScoringTypeChange(exam.scoring_type);
+                loadGradingScalesForEdit(exam.grading_scale_id, exam.scoring_type === 'skills');
+                const slotEl = document.getElementById('editAssessmentSlot');
+                if (slotEl && exam.assessment_slot) slotEl.value = exam.assessment_slot;
+                new bootstrap.Modal(document.getElementById('editExamModal')).show();
+            } else { showToast('Failed to load exam: ' + data.error, 'danger'); }
+        })
+        .catch(error => showToast('Failed to load exam: ' + error.message, 'danger'));
+}
+
+function loadGradingScalesForEdit(selectedId, filterToLevel) {
+    fetch('/api/grading/scales/')
+        .then(r => r.json())
+        .then(data => {
+            const select = document.getElementById('editGradingScale');
+            select.innerHTML = '<option value="">Choose a grading profile</option>';
+            if (data.grading_scales && data.grading_scales.length > 0) {
+                data.grading_scales.forEach(scale => {
+                    const opt = document.createElement('option');
+                    opt.value = scale.id;
+                    opt.textContent = scale.name + (scale.is_default ? ' [Default]' : '') + (scale.type === 'LEVEL' ? ' [Skills]' : '');
+                    opt.dataset.scaleType = scale.type;
+                    if (selectedId && scale.id === selectedId) opt.selected = true;
+                    select.appendChild(opt);
+                });
+            }
+            if (filterToLevel) showOnlyLevelScales('#editGradingScale');
+        })
+        .catch(err => console.error('Failed to load grading scales:', err));
+}
+
+function updateExam() {
+    const examIds = currentEditExamIds.length ? currentEditExamIds : [document.getElementById('editExamId').value];
+    const formData = {
+        exam_date: document.getElementById('editExamDate').value,
+        exam_time: document.getElementById('editExamTime').value,
+        duration: document.getElementById('editDuration').value,
+        scoring_type: document.querySelector('input[name="edit_scoring_type"]:checked').value,
+        maximum_marks: document.getElementById('editMaximumMarks').value,
+        pass_criteria: document.getElementById('editPassCriteria').value,
+        grading_scale_id: document.getElementById('editGradingScale').value || null,
+        assessment_slot: document.getElementById('editAssessmentSlot').value || 'EXAM',
+    };
+
+    const btn = document.querySelector('#editExamModal .btn-primary');
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving…';
+    btn.disabled = true;
+
+    Promise.all(examIds.map(id =>
+        fetch(`/api/gradebook/exam/${id}/update/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        }).then(r => r.json())
+    ))
+    .then(results => {
+        const failed = results.find(r => !r.success);
+        if (!failed) {
+            showToast('Exam updated', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('editExamModal')).hide();
+            location.reload();
+        } else {
+            showToast('Failed: ' + (failed.error || 'Unknown error'), 'danger');
+            btn.innerHTML = origHtml; btn.disabled = false;
+        }
+    })
+    .catch(error => { showToast('Failed: ' + error.message, 'danger'); btn.innerHTML = origHtml; btn.disabled = false; });
+}
+
+function deleteExamGroup(idsCsv, examName) {
+    const examIds = idsCsv.split(',').filter(Boolean);
+    showConfirm(`Delete the exam "${examName}" for all ${examIds.length} subject(s)? This cannot be undone.`, function() {
+        Promise.all(examIds.map(id =>
+            fetch(`/api/gradebook/exam/${id}/delete/`, {
+                method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            }).then(r => r.json())
+        ))
+        .then(results => {
+            const failed = results.find(r => !r.success);
+            if (!failed) { showToast('Exam deleted', 'success'); location.reload(); }
+            else { showToast('Failed: ' + (failed.error || 'Unknown error'), 'danger'); }
+        })
+        .catch(error => showToast('Failed: ' + error.message, 'danger'));
+    }, 'Delete Exam', 'danger');
+}
+
+function duplicateExam(examId) { showToast('Duplicate exam will be implemented', 'info'); }
+function exportExam(examId) { showToast('Export exam will be implemented', 'info'); }
+
+// ---- Edit Subjects ----
+
+let _editSubjectsCtx = {};
+
+function openEditSubjectsModal(el) {
+    const termId     = el.dataset.termId;
+    const examPlanId = el.dataset.planId;
+    const examName   = el.dataset.examName;
+    const examCode   = el.dataset.examCode;
+
+    _editSubjectsCtx = { termId, examPlanId, examName, examCode };
+    document.getElementById('editSubjectsExamName').textContent = examName;
+
+    const list = document.getElementById('editSubjectsList');
+    list.innerHTML = '<div class="text-center py-2" style="font-size:0.85rem;color:var(--color-muted)"><i class="fas fa-spinner fa-spin me-1"></i>Loading subjects…</div>';
+
+    const params = new URLSearchParams({
+        exam_plan_id: examPlanId,
+        term_id:      termId,
+        exam_name:    examName,
+        exam_code:    examCode,
+    });
+
+    fetch(`{% url "core:get_exam_edit_subjects_api" %}?${params}`, {
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) {
+            list.innerHTML = `<p class="text-danger small p-2">${data.error || 'Failed to load subjects.'}</p>`;
+            return;
+        }
+        if (!data.subjects || !data.subjects.length) {
+            list.innerHTML = '<p class="mb-0 text-muted small p-2">No subjects found for this exam plan. Add subjects to the batch first.</p>';
+            return;
+        }
+        list.innerHTML = '';
+        data.subjects.forEach(subject => {
+            const checked = subject.is_current ? 'checked' : '';
+            const badge   = subject.is_current
+                ? '<span class="badge bg-success-subtle text-success ms-1" style="font-size:0.7rem">assigned</span>'
+                : '';
+            list.insertAdjacentHTML('beforeend', `
+                <div class="form-check mb-1">
+                    <input class="form-check-input" type="checkbox" value="${subject.id}"
+                           id="esub_${subject.id}" ${checked}>
+                    <label class="form-check-label d-flex justify-content-between w-100"
+                           for="esub_${subject.id}">
+                        <span>${subject.name}${badge}</span>
+                        <small class="text-muted">${subject.code}</small>
+                    </label>
+                </div>
+            `);
+        });
+    })
+    .catch(() => {
+        list.innerHTML = '<p class="text-danger small p-2">Failed to load subjects.</p>';
+    });
+
+    const btn = document.getElementById('editSubjectsSaveBtn');
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+
+    new bootstrap.Modal(document.getElementById('editSubjectsModal')).show();
+}
+
+function saveEditedSubjects() {
+    const ctx = _editSubjectsCtx;
+    const selected = Array.from(
+        document.querySelectorAll('#editSubjectsList input[type="checkbox"]:checked')
+    ).map(cb => cb.value);
+
+    if (!selected.length) {
+        showToast('Select at least one subject.', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('editSubjectsSaveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    const formData = new FormData();
+    formData.append('exam_plan_id', ctx.examPlanId);
+    formData.append('term_id', ctx.termId);
+    formData.append('exam_name', ctx.examName);
+    formData.append('exam_code', ctx.examCode);
+    formData.append('subject_ids', JSON.stringify(selected));
+
+    fetch('{% url "core:edit_exam_subjects_api" %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        body: formData,
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('editSubjectsModal')).hide();
+            setTimeout(() => location.reload(), 800);
+        } else {
+            showToast(data.error || 'Failed to update subjects.', 'danger');
+            btn.disabled = false;
+            btn.textContent = 'Save Changes';
+        }
+    })
+    .catch(() => {
+        showToast('Network error.', 'danger');
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
+    });
+}
+
+// ---- Report Configuration ----
+
+const REPORT_PLAN_ID = '{{ exam_plan.id }}';
+const FORMAT_SLOTS = {
+    'FULL_ACADEMIC': ['EXAM', 'ATTAINMENT', 'EFFORT'],
+    'SIMPLE_ACADEMIC': ['CLASSWORK', 'TEST'],
+    'SKILLS': [],
+};
+
+function setReportFormat(layoutType) {
+    const body = new FormData();
+    body.append('exam_plan_id', REPORT_PLAN_ID);
+    body.append('layout_type', layoutType);
+    postReportConfig('{% url "core:set_report_format_api" %}', body, 'Report format updated');
+}
+
+function setIncludeSkills(checked) {
+    const body = new FormData();
+    body.append('exam_plan_id', REPORT_PLAN_ID);
+    body.append('include_skills', checked ? 'true' : 'false');
+    postReportConfig('{% url "core:set_report_format_api" %}', body, 'Updated', false);
+}
+
+function assignExamToSlot(btn, slot) {
+    const select = btn.parentElement.querySelector('.assign-exam-select');
+    const idsCsv = select ? select.value : '';
+    if (!idsCsv) { showToast('Choose an exam to assign first.', 'warning'); return; }
+    const body = new FormData();
+    body.append('exam_ids', idsCsv);
+    body.append('assessment_slot', slot);
+    postReportConfig('{% url "core:assign_exam_slot_api" %}', body, 'Exam assigned');
+}
+
+function postReportConfig(url, body, successMsg, reload = true) {
+    fetch(url, { method: 'POST', body: body, headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) { showToast(successMsg, 'success'); if (reload) location.reload(); }
+        else { showToast('Failed: ' + (data.error || 'Unknown error'), 'danger'); }
+    })
+    .catch(error => showToast('Failed: ' + error.message, 'danger'));
+}
+
+function filterSlotOptions(selectId) {
+    const layout = '{{ report_config.layout_type }}';
+    const allowed = FORMAT_SLOTS[layout];
+    const select = document.getElementById(selectId);
+    if (!select || !allowed || allowed.length === 0) return;
+    let firstVisible = null;
+    Array.from(select.options).forEach(opt => {
+        const ok = allowed.includes(opt.value);
+        opt.hidden = !ok; opt.disabled = !ok;
+        if (ok && firstVisible === null) firstVisible = opt.value;
+    });
+    if (firstVisible !== null && !allowed.includes(select.value)) select.value = firstVisible;
+}
+</script>
+{% endblock %}

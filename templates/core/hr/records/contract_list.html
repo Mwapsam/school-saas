@@ -1,0 +1,35 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block page_title %}Employee Contracts{% endblock %}
+
+{% block layout_header %}
+{% url 'core:hr_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title='Contracts' icon='fa-file-signature' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_table %}
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" hx-get="{% url 'core:hr_contract_list' %}" hx-target="#contract-list-content" hx-trigger="change">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="status" class="form-label">Renewal status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">All</option>
+                        {% for s in status_choices %}
+                            <option value="{{ s }}" {% if request.GET.status == s %}selected{% endif %}>{{ s|title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h5 class="mb-0">Contracts</h5></div>
+    <div id="contract-list-content">
+        {% include 'core/htmx/hr/contract_list_content.html' %}
+    </div>
+</div>
+{% endblock %}

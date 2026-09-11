@@ -1,0 +1,27 @@
+{% extends 'core/layouts/dashboard.html' %}
+{% block page_title %}HR Reports{% endblock %}
+
+{% block layout_header %}
+  {% url 'core:hr_dashboard' as back_fallback %}
+  {% include 'core/components/page_header.html' with title="HR Reports" description="Attendance, leave and payroll reporting" icon="fa-folder-open" back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_stats %}
+  {% if headcount %}
+  <div class="pw-stat-grid">
+    <div class="pw-stat-card"><p class="pw-stat-label">Active Staff</p><p class="pw-stat-value">{{ headcount.active }}</p></div>
+    <div class="pw-stat-card"><p class="pw-stat-label">Teaching</p><p class="pw-stat-value">{{ headcount.teaching }}</p></div>
+    <div class="pw-stat-card"><p class="pw-stat-label">Inactive</p><p class="pw-stat-value">{{ headcount.inactive }}</p></div>
+  </div>
+  {% endif %}
+{% endblock %}
+
+{% block layout_primary %}
+  <div class="row g-3">
+    {% for tile in report_tiles %}
+      <div class="col-md-6 col-xl-4">
+        {% include 'core/components/nav_tile.html' with icon=tile.icon title=tile.title description=tile.description url=tile.url %}
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}

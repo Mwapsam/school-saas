@@ -1,0 +1,46 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead><tr><th>Task</th><th>Category</th><th>Due</th><th>Source</th><th>Status</th>{% if can_manage %}<th width="120"></th>{% endif %}</tr></thead>
+        <tbody>
+            {% for t in tasks %}
+                <tr>
+                    <td>
+                        <strong>{{ t.title }}</strong>
+                        {% if t.employee_id %}<div><small class="text-muted">{{ t.employee.first_name }} {{ t.employee.last_name }}</small></div>{% endif %}
+                    </td>
+                    <td>{{ t.get_category_display }}</td>
+                    <td><small>{{ t.due_date|date:"M j, Y"|default:"—" }}</small></td>
+                    <td><small class="text-muted">{{ t.get_source_display }}</small></td>
+                    <td>
+                        {% if t.status == 'completed' %}<span class="badge bg-success">Completed</span>
+                        {% elif t.status == 'in_progress' %}<span class="badge bg-info">In progress</span>
+                        {% else %}<span class="badge bg-warning">Pending</span>{% endif %}
+                    </td>
+    {% if can_manage %}
+                    <td class="table-actions">
+                        {% if t.status == 'pending' %}
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="advanceTask('{{ t.id }}', 'in_progress')">Start</button>
+                        {% elif t.status == 'in_progress' %}
+                            <button type="button" class="btn btn-outline-success btn-sm" onclick="advanceTask('{{ t.id }}', 'completed')">Complete</button>
+                        {% else %}
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="advanceTask('{{ t.id }}', 'pending')">Reopen</button>
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                </tr>
+            {% empty %}
+                <tr class="empty-state"><td colspan="6">No tasks.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if is_paginated %}
+<div class="pinewood-table-pagination">
+    <nav><ul class="pagination pagination-sm justify-content-center mb-0">
+        {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" hx-get="{% url 'core:hr_task_list' %}?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" hx-target="#task-list-content">Previous</a></li>{% endif %}
+        <li class="page-item active"><span class="page-link">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}<li class="page-item"><a class="page-link" hx-get="{% url 'core:hr_task_list' %}?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" hx-target="#task-list-content">Next</a></li>{% endif %}
+    </ul></nav>
+</div>
+{% endif %}

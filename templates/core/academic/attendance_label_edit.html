@@ -1,0 +1,121 @@
+{% extends 'core/layouts/form.html' %}
+
+{% block layout_header %}
+{% url 'core:attendance_settings' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Edit Attendance Status" icon='fa-edit' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Edit Attendance Status{% endblock %}
+
+{% block layout_form %}
+{% if error %}
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+    </div>
+{% endif %}
+
+{% if attendance_label %}
+    <form method="post" id="attendance-label-edit-form">
+        {% csrf_token %}
+
+        <div class="card">
+            <div class="card-body">
+                <!-- Status Name -->
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label for="status_name" class="form-label">Status Name</label>
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" id="status_name" name="status_name"
+                               value="{{ attendance_label.name }}" required>
+                    </div>
+                </div>
+
+                <!-- Code -->
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label for="code" class="form-label">Code</label>
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" id="code" name="code"
+                               value="{{ attendance_label.code }}" maxlength="10" required>
+                    </div>
+                </div>
+
+                <!-- Type -->
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label for="type" class="form-label">Type</label>
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" id="type" name="type"
+                               value="{{ attendance_label.name }}" readonly>
+                        <small class="text-muted">Type is automatically set based on the status name</small>
+                    </div>
+                </div>
+
+                <!-- Send Notification -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <label for="send_notification" class="form-label">Send Notification</label>
+                        <span class="ms-2">
+                            <i class="fas fa-question-circle text-muted" data-bs-toggle="tooltip"
+                                title="Send notification when this status is marked for a student"></i>
+                        </span>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="send_notification" name="send_notification"
+                                {% if attendance_label.has_notification %}checked{% endif %}>
+                            <label class="form-check-label" for="send_notification">
+                                Enable notifications for this status
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Save Button -->
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary px-4 me-2">Save</button>
+                    <a href="{% url 'core:attendance_settings' %}" class="btn btn-secondary px-4">Cancel</a>
+                </div>
+            </div>
+        </div>
+    </form>
+{% endif %}
+{% endblock %}
+
+
+
+{% block extra_js %}
+<script>
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+// Auto-update type field based on status name
+document.getElementById('status_name').addEventListener('input', function() {
+    document.getElementById('type').value = this.value;
+});
+
+// Handle form submission
+document.getElementById('attendance-label-edit-form').addEventListener('submit', function(e) {
+    // Show loading state
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Saving...';
+    submitBtn.disabled = true;
+
+    // Re-enable button after a delay (form will submit)
+    setTimeout(function() {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    }, 2000);
+});
+</script>
+{% endblock %}

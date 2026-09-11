@@ -1,0 +1,96 @@
+{% extends 'core/layouts/dashboard.html' %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Attendance Dashboard" description="School-wide attendance trends and quick links to attendance tools." icon='fa-chart-pie' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Attendance Dashboard{% endblock %}
+
+{% block layout_primary %}
+<div class="container-lg py-4">
+    <!-- Trend Chart -->
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <span class="fw-medium">School-wide Attendance Rate — Last 6 Months</span>
+        </div>
+        <div class="card-body">
+            <canvas id="attendanceTrendChart" height="80"></canvas>
+        </div>
+    </div>
+
+    <!-- Attendance Modules Grid -->
+    <div class="row g-3">
+        <!-- Left Column -->
+        <div class="col-md-6">
+            <div class="attendance-module-item mb-3">
+                <a href="{% url 'core:attendance_register' %}" class="text-decoration-none">
+                    <h5 class="text-success mb-1">Attendance Register</h5>
+                    <p class="text-muted mb-0 small">Attendance register for students</p>
+                </a>
+            </div>
+
+            <div class="attendance-module-item mb-3">
+                <a href="{% url 'core:attendance_reports' %}" class="text-decoration-none">
+                    <h5 class="text-success mb-1">Attendance Report</h5>
+                    <p class="text-muted mb-0 small">Attendance report of students</p>
+                </a>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-md-6">
+            <div class="attendance-module-item mb-3">
+                <a href="{% url 'core:attendance_daywise_report' %}" class="text-decoration-none">
+                    <h5 class="text-success mb-1">Day-wise Attendance Report</h5>
+                    <p class="text-muted mb-0 small">Day-wise attendance report of students</p>
+                </a>
+            </div>
+
+            <div class="attendance-module-item mb-3">
+                <a href="{% url 'core:attendance_settings' %}" class="text-decoration-none">
+                    <h5 class="text-success mb-1">Attendance Settings</h5>
+                    <p class="text-muted mb-0 small">Custom attendance status and attendance calculation settings</p>
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    const labels = {{ trend_labels|safe }};
+    const values = {{ trend_values|safe }};
+    new Chart(document.getElementById('attendanceTrendChart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Attendance %',
+                data: values,
+                borderColor: '#2e7d32',
+                backgroundColor: 'rgba(46,125,50,0.1)',
+                tension: 0.35,
+                fill: true,
+                pointRadius: 4,
+                pointBackgroundColor: '#2e7d32',
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { min: 0, max: 100, ticks: { callback: v => v + '%' } }
+            }
+        }
+    });
+})();
+</script>
+{% endblock %}

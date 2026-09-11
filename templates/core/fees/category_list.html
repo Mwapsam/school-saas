@@ -1,0 +1,231 @@
+{% extends "core/layouts/list.html" %}
+
+{% block page_title %}Fee Categories - {{ school.name }}{% endblock %}
+
+{% block layout_header %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'core:finance_dashboard' %}">Finance</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'core:fee_structure' %}">Fee Structure</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Fee Groups</li>
+    </ol>
+</nav>
+
+{% include 'core/finance/_workflow_nav.html' with active_step=1 %}
+
+{% url 'core:fee_structure' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Fee Groups" description="Also called fee categories — manage the fee groups used across master fees and student billing" icon="fa-tags" actions=header_actions back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_filters %}
+{% include 'core/components/toolbar.html' with search_name="search" search_value=request.GET.search search_placeholder="Search by category name or description…" clear_url=category_list_clear_url %}
+{% endblock %}
+
+{% block layout_table %}
+{% if categories %}
+<div class="pinewood-table-container">
+    <div class="pinewood-table-header">
+        <h5 class="mb-0">Categories</h5>
+    </div>
+    {% include 'core/components/table_open.html' with columns=table_columns %}
+        <tbody>
+            {% for category in categories %}
+            <tr>
+                <td>
+                    <strong>{{ category.name }}</strong>
+                </td>
+                <td>{{ category.description|default:"No description" }}</td>
+                <td>
+                    <span class="badge bg-info">{{ category.batch_assignments }} batch(es)</span>
+                </td>
+                <td>{{ category.created_at|date:"M d, Y" }}</td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary edit-category"
+                                data-category-id="{{ category.id }}"
+                                data-category-name="{{ category.name }}"
+                                data-category-description="{{ category.description }}">
+                            <i class="bi bi-pencil"></i> Edit
+                        </button>
+                        <button class="btn btn-outline-danger delete-category"
+                                data-category-id="{{ category.id }}"
+                                data-category-name="{{ category.name }}">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    {% include 'core/components/table_close.html' %}
+</div>
+{% else %}
+<div class="pinewood-table-container">
+    {% include 'core/components/empty_state.html' with title="No Fee Groups Found" message=empty_message icon="fa-inbox" %}
+    <div class="text-center pb-4">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
+            <i class="bi bi-plus-circle"></i> Add First Category
+        </button>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block layout_pagination %}
+{% include 'core/components/pagination.html' with page_obj=page_obj %}
+{% endblock %}
+
+{% block layout_extra %}
+<!-- Create Category Modal -->
+<form id="createCategoryForm">
+{% include 'core/components/modal.html' with id="createCategoryModal" title="Create Fee Category" %}
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="categoryName" class="form-label">Category Name *</label>
+            <input type="text" class="form-control" id="categoryName" name="name" required>
+        </div>
+        <div class="mb-3">
+            <label for="categoryDescription" class="form-label">Description</label>
+            <textarea class="form-control" id="categoryDescription" name="description" rows="3"></textarea>
+        </div>
+{% include 'core/components/modal_close.html' with footer=create_category_footer %}
+</form>
+
+<!-- Edit Category Modal -->
+<form id="editCategoryForm">
+{% include 'core/components/modal.html' with id="editCategoryModal" title="Edit Fee Category" %}
+        {% csrf_token %}
+        <input type="hidden" id="editCategoryId" name="category_id">
+        <div class="mb-3">
+            <label for="editCategoryName" class="form-label">Category Name *</label>
+            <input type="text" class="form-control" id="editCategoryName" name="name" required>
+        </div>
+        <div class="mb-3">
+            <label for="editCategoryDescription" class="form-label">Description</label>
+            <textarea class="form-control" id="editCategoryDescription" name="description" rows="3"></textarea>
+        </div>
+{% include 'core/components/modal_close.html' with footer=edit_category_footer %}
+</form>
+
+<!-- Delete Confirmation Modal -->
+{% include 'core/components/modal.html' with id="deleteCategoryModal" title="Delete Fee Category" variant="danger" %}
+    <p>Are you sure you want to delete the fee category <strong id="deleteCategoryName"></strong>?</p>
+    <p class="text-danger"><i class="bi bi-exclamation-triangle"></i> This action cannot be undone.</p>
+{% include 'core/components/modal_close.html' with variant="danger" footer=delete_category_footer %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Shared handler: show a toast, then reload so the new list renders.
+    function handleSuccess(message) {
+        showToast(message, 'success');
+        setTimeout(function() { location.reload(); }, 900);
+    }
+    function handleError(xhr, fallback) {
+        let message = fallback;
+        try {
+            const response = JSON.parse(xhr.responseText);
+            if (response && response.error) message = response.error;
+        } catch (e) { /* keep fallback */ }
+        showToast(message, 'danger');
+    }
+
+    // Create Category Form Submission
+    $('#createCategoryForm').on('submit', function(e) {
+        e.preventDefault();
+
+        $.ajax({
+            url: '{% url "core:fee_category_create" %}',
+            method: 'POST',
+            data: $(this).serialize(),
+            success: function(response) {
+                if (response.success) {
+                    $('#createCategoryModal').modal('hide');
+                    handleSuccess(response.message || 'Category created successfully');
+                } else {
+                    showToast(response.error || 'Failed to create category', 'danger');
+                }
+            },
+            error: function(xhr) {
+                handleError(xhr, 'Failed to create category');
+            }
+        });
+    });
+
+    // Edit Category Button Click
+    $('.edit-category').on('click', function() {
+        const categoryId = $(this).data('category-id');
+        const categoryName = $(this).data('category-name');
+        const categoryDescription = $(this).data('category-description');
+
+        $('#editCategoryId').val(categoryId);
+        $('#editCategoryName').val(categoryName);
+        $('#editCategoryDescription').val(categoryDescription || '');
+
+        $('#editCategoryModal').modal('show');
+    });
+
+    // Edit Category Form Submission
+    $('#editCategoryForm').on('submit', function(e) {
+        e.preventDefault();
+
+        $.ajax({
+            url: '{% url "core:fee_category_create" %}',
+            method: 'POST',
+            data: $(this).serialize() + '&action=update',
+            success: function(response) {
+                if (response.success) {
+                    $('#editCategoryModal').modal('hide');
+                    handleSuccess(response.message || 'Category updated successfully');
+                } else {
+                    showToast(response.error || 'Failed to update category', 'danger');
+                }
+            },
+            error: function(xhr) {
+                handleError(xhr, 'Failed to update category');
+            }
+        });
+    });
+
+    // Delete Category Button Click
+    $('.delete-category').on('click', function() {
+        const categoryId = $(this).data('category-id');
+        const categoryName = $(this).data('category-name');
+
+        $('#deleteCategoryName').text(categoryName);
+        $('#confirmDeleteCategory').data('category-id', categoryId);
+
+        $('#deleteCategoryModal').modal('show');
+    });
+
+    // Confirm Delete Category
+    $('#confirmDeleteCategory').on('click', function() {
+        const categoryId = $(this).data('category-id');
+
+        $.ajax({
+            url: '{% url "core:fee_category_create" %}',
+            method: 'POST',
+            data: {
+                'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val(),
+                'action': 'delete',
+                'category_id': categoryId
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#deleteCategoryModal').modal('hide');
+                    handleSuccess('Category deleted successfully');
+                } else {
+                    $('#deleteCategoryModal').modal('hide');
+                    showToast(response.error || 'Failed to delete category', 'danger');
+                }
+            },
+            error: function(xhr) {
+                $('#deleteCategoryModal').modal('hide');
+                handleError(xhr, 'Failed to delete category');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

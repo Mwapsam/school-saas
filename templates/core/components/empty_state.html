@@ -1,0 +1,23 @@
+{% comment %}
+Pinewood empty state — shown when a list/table has no rows.
+
+Usage:
+  {% include 'core/components/empty_state.html' with title="No students yet" message="Add your first student to get started." icon="fa-user-graduate" action_url=create_url action_label="Add Student" %}
+
+Params:
+  title        (required)
+  message      (optional)
+  icon         (optional) — Font Awesome class (default: "fa-inbox")
+  action_url   (optional) — renders a button linking here
+  action_label (optional) — button text (required if action_url given)
+{% endcomment %}
+<div class="empty-state">
+  <div class="empty-state__icon"><i class="fas {{ icon|default:'fa-inbox' }}"></i></div>
+  <p class="empty-state__title">{{ title }}</p>
+  {% if message %}<p class="empty-state__description">{{ message }}</p>{% endif %}
+  {% if action_url %}
+  <div class="empty-state__action">
+    {% include 'core/components/button.html' with label=action_label url=action_url variant='primary' %}
+  </div>
+  {% endif %}
+</div>

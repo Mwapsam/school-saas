@@ -1,0 +1,390 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}Fees Defaulters{% endblock %}
+
+{% block layout_header %}
+{% url 'core:fee_reports' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Fees Defaulters" description="Students who still owe on a fee collection past its due date" icon='fa-user-clock' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_table %}
+{% csrf_token %}
+<div class="container-lg py-4">
+
+    <div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
+        <a href="{% url 'core:payment_agreement_list' %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-file-contract"></i> Payment Agreements
+        </a>
+        <a class="btn btn-outline-primary btn-sm" onclick="exportDefaulters()">
+            <i class="fas fa-download"></i> Export
+        </a>
+        <a class="btn btn-outline-danger btn-sm"
+           href="{% url 'core:fee_defaulters_report_pdf' %}?academic_year={{ selected_year_id }}{% if selected_batch %}&batch_id={{ selected_batch.id }}{% endif %}{% if include_upcoming %}&include_upcoming=1{% endif %}"
+           target="_blank">
+            <i class="fas fa-file-pdf"></i> Print list
+        </a>
+    </div>
+
+    {% if not selected_year %}
+    <div class="card"><div class="card-body p-5 text-center">
+        <i class="fas fa-calendar-alt fa-3x text-muted opacity-25 mb-3"></i>
+        <h6 class="text-muted">No academic year configured</h6>
+        <p class="text-muted small mb-0">Set up an academic year to run the defaulters list.</p>
+    </div></div>
+    {% else %}
+
+    <div class="bfr-filter-bar mb-3">
+        <form method="get" class="row align-items-end g-3">
+            <input type="hidden" name="academic_year" value="{{ selected_year_id }}">
+            <input type="hidden" name="group_by" value="{{ group_by }}">
+            <div class="col-md-4">
+                <label class="bfr-eyebrow" for="batchFilter">Batch</label>
+                <select name="batch_id" id="batchFilter" class="form-select" onchange="this.form.submit()">
+                    <option value="all">All batches</option>
+                    {% for b in available_batches %}
+                    <option value="{{ b.id }}" {% if selected_batch and selected_batch.id == b.id %}selected{% endif %}>{{ b.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <span class="bfr-eyebrow">Scope</span>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="include_upcoming" value="1"
+                           id="includeUpcoming" {% if include_upcoming %}checked{% endif %}
+                           onchange="this.form.submit()">
+                    <label class="form-check-label small" for="includeUpcoming">
+                        Include collections not yet due (generate the list before the due date)
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-3 text-md-end">
+                {% include 'core/finance/_year_selector.html' %}
+            </div>
+        </form>
+    </div>
+
+    {% if report %}
+    <div class="d-flex flex-wrap gap-3 mb-3 small text-muted">
+        <span><strong class="text-dark">{{ report.student_count }}</strong> defaulter{{ report.student_count|pluralize }}</span>
+        <span><strong class="text-dark">{{ report.rows|length }}</strong> overdue line{{ report.rows|length|pluralize }}</span>
+        <span>Total outstanding <strong class="text-dark">{{ currency_symbol }}{{ report.total|floatformat:2 }}</strong></span>
+        <span>As of {{ report.as_of|date:"d M Y" }}{% if include_upcoming %} · including not-yet-due{% endif %}</span>
+    </div>
+
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link {% if group_by != 'batch' %}active{% endif %}"
+               href="?{% if selected_year_id %}academic_year={{ selected_year_id }}&{% endif %}{% if selected_batch %}batch_id={{ selected_batch.id }}&{% endif %}{% if include_upcoming %}include_upcoming=1&{% endif %}group_by=student">
+                <i class="fas fa-users me-1"></i>Student-wise
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if group_by == 'batch' %}active{% endif %}"
+               href="?{% if selected_year_id %}academic_year={{ selected_year_id }}&{% endif %}{% if selected_batch %}batch_id={{ selected_batch.id }}&{% endif %}{% if include_upcoming %}include_upcoming=1&{% endif %}group_by=batch">
+                <i class="fas fa-layer-group me-1"></i>Batch-wise
+            </a>
+        </li>
+    </ul>
+
+    {% if report.student_rows %}
+    <div class="bfr-bulk-bar" id="bulkActionsBar" hidden>
+        <div class="bfr-bulk-bar__info">
+            <i class="fas fa-check-circle"></i>
+            <strong><span id="selectedCount">0</span></strong> selected
+            <button type="button" class="bfr-bulk-bar__clear" onclick="clearSelection()">Clear</button>
+        </div>
+        <div class="bfr-bulk-actions">
+            <button class="bfr-bulk-btn bfr-bulk-btn--danger" data-bs-toggle="modal" data-bs-target="#bulkAgreementModal" id="bulkAgreementBtn">
+                <i class="fas fa-file-contract"></i> Generate Agreements
+            </button>
+            <button class="bfr-bulk-btn" onclick="sendBulkReminders()" id="bulkReminderBtn">
+                <i class="fas fa-bell"></i> Send Reminders
+            </button>
+            <button class="bfr-bulk-btn" onclick="exportSelected()" id="exportSelectedBtn">
+                <i class="fas fa-download"></i> Export Selected
+            </button>
+            <button class="bfr-bulk-btn" onclick="printSelectedPDF()" id="printDefaultersBtn">
+                <i class="fas fa-file-pdf"></i> Print Selected
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 bfr-table" id="defaultersTable">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="selectAll" class="form-check-input"></th>
+                        <th>Student</th>
+                        <th>Batch</th>
+                        <th>Overdue collections</th>
+                        <th>Oldest due date</th>
+                        <th class="text-end">Days overdue</th>
+                        <th class="text-end">Outstanding ({{ currency_symbol }})</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if group_by == 'batch' %}
+                        {% for group in report.batch_rows %}
+                        <tr class="bfr-batch-head">
+                            <td colspan="6"><i class="fas fa-layer-group me-1 text-muted"></i>{{ group.batch_name }}
+                                <span class="text-muted">· {{ group.student_count }} student{{ group.student_count|pluralize }}</span>
+                            </td>
+                            <td class="text-end fw-bold">{{ currency_symbol }}{{ group.outstanding|floatformat:2 }}</td>
+                            <td></td>
+                        </tr>
+                        {% for s in group.students %}
+                        {% include 'core/fees/_defaulter_row.html' %}
+                        {% endfor %}
+                        {% empty %}
+                        <tr><td colspan="8" class="text-center text-muted py-4">
+                            No defaulters{% if not include_upcoming %} — no collection is past its due date with an unpaid balance{% endif %}.
+                        </td></tr>
+                        {% endfor %}
+                    {% else %}
+                        {% for s in report.student_rows %}
+                        {% include 'core/fees/_defaulter_row.html' %}
+                        {% empty %}
+                        <tr><td colspan="8" class="text-center text-muted py-4">
+                            No defaulters{% if not include_upcoming %} — no collection is past its due date with an unpaid balance{% endif %}.
+                        </td></tr>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+                {% if report.student_rows %}
+                <tfoot>
+                    <tr class="fw-bold">
+                        <td colspan="6" class="text-end">Total</td>
+                        <td class="text-end">{{ report.total|floatformat:2 }}</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+
+    <!-- Bulk Agreement Modal -->
+    <div class="modal fade" id="bulkAgreementModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header pw-brand">
+                    <h5 class="modal-title">Generate Payment Agreements</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Generating agreements for <strong id="modalSelectedCount">0</strong> students.
+                        Each is split into equal installments based on their outstanding balance.
+                    </p>
+                    <div class="mb-3">
+                        <label for="agreementStartDate" class="bfr-eyebrow">Start Date</label>
+                        <input type="date" class="form-control" id="agreementStartDate">
+                    </div>
+                    <div class="mb-3">
+                        <label for="agreementEndDate" class="bfr-eyebrow">End Date</label>
+                        <input type="date" class="form-control" id="agreementEndDate">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="agreementInterestRate" class="bfr-eyebrow">Interest Rate (%)</label>
+                            <input type="number" class="form-control" id="agreementInterestRate" value="5" min="0" max="100" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="agreementInstallmentCount" class="bfr-eyebrow">Installment Count</label>
+                            <input type="number" class="form-control" id="agreementInstallmentCount" value="3" min="1" max="24">
+                        </div>
+                    </div>
+                    <div id="bulkAgreementResults" style="display:none;" class="pw-alert pw-alert-info mt-3 p-2">
+                        <div id="bulkResultsList" style="max-height:200px; overflow-y:auto;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="bulkAgreementSubmitBtn" onclick="submitBulkAgreements()">
+                        <i class="fas fa-file-contract"></i> Generate for Selected
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .bfr-filter-bar { background:#fff; border:1px solid var(--p-gray-border); padding:1rem 1.25rem; }
+    .bfr-eyebrow { display:block; font-size:10px; font-weight:700; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--color-muted); margin-bottom:4px; }
+    .bfr-table th { background:var(--p-gray); border-bottom:2px solid var(--color-brand); white-space:nowrap; }
+    .bfr-table td { vertical-align:middle; }
+    .bfr-batch-head td { background:var(--color-brand-bg,#eef7f0); font-weight:600; border-top:2px solid var(--color-brand,#17833f); }
+    .bfr-bulk-bar[hidden] { display:none; }
+    .bfr-bulk-bar { position:sticky; top:0; z-index:20; display:flex; flex-wrap:wrap; align-items:center;
+        justify-content:space-between; gap:12px; margin-bottom:12px; padding:10px 14px;
+        background:var(--color-brand-bg,#eef7f0); border:1px solid var(--color-brand,#17833f);
+        border-radius:6px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+    .bfr-bulk-bar__info { display:inline-flex; align-items:center; gap:8px; font-size:13px;
+        color:var(--color-brand-dark,#125e2d); }
+    .bfr-bulk-bar__clear { margin-left:4px; padding:2px 8px; font-size:12px; font-weight:600;
+        color:var(--color-brand-dark,#125e2d); background:transparent; border:1px solid currentColor;
+        border-radius:4px; cursor:pointer; }
+    .bfr-bulk-actions { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
+    .bfr-bulk-btn { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; padding:6px 12px;
+        font-size:12px; font-weight:600; color:var(--color-brand); background:#fff;
+        border:1px solid var(--color-brand); cursor:pointer; transition:background .15s,opacity .15s; }
+    .bfr-bulk-btn:hover:not(:disabled) { background:var(--color-brand-bg); }
+    .bfr-bulk-btn--danger { color:var(--color-danger); border-color:var(--color-danger); }
+    .bfr-bulk-btn--danger:hover:not(:disabled) { background:#fdf0ef; }
+    .bfr-bulk-btn:disabled { opacity:.4; cursor:not-allowed; }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedStudents = [];
+
+const PDF_BASE = "{% url 'core:fee_defaulters_report_pdf' %}";
+const YEAR_ID = "{{ selected_year_id }}";
+const BATCH_ID = "{% if selected_batch %}{{ selected_batch.id }}{% endif %}";
+const INCLUDE_UPCOMING = {% if include_upcoming %}true{% else %}false{% endif %};
+
+function commonParams() {
+    const p = new URLSearchParams();
+    if (YEAR_ID) p.set('academic_year', YEAR_ID);
+    if (BATCH_ID) p.set('batch_id', BATCH_ID);
+    if (INCLUDE_UPCOMING) p.set('include_upcoming', '1');
+    return p;
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.addEventListener('change', function () {
+            document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = this.checked);
+            updateSelected();
+        });
+    }
+    document.querySelectorAll('.student-checkbox').forEach(cb => cb.addEventListener('change', updateSelected));
+});
+
+function updateSelected() {
+    selectedStudents = Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => cb.value);
+    const count = selectedStudents.length;
+    const c1 = document.getElementById('selectedCount'); if (c1) c1.textContent = count;
+    const c2 = document.getElementById('modalSelectedCount'); if (c2) c2.textContent = count;
+    const bar = document.getElementById('bulkActionsBar'); if (bar) bar.hidden = count === 0;
+
+    const selectAll = document.getElementById('selectAll');
+    const all = document.querySelectorAll('.student-checkbox');
+    const checked = document.querySelectorAll('.student-checkbox:checked');
+    if (selectAll) {
+        selectAll.indeterminate = checked.length > 0 && checked.length < all.length;
+        selectAll.checked = all.length > 0 && checked.length === all.length;
+    }
+}
+
+function clearSelection() {
+    document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = false);
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) { selectAll.checked = false; selectAll.indeterminate = false; }
+    updateSelected();
+}
+
+function exportDefaulters() {
+    const p = commonParams();
+    p.set('export', 'true');
+    window.location.href = `${window.location.pathname}?${p.toString()}`;
+}
+
+function exportSelected() {
+    if (!selectedStudents.length) { showToast('Select students to export', 'danger'); return; }
+    const p = commonParams();
+    p.set('export', 'selected');
+    selectedStudents.forEach(id => p.append('student_ids', id));
+    window.location.href = `${window.location.pathname}?${p.toString()}`;
+}
+
+function printSelectedPDF() {
+    if (!selectedStudents.length) { showToast('Select students to print', 'danger'); return; }
+    const p = commonParams();
+    selectedStudents.forEach(id => p.append('student_ids', id));
+    window.open(`${PDF_BASE}?${p.toString()}`, '_blank');
+}
+
+function sendFeeReminder(id) { showToast('Fee reminder functionality not yet implemented', 'warning'); }
+function sendBulkReminders() {
+    if (!selectedStudents.length) { showToast('Select students to send reminders', 'danger'); return; }
+    showToast('Bulk reminder functionality not yet implemented', 'warning');
+}
+
+function submitBulkAgreements() {
+    const startDate = document.getElementById('agreementStartDate').value;
+    const endDate = document.getElementById('agreementEndDate').value;
+    const interestRate = document.getElementById('agreementInterestRate').value;
+    const installmentCount = document.getElementById('agreementInstallmentCount').value;
+
+    if (!selectedStudents.length) { showToast('Select students first', 'danger'); return; }
+    if (!startDate || !endDate) { showToast('Select both start and end dates', 'danger'); return; }
+    if (new Date(startDate) >= new Date(endDate)) { showToast('End date must be after start date', 'danger'); return; }
+
+    const btn = document.getElementById('bulkAgreementSubmitBtn');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+    fetch('{% url "core:payment_agreement_bulk_create" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+        },
+        body: JSON.stringify({
+            student_ids: selectedStudents,
+            start_date: startDate,
+            end_date: endDate,
+            interest_rate: parseFloat(interestRate),
+            installment_count: parseInt(installmentCount)
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = original;
+        if (data.results) {
+            const list = document.getElementById('bulkResultsList');
+            list.innerHTML = '';
+            let ok = 0, skip = 0, err = 0;
+            data.results.forEach(res => {
+                const row = document.querySelector(`tr[data-student-id="${res.student_id}"]`);
+                const name = row ? (row.querySelector('.fw-semibold')?.textContent.trim() || 'Unknown') : 'Unknown';
+                let badge, msg;
+                if (res.success) { badge = '<span class="badge bg-success">Created</span>'; msg = `Agreement #${res.agreement_id.slice(0, 8)}`; ok++; }
+                else if (res.skipped) { badge = '<span class="badge bg-warning text-dark">Skipped</span>'; msg = res.error || 'Skipped'; skip++; }
+                else { badge = '<span class="badge bg-danger">Error</span>'; msg = res.error || 'Unknown error'; err++; }
+                const div = document.createElement('div');
+                div.className = 'py-1 border-bottom';
+                div.innerHTML = `${badge} <strong>${name}</strong><br><small class="text-muted">${msg}</small>`;
+                list.appendChild(div);
+            });
+            document.getElementById('bulkAgreementResults').style.display = 'block';
+            showSuccess(`Generated ${ok}, skipped ${skip}, ${err} error(s)`, function () { location.reload(); });
+        } else if (data.error) {
+            showToast(`Error: ${data.error}`, 'danger');
+        }
+    })
+    .catch(e => {
+        btn.disabled = false;
+        btn.innerHTML = original;
+        showToast(`Error: ${e.message}`, 'danger');
+    });
+}
+</script>
+{% endblock %}

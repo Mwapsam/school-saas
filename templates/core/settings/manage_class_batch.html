@@ -1,0 +1,582 @@
+{% extends 'core/layouts/form.html' %}
+
+{% block layout_header %}
+{% url 'core:configuration' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-sitemap' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Manage Class & Batch{% endblock %}
+
+
+
+{% block layout_form %}
+{# ── Breadcrumb ── #}
+
+
+{# ── Page header ── #}
+<div class="mcb-header">
+    <div class="mcb-header-icon" aria-hidden="true">
+        <i class="fas fa-layer-group"></i>
+    </div>
+    <div class="mcb-header-body">
+        <h1>Manage Class &amp; Batch</h1>
+        <p>Create and manage classes (courses) and their batch groups</p>
+    </div>
+    <div class="mcb-header-actions">
+        <a href="{% url 'core:batch_transfer_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-exchange-alt me-1" aria-hidden="true"></i>Batch Transfer
+        </a>
+        <a href="{% url 'core:enrollment_conflicts' %}"
+           class="btn btn-sm {% if enrollment_conflict_count %}btn-warning{% else %}btn-outline-secondary{% endif %}">
+            <i class="fas fa-triangle-exclamation me-1" aria-hidden="true"></i>
+            Conflicts{% if enrollment_conflict_count %} ({{ enrollment_conflict_count }}){% endif %}
+        </a>
+        <button class="btn btn-outline-secondary btn-sm"
+                onclick="openAddClassModal()"
+                title="Add a new class">
+            <i class="fas fa-plus me-1" aria-hidden="true"></i>Add Class
+        </button>
+        <button class="btn btn-outline-secondary btn-sm"
+                onclick="openEditClassModal()"
+                {% if not selected_course %}disabled title="Select a class first"{% endif %}>
+            <i class="fas fa-pencil-alt me-1" aria-hidden="true"></i>Edit Class
+        </button>
+        <button class="btn btn-primary btn-sm"
+                onclick="openAddBatchModal()"
+                {% if not selected_course %}disabled title="Select a class first"{% endif %}>
+            <i class="fas fa-plus me-1" aria-hidden="true"></i>Add Batch
+        </button>
+    </div>
+</div>
+
+{# ── Conflict banner ── #}
+{% if enrollment_conflict_count %}
+<div class="mcb-conflict">
+    <span>
+        <i class="fas fa-triangle-exclamation me-1" aria-hidden="true"></i>
+        <strong>{{ enrollment_conflict_count }}</strong>
+        student{{ enrollment_conflict_count|pluralize }}
+        {{ enrollment_conflict_count|pluralize:"is,are" }} assigned to more than one class in the same academic year.
+    </span>
+    <a href="{% url 'core:enrollment_conflicts' %}" class="btn btn-sm btn-warning">
+        Review &amp; resolve
+    </a>
+</div>
+{% endif %}
+
+{# ── Class filter ── #}
+<div class="mcb-filter">
+    <label for="classSelect">Class</label>
+    <select id="classSelect" onchange="filterByClass()" aria-label="Select class">
+        {% for course in courses %}
+        <option value="{{ course.id }}" {% if course == selected_course %}selected{% endif %}>
+            {{ course.course_name }}
+        </option>
+        {% empty %}
+        <option value="">No classes available</option>
+        {% endfor %}
+    </select>
+</div>
+
+{# ── Batch management ── #}
+{% if selected_course %}
+<div class="pw-card">
+    {# Tabs #}
+    <div class="mcb-tabs" role="tablist">
+        <button class="mcb-tab active" id="activeTab" role="tab"
+                aria-selected="true" aria-controls="activeContent"
+                onclick="switchTab('active')">
+            Active Batches
+            <span class="pw-badge pw-badge-active ms-1">{{ active_batches.count }}</span>
+        </button>
+        <button class="mcb-tab" id="inactiveTab" role="tab"
+                aria-selected="false" aria-controls="inactiveContent"
+                onclick="switchTab('inactive')">
+            Inactive Batches
+            <span class="pw-badge pw-badge-zero ms-1">{{ inactive_batches.count }}</span>
+        </button>
+    </div>
+
+    {# Active batches #}
+    <div id="activeContent" class="mcb-tab-pane active" role="tabpanel" aria-labelledby="activeTab">
+        {% if active_batches %}
+        <div class="pw-table-wrap">
+            <table class="pw-table">
+                <thead>
+                    <tr>
+                        <th style="width:56px">#</th>
+                        <th>Batch Name</th>
+                        <th style="width:140px">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for batch in active_batches %}
+                    <tr>
+                        <td style="color:var(--color-muted);font-size:12px">{{ forloop.counter }}</td>
+                        <td><strong>{{ batch.name }}</strong></td>
+                        <td>
+                            <a href="#" class="mcb-action mcb-action-edit me-3"
+                               onclick="openEditBatchModal('{{ batch.id }}', '{{ batch.name|escapejs }}', '{{ batch.grading_type|default_if_none:'' }}'); return false;">
+                                <i class="fas fa-pencil-alt me-1" aria-hidden="true"></i>Edit
+                            </a>
+                            <a href="#" class="mcb-action mcb-action-danger"
+                               onclick="toggleBatchStatus('{{ batch.id }}', false, '{{ batch.name|escapejs }}'); return false;">
+                                <i class="fas fa-ban me-1" aria-hidden="true"></i>Deactivate
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="mcb-empty">
+            <div class="mcb-empty-icon"><i class="fas fa-layer-group" aria-hidden="true"></i></div>
+            <h5>No Active Batches</h5>
+            <p>No active batches for <strong>{{ selected_course.course_name }}</strong>. Add one using the button above.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {# Inactive batches #}
+    <div id="inactiveContent" class="mcb-tab-pane" role="tabpanel" aria-labelledby="inactiveTab">
+        {% if inactive_batches %}
+        <div class="pw-table-wrap">
+            <table class="pw-table">
+                <thead>
+                    <tr>
+                        <th style="width:56px">#</th>
+                        <th>Batch Name</th>
+                        <th style="width:140px">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for batch in inactive_batches %}
+                    <tr>
+                        <td style="color:var(--color-muted);font-size:12px">{{ forloop.counter }}</td>
+                        <td style="color:var(--color-muted)">{{ batch.name }}</td>
+                        <td>
+                            <a href="#" class="mcb-action mcb-action-edit me-3"
+                               onclick="openEditBatchModal('{{ batch.id }}', '{{ batch.name|escapejs }}', '{{ batch.grading_type|default_if_none:'' }}'); return false;">
+                                <i class="fas fa-pencil-alt me-1" aria-hidden="true"></i>Edit
+                            </a>
+                            <a href="#" class="mcb-action mcb-action-ok"
+                               onclick="toggleBatchStatus('{{ batch.id }}', true, '{{ batch.name|escapejs }}'); return false;">
+                                <i class="fas fa-check me-1" aria-hidden="true"></i>Activate
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="mcb-empty">
+            <div class="mcb-empty-icon"><i class="fas fa-layer-group" aria-hidden="true"></i></div>
+            <h5>No Inactive Batches</h5>
+            <p>All batches for <strong>{{ selected_course.course_name }}</strong> are currently active.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% else %}
+<div class="pw-card">
+    <div class="mcb-empty">
+        <div class="mcb-empty-icon"><i class="fas fa-graduation-cap" aria-hidden="true"></i></div>
+        <h5>No Classes Available</h5>
+        <p>Create a class first using the <strong>Add Class</strong> button above, then add batches to it.</p>
+    </div>
+</div>
+{% endif %}
+
+{# ── Add Class Modal ── #}
+<div class="modal fade" id="addClassModal" tabindex="-1" aria-labelledby="addClassModalTitle">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addClassForm" onsubmit="submitAddClass(event)">
+                <div class="modal-header pw-brand">
+                    <h5 class="modal-title" id="addClassModalTitle">
+                        <i class="fas fa-plus me-2" aria-hidden="true"></i>Add New Class
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="addClassErrors" class="alert alert-danger d-none"></div>
+                    <div class="mb-3">
+                        <label class="form-label">Class / Course Name <span class="text-danger">*</span></label>
+                        <input type="text" class="pw-form-control" name="course_name" placeholder="e.g. Grade 1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Code <span class="text-danger">*</span></label>
+                        <input type="text" class="pw-form-control" name="code" placeholder="e.g. G1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Section Name</label>
+                        <input type="text" class="pw-form-control" name="section_name" placeholder="Optional">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Grading Type</label>
+                        <select class="pw-form-control" name="grading_type">
+                            <option value="">None / set later</option>
+                            <option value="percentage">Percentage (0–100)</option>
+                            <option value="gpa">GPA (0.0–4.0)</option>
+                            <option value="letter">Letter Grades (A–F)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="addClassSubmitBtn">
+                        <i class="fas fa-plus me-1" aria-hidden="true"></i>Create Class
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{# ── Add Batch Modal ── #}
+<div class="modal fade" id="addBatchModal" tabindex="-1" aria-labelledby="addBatchModalTitle">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addBatchForm" onsubmit="submitAddBatch(event)">
+                <div class="modal-header pw-brand">
+                    <h5 class="modal-title" id="addBatchModalTitle">
+                        <i class="fas fa-plus me-2" aria-hidden="true"></i>Add New Batch
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="addBatchErrors" class="alert alert-danger d-none"></div>
+                    {% if selected_course and active_academic_year %}
+                        <input type="hidden" name="course_id" value="{{ selected_course.id }}">
+                        <input type="hidden" name="academic_year_id" value="{{ active_academic_year.id }}">
+                        <input type="hidden" name="is_active" value="on">
+                        <p style="font-size:13px;color:var(--color-muted);margin-bottom:16px">
+                            Class: <strong>{{ selected_course.course_name }}</strong> ·
+                            Academic year: <strong>{{ active_academic_year.name }}</strong>
+                        </p>
+                        <div class="mb-3">
+                            <label class="form-label">Batch Name <span class="text-danger">*</span></label>
+                            <input type="text" class="pw-form-control" name="name" placeholder="e.g. Grade 1 – A" required>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning mb-0">
+                            {% if not active_academic_year %}
+                                No active academic year is set. Please set one before creating batches.
+                            {% else %}
+                                Select a class first to add a batch to it.
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    {% if selected_course and active_academic_year %}
+                    <button type="submit" class="btn btn-primary" id="addBatchSubmitBtn">
+                        <i class="fas fa-plus me-1" aria-hidden="true"></i>Create Batch
+                    </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{# ── Edit Class Modal ── #}
+{% if selected_course %}
+<div class="modal fade" id="editClassModal" tabindex="-1" aria-labelledby="editClassModalTitle">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editClassForm" onsubmit="submitEditClass(event)">
+                <div class="modal-header pw-brand">
+                    <h5 class="modal-title" id="editClassModalTitle">
+                        <i class="fas fa-pencil-alt me-2" aria-hidden="true"></i>Edit Class
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="editClassErrors" class="alert alert-danger d-none"></div>
+                    <div class="mb-3">
+                        <label class="form-label">Class / Course Name <span class="text-danger">*</span></label>
+                        <input type="text" class="pw-form-control" name="course_name" value="{{ selected_course.course_name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Code <span class="text-danger">*</span></label>
+                        <input type="text" class="pw-form-control" name="code" value="{{ selected_course.code }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Section Name</label>
+                        <input type="text" class="pw-form-control" name="section_name" value="{{ selected_course.section_name|default_if_none:'' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Grading Type</label>
+                        <select class="pw-form-control" name="grading_type">
+                            <option value="" {% if not selected_course.grading_type %}selected{% endif %}>None / set later</option>
+                            <option value="percentage" {% if selected_course.grading_type == 'percentage' %}selected{% endif %}>Percentage (0–100)</option>
+                            <option value="gpa" {% if selected_course.grading_type == 'gpa' %}selected{% endif %}>GPA (0.0–4.0)</option>
+                            <option value="letter" {% if selected_course.grading_type == 'letter' %}selected{% endif %}>Letter Grades (A–F)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="editClassSubmitBtn">
+                        <i class="fas fa-save me-1" aria-hidden="true"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# ── Edit Batch Modal ── #}
+<div class="modal fade" id="editBatchModal" tabindex="-1" aria-labelledby="editBatchModalTitle">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editBatchForm" onsubmit="submitEditBatch(event)">
+                <div class="modal-header pw-brand">
+                    <h5 class="modal-title" id="editBatchModalTitle">
+                        <i class="fas fa-pencil-alt me-2" aria-hidden="true"></i>Edit Batch
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="editBatchErrors" class="alert alert-danger d-none"></div>
+                    <input type="hidden" name="batch_id" id="editBatchId">
+                    <div class="mb-3">
+                        <label class="form-label">Batch Name <span class="text-danger">*</span></label>
+                        <input type="text" class="pw-form-control" name="name" id="editBatchName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Grading Type</label>
+                        <select class="pw-form-control" name="grading_type" id="editBatchGradingType">
+                            <option value="">Use class default</option>
+                            <option value="percentage">Percentage (0–100)</option>
+                            <option value="gpa">GPA (0.0–4.0)</option>
+                            <option value="letter">Letter Grades (A–F)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="editBatchSubmitBtn">
+                        <i class="fas fa-save me-1" aria-hidden="true"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function switchTab(tabType) {
+    document.querySelectorAll('.mcb-tab').forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+    });
+    document.querySelectorAll('.mcb-tab-pane').forEach(p => p.classList.remove('active'));
+    if (tabType === 'active') {
+        document.getElementById('activeTab').classList.add('active');
+        document.getElementById('activeTab').setAttribute('aria-selected', 'true');
+        document.getElementById('activeContent').classList.add('active');
+    } else {
+        document.getElementById('inactiveTab').classList.add('active');
+        document.getElementById('inactiveTab').setAttribute('aria-selected', 'true');
+        document.getElementById('inactiveContent').classList.add('active');
+    }
+}
+
+function filterByClass() {
+    const courseId = document.getElementById('classSelect').value;
+    if (!courseId) return;
+    const url = new URL(window.location);
+    url.searchParams.set('course_id', courseId);
+    window.location.href = url.toString();
+}
+
+function _csrf() { return document.querySelector('[name=csrfmiddlewaretoken]').value; }
+
+function _showFormErrors(boxId, data) {
+    const box = document.getElementById(boxId);
+    let html;
+    if (data && typeof data === 'object' && !data.error) {
+        html = Object.entries(data)
+            .map(([f, msgs]) => `<strong>${f}:</strong> ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+            .join('<br>');
+    } else {
+        html = (data && data.error) || 'Something went wrong.';
+    }
+    box.innerHTML = html;
+    box.classList.remove('d-none');
+}
+
+function _setLoading(btnId, loading, defaultHtml) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.disabled = loading;
+    btn.innerHTML = loading
+        ? '<span class="loading-spinner d-inline-block me-1"></span>Saving…'
+        : defaultHtml;
+}
+
+/* ── Add Class ── */
+function openAddClassModal() {
+    document.getElementById('addClassForm').reset();
+    document.getElementById('addClassErrors').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('addClassModal')).show();
+}
+
+function submitAddClass(event) {
+    event.preventDefault();
+    _setLoading('addClassSubmitBtn', true);
+    fetch('{% url "core:course_create_api" %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': _csrf() },
+        body: new FormData(document.getElementById('addClassForm')),
+    })
+    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+    .then(({ ok, data }) => {
+        if (ok && data.success) {
+            window.location.href = '{% url "core:manage_class_batch" %}?course_id=' + data.id;
+        } else {
+            _setLoading('addClassSubmitBtn', false, '<i class="fas fa-plus me-1"></i>Create Class');
+            _showFormErrors('addClassErrors', data);
+        }
+    })
+    .catch(() => {
+        _setLoading('addClassSubmitBtn', false, '<i class="fas fa-plus me-1"></i>Create Class');
+        _showFormErrors('addClassErrors', { error: 'Network error. Please try again.' });
+    });
+}
+
+/* ── Add Batch ── */
+function openAddBatchModal() {
+    const form = document.getElementById('addBatchForm');
+    if (form) form.reset();
+    document.getElementById('addBatchErrors').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('addBatchModal')).show();
+}
+
+function submitAddBatch(event) {
+    event.preventDefault();
+    _setLoading('addBatchSubmitBtn', true);
+    fetch('{% url "core:batch_create" %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': _csrf() },
+        body: new FormData(document.getElementById('addBatchForm')),
+    })
+    .then(r => {
+        if (r.ok) { location.reload(); return null; }
+        return r.json().then(data => {
+            _setLoading('addBatchSubmitBtn', false, '<i class="fas fa-plus me-1"></i>Create Batch');
+            _showFormErrors('addBatchErrors', data);
+        });
+    })
+    .catch(() => {
+        _setLoading('addBatchSubmitBtn', false, '<i class="fas fa-plus me-1"></i>Create Batch');
+        _showFormErrors('addBatchErrors', { error: 'Network error. Please try again.' });
+    });
+}
+
+/* ── Edit Class ── */
+function openEditClassModal() {
+    const box = document.getElementById('editClassErrors');
+    if (box) box.classList.add('d-none');
+    const el = document.getElementById('editClassModal');
+    if (el) new bootstrap.Modal(el).show();
+}
+
+function submitEditClass(event) {
+    event.preventDefault();
+    _setLoading('editClassSubmitBtn', true);
+    fetch('{% if selected_course %}{% url "core:course_update_api" selected_course.id %}{% endif %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': _csrf() },
+        body: new FormData(document.getElementById('editClassForm')),
+    })
+    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+    .then(({ ok, data }) => {
+        if (ok && data.success) {
+            location.reload();
+        } else {
+            _setLoading('editClassSubmitBtn', false, '<i class="fas fa-save me-1"></i>Save Changes');
+            _showFormErrors('editClassErrors', data);
+        }
+    })
+    .catch(() => {
+        _setLoading('editClassSubmitBtn', false, '<i class="fas fa-save me-1"></i>Save Changes');
+        _showFormErrors('editClassErrors', { error: 'Network error. Please try again.' });
+    });
+}
+
+/* ── Edit Batch ── */
+function openEditBatchModal(batchId, name, gradingType) {
+    document.getElementById('editBatchErrors').classList.add('d-none');
+    document.getElementById('editBatchId').value = batchId;
+    document.getElementById('editBatchName').value = name;
+    document.getElementById('editBatchGradingType').value = gradingType || '';
+    new bootstrap.Modal(document.getElementById('editBatchModal')).show();
+}
+
+function submitEditBatch(event) {
+    event.preventDefault();
+    const batchId = document.getElementById('editBatchId').value;
+    _setLoading('editBatchSubmitBtn', true);
+    fetch(`/api/batches/${batchId}/quick-update/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': _csrf() },
+        body: new FormData(document.getElementById('editBatchForm')),
+    })
+    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+    .then(({ ok, data }) => {
+        if (ok && data.success) {
+            location.reload();
+        } else {
+            _setLoading('editBatchSubmitBtn', false, '<i class="fas fa-save me-1"></i>Save Changes');
+            _showFormErrors('editBatchErrors', data);
+        }
+    })
+    .catch(() => {
+        _setLoading('editBatchSubmitBtn', false, '<i class="fas fa-save me-1"></i>Save Changes');
+        _showFormErrors('editBatchErrors', { error: 'Network error. Please try again.' });
+    });
+}
+
+/* ── Toggle batch status ── */
+function toggleBatchStatus(batchId, activate, batchName) {
+    const label = activate ? 'activate' : 'deactivate';
+    const msg = activate
+        ? `Activate batch <strong>${batchName}</strong>?`
+        : `Deactivate batch <strong>${batchName}</strong>?`;
+
+    showConfirmModal(msg, function () {
+        fetch('{% url "core:toggle_batch_status" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': _csrf(),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ batch_id: batchId, is_active: activate }),
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`Batch ${label}d successfully`, 'success');
+                location.reload();
+            } else {
+                showToast(data.error || `Failed to ${label} batch`, 'danger');
+            }
+        })
+        .catch(() => showToast(`Error: could not ${label} batch`, 'danger'));
+    }, { heading: activate ? 'Activate Batch' : 'Deactivate Batch', okLabel: activate ? 'Activate' : 'Deactivate' });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% load core_extras %}
+{% comment %}
+Pinewood data table — opening markup (wrap + green header row).
+Pair with table_close.html; write your <tbody> rows in between.
+(This is "table" in the component inventory — see the note in card_open.html
+about why open/close pairs are the native way to wrap arbitrary content.)
+
+Renders the `.pinewood-table` system (not `.pw-table`) — Phase 0 found
+`.pinewood-table` in active use across 20 templates vs. one for `.pw-table`,
+so it's the system this component now standardizes on. Wrap with your own
+`.pinewood-table-container` (+ optional `.pinewood-table-header` title bar)
+if you want the bordered/shadowed card look; this component alone renders a
+plain scrollable table.
+
+Usage:
+  {% include 'core/components/table_open.html' with columns=cols %}
+    <tbody>
+      <tr><td>…</td>…</tr>
+    </tbody>
+  {% include 'core/components/table_close.html' %}
+
+  {# Sortable columns: pass dicts instead of plain strings #}
+  {% include 'core/components/table_open.html' with columns=cols sortable=True %}
+  {# cols = [{'label': 'Name', 'sort_key': 'name'}, 'Actions'] — plain strings
+     stay unsorted; only dict columns with a sort_key become sort links. #}
+
+Params:
+  columns  (optional) — list of column header labels (plain strings), or dicts
+                        {label, sort_key} for sortable columns. If omitted,
+                        supply your own <thead> after the include.
+  sortable (optional) — enables sort links for any dict column with a sort_key
+  caption  (optional) — a visually-hidden <caption> describing the table for
+                        screen readers (e.g. "List of students with admission
+                        number, name, batch, date of birth, status, actions")
+{% endcomment %}
+<div class="pinewood-table-responsive">
+  <table class="pinewood-table">
+    {% if caption %}<caption class="visually-hidden">{{ caption }}</caption>{% endif %}
+    {% if columns %}
+    <thead>
+      <tr>
+        {% for col in columns %}
+        <th scope="col">
+          {% if sortable and col.sort_key %}
+            <a href="?{% query_transform sort=col.sort_key %}" style="color:inherit;text-decoration:none">{{ col.label }} <i class="fas fa-sort" style="font-size:10px"></i></a>
+          {% else %}
+            {{ col.label|default:col }}
+          {% endif %}
+        </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    {% endif %}

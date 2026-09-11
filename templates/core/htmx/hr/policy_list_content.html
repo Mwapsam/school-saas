@@ -1,0 +1,36 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead><tr><th>Title</th><th>Category</th><th>Version</th><th>Acknowledged</th><th>Active</th><th width="180"></th></tr></thead>
+        <tbody>
+            {% for row in rows %}
+                {% with p=row.policy a=row.ack %}
+                <tr>
+                    <td>
+                        {% if p.file %}<a href="{{ p.file.url }}" target="_blank" rel="noopener"><strong>{{ p.title }}</strong></a>{% else %}<strong>{{ p.title }}</strong>{% endif %}
+                    </td>
+                    <td>{{ p.get_category_display }}</td>
+                    <td>{{ p.version|default:"—" }}</td>
+                    <td style="min-width:150px">
+                        <div class="progress" style="height:14px"><div class="progress-bar" style="width: {{ a.percent }}%">{{ a.percent }}%</div></div>
+                        <small class="text-muted">{{ a.acknowledged }} / {{ a.eligible }}</small>
+                    </td>
+                    <td>{% if p.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
+                    <td class="table-actions">
+                        <a class="btn btn-outline-secondary btn-sm" href="{% url 'core:hr_policy_acks' p.id %}">Who acknowledged</a>
+                        {% if can_manage %}
+                        {% if p.is_active %}
+                        <button class="btn btn-outline-warning btn-sm" onclick="togglePolicy('{{ p.id }}', false)">Deactivate</button>
+                        {% else %}
+                        <button class="btn btn-outline-success btn-sm" onclick="togglePolicy('{{ p.id }}', true)">Activate</button>
+                        {% endif %}
+                        <button class="btn btn-outline-danger btn-sm" onclick="deletePolicy('{{ p.id }}')"><i class="fas fa-trash"></i></button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endwith %}
+            {% empty %}
+                <tr class="empty-state"><td colspan="6">No policies.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

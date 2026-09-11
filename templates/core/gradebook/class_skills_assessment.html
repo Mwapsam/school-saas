@@ -1,0 +1,249 @@
+{% extends 'core/layouts/detail.html' %}
+{% load static %}
+
+{% block page_title %}Class Skills Assessment - {{ batch.name }}{% endblock %}
+
+{% block layout_header %}
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with title=skills_assessment_title description="Assess developmental skills for each student" icon="fa-user-friends" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_sections %}
+<div class="container-fluid">
+    {# Year + Term selectors — persist across student clicks #}
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <div class="row g-2 align-items-center">
+                <div class="col-auto">
+                    <label class="form-label mb-0 fw-semibold">Academic Year</label>
+                    <select id="year-selector" class="form-select form-select-sm" style="width:200px">
+                        {% for ay in academic_years %}
+                        <option value="{{ ay.id }}"{% if ay == active_year %} selected{% endif %}>{{ ay.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label mb-0 fw-semibold">Term <span class="text-muted fw-normal">(optional)</span></label>
+                    <input id="term-input" type="text" class="form-control form-control-sm" style="width:160px"
+                           placeholder="e.g. Term 1">
+                </div>
+                <div class="col-auto pt-3">
+                    <span class="text-muted small">Select a student on the left to begin assessment</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        {# Left: student list #}
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Students ({{ students.count }})</h5>
+                </div>
+                <div class="card-body p-0" style="max-height:calc(100vh - 280px); overflow-y:auto">
+                    <div class="list-group list-group-flush">
+                        {% for student in students %}
+                        <a href="#" class="list-group-item list-group-item-action student-item"
+                           data-student-id="{{ student.id }}"
+                           data-student-name="{{ student.first_name }} {{ student.last_name }}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">{{ student.first_name }} {{ student.last_name }}</h6>
+                                    <small class="text-muted">{{ student.admission_no }}</small>
+                                </div>
+                                <i class="fas fa-chevron-right text-muted"></i>
+                            </div>
+                        </a>
+                        {% empty %}
+                        <div class="list-group-item text-muted">No students found in this class.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Right: assessment panel #}
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0" id="panel-title">Assessment Details</h5>
+                    <button id="save-btn" class="btn btn-primary btn-sm d-none" onclick="saveAssessment()">
+                        <i class="fas fa-save"></i> Save Assessment
+                    </button>
+                </div>
+                <div class="card-body" id="assessment-panel" style="max-height:calc(100vh - 280px); overflow-y:auto">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-user-friends fa-3x mb-3"></i>
+                        <p>Select a student from the list to view or record their skills assessment.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const SKILL_CATEGORIES = [
+  {% for cat in skill_categories %}
+  {
+    id: "{{ cat.id }}",
+    name: "{{ cat.name|escapejs }}",
+    items: [
+      {% for item in cat.skill_items.all %}
+      { id: "{{ item.id }}", description: "{{ item.description|escapejs }}" }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ]
+  }{% if not forloop.last %},{% endif %}
+  {% endfor %}
+];
+
+const SAVE_URL = "{% url 'core:save_skills_assessment_api' %}";
+const LOAD_URL = "{% url 'core:load_skills_assessment_api' %}";
+const CSRF = "{{ csrf_token }}";
+
+const LEVELS = ['NOT_YET', 'BEGINNING', 'SATISFACTORY', 'GOOD'];
+const LEVEL_LABELS = {
+  'NOT_YET': 'Not Yet',
+  'BEGINNING': 'Beginning',
+  'SATISFACTORY': 'Satisfactory',
+  'GOOD': 'Good'
+};
+
+let currentStudentId = null;
+let currentStudentName = '';
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.student-item').forEach(function (item) {
+        item.addEventListener('click', function (e) {
+            e.preventDefault();
+            document.querySelectorAll('.student-item').forEach(function (i) { i.classList.remove('active'); });
+            this.classList.add('active');
+            currentStudentId = this.dataset.studentId;
+            currentStudentName = this.dataset.studentName;
+            loadStudentAssessment();
+        });
+    });
+
+    document.getElementById('year-selector').addEventListener('change', function () {
+        if (currentStudentId) loadStudentAssessment();
+    });
+    document.getElementById('term-input').addEventListener('change', function () {
+        if (currentStudentId) loadStudentAssessment();
+    });
+});
+
+function loadStudentAssessment() {
+    const panel = document.getElementById('assessment-panel');
+    document.getElementById('panel-title').textContent = 'Assessment for ' + currentStudentName;
+    panel.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">Loading...</p></div>';
+    document.getElementById('save-btn').classList.add('d-none');
+
+    const yearId = document.getElementById('year-selector').value;
+    const termName = document.getElementById('term-input').value.trim();
+
+    const params = new URLSearchParams({
+        student_id: currentStudentId,
+        academic_year_id: yearId,
+        term_name: termName,
+    });
+
+    fetch(LOAD_URL + '?' + params.toString())
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (!data.success) {
+                panel.innerHTML = '<div class="alert alert-danger">Error: ' + data.error + '</div>';
+                return;
+            }
+            renderAssessmentForm(data.levels || {});
+        })
+        .catch(function (err) {
+            panel.innerHTML = '<div class="alert alert-danger">Failed to load assessment data.</div>';
+        });
+}
+
+function renderAssessmentForm(existingLevels) {
+    const panel = document.getElementById('assessment-panel');
+
+    if (SKILL_CATEGORIES.length === 0) {
+        panel.innerHTML = '<div class="alert alert-warning">No skill categories found. Run <code>python manage.py seed_skill_categories --all</code> to create them.</div>';
+        return;
+    }
+
+    let html = '<div id="save-status" class="mb-2"></div>';
+    html += '<table class="table table-bordered table-sm">';
+    html += '<thead class="table-light"><tr>';
+    html += '<th style="width:40%">Skill</th>';
+    for (const lvl of LEVELS) {
+        html += '<th class="text-center" style="width:15%">' + LEVEL_LABELS[lvl] + '</th>';
+    }
+    html += '</tr></thead><tbody>';
+
+    for (const cat of SKILL_CATEGORIES) {
+        html += '<tr class="table-secondary"><td colspan="5" class="fw-bold">' + escHtml(cat.name) + '</td></tr>';
+        for (const item of cat.items) {
+            html += '<tr><td class="ps-3 small">' + escHtml(item.description) + '</td>';
+            for (const lvl of LEVELS) {
+                const checked = existingLevels[item.id] === lvl ? ' checked' : '';
+                html += '<td class="text-center">';
+                html += '<input type="radio" name="skill_' + item.id + '" value="' + lvl + '"' + checked + '>';
+                html += '</td>';
+            }
+            html += '</tr>';
+        }
+    }
+
+    html += '</tbody></table>';
+    panel.innerHTML = html;
+    document.getElementById('save-btn').classList.remove('d-none');
+}
+
+function saveAssessment() {
+    const yearId = document.getElementById('year-selector').value;
+    const termName = document.getElementById('term-input').value.trim();
+
+    const skillScores = [];
+    for (const cat of SKILL_CATEGORIES) {
+        for (const item of cat.items) {
+            const sel = document.querySelector('input[name="skill_' + item.id + '"]:checked');
+            if (sel) {
+                skillScores.push({ skill_item_id: item.id, level: sel.value });
+            }
+        }
+    }
+
+    const statusEl = document.getElementById('save-status');
+    statusEl.innerHTML = '<div class="alert alert-info py-1">Saving...</div>';
+    document.getElementById('save-btn').disabled = true;
+
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', CSRF);
+    formData.append('student_id', currentStudentId);
+    formData.append('academic_year_id', yearId);
+    formData.append('term_name', termName);
+    formData.append('assessment_data', JSON.stringify({ skill_scores: skillScores }));
+
+    fetch(SAVE_URL, { method: 'POST', body: formData })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            document.getElementById('save-btn').disabled = false;
+            if (data.success) {
+                statusEl.innerHTML = '<div class="alert alert-success py-1"><i class="fas fa-check"></i> ' + data.message + '</div>';
+                setTimeout(function () { statusEl.innerHTML = ''; }, 3000);
+            } else {
+                statusEl.innerHTML = '<div class="alert alert-danger py-1">Error: ' + data.error + '</div>';
+            }
+        })
+        .catch(function () {
+            document.getElementById('save-btn').disabled = false;
+            statusEl.innerHTML = '<div class="alert alert-danger py-1">Network error — please try again.</div>';
+        });
+}
+
+function escHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+</script>
+{% endblock %}

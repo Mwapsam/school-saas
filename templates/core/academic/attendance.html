@@ -1,0 +1,599 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:attendance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Attendance Management" description="Mark, review, and export daily attendance by batch." icon='fa-clipboard-list' back_url=back_url|default:back_fallback crumbs=crumbs %}
+<div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-primary btn-sm" onclick="openAttendanceModal()">
+        <i class="fas fa-plus"></i> Mark Attendance
+    </button>
+    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="bulkAttendance()">
+        <i class="fas fa-users"></i> Bulk Entry
+    </button>
+    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="exportAttendance()">
+        <i class="fas fa-download"></i> Export
+    </button>
+</div>
+</div>
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Attendance Management{% endblock %}
+
+
+{% block layout_table %}
+<div class="attendance-management-container">
+    <!-- Filter and Summary Section -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <form method="get">
+                <label class="form-label">Select Batch</label>
+                <select class="form-select" name="batch" onchange="this.form.submit()">
+                    <option value="">All Batches</option>
+                    {% for batch in batches %}
+                        <option value="{{ batch.id }}" {% if selected_batch == batch.id|stringformat:"s" %}selected{% endif %}>
+                            {{ batch.name }} - {{ batch.course.course_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if selected_date %}
+                    <input type="hidden" name="date" value="{{ selected_date }}">
+                {% endif %}
+            </form>
+        </div>
+        <div class="col-md-3">
+            <form method="get">
+                <label class="form-label">Select Date</label>
+                <input type="date" class="form-control" name="date" value="{{ selected_date|default:'' }}" 
+                       onchange="this.form.submit()">
+                {% if selected_batch %}
+                    <input type="hidden" name="batch" value="{{ selected_batch }}">
+                {% endif %}
+            </form>
+        </div>
+        <div class="col-md-6">
+            <!-- Attendance Summary -->
+            <div class="attendance-summary">
+                <div class="row">
+                    <div class="col-6 col-md-3">
+                        <div class="stat-card text-center p-2 bg-success text-white rounded">
+                            <div class="stat-number">{{ attendance_summary.present|default:0 }}</div>
+                            <div class="stat-label">Present</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="stat-card text-center p-2 bg-danger text-white rounded">
+                            <div class="stat-number">{{ attendance_summary.absent|default:0 }}</div>
+                            <div class="stat-label">Absent</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="stat-card text-center p-2 bg-warning text-white rounded">
+                            <div class="stat-number">{{ attendance_summary.late|default:0 }}</div>
+                            <div class="stat-label">Late</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="stat-card text-center p-2 bg-info text-white rounded">
+                            <div class="stat-number">{{ attendance_summary.total|default:0 }}</div>
+                            <div class="stat-label">Total</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Records -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-clipboard-list"></i> 
+                Attendance Records
+                {% if selected_date %}
+                    - {{ selected_date|date:"F d, Y" }}
+                {% endif %}
+                {% if selected_batch %}
+                    {% for batch in batches %}
+                        {% if batch.id|stringformat:"s" == selected_batch %}
+                            - {{ batch.name }}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            </h5>
+            {% if attendance_records %}
+            <div class="attendance-filters">
+                <div class="btn-group btn-group-sm" role="group">
+                    <input type="radio" class="btn-check" name="attendanceFilter" id="filterAll" 
+                           onchange="filterAttendance('all')" checked>
+                    <label class="btn btn-outline-secondary" for="filterAll">All</label>
+                    
+                    <input type="radio" class="btn-check" name="attendanceFilter" id="filterPresent" 
+                           onchange="filterAttendance('present')">
+                    <label class="btn btn-outline-success" for="filterPresent">Present</label>
+                    
+                    <input type="radio" class="btn-check" name="attendanceFilter" id="filterAbsent" 
+                           onchange="filterAttendance('absent')">
+                    <label class="btn btn-outline-danger" for="filterAbsent">Absent</label>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Student</th>
+                            <th>Admission No.</th>
+                            <th>Batch</th>
+                            <th>Date</th>
+                            <th>Forenoon</th>
+                            <th>Afternoon</th>
+                            <th>Status</th>
+                            <th>Reason</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in attendance_records %}
+                        <tr class="attendance-row" data-status="{% if record.forenoon or record.afternoon %}present{% else %}absent{% endif %}">
+                            <td>
+                                <div class="student-info">
+                                    <strong>{{ record.student.first_name }} {{ record.student.last_name }}</strong>
+                                </div>
+                            </td>
+                            <td>{{ record.student.admission_no }}</td>
+                            <td>{{ record.batch.name }}</td>
+                            <td>{{ record.month_date|date:"M d, Y" }}</td>
+                            <td>
+                                {% if record.forenoon %}
+                                    <span class="badge bg-success"><i class="fas fa-check"></i> Present</span>
+                                {% else %}
+                                    <span class="badge bg-danger"><i class="fas fa-times"></i> Absent</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.afternoon %}
+                                    <span class="badge bg-success"><i class="fas fa-check"></i> Present</span>
+                                {% else %}
+                                    <span class="badge bg-danger"><i class="fas fa-times"></i> Absent</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.forenoon and record.afternoon %}
+                                    <span class="badge bg-success">Full Day</span>
+                                {% elif record.forenoon or record.afternoon %}
+                                    <span class="badge bg-warning">Half Day</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Absent</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.reason %}
+                                    <small class="text-muted">{{ record.reason|truncatechars:30 }}</small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-outline-primary" 
+                                            onclick="editAttendance('{{ record.id }}')" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" 
+                                            onclick="deleteAttendance('{{ record.id }}')" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-5">
+                                <i class="fas fa-calendar-check text-muted fa-3x mb-3"></i>
+                                <h5 class="text-muted">No Attendance Records Found</h5>
+                                <p class="text-muted">
+                                    {% if selected_date and selected_batch %}
+                                        No attendance marked for {{ selected_date|date:"F d, Y" }}{% for batch in batches %}{% if batch.id|stringformat:"s" == selected_batch %} in {{ batch.name }}{% endif %}{% endfor %}.
+                                    {% elif selected_date %}
+                                        No attendance marked for {{ selected_date|date:"F d, Y" }}.
+                                    {% elif selected_batch %}
+                                        No attendance records found{% for batch in batches %}{% if batch.id|stringformat:"s" == selected_batch %} for {{ batch.name }}{% endif %}{% endfor %}.
+                                    {% else %}
+                                        Start marking attendance for your students.
+                                    {% endif %}
+                                </p>
+                                <button class="btn btn-primary" onclick="openAttendanceModal()">
+                                    <i class="fas fa-plus"></i> Mark Attendance
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="d-flex justify-content-center mt-4">
+        <nav>
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">Previous</a>
+                    </li>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Next</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Attendance Modal -->
+<div class="modal fade" id="attendanceModal" tabindex="-1" aria-labelledby="attendanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="attendanceModalLabel">Mark Attendance</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="attendanceForm">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="attendanceStudent" class="form-label">Student *</label>
+                            <select class="form-control" id="attendanceStudent" name="student" required>
+                                <option value="">Select Student</option>
+                                <!-- Will be populated based on batch selection -->
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="attendanceBatch" class="form-label">Batch *</label>
+                            <select class="form-control" id="attendanceBatch" name="batch" required>
+                                <option value="">Select Batch</option>
+                                {% for batch in batches %}
+                                    <option value="{{ batch.id }}">{{ batch.name }} - {{ batch.course.course_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="attendanceDate" class="form-label">Date *</label>
+                            <input type="date" class="form-control" id="attendanceDate" name="month_date" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Attendance Status</label>
+                            <div class="attendance-checkboxes">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="forenoonPresent" name="forenoon">
+                                    <label class="form-check-label" for="forenoonPresent">
+                                        Present in Forenoon
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="afternoonPresent" name="afternoon">
+                                    <label class="form-check-label" for="afternoonPresent">
+                                        Present in Afternoon
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="attendanceReason" class="form-label">Reason (if absent)</label>
+                            <textarea class="form-control" id="attendanceReason" name="reason" rows="2" 
+                                      placeholder="Enter reason for absence..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span id="saveButtonText">Save Attendance</span>
+                        <span id="saveButtonSpinner" class="loading-spinner d-none"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Attendance Modal -->
+<div class="modal fade" id="bulkAttendanceModal" tabindex="-1" aria-labelledby="bulkAttendanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkAttendanceModalLabel">Bulk Attendance Entry</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <select class="form-control" id="bulkBatch" onchange="loadBulkStudents()">
+                            <option value="">Select Batch</option>
+                            {% for batch in batches %}
+                                <option value="{{ batch.id }}">{{ batch.name }} - {{ batch.course.course_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="date" class="form-control" id="bulkDate" value="{{ today|date:'Y-m-d' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-primary" onclick="markAllPresent()">Mark All Present</button>
+                            <button type="button" class="btn btn-danger" onclick="markAllAbsent()">Mark All Absent</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="bulkStudentsList">
+                    <p class="text-muted text-center py-4">Select a batch to load students</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveBulkAttendance()">Save All Attendance</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+{% block extra_js %}
+<script>
+let editingAttendanceId = null;
+
+// Set today's date as default
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    const dateInput = document.getElementById('attendanceDate');
+    if (dateInput && !dateInput.value) {
+        dateInput.value = today;
+    }
+});
+
+function openAttendanceModal(attendanceData = null) {
+    const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
+    const form = document.getElementById('attendanceForm');
+    const title = document.getElementById('attendanceModalLabel');
+    
+    // Reset form
+    form.reset();
+    editingAttendanceId = null;
+    
+    // Set today's date
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('attendanceDate').value = today;
+    
+    if (attendanceData) {
+        // Edit mode
+        title.textContent = 'Edit Attendance';
+        document.getElementById('saveButtonText').textContent = 'Update Attendance';
+        editingAttendanceId = attendanceData.id;
+        
+        // Populate form fields
+        Object.keys(attendanceData).forEach(key => {
+            const field = form.querySelector(`[name="${key}"]`);
+            if (field) {
+                if (field.type === 'checkbox') {
+                    field.checked = attendanceData[key];
+                } else {
+                    field.value = attendanceData[key] || '';
+                }
+            }
+        });
+    } else {
+        // Add mode
+        title.textContent = 'Mark Attendance';
+        document.getElementById('saveButtonText').textContent = 'Save Attendance';
+        
+        // Pre-select batch if filtered
+        const selectedBatch = '{{ selected_batch }}';
+        if (selectedBatch) {
+            document.getElementById('attendanceBatch').value = selectedBatch;
+            loadBatchStudents(selectedBatch);
+        }
+        
+        // Pre-select date if filtered
+        const selectedDate = '{{ selected_date }}';
+        if (selectedDate) {
+            document.getElementById('attendanceDate').value = selectedDate;
+        }
+    }
+    
+    modal.show();
+}
+
+function editAttendance(attendanceId) {
+    // In a real implementation, you would fetch attendance data from API
+    openAttendanceModal();
+}
+
+function deleteAttendance(attendanceId) {
+    if (confirm('Are you sure you want to delete this attendance record?')) {
+        // Implement attendance deletion
+        alert('Attendance deletion functionality to be implemented');
+    }
+}
+
+function bulkAttendance() {
+    const modal = new bootstrap.Modal(document.getElementById('bulkAttendanceModal'));
+    
+    // Pre-select batch if filtered
+    const selectedBatch = '{{ selected_batch }}';
+    if (selectedBatch) {
+        document.getElementById('bulkBatch').value = selectedBatch;
+        loadBulkStudents();
+    }
+    
+    modal.show();
+}
+
+function loadBatchStudents(batchId) {
+    // Load students for the selected batch
+    // This would typically be an API call
+    console.log('Loading students for batch:', batchId);
+    
+    const studentSelect = document.getElementById('attendanceStudent');
+    studentSelect.innerHTML = '<option value="">Loading students...</option>';
+    
+    // Simulate API call
+    setTimeout(() => {
+        studentSelect.innerHTML = `
+            <option value="">Select Student</option>
+            <option value="1">John Doe (ADM001)</option>
+            <option value="2">Jane Smith (ADM002)</option>
+            <option value="3">Mike Johnson (ADM003)</option>
+        `;
+    }, 500);
+}
+
+function loadBulkStudents() {
+    const batchId = document.getElementById('bulkBatch').value;
+    const bulkList = document.getElementById('bulkStudentsList');
+    
+    if (!batchId) {
+        bulkList.innerHTML = '<p class="text-muted text-center py-4">Select a batch to load students</p>';
+        return;
+    }
+    
+    bulkList.innerHTML = '<p class="text-muted text-center py-4">Loading students...</p>';
+    
+    // Simulate API call
+    setTimeout(() => {
+        bulkList.innerHTML = `
+            <div class="bulk-student-item">
+                <div class="bulk-student-info">
+                    <strong>John Doe</strong> (ADM001)
+                </div>
+                <div class="bulk-attendance-controls">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="forenoon_1" name="forenoon_1">
+                        <label class="form-check-label" for="forenoon_1">FN</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="afternoon_1" name="afternoon_1">
+                        <label class="form-check-label" for="afternoon_1">AN</label>
+                    </div>
+                    <input type="text" class="form-control form-control-sm" placeholder="Reason" style="width: 150px;">
+                </div>
+            </div>
+            <div class="bulk-student-item">
+                <div class="bulk-student-info">
+                    <strong>Jane Smith</strong> (ADM002)
+                </div>
+                <div class="bulk-attendance-controls">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="forenoon_2" name="forenoon_2">
+                        <label class="form-check-label" for="forenoon_2">FN</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="afternoon_2" name="afternoon_2">
+                        <label class="form-check-label" for="afternoon_2">AN</label>
+                    </div>
+                    <input type="text" class="form-control form-control-sm" placeholder="Reason" style="width: 150px;">
+                </div>
+            </div>
+        `;
+    }, 500);
+}
+
+function markAllPresent() {
+    const checkboxes = document.querySelectorAll('#bulkStudentsList input[type="checkbox"]');
+    checkboxes.forEach(checkbox => checkbox.checked = true);
+}
+
+function markAllAbsent() {
+    const checkboxes = document.querySelectorAll('#bulkStudentsList input[type="checkbox"]');
+    checkboxes.forEach(checkbox => checkbox.checked = false);
+}
+
+function saveBulkAttendance() {
+    // Implement bulk attendance saving
+    alert('Bulk attendance saving functionality to be implemented');
+}
+
+function exportAttendance() {
+    alert('Export functionality to be implemented');
+}
+
+function filterAttendance(filter) {
+    const rows = document.querySelectorAll('.attendance-row');
+    rows.forEach(row => {
+        const status = row.getAttribute('data-status');
+        if (filter === 'all') {
+            row.style.display = '';
+        } else {
+            row.style.display = status === filter ? '' : 'none';
+        }
+    });
+}
+
+// Handle batch selection change in attendance form
+document.getElementById('attendanceBatch').addEventListener('change', function() {
+    const batchId = this.value;
+    if (batchId) {
+        loadBatchStudents(batchId);
+    } else {
+        document.getElementById('attendanceStudent').innerHTML = '<option value="">Select Student</option>';
+    }
+});
+
+// Handle form submission
+document.getElementById('attendanceForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const submitButton = this.querySelector('button[type="submit"]');
+    const buttonText = document.getElementById('saveButtonText');
+    const spinner = document.getElementById('saveButtonSpinner');
+    
+    // Show loading state
+    buttonText.classList.add('d-none');
+    spinner.classList.remove('d-none');
+    submitButton.disabled = true;
+    
+    const formData = new FormData(this);
+    const url = editingAttendanceId ? `/api/attendance/${editingAttendanceId}/` : '/api/attendance/';
+    const method = editingAttendanceId ? 'PUT' : 'POST';
+    
+    // Simulate API call (replace with actual implementation)
+    setTimeout(() => {
+        // Hide loading state
+        buttonText.classList.remove('d-none');
+        spinner.classList.add('d-none');
+        submitButton.disabled = false;
+        
+        // Close modal and reload page
+        bootstrap.Modal.getInstance(document.getElementById('attendanceModal')).hide();
+        window.location.reload();
+    }, 1000);
+});
+</script>
+{% endblock %}

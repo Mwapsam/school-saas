@@ -1,0 +1,240 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}Course Management{% endblock %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title=terms.course|add:" Management" description=header_description icon="fa-sitemap" actions=header_actions back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_filters %}
+{% include 'core/components/toolbar.html' with search_name="search" search_value=request.GET.search search_placeholder="Search by name or code…" clear_url=courses_list_url %}
+{% endblock %}
+
+{% block layout_table %}
+<div class="row">
+    {% for course in courses %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="course-card">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 text-primary">{{ course.code }}</h6>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                data-bs-toggle="dropdown">
+                            Actions
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="javascript:void(0)"
+                                   onclick="editCourse('{{ course.id }}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)"
+                                   onclick="viewCourseBatches('{{ course.id }}')">
+                                <i class="fas fa-users"></i> View Batches
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="javascript:void(0)"
+                                   onclick="deleteCourse('{{ course.id }}')">
+                                <i class="fas fa-trash"></i> Archive
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ course.course_name }}</h5>
+                    {% if course.section_name %}
+                        <p class="card-text text-muted">Section: {{ course.section_name }}</p>
+                    {% endif %}
+                    <div class="course-details">
+                        {% if course.grading_type %}
+                            <span class="badge bg-info me-2">{{ course.grading_type }}</span>
+                        {% endif %}
+                        {% if course.max_hours_day %}
+                            <small class="text-muted">{{ course.max_hours_day }}h/day</small>
+                        {% endif %}
+                        {% if course.max_hours_week %}
+                            <small class="text-muted"> | {{ course.max_hours_week }}h/week</small>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">
+                            <i class="fas fa-layer-group"></i>
+                            {{ course.batches.count }} batches
+                        </small>
+                        <small class="text-muted">
+                            Created {{ course.created_at|date:"M d, Y" }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        {% include 'core/components/empty_state.html' with title="No Courses Found" message="Start by adding your first course to the system." icon="fa-book" %}
+        <div class="text-center">
+            <button class="btn btn-primary" onclick="openCourseModal()">
+                <i class="fas fa-plus"></i> Add First Course
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block layout_pagination %}
+{% include 'core/components/pagination.html' with page_obj=page_obj numbered=True %}
+{% endblock %}
+
+{% block layout_extra %}
+<!-- Course Modal -->
+<form id="courseForm">
+{% include 'core/components/modal.html' with id="courseModal" title="Add New Course" size="lg" %}
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="courseName" class="form-label">Course Name *</label>
+                <input type="text" class="form-control" id="courseName" name="course_name" required>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="courseCode" class="form-label">Course Code *</label>
+                <input type="text" class="form-control" id="courseCode" name="code" required>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="sectionName" class="form-label">Section Name</label>
+                <input type="text" class="form-control" id="sectionName" name="section_name">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="gradingType" class="form-label">Grading Type</label>
+                <select class="form-control" id="gradingType" name="grading_type">
+                    <option value="">Select Grading Type</option>
+                    <option value="GPA">GPA</option>
+                    <option value="Percentage">Percentage</option>
+                    <option value="Marks">Marks</option>
+                </select>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="maxHoursDay" class="form-label">Max Hours per Day</label>
+                <input type="number" class="form-control" id="maxHoursDay" name="max_hours_day" min="1" max="12">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="maxHoursWeek" class="form-label">Max Hours per Week</label>
+                <input type="number" class="form-control" id="maxHoursWeek" name="max_hours_week" min="1" max="60">
+            </div>
+        </div>
+      </div>
+      {% comment %}
+      Hand-written footer, not modal_close.html's generic button list — this
+      Save button swaps to a spinner (#saveButtonSpinner) during the submit
+      simulation below, which doesn't fit the shared footer contract. The
+      outer .modal wrapper above still comes from modal.html, so this isn't
+      a new hand-written modal — just a custom footer inside one.
+      {% endcomment %}
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">
+          <span id="saveButtonText">Save Course</span>
+          <span id="saveButtonSpinner" class="loading-spinner d-none"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let editingCourseId = null;
+
+function openCourseModal(courseData = null) {
+    const modal = new bootstrap.Modal(document.getElementById('courseModal'));
+    const form = document.getElementById('courseForm');
+    const title = document.getElementById('courseModalLabel');
+
+    // Reset form
+    form.reset();
+    editingCourseId = null;
+
+    if (courseData) {
+        // Edit mode
+        title.textContent = 'Edit Course';
+        document.getElementById('saveButtonText').textContent = 'Update Course';
+        editingCourseId = courseData.id;
+
+        // Populate form fields
+        Object.keys(courseData).forEach(key => {
+            const field = form.querySelector(`[name="${key}"]`);
+            if (field) {
+                field.value = courseData[key] || '';
+            }
+        });
+    } else {
+        // Add mode
+        title.textContent = 'Add New Course';
+        document.getElementById('saveButtonText').textContent = 'Save Course';
+    }
+
+    modal.show();
+}
+
+function editCourse(courseId) {
+    // In a real implementation, you would fetch course data from API
+    // For now, we'll open empty modal
+    openCourseModal();
+}
+
+function viewCourseBatches(courseId) {
+    window.location.href = `{% url 'core:batch_list' %}?course=${courseId}`;
+}
+
+function deleteCourse(courseId) {
+    if (confirm('Are you sure you want to archive this course? This action cannot be undone.')) {
+        // Implement course deletion/archiving
+        alert('Course archiving functionality to be implemented');
+    }
+}
+
+function exportCourses() {
+    // Implement course export functionality
+    alert('Export functionality to be implemented');
+}
+
+// Handle form submission
+document.getElementById('courseForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const submitButton = this.querySelector('button[type="submit"]');
+    const buttonText = document.getElementById('saveButtonText');
+    const spinner = document.getElementById('saveButtonSpinner');
+
+    // Show loading state
+    buttonText.classList.add('d-none');
+    spinner.classList.remove('d-none');
+    submitButton.disabled = true;
+
+    const formData = new FormData(this);
+    const url = editingCourseId ? `/api/courses/${editingCourseId}/` : '/api/courses/';
+    const method = editingCourseId ? 'PUT' : 'POST';
+
+    // Simulate API call (replace with actual implementation)
+    setTimeout(() => {
+        // Hide loading state
+        buttonText.classList.remove('d-none');
+        spinner.classList.add('d-none');
+        submitButton.disabled = false;
+
+        // Close modal and reload page
+        bootstrap.Modal.getInstance(document.getElementById('courseModal')).hide();
+        window.location.reload();
+    }, 1000);
+});
+</script>
+{% endblock %}

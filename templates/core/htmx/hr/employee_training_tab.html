@@ -1,0 +1,72 @@
+<div id="employee-training-content">
+    <div id="employee-training-errors" class="alert alert-danger d-none"></div>
+
+    {% if 'hr.training.manage' in perms %}
+    <div class="pw-card mb-3">
+        <h2 class="h6 fw-bold">Add training record</h2>
+        <form onsubmit="addTraining(event, '{{ employee.id }}')">
+            <div class="row g-2">
+                <div class="col-md-4"><label class="form-label">Name</label><input type="text" class="form-control form-control-sm" name="name" required></div>
+                <div class="col-md-4"><label class="form-label">Category</label>
+                    <select class="form-select form-select-sm" name="category">
+                        {% for value, label in category_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                    </select></div>
+                <div class="col-md-4"><label class="form-label">Provider</label><input type="text" class="form-control form-control-sm" name="provider"></div>
+                <div class="col-md-3"><label class="form-label">Date</label><input type="date" class="form-control form-control-sm" name="training_date"></div>
+                <div class="col-md-3"><label class="form-label">Expiry</label><input type="date" class="form-control form-control-sm" name="expiry_date"></div>
+                <div class="col-md-3"><label class="form-label">Cost</label><input type="number" step="0.01" class="form-control form-control-sm" name="cost"></div>
+                <div class="col-md-3"><label class="form-label">Status</label>
+                    <select class="form-select form-select-sm" name="status">
+                        {% for value, label in status_choices %}<option value="{{ value }}" {% if value == 'completed' %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                    </select></div>
+                <div class="col-12 form-check ms-1">
+                    <input type="checkbox" class="form-check-input" id="training-mandatory" name="is_mandatory">
+                    <label class="form-check-label" for="training-mandatory">Mandatory</label>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm mt-2">Add</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <div class="pinewood-table-responsive">
+        <table class="pinewood-table">
+            <thead><tr><th>Name</th><th>Category</th><th>Date</th><th>Expiry</th><th>Status</th>
+                {% if 'hr.training.manage' in perms %}<th width="60"></th>{% endif %}</tr></thead>
+            <tbody>
+                {% for r in records %}
+                    <tr>
+                        <td>{{ r.name }}{% if r.is_mandatory %} <span class="badge bg-info">Mandatory</span>{% endif %}</td>
+                        <td>{{ r.get_category_display }}</td>
+                        <td><small>{{ r.training_date|date:"M j, Y"|default:"—" }}</small></td>
+                        <td><small>{{ r.expiry_date|date:"M j, Y"|default:"—" }}</small></td>
+                        <td>{{ r.get_status_display }}</td>
+                        {% if 'hr.training.manage' in perms %}
+                        <td class="table-actions"><button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteTraining('{{ r.id }}')"><i class="fas fa-trash"></i></button></td>
+                        {% endif %}
+                    </tr>
+                {% empty %}
+                    <tr class="empty-state"><td colspan="6">No training records.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function _trCsrf() { return document.querySelector('[name=csrfmiddlewaretoken]').value; }
+function _swapTr(status, text) {
+    if (status === 200) { document.getElementById('employee-training-content').outerHTML = text; if (typeof showAlert === 'function') showAlert('Saved', 'success'); }
+    else { const box = document.getElementById('employee-training-errors'); try { box.textContent = JSON.parse(text).error || 'An error occurred'; } catch (e) { box.textContent = 'An error occurred'; } box.classList.remove('d-none'); }
+}
+function addTraining(event, employeeId) {
+    event.preventDefault();
+    fetch(`/hr/employees/${employeeId}/training/add/`, { method: 'POST', headers: { 'X-CSRFToken': _trCsrf() }, body: new FormData(event.target) })
+        .then(r => r.text().then(t => _swapTr(r.status, t)));
+}
+function deleteTraining(recordId) {
+    if (!confirm('Delete this training record?')) return;
+    fetch(`/hr/training/${recordId}/delete/`, { method: 'POST', headers: { 'X-CSRFToken': _trCsrf() } })
+        .then(r => r.text().then(t => _swapTr(r.status, t)));
+}
+</script>

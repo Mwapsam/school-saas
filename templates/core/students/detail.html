@@ -1,0 +1,569 @@
+{% extends 'core/layouts/detail.html' %}
+{% load currency_tags %}
+
+{% block page_title %}Student Details{% endblock %}
+
+
+{% block layout_header %}
+{% url 'core:student_list' as back_fallback %}
+{% include 'core/components/page_header.html' with title=student.first_name|add:" "|add:student.last_name description="Admission No: "|add:student.admission_no icon="fa-user-graduate" back_url=back_url|default:back_fallback %}
+<div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
+<div class="btn-toolbar" role="toolbar">
+    <div class="btn-group me-2" role="group">
+        <a href="{% url 'core:student_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to List
+        </a>
+        <a href="{% url 'core:student_edit' student.id %}" class="btn btn-primary">
+            <i class="fas fa-edit"></i> Edit Student
+        </a>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block layout_summary %}
+{% if not student.is_active %}
+<div class="alert alert-warning mt-3" role="alert">
+    <i class="fas fa-exclamation-triangle"></i>
+    <strong>Note:</strong> This student is currently inactive.
+    {% if student.status_description %}
+        Reason: {{ student.status_description }}
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block layout_sections %}
+<div class="row">
+    <!-- Student Basic Info -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Basic Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    {% if student.photo_file_name %}
+                        <img src="/media/{{ student.photo_file_name }}" 
+                             alt="Student Photo" 
+                             class="rounded-circle"
+                             style="width: 100px; height: 100px; object-fit: cover;">
+                    {% else %}
+                        <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center"
+                             style="width: 100px; height: 100px;">
+                            <i class="fas fa-user fa-3x text-muted"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <h4 class="text-center mb-3">
+                    {{ student.first_name }} 
+                    {% if student.middle_name %}{{ student.middle_name }} {% endif %}
+                    {{ student.last_name }}
+                </h4>
+                
+                {% include 'core/components/table_open.html' %}
+                    <tbody>
+                    <tr>
+                        <td><strong>Admission No:</strong></td>
+                        <td>{{ student.admission_no }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Age:</strong></td>
+                        <td>{{ age }} years</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Gender:</strong></td>
+                        <td>{{ student.get_gender_display }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Date of Birth:</strong></td>
+                        <td>{{ student.date_of_birth|date:"F j, Y" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Admission Date:</strong></td>
+                        <td>{{ student.admission_date|date:"F j, Y" }}</td>
+                    </tr>
+                    {% if student.blood_group %}
+                    <tr>
+                        <td><strong>Blood Group:</strong></td>
+                        <td>{{ student.blood_group }}</td>
+                    </tr>
+                    {% endif %}
+                    </tbody>
+                {% include 'core/components/table_close.html' %}
+            </div>
+        </div>
+        
+        <!-- Contact Information -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Contact Information</h5>
+            </div>
+            <div class="card-body">
+                {% if student.phone1 or student.phone2 or student.email %}
+                    {% include 'core/components/table_open.html' %}
+                        <tbody>
+                        {% if student.phone1 %}
+                        <tr>
+                            <td><strong>Phone 1:</strong></td>
+                            <td>{{ student.phone1 }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if student.phone2 %}
+                        <tr>
+                            <td><strong>Phone 2:</strong></td>
+                            <td>{{ student.phone2 }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if student.email %}
+                        <tr>
+                            <td><strong>Email:</strong></td>
+                            <td>{{ student.email }}</td>
+                        </tr>
+                        {% endif %}
+                        </tbody>
+                    {% include 'core/components/table_close.html' %}
+                {% else %}
+                    <p class="text-muted">No contact information available.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Parents / Guardians -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Parents / Guardians</h5>
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#attachGuardianModal">
+                    <i class="fas fa-user-plus"></i> Attach
+                </button>
+            </div>
+            <div class="card-body">
+                {% if guardian_relations %}
+                    {% for rel in guardian_relations %}
+                    <div class="border rounded p-2 mb-2">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <strong>
+                                <a href="{% url 'core:parent_detail' rel.guardian.id %}" title="View guardian details">
+                                    {{ rel.guardian.first_name }} {{ rel.guardian.last_name }}
+                                    <i class="fas fa-external-link-alt ms-1" style="font-size: 0.75em;"></i>
+                                </a>
+                            </strong>
+                            <span class="badge bg-secondary text-capitalize">{{ rel.relation|default:"Guardian" }}</span>
+                        </div>
+                        {% if rel.is_immediate_contact %}
+                        <span class="badge bg-success my-1"><i class="fas fa-star"></i> Primary Contact</span>
+                        {% endif %}
+                        <div class="small text-muted">
+                            {% if rel.guardian.mobile_phone %}<div><i class="fas fa-phone fa-fw"></i> {{ rel.guardian.mobile_phone }}</div>{% endif %}
+                            {% if rel.guardian.email %}<div><i class="fas fa-envelope fa-fw"></i> {{ rel.guardian.email }}</div>{% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted mb-0">No parent/guardian linked yet. Click <strong>Attach</strong> to add one.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Academic & Other Details -->
+    <div class="col-md-8">
+        <!-- Current Batch -->
+        {% if current_batch %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Current Enrollment</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Batch:</strong> {{ current_batch.batch.name }}<br>
+                        <strong>Course:</strong> {{ current_batch.batch.course.course_name }}<br>
+                        {% if current_batch.roll_number %}
+                            <strong>Roll Number:</strong> {{ current_batch.roll_number }}<br>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Start Date:</strong> {{ current_batch.batch.start_date|date:"M j, Y" }}<br>
+                        <strong>End Date:</strong> {{ current_batch.batch.end_date|date:"M j, Y" }}<br>
+                        <span class="badge bg-success">Active</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Tabbed Content -->
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="studentTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance" type="button" role="tab">
+                            Attendance
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="fees-tab" data-bs-toggle="tab" data-bs-target="#fees" type="button" role="tab">
+                            Fees
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="address-tab" data-bs-toggle="tab" data-bs-target="#address" type="button" role="tab">
+                            Address
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button" role="tab">
+                            Reports
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documents" type="button" role="tab">
+                            Documents
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="studentTabsContent">
+                    <!-- Attendance Tab -->
+                    <div class="tab-pane fade show active" id="attendance" role="tabpanel">
+                        {% if available_terms %}
+                        <div class="mb-3">
+                            <label for="attendance-term-select" class="form-label">Select Term:</label>
+                            <select id="attendance-term-select" name="term_id" class="form-select form-select-sm d-inline-block w-auto"
+                                    hx-get="/api/students/{{ student.id }}/reports/attendance/"
+                                    hx-include="#attendance-term-select"
+                                    hx-target="#attendance-details"
+                                    hx-trigger="change"
+                                    data-loading>
+                                {% for term in available_terms %}
+                                <option value="{{ term.id }}"{% if default_term_id == term.id|stringformat:"s" %} selected{% endif %}>
+                                    {{ term.name }} ({{ term.start_date|date:"M j" }} – {{ term.end_date|date:"M j, Y" }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        {% include "core/htmx/reports/_attendance_summary_boxes.html" %}
+
+                        <button class="btn btn-sm btn-outline-primary"
+                                hx-get="/api/students/{{ student.id }}/reports/attendance/"
+                                hx-include="#attendance-term-select"
+                                hx-target="#attendance-details"
+                                data-loading>
+                            Load Detailed Attendance
+                            <div class="htmx-indicator loading-spinner d-inline-block ms-2"></div>
+                        </button>
+                        <div id="attendance-details" class="mt-3"></div>
+                    </div>
+                    
+                    <!-- Fees Tab -->
+                    <div class="tab-pane fade" id="fees" role="tabpanel">
+                        {% if fee_balance %}
+                            <div class="alert alert-{% if fee_balance > 0 %}warning{% else %}success{% endif %}" role="alert">
+                                <h5>Fee Balance: {% currency_format fee_balance %}</h5>
+                                {% if fee_balance > 0 %}
+                                    <p>Outstanding balance needs to be cleared.</p>
+                                {% else %}
+                                    <p>All fees are up to date!</p>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        
+                        <button class="btn btn-sm btn-outline-primary"
+                                hx-get="/api/students/{{ student.id }}/fees/"
+                                hx-target="#fee-details"
+                                data-loading>
+                            Load Fee History
+                            <div class="htmx-indicator loading-spinner d-inline-block ms-2"></div>
+                        </button>
+                        <div id="fee-details" class="mt-3"></div>
+                    </div>
+                    
+                    <!-- Address Tab -->
+                    <div class="tab-pane fade" id="address" role="tabpanel">
+                        {% if student.address_line1 or student.city or student.state %}
+                            <address>
+                                {% if student.address_line1 %}{{ student.address_line1 }}<br>{% endif %}
+                                {% if student.address_line2 %}{{ student.address_line2 }}<br>{% endif %}
+                                {% if student.city %}{{ student.city }}{% endif %}
+                                {% if student.state %}, {{ student.state }}{% endif %}
+                                {% if student.pin_code %} {{ student.pin_code }}{% endif %}
+                                {% if student.city or student.state %}<br>{% endif %}
+                                {% if student.country %}{{ student.country.name }}{% endif %}
+                            </address>
+                        {% else %}
+                            <p class="text-muted">No address information available.</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Reports Tab -->
+                    <div class="tab-pane fade" id="reports" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Academic Report</h6>
+                                        <p class="card-text">View comprehensive academic performance and grades.</p>
+                                        <button class="btn btn-outline-primary btn-sm"
+                                                hx-get="/api/students/{{ student.id }}/reports/academic/"
+                                                hx-target="#report-details"
+                                                data-loading>
+                                            <i class="fas fa-chart-line"></i> Generate Report
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Attendance Report</h6>
+                                        <p class="card-text">Detailed attendance summary and patterns.</p>
+                                        <button class="btn btn-outline-success btn-sm"
+                                                hx-get="/api/students/{{ student.id }}/reports/attendance/"
+                                                hx-include="#attendance-term-select"
+                                                hx-target="#report-details"
+                                                data-loading>
+                                            <i class="fas fa-calendar-check"></i> Generate Report
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Fee Report</h6>
+                                        <p class="card-text">Payment history and outstanding balances.</p>
+                                        <button class="btn btn-outline-warning btn-sm"
+                                                hx-get="/api/students/{{ student.id }}/reports/fees/"
+                                                hx-target="#report-details"
+                                                data-loading>
+                                            <i class="fas fa-money-bill"></i> Generate Report
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Complete Profile</h6>
+                                        <p class="card-text">Full student information and records.</p>
+                                        <button class="btn btn-outline-info btn-sm"
+                                                hx-get="/api/students/{{ student.id }}/reports/profile/"
+                                                hx-target="#report-details"
+                                                data-loading>
+                                            <i class="fas fa-user"></i> Generate Report
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="report-details" class="mt-3"></div>
+                    </div>
+
+                    <!-- Documents Tab -->
+                    <div class="tab-pane fade" id="documents" role="tabpanel">
+                        {% if document_categories %}
+                        <form method="post" action="{% url 'core:student_documents' student.id %}"
+                              enctype="multipart/form-data" class="row g-2 align-items-end mb-4">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="upload">
+                            <div class="col-md-3">
+                                <label class="form-label">Category</label>
+                                <select name="category_id" class="form-select form-select-sm" required>
+                                    <option value="">Select…</option>
+                                    {% for c in document_categories %}
+                                    <option value="{{ c.id }}">{{ c.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">File</label>
+                                <input type="file" name="file" class="form-control form-control-sm" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Note</label>
+                                <input type="text" name="note" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-md-2">
+                                <button class="btn btn-primary btn-sm w-100"><i class="fas fa-upload me-1"></i>Upload</button>
+                            </div>
+                        </form>
+                        {% else %}
+                        <p class="text-muted">No document categories defined yet.
+                            <a href="{% url 'core:document_category_config' %}">Create categories</a> in Configuration first.</p>
+                        {% endif %}
+
+                        <table class="table table-sm align-middle">
+                            <thead><tr><th>Category</th><th>File</th><th>Note</th><th>Uploaded</th><th></th></tr></thead>
+                            <tbody>
+                                {% for doc in student_documents %}
+                                <tr>
+                                    <td>{{ doc.category.name }}</td>
+                                    <td><a href="{{ doc.file.url }}" target="_blank">{{ doc.original_filename|default:"Download" }}</a></td>
+                                    <td class="text-muted small">{{ doc.note }}</td>
+                                    <td class="text-muted small">{{ doc.uploaded_at|date:"M j, Y" }}</td>
+                                    <td class="text-end">
+                                        <form method="post" action="{% url 'core:student_documents' student.id %}"
+                                              onsubmit="return confirm('Remove this document?')" class="d-inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="document_id" value="{{ doc.id }}">
+                                            <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="5" class="text-muted p-3">No documents uploaded.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block layout_extra %}
+<!-- Attach Guardian Modal -->
+<form id="attachGuardianForm">
+{% include 'core/components/modal.html' with id="attachGuardianModal" title="Attach Parent / Guardian" %}
+                    {% csrf_token %}
+                    {% if available_guardians %}
+                    <div class="mb-3">
+                        <label class="form-label">Link an existing guardian</label>
+                        <input type="text" class="form-control mb-1" id="guardianSearchInput"
+                               placeholder="Search by name or phone..." autocomplete="off">
+                        <select class="form-select" id="existingGuardian" name="guardian_id" size="6">
+                            <option value="">— Create a new guardian below —</option>
+                            {% for g in available_guardians %}
+                            <option value="{{ g.id }}"
+                                    data-search="{{ g.first_name|lower }} {{ g.last_name|lower }}{% if g.mobile_phone %} {{ g.mobile_phone }}{% endif %}{% if g.email %} {{ g.email }}{% endif %}">{{ g.display_name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Choose an existing parent (e.g. for a sibling), or leave blank to create a new one.</div>
+                    </div>
+                    <hr>
+                    {% endif %}
+
+                    <div id="newGuardianFields">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label">First Name *</label>
+                                <input type="text" class="form-control" name="first_name">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Last Name *</label>
+                                <input type="text" class="form-control" name="last_name">
+                            </div>
+                        </div>
+                        <div class="row g-2 mt-1">
+                            <div class="col-6">
+                                <label class="form-label">Mobile Phone</label>
+                                <input type="text" class="form-control" name="mobile_phone">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email">
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <label class="form-label">Occupation</label>
+                            <input type="text" class="form-control" name="occupation">
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">Relationship *</label>
+                        <input type="text" class="form-control" name="relation" placeholder="e.g. Father, Mother, Guardian" required>
+                    </div>
+                    <div class="form-check mt-3">
+                        <input type="checkbox" class="form-check-input" id="isImmediate" name="is_immediate_contact">
+                        <label class="form-check-label" for="isImmediate">Set as primary contact</label>
+                    </div>
+{% include 'core/components/modal_close.html' with footer=attach_guardian_footer %}
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('attachGuardianForm');
+    if (!form) return;
+
+    const existing = document.getElementById('existingGuardian');
+    const newFields = document.getElementById('newGuardianFields');
+    // When linking an existing guardian, hide the new-guardian fields.
+    if (existing && newFields) {
+        existing.addEventListener('change', function () {
+            newFields.style.display = this.value ? 'none' : '';
+        });
+    }
+
+    // Filter the guardian list as the user types, so they don't have to
+    // scroll through every guardian in the tenant to find one.
+    const guardianSearch = document.getElementById('guardianSearchInput');
+    if (guardianSearch && existing) {
+        const allOptions = Array.from(existing.options);
+        guardianSearch.addEventListener('input', function () {
+            const term = this.value.trim().toLowerCase();
+            allOptions.forEach(function (opt) {
+                if (!opt.value) { opt.hidden = false; return; } // keep "create new" visible
+                const haystack = opt.dataset.search || opt.textContent.toLowerCase();
+                opt.hidden = term.length > 0 && !haystack.includes(term);
+            });
+        });
+    }
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const btn = form.querySelector('button[type="submit"]');
+        const original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Attaching...';
+        fetch("{% url 'core:student_attach_guardian' student.id %}", {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                if (data.credentials_sent) {
+                    // Show success toast before reloading
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                    alertDiv.role = 'alert';
+                    alertDiv.innerHTML = `
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Guardian attached!</strong> Login credentials were sent via SMS.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.insertBefore(alertDiv, document.body.firstChild);
+                    // Reload after a brief delay to show the message
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                alert(data.error || 'Could not attach guardian');
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
+        })
+        .catch(() => {
+            alert('Network error');
+            btn.disabled = false;
+            btn.innerHTML = original;
+        });
+    });
+});
+</script>
+{% endblock %}
+

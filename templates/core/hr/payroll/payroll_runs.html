@@ -1,0 +1,89 @@
+{% extends 'core/layouts/list.html' %}
+{% block page_title %}Payroll Runs{% endblock %}
+
+{% block layout_header %}
+  {% url 'core:hr_dashboard' as back_fallback %}
+  {% include 'core/components/page_header.html' with title="Payroll Runs" description="Generate payslips for a payroll group and pay period" icon="fa-play-circle" back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_filters %}
+  <form id="payroll-run-form" class="pw-card mb-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="pw-form-label" for="payroll_group_id">Payroll group</label>
+        <select class="pw-form-select" id="payroll_group_id" name="payroll_group_id" required>
+          <option value="">Select group…</option>
+          {% for g in payroll_groups %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="pw-form-label" for="period_start">Period start</label>
+        <input type="date" class="pw-form-control" id="period_start" name="period_start" required>
+      </div>
+      <div class="col-md-3">
+        <label class="pw-form-label" for="period_end">Period end</label>
+        <input type="date" class="pw-form-control" id="period_end" name="period_end" required>
+      </div>
+      <div class="col-md-auto">
+        <button type="submit" class="pw-btn pw-btn-primary pw-btn-sm"><i class="fas fa-bolt me-1"></i>Run payroll</button>
+      </div>
+    </div>
+    <p class="hr-form-error text-danger small mt-2 mb-0" hidden></p>
+    <p id="payroll-run-result" class="text-success small mt-2 mb-0" hidden></p>
+  </form>
+{% endblock %}
+
+{% block layout_table %}
+  <div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+      <thead>
+        <tr>
+          <th>Period</th>
+          <th>Payroll group</th>
+          <th class="text-end">Payslips</th>
+          <th class="text-end">Generated</th>
+          <th class="text-end">Approved</th>
+          <th class="text-end">Rejected</th>
+          <th class="text-end">Paid</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for run in runs %}
+          <tr>
+            <td>{{ run.period_start|date:"M j" }} – {{ run.period_end|date:"M j, Y" }}</td>
+            <td>{{ run.payroll_group_name_snapshot|default:"—" }}</td>
+            <td class="text-end">{{ run.total }}</td>
+            <td class="text-end">{{ run.generated }}</td>
+            <td class="text-end">{{ run.approved }}</td>
+            <td class="text-end">{{ run.rejected }}</td>
+            <td class="text-end">{{ run.paid }}</td>
+          </tr>
+        {% empty %}
+          <tr class="empty-state"><td colspan="7">No payroll runs yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <a href="{% url 'core:hr_payslip_list' %}" class="pw-btn pw-btn-outline pw-btn-sm mt-3"><i class="fas fa-receipt me-1"></i>Go to Payslips</a>
+{% endblock %}
+
+{% block extra_js %}
+  {% include 'core/htmx/hr/_scripts.html' %}
+  <script>
+    document.getElementById('payroll-run-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var res = document.getElementById('payroll-run-result');
+      res.hidden = true;
+      hrPost("{% url 'core:hr_payslip_generate_group' %}", this, {
+        onSuccess: function (body) {
+          try {
+            var j = JSON.parse(body);
+            res.textContent = 'Generated ' + j.generated + ' payslip(s)' + (j.errors && j.errors.length ? ' — ' + j.errors.length + ' skipped' : '') + '.';
+          } catch (x) { res.textContent = 'Payroll run complete.'; }
+          res.hidden = false;
+          setTimeout(function () { window.location.reload(); }, 1200);
+        }
+      });
+    });
+  </script>
+{% endblock %}

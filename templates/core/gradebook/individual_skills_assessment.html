@@ -1,0 +1,393 @@
+{% extends 'core/layouts/detail.html' %}
+{% load static %}
+
+{% block page_title %}Individual Skills Assessment{% endblock %}
+
+{% block layout_header %}
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Individual Skills Assessment" description="Assess developmental skills for individual students" icon="fa-user-search" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_sections %}
+<div class="gb-skills">
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Student Search</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="studentSearch" placeholder="Search students...">
+                    </div>
+                    <div id="studentsList" class="list-group" style="max-height: 400px; overflow-y: auto;">
+                        <!-- Students will be loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Assessment Interface</h5>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="saveProgressBtn" disabled>
+                                <i class="fas fa-save"></i> Save Progress
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm" id="completeAssessmentBtn" disabled>
+                                <i class="fas fa-check"></i> Complete Assessment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body" id="assessmentInterface">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-user-search fa-3x mb-3"></i>
+                        <h5>Select a Student</h5>
+                        <p>Search and select a student from the left panel to begin the assessment.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block layout_extra %}
+<div class="gb-skills">
+<!-- Assessment Form Modal -->
+<form id="individualAssessmentForm">
+{% include 'core/components/modal.html' with id="assessmentModal" title="Skills Assessment" size="xl" %}
+    <div class="row">
+        <div class="col-md-8">
+            <div id="skillCategoriesContainer"></div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6>Assessment Progress</h6>
+                    <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress-bar" role="progressbar" style="width: 0%" id="assessmentProgress"></div>
+                    </div>
+                    <div id="progressText" class="text-muted small">0 of 0 skills assessed</div>
+
+                    <hr>
+
+                    <h6>Overall Remarks</h6>
+                    <textarea class="form-control" rows="4" id="overallRemarks"
+                            placeholder="General observations about the student..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+{% include 'core/components/modal_close.html' with footer=save_assessment_footer %}
+</form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentStudent = null;
+let assessmentData = {};
+
+document.addEventListener('DOMContentLoaded', function() {
+    const studentSearch = document.getElementById('studentSearch');
+    const studentsList = document.getElementById('studentsList');
+    const assessmentInterface = document.getElementById('assessmentInterface');
+
+    // Search students
+    studentSearch.addEventListener('input', debounce(searchStudents, 300));
+
+    // Load initial students
+    loadStudents();
+
+    function loadStudents(searchTerm = '') {
+        // Simulate loading students
+        const students = [
+            { id: '1', name: 'Alice Johnson', admission_no: 'STU001', class: 'Nursery A' },
+            { id: '2', name: 'Bob Smith', admission_no: 'STU002', class: 'KG B' },
+            { id: '3', name: 'Carol Williams', admission_no: 'STU003', class: 'Reception' }
+        ];
+
+        const filteredStudents = searchTerm ?
+            students.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                               s.admission_no.toLowerCase().includes(searchTerm.toLowerCase())) :
+            students;
+
+        studentsList.innerHTML = filteredStudents.map(student => `
+            <a href="#" class="list-group-item list-group-item-action" data-student-id="${student.id}">
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">${student.name}</h6>
+                    <small>${student.class}</small>
+                </div>
+                <small class="text-muted">${student.admission_no}</small>
+            </a>
+        `).join('');
+
+        // Add click events to student items
+        studentsList.querySelectorAll('.list-group-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                selectStudent(this.dataset.studentId);
+            });
+        });
+    }
+
+    function searchStudents() {
+        const searchTerm = studentSearch.value;
+        loadStudents(searchTerm);
+    }
+
+    function selectStudent(studentId) {
+        // Remove active class from all items
+        studentsList.querySelectorAll('.list-group-item').forEach(item => {
+            item.classList.remove('active');
+        });
+
+        // Add active class to selected item
+        const selectedItem = studentsList.querySelector(`[data-student-id="${studentId}"]`);
+        if (selectedItem) {
+            selectedItem.classList.add('active');
+        }
+
+        // Load student assessment interface
+        loadStudentAssessmentInterface(studentId);
+        currentStudent = studentId;
+    }
+
+    function loadStudentAssessmentInterface(studentId) {
+        assessmentInterface.innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading student assessment...</p>
+            </div>
+        `;
+
+        // Simulate loading
+        setTimeout(() => {
+            const student = { name: 'Selected Student', admission_no: 'STU001' };
+
+            assessmentInterface.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5>${student.name}</h5>
+                                <p class="text-muted">${student.admission_no}</p>
+
+                                <h6>Previous Assessments</h6>
+                                <div class="list-group list-group-flush">
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">Term 1 Assessment</h6>
+                                            <small class="text-muted">Completed on March 15, 2024</small>
+                                        </div>
+                                        <span class="badge bg-success">Complete</span>
+                                    </div>
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">Term 2 Assessment</h6>
+                                            <small class="text-muted">Started on June 10, 2024</small>
+                                        </div>
+                                        <span class="badge bg-warning">In Progress</span>
+                                    </div>
+                                </div>
+
+                                <div class="mt-3 d-grid">
+                                    <button class="btn btn-primary" onclick="startNewAssessment()">
+                                        <i class="fas fa-plus"></i> Start New Assessment
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6>Skills Development Overview</h6>
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <div class="border rounded p-2">
+                                            <h4 class="text-success">85%</h4>
+                                            <small class="text-muted">Language</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="border rounded p-2">
+                                            <h4 class="text-info">92%</h4>
+                                            <small class="text-muted">Motor Skills</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="border rounded p-2">
+                                            <h4 class="text-warning">78%</h4>
+                                            <small class="text-muted">Social</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-3">
+                                    <h6>Recent Progress Notes</h6>
+                                    <ul class="list-unstyled">
+                                        <li><i class="fas fa-check-circle text-success"></i> Shows improvement in vocabulary</li>
+                                        <li><i class="fas fa-check-circle text-success"></i> Good fine motor coordination</li>
+                                        <li><i class="fas fa-exclamation-triangle text-warning"></i> Needs encouragement in group activities</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Enable buttons
+            document.getElementById('saveProgressBtn').disabled = false;
+            document.getElementById('completeAssessmentBtn').disabled = false;
+        }, 1000);
+    }
+});
+
+function startNewAssessment() {
+    if (!currentStudent) {
+        alert('Please select a student first.');
+        return;
+    }
+
+    // Load skill categories
+    loadSkillCategories();
+
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('assessmentModal'));
+    modal.show();
+}
+
+function loadSkillCategories() {
+    const container = document.getElementById('skillCategoriesContainer');
+
+    // Simulate skill categories data
+    const categories = [
+        {
+            id: 1,
+            name: 'Language Development',
+            skills: [
+                { id: 1, name: 'Vocabulary Recognition', description: 'Ability to recognize and understand words' },
+                { id: 2, name: 'Sentence Formation', description: 'Can form simple sentences' }
+            ]
+        },
+        {
+            id: 2,
+            name: 'Motor Skills',
+            skills: [
+                { id: 3, name: 'Fine Motor Control', description: 'Ability to control small muscle movements' },
+                { id: 4, name: 'Gross Motor Skills', description: 'Large muscle group coordination' }
+            ]
+        }
+    ];
+
+    container.innerHTML = categories.map(category => `
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">${category.name}</h6>
+            </div>
+            <div class="card-body">
+                ${category.skills.map(skill => `
+                    <div class="skill-assessment mb-3 p-3 border rounded">
+                        <h6>${skill.name}</h6>
+                        <p class="text-muted small">${skill.description}</p>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Proficiency Level</label>
+                                <select class="form-select form-select-sm" data-skill-id="${skill.id}" name="proficiency">
+                                    <option value="">Select level...</option>
+                                    <option value="EMERGING">Emerging</option>
+                                    <option value="DEVELOPING">Developing</option>
+                                    <option value="SECURE">Secure</option>
+                                    <option value="EXCEEDING">Exceeding</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Observations</label>
+                                <textarea class="form-control form-control-sm" rows="2"
+                                        data-skill-id="${skill.id}" name="observations"
+                                        placeholder="Specific observations..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+
+    // Add change events to update progress
+    container.querySelectorAll('select[name="proficiency"]').forEach(select => {
+        select.addEventListener('change', updateAssessmentProgress);
+    });
+}
+
+function updateAssessmentProgress() {
+    const totalSkills = document.querySelectorAll('select[name="proficiency"]').length;
+    const assessedSkills = document.querySelectorAll('select[name="proficiency"]').values.filter(s => s.value !== '').length;
+    const percentage = totalSkills > 0 ? (assessedSkills / totalSkills) * 100 : 0;
+
+    document.getElementById('assessmentProgress').style.width = `${percentage}%`;
+    document.getElementById('progressText').textContent = `${assessedSkills} of ${totalSkills} skills assessed`;
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Save assessment
+document.getElementById('saveAssessmentBtn').addEventListener('click', function() {
+    // Collect assessment data
+    const assessmentData = {
+        student_id: currentStudent,
+        skills: [],
+        overall_remarks: document.getElementById('overallRemarks').value
+    };
+
+    document.querySelectorAll('.skill-assessment').forEach(skillEl => {
+        const skillId = skillEl.querySelector('select[name="proficiency"]').dataset.skillId;
+        const proficiency = skillEl.querySelector('select[name="proficiency"]').value;
+        const observations = skillEl.querySelector('textarea[name="observations"]').value;
+
+        if (proficiency) {
+            assessmentData.skills.push({
+                skill_id: skillId,
+                proficiency,
+                observations
+            });
+        }
+    });
+
+    // Simulate saving
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    this.disabled = true;
+
+    setTimeout(() => {
+        alert('Assessment saved successfully!');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('assessmentModal'));
+        modal.hide();
+
+        this.innerHTML = 'Save Assessment';
+        this.disabled = false;
+    }, 2000);
+});
+</script>
+{% endblock %}

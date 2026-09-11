@@ -1,0 +1,17 @@
+{% comment %}
+Pinewood inline alert.
+
+Usage:
+  {% include 'core/components/alert.html' with message="Saved successfully." variant="success" %}
+
+Params:
+  message     (required)
+  variant     (optional) — "success" (default) | "warning" | "error"/"danger" | "info"
+  dismissible (optional) — adds a close button (requires Bootstrap JS already loaded, which core/base.html always does)
+{% endcomment %}
+<div class="pw-alert pw-alert-{{ variant|default:'success' }}" {% if dismissible %}role="alert"{% endif %}>
+  <span>{{ message }}</span>
+  {% if dismissible %}
+  <button type="button" class="btn-close ms-auto" style="font-size:11px" onclick="this.closest('.pw-alert').remove()" aria-label="Close"></button>
+  {% endif %}
+</div>

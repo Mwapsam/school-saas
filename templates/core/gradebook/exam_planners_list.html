@@ -1,0 +1,153 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}Exam Planners - Gradebook{% endblock %}
+
+
+{% block layout_header %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <span class="pw-breadcrumb">
+        <a href="{% url 'core:dashboard' %}">Home</a>
+        <span class="pw-breadcrumb-sep">›</span>
+        <a href="{% url 'core:gradebook_index' %}">Gradebook</a>
+        <span class="pw-breadcrumb-sep">›</span>
+        <span class="pw-breadcrumb-current">Exam Planner</span>
+    </span>
+</nav>
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Exam Planner" description="Manage exam plans, terms and linked classes for the academic year" icon="fa-clipboard-list" actions=header_actions back_url=back_url|default:back_fallback %}
+<div class="d-flex gap-2 flex-wrap align-items-center mb-3">
+    <select class="form-select form-select-sm" id="academicYearSelect" style="width:auto;">
+        {% for year in academic_years %}
+            <option value="{{ year.id }}" {% if year == selected_academic_year %}selected{% endif %}>{{ year.name }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endblock %}
+
+{% block layout_filters %}
+<div class="gb-exam-planners-list">
+<div class="ep-workflow">
+    <span class="ep-workflow-icon"><i class="fas fa-info-circle"></i></span>
+    <div>
+        <strong style="font-size:0.85rem;color:var(--color-brand)">Exam Workflow</strong>
+        <ol>
+            <li><strong>Create Exam Plan</strong> — set up exam structure with terms</li>
+            <li><strong>Link Classes</strong> — assign the correct class/batch to the plan</li>
+            <li><strong>Add Exams</strong> — create exams for each term and subject</li>
+            <li><strong>Enter Marks</strong> — input student scores</li>
+            <li><strong>Generate Reports</strong> — create student report cards</li>
+        </ol>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block layout_table %}
+<div class="gb-exam-planners-list">
+{% include 'core/components/table_open.html' with columns=table_columns %}
+        <tbody>
+            {% for planner in exam_planners %}
+                <tr>
+                    <td>
+                        <a href="{% url 'core:exam_plan_detail' pk=planner.id %}" class="ep-plan-link">
+                            {{ planner.name }}
+                        </a>
+                    </td>
+                    <td class="text-center">{{ planner.classes_linked_count }}</td>
+                    <td class="text-center">{{ planner.terms_count }}</td>
+                    <td class="text-center">{{ planner.exams_count }}</td>
+                    <td class="text-end" style="width:48px">
+                        <div class="dropdown">
+                            <button class="ep-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Actions">⋮</button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'core:exam_plan_detail' pk=planner.id %}">
+                                        <i class="fas fa-eye me-2"></i>View Details
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="5">
+                        {% include 'core/components/empty_state.html' with title="No exam planners found" message="Create a new exam plan to get started." icon="fa-calendar-alt" action_url=create_exam_plan_url action_label="Create Exam Plan" %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+{% include 'core/components/table_close.html' %}
+</div>
+{% endblock %}
+
+{% block layout_extra %}
+<div class="gb-exam-planners-list">
+<!-- Import Planner Modal -->
+<form id="importPlannerForm">
+{% include 'core/components/modal.html' with id="importPlannerModal" title="Import Exam Planner" %}
+    <div class="mb-3">
+        <label for="plannerFile" class="form-label fw-semibold">Choose Planner File</label>
+        <input type="file" class="pw-form-control" id="plannerFile" accept=".csv,.xlsx,.json">
+        <div class="form-text">Supported formats: CSV, Excel, JSON</div>
+    </div>
+    <div class="mb-3">
+        <label for="plannerName" class="form-label fw-semibold">Planner Name</label>
+        <input type="text" class="pw-form-control" id="plannerName" placeholder="Enter planner name">
+    </div>
+{% include 'core/components/modal_close.html' with footer=import_planner_footer %}
+</form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('academicYearSelect').addEventListener('change', function() {
+    const url = new URL(window.location);
+    url.searchParams.set('academic_year', this.value);
+    window.location.href = url.toString();
+});
+
+function importPlanner() {
+    const fileInput = document.getElementById('plannerFile');
+    const plannerName = document.getElementById('plannerName').value.trim();
+
+    if (!fileInput.files[0] || !plannerName) {
+        showToast('Please select a file and enter a planner name.', 'warning');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('name', plannerName);
+
+    const importBtn = document.querySelector('#importPlannerModal .btn-primary');
+    const originalHtml = importBtn.innerHTML;
+    importBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Importing...';
+    importBtn.disabled = true;
+
+    fetch('{% url "core:import_exam_planner" %}', {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Planner imported successfully.', 'success');
+            setTimeout(() => location.reload(), 800);
+        } else {
+            showToast('Import failed: ' + (data.error || 'Unknown error'), 'danger');
+            importBtn.innerHTML = originalHtml;
+            importBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        showToast('Import failed: ' + error.message, 'danger');
+        importBtn.innerHTML = originalHtml;
+        importBtn.disabled = false;
+    });
+}
+</script>
+{% endblock %}

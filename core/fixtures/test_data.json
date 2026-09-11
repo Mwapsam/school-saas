@@ -1,0 +1,229 @@
+[
+  {
+    "model": "core.country",
+    "pk": 1,
+    "fields": {
+      "name": "Zambia",
+      "code": "ZM"
+    }
+  },
+  {
+    "model": "core.school",
+    "pk": "1",
+    "fields": {
+      "name": "Lusaka International School",
+      "code": "LIS001",
+      "logo_file_name": null,
+      "logo_content_type": null,
+      "logo_file_size": null,
+      "address_line1": "Plot 123, Roma",
+      "address_line2": null,
+      "city": "Lusaka",
+      "state": "Lusaka Province",
+      "pin_code": "10101",
+      "country": 1,
+      "phone": "+260211123456",
+      "email": "info@lusakais.ac.zm",
+      "fax": null,
+      "website": "https://lusakais.ac.zm",
+      "is_active": true,
+      "schema_name": "lis001"
+    }
+  },
+  {
+    "model": "core.domain",
+    "pk": 1,
+    "fields": {
+      "domain": "lis001.localhost",
+      "is_primary": true,
+      "tenant_id": "1"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": "b1c2d3e4-f5g6-7890-abcd-ef1234567891",
+    "fields": {
+      "username": "admin",
+      "email": "admin@lusakais.ac.zm",
+      "first_name": "Admin",
+      "last_name": "User",
+      "password": "pbkdf2_sha256$260000$randomsalt$hashedpassword", 
+      "is_active": true,
+      "is_admin": true,
+      "is_superuser": true,
+      "last_login": null,
+      "school": "1",
+      "created_at": "2025-08-19T12:00:00Z",
+      "updated_at": "2025-08-19T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": "c1d2e3f4-g5h6-7890-abcd-ef1234567892",
+    "fields": {
+      "username": "ST001",
+      "email": "john.doe@lusakais.ac.zm",
+      "first_name": "John",
+      "last_name": "Doe",
+      "password": "password123", 
+      "is_active": true,
+      "is_admin": false,
+      "is_superuser": false,
+      "last_login": null,
+      "school": "1",
+      "created_at": "2025-08-19T12:00:00Z",
+      "updated_at": "2025-08-19T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.student",
+    "pk": "d1e2f3g4-h5i6-7890-abcd-ef1234567893",
+    "fields": {
+      "admission_no": "ST001",
+      "class_roll_no": "R001",
+      "admission_date": "2025-01-01",
+      "first_name": "John",
+      "middle_name": null,
+      "last_name": "Doe",
+      "date_of_birth": "2010-01-01",
+      "gender": "male",
+      "blood_group": "O+",
+      "birth_place": "Lusaka",
+      "nationality": 1,
+      "language": "English",
+      "religion": "Christian",
+      "student_category": null,
+      "address_line1": "Plot 456, Ibex Hill",
+      "address_line2": null,
+      "city": "Lusaka",
+      "state": "Lusaka Province",
+      "pin_code": "10101",
+      "country": 1,
+      "phone1": "+260971234567",
+      "phone2": null,
+      "email": "john.doe@lusakais.ac.zm",
+      "is_sms_enabled": true,
+      "photo_file_name": null,
+      "photo_content_type": null,
+      "photo_file_size": null,
+      "status_description": null,
+      "is_active": true,
+      "is_deleted": false,
+      "school": "1",
+      "user": "c1d2e3f4-g5h6-7890-abcd-ef1234567892",
+      "immediate_contact": null,
+      "has_paid_fees": false,
+      "created_at": "2025-08-19T12:00:00Z",
+      "updated_at": "2025-08-19T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.guardian",
+    "pk": "e1f2g3h4-i5j6-7890-abcd-ef1234567894",
+    "fields": {
+      "first_name": "Jane",
+      "last_name": "Doe",
+      "relation": "Parent",
+      "email": "jane.doe@lusakais.ac.zm",
+      "mobile_phone": "+260971234568",
+      "office_phone": null,
+      "office_address_line1": null,
+      "office_address_line2": null,
+      "city": "Lusaka",
+      "state": "Lusaka Province",
+      "country": 1,
+      "dob": "1980-01-01",
+      "occupation": "Teacher",
+      "income": 15000.0,
+      "education": "Bachelor's Degree",
+      "school": "1",
+      "user": null,
+      "created_at": "2025-08-19T12:00:00Z",
+      "updated_at": "2025-08-19T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.studentguardianrelation",
+    "pk": "f1g2h3i4-j5k6-7890-abcd-ef1234567895",
+    "fields": {
+      "student": "d1e2f3g4-h5i6-7890-abcd-ef1234567893",
+      "guardian": "e1f2g3h4-i5j6-7890-abcd-ef1234567894",
+      "relation": "Mother",
+      "is_immediate_contact": true,
+      "school": "1",
+      "created_at": "2025-08-19T12:00:00Z",
+      "updated_at": "2025-08-19T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.course",
+    "pk": "g1h2i3j4-k5l6-7890-abcd-ef1234567896",
+    "fields": {
+      "course_name": "Grade 10",
+      "code": "G10",
+      "section_name": null,
+      "is_deleted": false,
+      "school": "1",
+      "grading_type": "GPA",
+      "max_hours_day": 6,
+      "max_hours_week": 30,
+      "created_at": "2025-08-19T12:00:00Z",
+      "updated_at": "2025-08-19T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.batch",
+    "pk": "h1i2j3k4-l5m6-7890-abcd-ef1234567897",
+    "fields": {
+      "name": "2025 Cohort",
+      "course": "g1h2i3j4-k5l6-7890-abcd-ef1234567896",
+      "start_date": "2025-01-01T00:00:00Z",
+      "end_date": "2025-12-31T23:59:59Z",
+      "is_active": true,
+      "is_deleted": false,
+      "employee": null,
+      "school": "1",
+      "grading_type": "GPA",
+      "created_at": "2025-08-19T12:00:00Z",
+      "updated_at": "2025-08-19T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.batchstudent",
+    "pk": "i1j2k3l4-m5n6-7890-abcd-ef1234567898",
+    "fields": {
+      "batch": "h1i2j3k4-l5m6-7890-abcd-ef1234567897",
+      "student": "d1e2f3g4-h5i6-7890-abcd-ef1234567893",
+      "roll_number": "R001",
+      "is_active": true,
+      "school": "1",
+      "created_at": "2025-08-19T12:00:00Z",
+      "updated_at": "2025-08-19T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.feecategory",
+    "pk": "j1k2l3m4-n5o6-7890-abcd-ef1234567899",
+    "fields": {
+      "name": "Tuition Fee",
+      "description": "Annual tuition fee for Grade 10",
+      "is_deleted": false,
+      "school": "1",
+      "created_at": "2025-08-19T12:00:00Z",
+      "updated_at": "2025-08-19T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.financefee",
+    "pk": "k1l2m3n4-o5p6-7890-abcd-ef1234567900",
+    "fields": {
+      "fee_category": "j1k2l3m4-n5o6-7890-abcd-ef1234567899",
+      "student": "d1e2f3g4-h5i6-7890-abcd-ef1234567893",
+      "balance": 15000.0,
+      "transaction_date": "2025-01-01",
+      "school": "1",
+      "created_at": "2025-08-19T12:00:00Z",
+      "updated_at": "2025-08-19T12:00:00Z"
+    }
+  }
+]

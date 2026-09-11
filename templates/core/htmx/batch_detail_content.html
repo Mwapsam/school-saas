@@ -1,0 +1,153 @@
+
+<style>
+    .nav-link {
+        color: rgb(11, 147, 11);
+    }
+</style>
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'core:course_list' %}">Classes</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'core:batch_list' %}">Manage Class</a></li>
+        <li class="breadcrumb-item active">{{ batch.course.code }} – {{ batch.name }}</li>
+    </ol>
+</nav>
+
+<!-- Page heading + actions -->
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+    <div>
+        <h1 class="pw-page-title">
+            {{ batch.name }}
+            {% if batch.is_active %}
+                <span class="pw-badge pw-badge-active">Active</span>
+            {% else %}
+                <span class="pw-badge pw-badge-zero">Closed</span>
+            {% endif %}
+        </h1>
+        <p class="pw-page-subtitle">{{ batch.course.course_name }}{% if academic_year %} · {{ academic_year.name }}{% endif %}</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap align-items-start">
+        <button class="pw-btn pw-btn-outline pw-btn-sm" onclick="openEditBatch('{{ batch.id }}')" title="Batch settings">
+            <i class="fas fa-cogs"></i> Settings
+        </button>
+        <button class="pw-btn pw-btn-outline pw-btn-sm" onclick="openEditBatch('{{ batch.id }}')" title="Edit batch">
+            <i class="fas fa-edit"></i> Edit
+        </button>
+        <button class="pw-btn pw-btn-danger pw-btn-sm" onclick="deleteBatch('{{ batch.id }}')" title="Delete batch">
+            <i class="fas fa-trash"></i> Delete
+        </button>
+        <div class="btn-group">
+            <button type="button" class="pw-btn pw-btn-primary pw-btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-cog"></i> Manage
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="#" onclick="addStudentToBatch(); return false;"><i class="fas fa-user-plus me-2"></i>Import Students</a></li>
+                <li><a class="dropdown-item" href="#" onclick="openAssignTeachers(); return false;"><i class="fas fa-chalkboard-teacher me-2"></i>Assign Class Teachers</a></li>
+                <li><a class="dropdown-item" href="#" onclick="addSchedule(); return false;"><i class="fas fa-calendar-alt me-2"></i>Manage Timetable</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Stat cards -->
+<div class="pw-stat-grid mb-4">
+    <div class="pw-stat-card">
+        <p class="pw-stat-label">Students</p>
+        <p class="pw-stat-value">{{ student_count }}</p>
+    </div>
+    <div class="pw-stat-card">
+        <p class="pw-stat-label">Subjects</p>
+        <p class="pw-stat-value">{{ subjects|length }}</p>
+    </div>
+    <div class="pw-stat-card">
+        <p class="pw-stat-label">Timetable Slots</p>
+        <p class="pw-stat-value">{{ timetable_entries|length }}</p>
+    </div>
+    <div class="pw-stat-card">
+        <p class="pw-stat-label">Academic Year</p>
+        <p class="pw-stat-value pw-stat-sm">{{ academic_year.name|default:"—" }}</p>
+    </div>
+</div>
+
+<!-- Batch overview card -->
+{% include 'core/htmx/batch/_overview_card.html' %}
+
+<!-- Tabs card -->
+<div class="pw-card">
+    <div class="nav pw-tabs" id="batchTabs" role="tablist">
+        <button class="nav-link pw-tab active" id="students-tab" data-bs-toggle="tab" data-bs-target="#students" type="button" role="tab">
+            <i class="fas fa-users me-1"></i> Students
+        </button>
+        <button class="nav-link pw-tab" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance" type="button" role="tab">
+            <i class="fas fa-calendar-check me-1"></i> Attendance
+        </button>
+        <button class="nav-link pw-tab" id="subjects-tab" data-bs-toggle="tab" data-bs-target="#subjects" type="button" role="tab">
+            <i class="fas fa-book me-1"></i> Subjects &amp; Allocation
+        </button>
+        <button class="nav-link pw-tab" id="timetables-tab" data-bs-toggle="tab" data-bs-target="#timetables" type="button" role="tab">
+            <i class="fas fa-calendar-alt me-1"></i> Timetable
+        </button>
+        <button class="nav-link pw-tab" id="examinations-tab" data-bs-toggle="tab" data-bs-target="#examinations" type="button" role="tab">
+            <i class="fas fa-graduation-cap me-1"></i> Examinations
+        </button>
+    </div>
+
+    <div class="tab-content" id="batchTabsContent">
+        <!-- Students Tab -->
+        <div class="tab-pane fade show active" id="students" role="tabpanel">
+            <div id="students-tab-body">
+                {% include 'core/htmx/batch/_students_tab.html' %}
+            </div>
+        </div>
+
+        <!-- Attendance Tab (lazy-loaded) -->
+        <div class="tab-pane fade" id="attendance" role="tabpanel">
+            <div id="attendance-tab-body"
+                 hx-get="{% url 'core:batch_attendance_partial' batch.id %}"
+                 hx-trigger="revealed"
+                 hx-swap="innerHTML">
+                {% include 'core/htmx/batch/_tab_loading.html' %}
+            </div>
+        </div>
+
+        <!-- Subjects Tab -->
+        <div class="tab-pane fade" id="subjects" role="tabpanel">
+            <div id="subjects-tab-body">
+                {% include 'core/htmx/batch/_subjects_tab.html' %}
+            </div>
+        </div>
+
+        <!-- Timetable Tab -->
+        <div class="tab-pane fade" id="timetables" role="tabpanel">
+            <div id="timetable-tab-body">
+                {% include 'core/htmx/batch/_timetable_tab.html' %}
+            </div>
+        </div>
+
+        <!-- Examinations Tab (lazy-loaded) -->
+        <div class="tab-pane fade" id="examinations" role="tabpanel">
+            <div id="exams-tab-body"
+                 hx-get="{% url 'core:batch_exams_partial' batch.id %}"
+                 hx-trigger="revealed"
+                 hx-swap="innerHTML">
+                {% include 'core/htmx/batch/_tab_loading.html' %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-sm {
+    width: 32px; height: 32px; font-size: 12px; font-weight: bold;
+}
+/* Tabs sit flush inside the card */
+#batchTabs { margin-bottom: 1rem; flex-wrap: nowrap; overflow-x: auto; }
+#batchTabs .pw-tab { white-space: nowrap; }
+.tab-content { padding-top: .25rem; }
+/* Empty-state block shared by tabs */
+.pw-empty { text-align: center; padding: 2.5rem 1rem; color: var(--p-text-muted); }
+.pw-empty i { font-size: 2rem; opacity: .5; margin-bottom: .75rem; display: block; }
+.pw-empty h5 { font-size: 14px; font-weight: 600; margin-bottom: .75rem; color: var(--p-text-muted); }
+</style>

@@ -1,0 +1,108 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:hr_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-cogs' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block page_title %}Payroll Settings{% endblock %}
+
+{% block layout_table %}
+<ul class="nav nav-tabs" id="payrollSettingsTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#pane-payroll_category" data-lookup-key="payroll_category" type="button" role="tab">Payroll Categories</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#pane-payroll_group" data-lookup-key="payroll_group" type="button" role="tab">Payroll Groups</button>
+    </li>
+</ul>
+
+<div class="tab-content border border-top-0 rounded-bottom p-3 mb-3">
+    <div class="tab-pane fade show active" id="pane-payroll_category" role="tabpanel" data-lookup-key="payroll_category" data-loaded="0">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <input type="text" class="form-control" style="max-width: 320px;" placeholder="Search categories..." oninput="searchPayrollLookup('payroll_category', this.value)">
+            <button type="button" class="btn btn-primary" onclick="openAddPayrollLookup('payroll_category')">
+                <i class="fas fa-plus"></i> Add Category
+            </button>
+        </div>
+        <div id="payroll-lookup-content-payroll_category"><div class="text-muted small">Loading...</div></div>
+    </div>
+    <div class="tab-pane fade" id="pane-payroll_group" role="tabpanel" data-lookup-key="payroll_group" data-loaded="0">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <input type="text" class="form-control" style="max-width: 320px;" placeholder="Search groups..." oninput="searchPayrollLookup('payroll_group', this.value)">
+            <button type="button" class="btn btn-primary" onclick="openAddPayrollLookup('payroll_group')">
+                <i class="fas fa-plus"></i> Add Group
+            </button>
+        </div>
+        <div id="payroll-lookup-content-payroll_group"><div class="text-muted small">Loading...</div></div>
+    </div>
+</div>
+
+{% include 'core/htmx/hr/payroll_lookup_form_modal.html' %}
+
+<script>
+const PAYROLL_LOOKUP_URLS = {
+    list: (key) => `/hr/payroll/${key}/`,
+    create: (key) => `/hr/payroll/${key}/create/`,
+    update: (key, id) => `/hr/payroll/${key}/${id}/update/`,
+    toggle: (key, id) => `/hr/payroll/${key}/${id}/toggle-status/`,
+    delete: (key, id) => `/hr/payroll/${key}/${id}/delete/`,
+};
+
+function csrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function loadPayrollLookupTab(key) {
+    htmx.ajax('GET', PAYROLL_LOOKUP_URLS.list(key), { target: `#payroll-lookup-content-${key}` });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    loadPayrollLookupTab('payroll_category');
+    document.querySelectorAll('#payrollSettingsTabs button[data-lookup-key]').forEach(function (tabButton) {
+        tabButton.addEventListener('shown.bs.tab', function () {
+            const key = tabButton.getAttribute('data-lookup-key');
+            const pane = document.getElementById(`pane-${key}`);
+            if (pane.getAttribute('data-loaded') === '0') {
+                pane.setAttribute('data-loaded', '1');
+                loadPayrollLookupTab(key);
+            }
+        });
+    });
+});
+
+let payrollSearchDebounce = null;
+function searchPayrollLookup(key, value) {
+    clearTimeout(payrollSearchDebounce);
+    payrollSearchDebounce = setTimeout(function () {
+        htmx.ajax('GET', `${PAYROLL_LOOKUP_URLS.list(key)}?search=${encodeURIComponent(value)}`, {
+            target: `#payroll-lookup-content-${key}`,
+        });
+    }, 400);
+}
+
+function togglePayrollLookupStatus(key, id) {
+    fetch(PAYROLL_LOOKUP_URLS.toggle(key, id), { method: 'POST', headers: { 'X-CSRFToken': csrfToken() } })
+        .then((r) => r.text())
+        .then((html) => { document.getElementById(`payroll-lookup-content-${key}`).innerHTML = html; })
+        .catch(() => showAlert('An error occurred', 'danger'));
+}
+
+function deletePayrollLookup(key, id, name) {
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    fetch(PAYROLL_LOOKUP_URLS.delete(key, id), { method: 'POST', headers: { 'X-CSRFToken': csrfToken() } })
+        .then((r) => r.text())
+        .then((html) => { document.getElementById(`payroll-lookup-content-${key}`).innerHTML = html; })
+        .catch(() => showAlert('An error occurred', 'danger'));
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+    alertDiv.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => { if (alertDiv.parentNode) alertDiv.parentNode.removeChild(alertDiv); }, 3000);
+}
+</script>
+{% endblock %}

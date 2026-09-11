@@ -1,0 +1,79 @@
+{% extends 'core/layouts/list.html' %}
+{% block page_title %}{{ review.employee.full_name }} — Review{% endblock %}
+
+{% block layout_header %}
+{% url 'core:hr_performance_list' as back_fallback %}
+{% include 'core/components/page_header.html' with title=review.employee.full_name description=review.review_period icon='fa-chart-line' back_url=back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_table %}
+<form id="review-form" onsubmit="saveReview(event)">
+    {% csrf_token %}
+    <div id="review-errors" class="alert alert-danger d-none"></div>
+    <div id="review-saved" class="alert alert-success d-none">Saved.</div>
+
+    <div class="card mb-3"><div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3"><label class="form-label">Overall rating (1–5)</label>
+                <input type="number" min="1" max="5" step="1" class="form-control" name="overall_rating" value="{{ review.overall_rating|default:'' }}" {% if not can_conduct or review.status == 'completed' %}disabled{% endif %}></div>
+            <div class="col-md-3"><label class="form-label">Next review date</label>
+                <input type="date" class="form-control" name="next_review_date" value="{{ review.next_review_date|date:'Y-m-d'|default:'' }}" {% if not can_conduct or review.status == 'completed' %}disabled{% endif %}></div>
+            <div class="col-md-3"><label class="form-label">Status</label>
+                <input type="text" class="form-control" value="{{ review.get_status_display }}" disabled></div>
+        </div>
+    </div></div>
+
+    <div class="card mb-3">
+        <div class="card-header"><h5 class="mb-0">Criteria</h5></div>
+        <div class="card-body">
+            {% for c in criteria %}
+            <div class="row g-2 mb-2 align-items-center">
+                <div class="col-md-3"><strong>{{ c.name }}</strong></div>
+                <div class="col-md-2">
+                    <input type="number" min="1" max="5" class="form-control form-control-sm" name="rating_{{ c.id }}" value="{{ c.rating|default:'' }}" placeholder="1–5" {% if not can_conduct or review.status == 'completed' %}disabled{% endif %}>
+                </div>
+                <div class="col-md-7">
+                    <input type="text" class="form-control form-control-sm" name="comment_{{ c.id }}" value="{{ c.comment }}" placeholder="Comment" {% if not can_conduct or review.status == 'completed' %}disabled{% endif %}>
+                </div>
+            </div>
+            {% empty %}<p class="text-muted mb-0">No criteria on this review.</p>{% endfor %}
+        </div>
+    </div>
+
+    <div class="card mb-3"><div class="card-body">
+        {% for field, label, value in narrative_fields %}
+        <div class="mb-3">
+            <label class="form-label">{{ label }}</label>
+            <textarea class="form-control" name="{{ field }}" rows="2" {% if not can_conduct or review.status == 'completed' %}disabled{% endif %}>{{ value }}</textarea>
+        </div>
+        {% endfor %}
+    </div></div>
+
+    {% if can_conduct and review.status != 'completed' %}
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-success" onclick="completeReview()">Mark complete</button>
+    </div>
+    {% endif %}
+</form>
+
+<script>
+function _rvCsrf() { return document.querySelector('#review-form [name=csrfmiddlewaretoken]').value; }
+function saveReview(event) {
+    event.preventDefault();
+    const body = new FormData(document.getElementById('review-form'));
+    fetch("{% url 'core:hr_review_save' review.id %}", { method: 'POST', headers: { 'X-CSRFToken': _rvCsrf() }, body })
+        .then(r => r.json().then(j => ({ status: r.status, j })))
+        .then(({ status, j }) => {
+            const ok = document.getElementById('review-saved'), err = document.getElementById('review-errors');
+            if (status === 200) { ok.classList.remove('d-none'); err.classList.add('d-none'); setTimeout(() => ok.classList.add('d-none'), 2500); }
+            else { err.textContent = j.error || 'An error occurred'; err.classList.remove('d-none'); }
+        });
+}
+function completeReview() {
+    if (!confirm('Mark this review complete? It can no longer be edited.')) return;
+    fetch("{% url 'core:hr_review_complete' review.id %}", { method: 'POST', headers: { 'X-CSRFToken': _rvCsrf() } })
+        .then(r => r.json()).then(j => { if (j.redirect) window.location = j.redirect; });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends 'core/layouts/list.html' %}
+{% block page_title %}Routes{% endblock %}
+
+{% block layout_header %}
+  <nav aria-label="breadcrumb" class="mb-3"><ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'core:transport' %}">Transport</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Routes</li>
+  </ol></nav>
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+    {% url 'core:transport' as back_fallback %}
+    {% include 'core/components/page_header.html' with title="Routes" description="Ordered stops, schedule, and the vehicle and crew that run them." icon="fa-route" back_url=back_url|default:back_fallback %}
+    <button type="button" class="pw-btn pw-btn-primary" onclick="transportOpenAdd('routes')"><i class="fas fa-plus me-1"></i>Add Route</button>
+  </div>
+{% endblock %}
+
+{% block layout_filters %}
+  <form method="get" class="pw-card mb-3" hx-get="{% url 'core:transport_route_list' %}" hx-target="#transport-routes-content" hx-trigger="submit">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-6">
+        <label class="pw-form-label" for="search">Search</label>
+        <input class="pw-form-control" type="text" id="search" name="search" placeholder="Route name or code">
+      </div>
+      <div class="col-md-auto"><button type="submit" class="pw-btn pw-btn-primary pw-btn-sm">Search</button></div>
+    </div>
+  </form>
+{% endblock %}
+
+{% block layout_table %}
+  <div class="pinewood-table-container">
+    <div id="transport-routes-content" hx-get="{% url 'core:transport_route_list' %}" hx-trigger="load" hx-target="this">
+      {% include 'core/components/loading_state.html' with message="Loading routes…" %}
+    </div>
+  </div>
+{% endblock %}
+
+{% block layout_extra %}
+  {% include 'core/transport/modals/route_modal.html' %}
+{% endblock %}
+
+{% block extra_js %}
+  {% include 'core/htmx/transport/_scripts.html' %}
+  <script>
+  (function () {
+    var stopOptions = `{% for s in all_stops %}<option value="{{ s.id }}">{{ s.name|escapejs }}</option>{% endfor %}`;
+    function rowHtml(stopId, pickup, dropoff) {
+      return '<div class="row g-2 align-items-end route-stop-row mb-2">'
+        + '<div class="col-md-6"><select class="pw-form-control" name="stop_id"><option value="">— stop —</option>' + stopOptions + '</select></div>'
+        + '<div class="col-md-2"><input class="pw-form-control" type="time" name="pickup_time"></div>'
+        + '<div class="col-md-2"><input class="pw-form-control" type="time" name="dropoff_time"></div>'
+        + '<div class="col-md-2"><button type="button" class="pw-btn pw-btn-outline pw-btn-sm" onclick="this.closest(\'.route-stop-row\').remove()">Remove</button></div>'
+        + '</div>';
+    }
+    window.transportAddRouteStop = function (stopId, pickup, dropoff) {
+      var wrap = document.getElementById('route-stops-wrap');
+      wrap.insertAdjacentHTML('beforeend', rowHtml());
+      var row = wrap.lastElementChild;
+      if (stopId) row.querySelector('[name=stop_id]').value = stopId;
+      if (pickup) row.querySelector('[name=pickup_time]').value = pickup;
+      if (dropoff) row.querySelector('[name=dropoff_time]').value = dropoff;
+    };
+    window.transportModalReset_routes = function () {
+      document.getElementById('route-stops-wrap').innerHTML = '';
+      var c = document.querySelector('#tform-routes input[name=clear_stops]');
+      if (c) c.value = '';
+    };
+    window.transportModalEdit_routes = function (row) {
+      var wrap = document.getElementById('route-stops-wrap');
+      wrap.innerHTML = '';
+      document.querySelector('#tform-routes input[name=clear_stops]').value = '1';
+      if (!row.id) return;
+      fetch('/transport/routes/' + row.id + '/stop-options/')
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          (j.stops || []).forEach(function (s) {
+            transportAddRouteStop(s.stop_id, s.pickup_time, s.dropoff_time);
+          });
+        });
+    };
+  })();
+  </script>
+{% endblock %}

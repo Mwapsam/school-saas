@@ -1,0 +1,398 @@
+{% extends 'core/layouts/detail.html' %}
+
+{% block layout_header %}
+{% url 'core:subjects_center' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-star' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}{{ skill_set.name }} - Skills{% endblock %}
+
+{% block layout_sections %}
+<div class="skillset-detail-container">
+    <!-- Breadcrumb -->
+    
+
+    <!-- Page Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-tools fa-2x text-primary me-3"></i>
+            <div>
+                <h2 class="mb-0">{{ skill_set.name }}</h2>
+                <p class="text-muted mb-0">{{ skill_set.code }} • {{ skills_count }} skills</p>
+            </div>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createSkillModal">
+                <i class="fas fa-plus me-2"></i>Add Skill
+            </button>
+            <a href="{% url 'core:subjects_center' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Center
+            </a>
+        </div>
+    </div>
+
+    <!-- Skills Section -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Skills</h5>
+                    <span class="badge bg-primary">{{ skills_count }} skills</span>
+                </div>
+                <div class="card-body">
+                    {% if skills %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Skill Name</th>
+                                        <th>Formula</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for skill in skills %}
+                                    <tr data-skill-id="{{ skill.id }}">
+                                        <td>
+                                            <div>
+                                                <strong>{{ skill.name }}</strong>
+                                                {% if skill.description %}
+                                                <br><small class="text-muted">{{ skill.description }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="font-monospace">{{ skill.formula|default:"-" }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" 
+                                                        onclick="editSkill('{{ skill.id }}', '{{ skill.name|escapejs }}', '{{ skill.formula|default_if_none:""|escapejs }}', '{{ skill.description|default_if_none:""|escapejs }}')">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-outline-success add-sub-skills" 
+                                                        data-skill-id="{{ skill.id }}" 
+                                                        data-skill-name="{{ skill.name }}">
+                                                    <i class="fas fa-plus"></i> Sub-skills
+                                                </button>
+                                                <button class="btn btn-outline-danger" onclick="deleteSkill('{{ skill.id }}')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% if skill.sub_skills.all %}
+                                    <tr class="sub-skills-row" data-parent-skill="{{ skill.id }}">
+                                        <td colspan="3" class="ps-5">
+                                            <div class="sub-skills-container">
+                                                <h6 class="text-muted mb-2">Sub-skills:</h6>
+                                                {% for sub_skill in skill.sub_skills.all %}
+                                                <div class="sub-skill-item mb-2" data-sub-skill-id="{{ sub_skill.id }}">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <strong>{{ sub_skill.name }}</strong>
+                                                            {% if sub_skill.formula %}
+                                                            <span class="ms-2 font-monospace text-muted">{{ sub_skill.formula }}</span>
+                                                            {% endif %}
+                                                            {% if sub_skill.description %}
+                                                            <br><small class="text-muted">{{ sub_skill.description }}</small>
+                                                            {% endif %}
+                                                        </div>
+                                                        <div class="btn-group btn-group-sm">
+                                                            <button class="btn btn-outline-primary btn-sm" 
+                                                                    onclick="editSubSkill('{{ sub_skill.id }}', '{{ sub_skill.name|escapejs }}', '{{ sub_skill.formula|default_if_none:""|escapejs }}', '{{ sub_skill.description|default_if_none:""|escapejs }}')">
+                                                                <i class="fas fa-edit"></i>
+                                                            </button>
+                                                            <button class="btn btn-outline-danger btn-sm" onclick="deleteSubSkill('{{ sub_skill.id }}')">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-list fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No skills added yet</h5>
+                            <p class="text-muted">Start by adding your first skill to this skillset.</p>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createSkillModal">
+                                <i class="fas fa-plus me-2"></i>Add First Skill
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Skill Modal -->
+<div class="modal fade" id="createSkillModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Skill</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="createSkillForm">
+                <div class="modal-body">
+                    <input type="hidden" name="skill_set_id" value="{{ skill_set.id }}">
+                    
+                    <div class="mb-3">
+                        <label for="skill_name" class="form-label">Skill Name *</label>
+                        <input type="text" class="form-control" id="skill_name" name="skill_name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="formula" class="form-label">Formula</label>
+                        <input type="text" class="form-control font-monospace" id="formula" name="formula" placeholder="e.g., -">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Add Skill</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Skill Modal -->
+<div class="modal fade" id="editSkillModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Skill</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editSkillForm">
+                <div class="modal-body">
+                    <input type="hidden" name="skill_id" id="edit_skill_id">
+                    
+                    <div class="mb-3">
+                        <label for="edit_skill_name" class="form-label">Skill Name *</label>
+                        <input type="text" class="form-control" id="edit_skill_name" name="skill_name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_formula" class="form-label">Formula</label>
+                        <input type="text" class="form-control font-monospace" id="edit_formula" name="formula">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="edit_description" name="description" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Skill</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Sub-Skill Modal -->
+<div class="modal fade" id="createSubSkillModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Sub-Skill to <span id="parent-skill-name"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="createSubSkillForm">
+                <div class="modal-body">
+                    <input type="hidden" name="skill_id" id="parent_skill_id">
+                    
+                    <div class="mb-3">
+                        <label for="sub_skill_name" class="form-label">Sub-Skill Name *</label>
+                        <input type="text" class="form-control" id="sub_skill_name" name="sub_skill_name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="sub_formula" class="form-label">Formula</label>
+                        <input type="text" class="form-control font-monospace" id="sub_formula" name="formula" placeholder="e.g., -">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="sub_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="sub_description" name="description" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Add Sub-Skill</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle Create Skill Form
+    document.getElementById('createSkillForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        fetch("{% url 'core:create_skill_api' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload(); // Reload to show new skill
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while creating the skill.');
+        });
+    });
+
+    // Handle Edit Skill Form
+    document.getElementById('editSkillForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        fetch("{% url 'core:update_skill_api' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload(); // Reload to show updated skill
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating the skill.');
+        });
+    });
+
+    // Handle Create Sub-Skill Form
+    document.getElementById('createSubSkillForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        fetch("{% url 'core:create_sub_skill_api' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload(); // Reload to show new sub-skill
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while creating the sub-skill.');
+        });
+    });
+
+    // Add Sub-Skills button handler
+    document.querySelectorAll('.add-sub-skills').forEach(button => {
+        button.addEventListener('click', function() {
+            const skillId = this.dataset.skillId;
+            const skillName = this.dataset.skillName;
+            
+            document.getElementById('parent_skill_id').value = skillId;
+            document.getElementById('parent-skill-name').textContent = skillName;
+            
+            const modal = new bootstrap.Modal(document.getElementById('createSubSkillModal'));
+            modal.show();
+        });
+    });
+});
+
+// Edit skill function
+function editSkill(skillId, skillName, formula, description) {
+    document.getElementById('edit_skill_id').value = skillId;
+    document.getElementById('edit_skill_name').value = skillName;
+    document.getElementById('edit_formula').value = formula;
+    document.getElementById('edit_description').value = description;
+    
+    const modal = new bootstrap.Modal(document.getElementById('editSkillModal'));
+    modal.show();
+}
+
+// Delete skill function
+function deleteSkill(skillId) {
+    if (confirm('Are you sure you want to delete this skill?')) {
+        const formData = new FormData();
+        formData.append('skill_id', skillId);
+        
+        fetch("{% url 'core:delete_skill_api' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the skill.');
+        });
+    }
+}
+
+// Helper function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

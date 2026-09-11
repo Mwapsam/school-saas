@@ -1,0 +1,58 @@
+{% extends 'core/layouts/list.html' %}
+{% block page_title %}HR Tasks{% endblock %}
+
+{% block layout_header %}
+{% url 'core:hr_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title='HR Tasks' icon='fa-list-check' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_table %}
+{% csrf_token %}
+<div class="card mb-4"><div class="card-body">
+    <div class="row g-3">
+        <div class="col-md-3">
+            <form method="get" hx-get="{% url 'core:hr_task_list' %}" hx-target="#task-list-content" hx-trigger="change">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="status">
+                    <option value="">All</option>
+                    {% for value, label in status_choices %}<option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </form>
+        </div>
+    </div>
+    {% if can_manage %}
+    <form class="row g-2 mt-2 align-items-end" onsubmit="createTask(event)">
+        <div class="col-md-5"><label class="form-label">New task</label><input type="text" class="form-control form-control-sm" name="title" required></div>
+        <div class="col-md-3"><label class="form-label">Category</label>
+            <select class="form-select form-select-sm" name="category">
+                {% for value, label in category_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select></div>
+        <div class="col-md-3"><label class="form-label">Due</label><input type="date" class="form-control form-control-sm" name="due_date"></div>
+        <div class="col-md-1"><button type="submit" class="btn btn-primary btn-sm">Add</button></div>
+    </form>
+    {% endif %}
+</div></div>
+
+<div class="card">
+    <div class="card-header"><h5 class="mb-0">Tasks</h5></div>
+    <div id="task-list-content">{% include 'core/htmx/hr/task_list_content.html' %}</div>
+</div>
+
+<script>
+function _taskCsrf() { return document.querySelector('[name=csrfmiddlewaretoken]').value; }
+function _swapTasks(status, text) {
+    if (status === 200) document.getElementById('task-list-content').innerHTML = text;
+    else { try { alert(JSON.parse(text).error); } catch (e) { alert('An error occurred'); } }
+}
+function createTask(event) {
+    event.preventDefault();
+    fetch("{% url 'core:hr_task_create' %}", { method: 'POST', headers: { 'X-CSRFToken': _taskCsrf() }, body: new FormData(event.target) })
+        .then(r => r.text().then(t => { _swapTasks(r.status, t); if (r.status === 200) event.target.reset(); }));
+}
+function advanceTask(taskId, nextStatus) {
+    const body = new FormData(); body.append('status', nextStatus);
+    fetch(`/hr/tasks/${taskId}/update/`, { method: 'POST', headers: { 'X-CSRFToken': _taskCsrf() }, body })
+        .then(r => r.text().then(t => _swapTasks(r.status, t)));
+}
+</script>
+{% endblock %}

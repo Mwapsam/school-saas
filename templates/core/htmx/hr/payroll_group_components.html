@@ -1,0 +1,38 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Type</th>
+                <th>Amount / Percentage</th>
+                <th width="80">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for component in components %}
+                <tr>
+                    <td><strong>{{ component.payroll_category.name }}</strong></td>
+                    <td>{{ component.payroll_category.get_category_type_display }}</td>
+                    <td>
+                        {% if component.override_amount %}
+                            {{ component.override_amount }} <small class="text-muted">(override)</small>
+                        {% elif component.override_percentage %}
+                            {{ component.override_percentage }}% <small class="text-muted">(override)</small>
+                        {% elif component.payroll_category.calculation_type == 'percentage' %}
+                            {{ component.payroll_category.default_percentage|default:"—" }}%
+                        {% else %}
+                            {{ component.payroll_category.default_amount|default:"—" }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeComponent('{{ component.id }}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr class="empty-state"><td colspan="4">No components added yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

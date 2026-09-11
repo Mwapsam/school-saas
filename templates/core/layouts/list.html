@@ -1,0 +1,44 @@
+{% extends 'core/base.html' %}
+{% comment %}
+List page pattern — a searchable/filterable table of records (drafted
+against templates/core/admission/list.html).
+
+Fixed region order: Header + action → Filters → Table (or its empty state)
+→ Pagination → Extra. This layout only provides structure — fill each block
+with components from templates/core/components/ (page_header, toolbar,
+table_open/close, empty_state, pagination). See docs/UI_COMPONENTS.md.
+
+`layout_extra` is empty by default — use it for page-specific modals (many
+list pages have a create/edit/delete modal) or extra markup that doesn't fit
+the four named regions. It renders after pagination, but since modals are
+invisible until triggered, where they sit in the DOM doesn't matter.
+
+Usage:
+  {% extends 'core/layouts/list.html' %}
+  {% block page_title %}Fee Categories{% endblock %}
+  {% block layout_header %}
+    {% include 'core/components/page_header.html' with title="Fee Categories" icon="fa-tags" actions=actions %}
+  {% endblock %}
+  {% block layout_filters %}
+    {% include 'core/components/toolbar.html' with search_value=request.GET.query %}
+  {% endblock %}
+  {% block layout_table %}
+    {% if categories %}
+      {% include 'core/components/table_open.html' with columns=cols %}
+        <tbody>...</tbody>
+      {% include 'core/components/table_close.html' %}
+    {% else %}
+      {% include 'core/components/empty_state.html' with title="No categories yet" %}
+    {% endif %}
+  {% endblock %}
+  {% block layout_pagination %}
+    {% include 'core/components/pagination.html' with page_obj=page_obj %}
+  {% endblock %}
+{% endcomment %}
+{% block content %}
+{% block layout_header %}{% endblock %}
+{% block layout_filters %}{% endblock %}
+{% block layout_table %}{% endblock %}
+{% block layout_pagination %}{% endblock %}
+{% block layout_extra %}{% endblock %}
+{% endblock %}

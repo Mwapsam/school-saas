@@ -1,0 +1,139 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}QuickBooks Webhook Review{% endblock %}
+
+{% block layout_header %}
+{% url 'core:quickbooks_settings' as back_fallback %}
+{% include 'core/components/page_header.html' with title="QuickBooks Webhook Review" description="Changes made directly in QuickBooks that don't match local records — review and reconcile each item manually; nothing is applied automatically." icon='fa-flag' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+
+{% block layout_filters %}
+<!-- Filters will be extracted and moved here -->
+{% endblock %}
+
+{% block layout_table %}
+<div class="container-lg py-4">
+    <!-- Workflow Nav -->
+    {% include 'core/finance/_workflow_nav.html' %}
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if flagged_count == 0 %}
+        <div class="alert alert-success">Nothing flagged for review right now.</div>
+    {% endif %}
+
+    <!-- Invoices -->
+    <div class="card mb-4">
+        <div class="card-header"><strong>Invoices</strong> ({{ flagged.invoices|length }})</div>
+        <div class="card-body p-0">
+            {% if flagged.invoices %}
+            <table class="table mb-0">
+                <thead class="table-light">
+                    <tr><th>Guardian</th><th>Academic Year</th><th>QuickBooks Invoice</th><th>Note</th><th></th></tr>
+                </thead>
+                <tbody>
+                {% for item in flagged.invoices %}
+                    <tr>
+                        <td>{{ item.guardian.first_name }} {{ item.guardian.last_name }}</td>
+                        <td>{{ item.academic_year.name }}</td>
+                        <td>{{ item.quickbooks_doc_number|default:item.quickbooks_invoice_id }}</td>
+                        <td class="text-muted small">{{ item.review_note }}</td>
+                        <td>
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="kind" value="invoice">
+                                <input type="hidden" name="id" value="{{ item.id }}">
+                                <button type="submit" class="btn btn-sm btn-outline-success">Mark Reviewed</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+                <p class="text-muted p-3 mb-0">No flagged invoices.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Payments -->
+    <div class="card mb-4">
+        <div class="card-header"><strong>Payments</strong> ({{ flagged.payments|length }})</div>
+        <div class="card-body p-0">
+            {% if flagged.payments %}
+            <table class="table mb-0">
+                <thead class="table-light">
+                    <tr><th>Student</th><th>Amount</th><th>QuickBooks Payment</th><th>Note</th><th></th></tr>
+                </thead>
+                <tbody>
+                {% for item in flagged.payments %}
+                    <tr>
+                        <td>{{ item.student.first_name }} {{ item.student.last_name }}</td>
+                        <td>{{ item.amount }}</td>
+                        <td>{{ item.quickbooks_payment_id }}</td>
+                        <td class="text-muted small">{{ item.review_note }}</td>
+                        <td>
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="kind" value="payment">
+                                <input type="hidden" name="id" value="{{ item.id }}">
+                                <button type="submit" class="btn btn-sm btn-outline-success">Mark Reviewed</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+                <p class="text-muted p-3 mb-0">No flagged payments.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Customers -->
+    <div class="card mb-4">
+        <div class="card-header"><strong>Customers (Guardians)</strong> ({{ flagged.customers|length }})</div>
+        <div class="card-body p-0">
+            {% if flagged.customers %}
+            <table class="table mb-0">
+                <thead class="table-light">
+                    <tr><th>Guardian</th><th>QuickBooks Customer</th><th>Note</th><th></th></tr>
+                </thead>
+                <tbody>
+                {% for item in flagged.customers %}
+                    <tr>
+                        <td>{{ item.guardian.first_name }} {{ item.guardian.last_name }}</td>
+                        <td>{{ item.customer_display_name }}</td>
+                        <td class="text-muted small">{{ item.review_note }}</td>
+                        <td>
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="kind" value="customer">
+                                <input type="hidden" name="id" value="{{ item.id }}">
+                                <button type="submit" class="btn btn-sm btn-outline-success">Mark Reviewed</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+                <p class="text-muted p-3 mb-0">No flagged customers.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block layout_pagination %}{% endblock %}
+
+{% block layout_extra %}{% endblock %}

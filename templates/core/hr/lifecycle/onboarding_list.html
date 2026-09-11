@@ -1,0 +1,16 @@
+{% extends 'core/layouts/list.html' %}
+{% block page_title %}Onboarding{% endblock %}
+
+{% block layout_header %}
+{% url 'core:hr_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title='Onboarding' icon='fa-list-check' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_table %}
+<div class="card">
+    <div class="card-header"><h5 class="mb-0">In-progress checklists</h5></div>
+    <div id="onboarding-list-content">
+        {% include 'core/htmx/hr/onboarding_list_content.html' %}
+    </div>
+</div>
+{% endblock %}

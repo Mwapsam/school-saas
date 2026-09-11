@@ -1,0 +1,143 @@
+{% extends 'core/layouts/detail.html' %}
+
+{% block layout_header %}
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-eye' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Preview — {{ template.name }}{% endblock %}
+
+
+
+{% block layout_sections %}
+{# ── Toolbar ── #}
+<div class="rtp-bar" role="toolbar" aria-label="Preview controls">
+
+    <a href="{% url 'core:report_template_list' %}"
+       class="btn btn-outline-secondary btn-sm"
+       aria-label="Back to report templates">
+        <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Templates
+    </a>
+
+    <div class="rtp-bar-info">
+        <div class="rtp-bar-name" title="{{ template.name }}">{{ template.name }}</div>
+        <div class="rtp-bar-meta">
+            <span>{{ template.batch.name }}</span>
+            <span class="rtp-bar-sep" aria-hidden="true">·</span>
+            <span>{{ template.term }}</span>
+            <span class="rtp-bar-sep" aria-hidden="true">·</span>
+            <span>{{ template.academic_year.name }}</span>
+            <span class="rtp-bar-sep" aria-hidden="true">·</span>
+            {% if template.layout_type == 'SKILLS' %}
+                <span class="rtp-layout-badge rtp-layout-skills">Skills</span>
+            {% elif template.layout_type == 'SIMPLE_ACADEMIC' %}
+                <span class="rtp-layout-badge rtp-layout-simple">Simple</span>
+            {% else %}
+                <span class="rtp-layout-badge rtp-layout-full">Full</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 flex-shrink-0">
+        <button class="btn btn-outline-secondary btn-sm"
+                onclick="refreshPreview()"
+                title="Reload preview with the latest template changes">
+            <i class="fas fa-rotate me-1" aria-hidden="true"></i>
+            <span class="d-none d-sm-inline">Refresh</span>
+        </button>
+        <button class="btn btn-outline-secondary btn-sm"
+                onclick="printReport()"
+                title="Print this report template">
+            <i class="fas fa-print me-1" aria-hidden="true"></i>
+            <span class="d-none d-sm-inline">Print</span>
+        </button>
+        <a href="{% url 'core:report_generation' %}?template={{ template.id }}"
+           class="btn btn-outline-secondary btn-sm"
+           title="Generate real reports using this template">
+            <i class="fas fa-file-pdf me-1" aria-hidden="true"></i>
+            <span class="d-none d-sm-inline">Generate</span>
+        </a>
+    </div>
+
+</div>
+
+{# ── Preview stage ── #}
+<div class="rtp-stage" role="main" aria-label="Report preview area">
+
+    {# Sample-data notice #}
+    <div class="rtp-notice" role="note" aria-live="polite">
+        <i class="fas fa-flask" aria-hidden="true"></i>
+        <div>
+            <strong>Preview mode</strong> — displaying sample data.
+            Real reports will use actual student results, attendance, and school information.
+        </div>
+    </div>
+
+    {# Paper simulation — report HTML embedded inline via srcdoc (bypasses X-Frame-Options) #}
+    {{ report_html|json_script:"rtp-html-data" }}
+    <div class="rtp-paper" aria-label="Report card preview">
+        <iframe
+            id="reportFrame"
+            title="Report card preview for {{ template.name }}">
+        </iframe>
+    </div>
+
+    <p class="rtp-page-label" aria-hidden="true">A4 · Preview only · Not a generated report</p>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var frame = document.getElementById('reportFrame');
+    if (!frame) return;
+
+    function loadPreviewHtml() {
+        try {
+            var html = JSON.parse(document.getElementById('rtp-html-data').textContent);
+            frame.srcdoc = html;
+        } catch (e) {
+            frame.parentElement.innerHTML =
+                '<p style="padding:20px;color:#c0392b">Failed to load preview.</p>';
+        }
+    }
+
+    frame.addEventListener('load', function () {
+        try {
+            var doc = this.contentDocument || this.contentWindow.document;
+            var h = doc.documentElement.scrollHeight || doc.body.scrollHeight || 1123;
+            this.style.height = Math.max(h, 1123) + 'px';
+        } catch (e) {}
+    });
+
+    /* Inject report HTML via srcdoc — avoids X-Frame-Options restriction
+       entirely because srcdoc is inline content, not a URL fetch. */
+    loadPreviewHtml();
+
+    /* Force a full server refetch if this page is restored from the browser's
+       back-forward cache (e.g. navigating back after editing the template) —
+       otherwise the iframe keeps showing the stale report_html that was
+       rendered on the previous visit. */
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
+    });
+
+    window.printReport = function () {
+        try {
+            frame.contentWindow.focus();
+            frame.contentWindow.print();
+        } catch (e) {
+            window.print();
+        }
+    };
+
+    window.refreshPreview = function () {
+        window.location.reload();
+    };
+}());
+</script>
+{% endblock %}

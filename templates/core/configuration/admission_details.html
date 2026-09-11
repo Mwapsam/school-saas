@@ -1,0 +1,57 @@
+{% extends 'core/layouts/form.html' %}
+{% block page_title %}Admission Details{% endblock %}
+
+{% block layout_header %}
+{% url 'core:configuration' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Admission Details" description="Extra fields collected on the admission application form" icon="fa-clipboard-list" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_form %}
+<form method="post" class="pw-card p-3 mb-3" style="max-width:720px">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="create">
+  <div class="row g-2">
+    <div class="col-md-5"><label class="form-label">Field label</label>
+      <input type="text" name="name" class="form-control" required></div>
+    <div class="col-md-3"><label class="form-label">Input type</label>
+      <select name="input_type" class="form-select">
+        {% for t in input_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+      </select></div>
+    <div class="col-md-2"><label class="form-label">Order</label>
+      <input type="number" name="sort_order" class="form-control" value="0"></div>
+    <div class="col-md-2 d-flex align-items-end">
+      <div class="form-check"><input class="form-check-input" type="checkbox" name="is_mandatory" id="af_req">
+        <label class="form-check-label" for="af_req">Required</label></div>
+    </div>
+    <div class="col-12"><label class="form-label">Options <span class="text-muted small">(one per line, for select/checkbox)</span></label>
+      <textarea name="options" class="form-control" rows="2"></textarea></div>
+  </div>
+  <button class="btn btn-primary mt-3"><i class="fas fa-plus me-1"></i>Add field</button>
+</form>
+
+<div class="pw-card p-0" style="max-width:720px">
+  <table class="table mb-0 align-middle">
+    <thead><tr><th>Label</th><th>Type</th><th>Required</th><th>Active</th><th></th></tr></thead>
+    <tbody>
+      {% for f in fields %}
+      <tr>
+        <td>{{ f.name }}</td>
+        <td class="small text-muted">{{ f.input_type }}</td>
+        <td>{% if f.is_mandatory %}<i class="fas fa-check text-success"></i>{% endif %}</td>
+        <td>{% if f.is_active %}<i class="fas fa-check text-success"></i>{% endif %}</td>
+        <td class="text-end">
+          <form method="post" class="d-inline" onsubmit="return confirm('Delete this field?')">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="id" value="{{ f.id }}">
+            <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="text-muted p-3">No custom admission fields yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

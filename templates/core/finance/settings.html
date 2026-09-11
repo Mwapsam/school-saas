@@ -1,0 +1,71 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}Finance Settings{% endblock %}
+
+{% block layout_header %}
+{% url 'core:finance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Finance Settings" description="QuickBooks integration and currency configuration for fees and transactions." icon='fa-cog' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+
+{% block extra_css %}
+{% include 'core/finance/_finance_ui_styles.html' %}
+{% endblock %}
+
+{% block layout_filters %}
+<!-- Filters will be extracted and moved here -->
+{% endblock %}
+
+{% block layout_table %}
+    <!-- Workflow Nav -->
+    {% include 'core/finance/_workflow_nav.html' %}
+
+    <!-- Settings Modules Grid -->
+    <div class="row g-3">
+        <div class="col-md-6">
+            <a href="{% url 'core:quickbooks_settings' %}" class="gb-card">
+                <div class="gb-card-icon"><i class="fab fa-quickbooks"></i></div>
+                <div class="gb-card-body">
+                    <p class="gb-card-title">QuickBooks Settings</p>
+                    <p class="gb-card-desc">Connect and manage your QuickBooks integration and sync configuration.</p>
+                </div>
+                <i class="fas fa-chevron-right gb-card-arrow"></i>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a href="{% url 'core:quickbooks_reconciliation' %}" class="gb-card">
+                <div class="gb-card-icon"><i class="fas fa-sync-alt"></i></div>
+                <div class="gb-card-body">
+                    <p class="gb-card-title">QuickBooks Reconciliation</p>
+                    <p class="gb-card-desc">Review payment sync status between Pinewood and QuickBooks.</p>
+                </div>
+                <i class="fas fa-chevron-right gb-card-arrow"></i>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a href="{% url 'core:quickbooks_webhook_review' %}" class="gb-card">
+                <div class="gb-card-icon"><i class="fas fa-flag"></i></div>
+                <div class="gb-card-body">
+                    <p class="gb-card-title">QuickBooks Webhook Review</p>
+                    <p class="gb-card-desc">Investigate changes made directly in QuickBooks that don't match local records.</p>
+                </div>
+                <i class="fas fa-chevron-right gb-card-arrow"></i>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a href="{% url 'core:currency_configuration' %}" class="gb-card">
+                <div class="gb-card-icon"><i class="fas fa-money-bill-wave"></i></div>
+                <div class="gb-card-body">
+                    <p class="gb-card-title">Currency Configuration</p>
+                    <p class="gb-card-desc">Configure currency symbol, format, and display preferences for fees and transactions.</p>
+                </div>
+                <i class="fas fa-chevron-right gb-card-arrow"></i>
+            </a>
+        </div>
+    </div>
+{% endblock %}
+
+{% block layout_pagination %}{% endblock %}
+
+{% block layout_extra %}{% endblock %}

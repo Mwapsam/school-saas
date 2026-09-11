@@ -1,0 +1,114 @@
+{% extends 'core/portal/public_base.html' %}
+{% load static %}
+
+{% block title %}Parents Portal — {{ school.name|default:"Pinewood Preparatory School" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.hero {
+    background: linear-gradient(135deg, var(--p-green) 0%, var(--p-green-dark) 100%);
+    color: #fff;
+    padding: 3.5rem 2rem;
+    border-radius: 12px;
+    margin-bottom: 2.5rem;
+    text-align: center;
+}
+.hero h1 { font-family: var(--p-font); font-size: 2rem; font-weight: 700; margin-bottom: .5rem; }
+.hero p  { font-size: 1.05rem; opacity: .9; max-width: 580px; margin: 0 auto 1.5rem; }
+.portal-card {
+    background: #fff;
+    border: 1px solid var(--p-border);
+    border-radius: 10px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    height: 100%;
+    transition: box-shadow .2s, transform .2s;
+}
+.portal-card:hover { box-shadow: 0 6px 20px rgba(26,122,60,.15); transform: translateY(-3px); }
+.portal-card .icon-wrap {
+    width: 64px; height: 64px;
+    background: var(--p-green-light);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem;
+    font-size: 1.6rem;
+    color: var(--p-green);
+}
+.portal-card h5 { font-weight: 700; margin-bottom: .5rem; color: var(--p-text); }
+.portal-card p  { font-size: 0.875rem; color: var(--p-muted); margin-bottom: 1.25rem; }
+.info-row { background: #fff; border: 1px solid var(--p-border); border-radius: 10px; padding: 1.5rem; margin-top: 2rem; }
+.info-row h6 { font-weight: 700; color: var(--p-green); margin-bottom: .75rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<div class="hero">
+    {% if school.logo %}
+        <img src="{{ school.logo.url }}" alt="{{ school.name }}" style="height:72px;border-radius:8px;margin-bottom:1rem;">
+    {% endif %}
+    <h1>Welcome to the Parents Portal</h1>
+    <p>Apply for admission, track your application status, and stay connected with {{ school.name|default:"Pinewood Preparatory School" }}.</p>
+    <a href="{% url 'core:portal_admission_register' %}" class="btn btn-light btn-lg px-4 fw-semibold">
+        <i class="fas fa-file-alt me-2"></i>Start Admission Application
+    </a>
+</div>
+
+<!-- Action cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="portal-card">
+            <div class="icon-wrap"><i class="fas fa-file-alt"></i></div>
+            <h5>New Application</h5>
+            <p>Complete the online admission form for your child. You can save your progress and return at any time.</p>
+            <a href="{% url 'core:portal_admission_register' %}" class="btn btn-success w-100">
+                <i class="fas fa-plus me-1"></i>Apply Now
+            </a>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="portal-card">
+            <div class="icon-wrap"><i class="fas fa-search"></i></div>
+            <h5>Track Application</h5>
+            <p>Already applied? Check the current status of your admission application using your application number.</p>
+            <a href="{% url 'core:portal_status_check' %}" class="btn btn-outline-success w-100">
+                <i class="fas fa-search me-1"></i>Check Status
+            </a>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="portal-card">
+            <div class="icon-wrap"><i class="fas fa-envelope"></i></div>
+            <h5>Contact Admissions</h5>
+            <p>Have questions about the admissions process? Get in touch with our admissions office directly.</p>
+            <a href="mailto:{{ school.email|default:'office@pinewoodschoolzambia.com' }}" class="btn btn-outline-secondary w-100">
+                <i class="fas fa-envelope me-1"></i>Email Us
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- School info strip -->
+<div class="info-row">
+    <div class="row g-4">
+        <div class="col-md-4">
+            <h6><i class="fas fa-map-marker-alt me-2"></i>Address</h6>
+            <p class="small text-muted mb-0">{{ school.address|default:"P.O. Box RW 51174, Lusaka, Zambia" }}</p>
+        </div>
+        <div class="col-md-4">
+            <h6><i class="fas fa-phone me-2"></i>Telephone</h6>
+            <p class="small text-muted mb-0">{{ school.phone|default:"0211 291167 / 291461 / 294802" }}</p>
+        </div>
+        <div class="col-md-4">
+            <h6><i class="fas fa-envelope me-2"></i>Email</h6>
+            <p class="small text-muted mb-0">
+                <a href="mailto:{{ school.email|default:'office@pinewoodschoolzambia.com' }}">
+                    {{ school.email|default:"office@pinewoodschoolzambia.com" }}
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

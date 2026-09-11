@@ -1,0 +1,90 @@
+<div id="employee-exit-content">
+    <div id="employee-exit-errors" class="alert alert-danger d-none"></div>
+
+    {% if not exit %}
+        {% if 'hr.exit.manage' in perms %}
+        <div class="pw-card">
+            <h2 class="h6 fw-bold">Start exit process</h2>
+            <form onsubmit="startExit(event, '{{ employee.id }}')">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <label class="form-label">Exit type</label>
+                        <select class="form-select form-select-sm" name="exit_type">
+                            {% for value, label in exit_type_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4"><label class="form-label">Notice date</label><input type="date" class="form-control form-control-sm" name="notice_date"></div>
+                    <div class="col-md-4"><label class="form-label">Last working date</label><input type="date" class="form-control form-control-sm" name="last_working_date"></div>
+                    <div class="col-12"><label class="form-label">Reason</label><input type="text" class="form-control form-control-sm" name="reason"></div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm mt-2">Start exit</button>
+            </form>
+        </div>
+        {% else %}<p class="text-muted">No exit process has been started for this employee.</p>{% endif %}
+    {% else %}
+        <div class="pw-card mb-3">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Type</dt><dd class="col-sm-9">{{ exit.get_exit_type_display }}</dd>
+                <dt class="col-sm-3">Notice date</dt><dd class="col-sm-9">{{ exit.notice_date|date:"M j, Y"|default:"—" }}</dd>
+                <dt class="col-sm-3">Last working date</dt><dd class="col-sm-9">{{ exit.last_working_date|date:"M j, Y"|default:"—" }}</dd>
+                <dt class="col-sm-3">Reason</dt><dd class="col-sm-9">{{ exit.reason|default:"—" }}</dd>
+                <dt class="col-sm-3">Status</dt><dd class="col-sm-9">{{ exit.get_status_display }}</dd>
+            </dl>
+        </div>
+
+        {% if 'hr.exit.manage' in perms and exit.status != 'completed' %}
+        <div class="pw-card mb-3">
+            <h2 class="h6 fw-bold">Update</h2>
+            <form onsubmit="updateExit(event, '{{ exit.id }}')">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <label class="form-label">Final payment</label>
+                        <select class="form-select form-select-sm" name="final_payment_status">
+                            {% for value, label in payment_choices %}<option value="{{ value }}" {% if exit.final_payment_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4"><label class="form-label">Handover status</label><input type="text" class="form-control form-control-sm" name="handover_status" value="{{ exit.handover_status }}"></div>
+                    <div class="col-md-4"><label class="form-label">Outstanding leave (days)</label><input type="number" step="0.5" class="form-control form-control-sm" name="outstanding_leave_days" value="{{ exit.outstanding_leave_days|default:'' }}"></div>
+                    <div class="col-12"><label class="form-label">Exit interview notes</label><textarea class="form-control form-control-sm" name="exit_interview_notes" rows="2">{{ exit.exit_interview_notes }}</textarea></div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm mt-2">Save</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <h2 class="h6 fw-bold">Clearance checklist {% if progress %}({{ progress.done }}/{{ progress.total }}){% endif %}</h2>
+        <div class="pinewood-table-responsive">
+            <table class="pinewood-table">
+                <thead><tr><th width="40"></th><th>Item</th><th>Done</th></tr></thead>
+                <tbody>
+                    {% for it in items %}
+                        <tr>
+                            <td class="text-center"><input type="checkbox" {% if it.is_done %}checked{% endif %}
+                                {% if 'hr.exit.manage' not in perms or exit.status == 'completed' %}disabled{% endif %}
+                                onchange="toggleExitItem('{{ it.id }}', this.checked)"></td>
+                            <td {% if it.is_done %}class="text-decoration-line-through text-muted"{% endif %}>{{ it.label }}</td>
+                            <td><small class="text-muted">{% if it.done_at %}{{ it.done_at|date:"M j, Y" }}{% endif %}</small></td>
+                        </tr>
+                    {% empty %}<tr class="empty-state"><td colspan="3">No clearance items.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if 'hr.exit.manage' in perms and exit.status != 'completed' %}
+        <button type="button" class="btn btn-success btn-sm mt-2" onclick="completeExit('{{ exit.id }}')">Finalise exit</button>
+        {% endif %}
+    {% endif %}
+</div>
+
+<script>
+function _exCsrf() { return document.querySelector('[name=csrfmiddlewaretoken]').value; }
+function _swapExit(status, text) {
+    if (status === 200) { document.getElementById('employee-exit-content').outerHTML = text; if (typeof showAlert === 'function') showAlert('Saved', 'success'); }
+    else { const box = document.getElementById('employee-exit-errors'); try { box.textContent = JSON.parse(text).error || 'An error occurred'; } catch (e) { box.textContent = 'An error occurred'; } box.classList.remove('d-none'); }
+}
+function _postExit(url, body) { fetch(url, { method: 'POST', headers: { 'X-CSRFToken': _exCsrf() }, body }).then(r => r.text().then(t => _swapExit(r.status, t))); }
+function startExit(event, employeeId) { event.preventDefault(); _postExit(`/hr/employees/${employeeId}/exit/start/`, new FormData(event.target)); }
+function updateExit(event, exitId) { event.preventDefault(); _postExit(`/hr/exit/${exitId}/update/`, new FormData(event.target)); }
+function toggleExitItem(itemId, checked) { const b = new FormData(); b.append('is_done', checked ? 'true' : 'false'); _postExit(`/hr/exit/items/${itemId}/toggle/`, b); }
+function completeExit(exitId) { if (!confirm('Finalise this exit? The employee will be marked as exited.')) return; _postExit(`/hr/exit/${exitId}/complete/`, new FormData()); }
+</script>

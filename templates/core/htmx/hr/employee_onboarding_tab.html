@@ -1,0 +1,62 @@
+<div id="employee-onboarding-content">
+    <div id="employee-onboarding-errors" class="alert alert-danger d-none"></div>
+
+    <div class="pw-card mb-3">
+        {% with p=progress %}
+        <div class="d-flex justify-content-between"><h2 class="h6 fw-bold mb-1">Onboarding progress</h2><strong>{{ p.percent }}%</strong></div>
+        <div class="progress" style="height:18px"><div class="progress-bar" style="width: {{ p.percent }}%"></div></div>
+        <small class="text-muted">{{ p.done }} of {{ p.total }} tasks complete</small>
+        {% endwith %}
+    </div>
+
+    <div class="pinewood-table-responsive">
+        <table class="pinewood-table">
+            <thead><tr><th width="40"></th><th>Task</th><th>Done</th></tr></thead>
+            <tbody>
+                {% for it in items %}
+                    <tr>
+                        <td class="text-center">
+                            <input type="checkbox" {% if it.is_done %}checked{% endif %}
+                                {% if 'hr.onboarding.manage' not in perms %}disabled{% endif %}
+                                onchange="toggleOnboardingItem('{{ it.id }}', this.checked)">
+                        </td>
+                        <td {% if it.is_done %}class="text-decoration-line-through text-muted"{% endif %}>{{ it.label }}</td>
+                        <td><small class="text-muted">{% if it.done_at %}{{ it.done_at|date:"M j, Y" }}{% endif %}</small></td>
+                    </tr>
+                {% empty %}
+                    <tr class="empty-state"><td colspan="3">No checklist items.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if 'hr.onboarding.manage' in perms %}
+    <form class="d-flex gap-2 mt-2" onsubmit="addOnboardingItem(event, '{{ employee.id }}')">
+        <input type="text" class="form-control form-control-sm" name="label" placeholder="Add checklist item…" required>
+        <button type="submit" class="btn btn-primary btn-sm">Add</button>
+    </form>
+    {% endif %}
+</div>
+
+<script>
+function _obCsrf() { return document.querySelector('[name=csrfmiddlewaretoken]').value; }
+function _swapOb(status, text) {
+    if (status === 200) {
+        document.getElementById('employee-onboarding-content').outerHTML = text;
+    } else {
+        const box = document.getElementById('employee-onboarding-errors');
+        try { box.textContent = JSON.parse(text).error || 'An error occurred'; } catch (e) { box.textContent = 'An error occurred'; }
+        box.classList.remove('d-none');
+    }
+}
+function toggleOnboardingItem(itemId, checked) {
+    const body = new FormData(); body.append('is_done', checked ? 'true' : 'false');
+    fetch(`/hr/onboarding/items/${itemId}/toggle/`, { method: 'POST', headers: { 'X-CSRFToken': _obCsrf() }, body })
+        .then(r => r.text().then(t => _swapOb(r.status, t)));
+}
+function addOnboardingItem(event, employeeId) {
+    event.preventDefault();
+    fetch(`/hr/employees/${employeeId}/onboarding/add-item/`, { method: 'POST', headers: { 'X-CSRFToken': _obCsrf() }, body: new FormData(event.target) })
+        .then(r => r.text().then(t => _swapOb(r.status, t)));
+}
+</script>

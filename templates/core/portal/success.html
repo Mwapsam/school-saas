@@ -1,0 +1,57 @@
+{% extends 'core/portal/public_base.html' %}
+{% load static %}
+
+{% block title %}Application Submitted — {{ school.name|default:"Pinewood Preparatory School" }}{% endblock %}
+{% block apply_active %}class="active"{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        {% if error %}
+        <div class="card border-danger text-center shadow-sm">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Application Not Found</h4>
+            </div>
+            <div class="card-body py-4">
+                <p class="mb-3">{{ error }}</p>
+                <a href="{% url 'core:portal_admission_register' %}" class="btn btn-success">
+                    <i class="fas fa-plus me-1"></i>Start New Application
+                </a>
+            </div>
+        </div>
+        {% else %}
+        <div class="card border-success shadow-sm text-center">
+            <div class="card-header" style="background:var(--p-green);color:#fff;">
+                <h4 class="mb-0"><i class="fas fa-check-circle me-2"></i>Application Submitted!</h4>
+            </div>
+            <div class="card-body py-4">
+                <div style="font-size:4rem;color:var(--p-green);margin-bottom:1rem;">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <h5 class="fw-bold mb-1">Thank you, {{ application.guardian1_first_name|default:application.first_name }}!</h5>
+                <p class="text-muted mb-3">Your application has been received and is under review.</p>
+
+                <div class="alert alert-success d-inline-block px-4 py-2 mb-3" style="font-size:1.1rem;">
+                    <strong>Application Number:</strong><br>
+                    <span class="fs-4 fw-bold">{{ application.application_number }}</span>
+                </div>
+
+                <p class="small text-muted mb-4">
+                    Please keep this number safe — you will need it to track your application status.<br>
+                    We will contact you at <strong>{{ application.email|default:application.guardian1_email }}</strong> once a decision has been made.
+                </p>
+
+                <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                    <a href="{% url 'core:portal_status_check' %}" class="btn btn-success px-4">
+                        <i class="fas fa-search me-1"></i>Track My Application
+                    </a>
+                    <a href="{% url 'core:portal_landing' %}" class="btn btn-outline-secondary px-4">
+                        <i class="fas fa-home me-1"></i>Back to Portal
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

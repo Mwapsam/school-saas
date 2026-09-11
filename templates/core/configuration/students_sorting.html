@@ -1,0 +1,21 @@
+{% extends 'core/layouts/form.html' %}
+{% block page_title %}Students Sorting{% endblock %}
+
+{% block layout_header %}
+{% url 'core:configuration' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Students Sorting" description="Order students appear in on lists, report cards and mark entry" icon="fa-sort" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_form %}
+<form method="post" class="pw-card p-3" style="max-width:520px">
+  {% csrf_token %}
+  {% for val, label in choices %}
+  <div class="form-check py-2">
+    <input class="form-check-input" type="radio" name="student_sort_order"
+           id="s_{{ val }}" value="{{ val }}" {% if current == val %}checked{% endif %}>
+    <label class="form-check-label" for="s_{{ val }}">{{ label }}</label>
+  </div>
+  {% endfor %}
+  <button class="btn btn-primary mt-3"><i class="fas fa-save me-1"></i>Save sort order</button>
+</form>
+{% endblock %}

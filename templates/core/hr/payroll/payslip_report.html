@@ -1,0 +1,154 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:hr_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-chart-bar' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block page_title %}Payslip Report{% endblock %}
+
+{% block layout_table %}
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">All</option>
+                    <option value="generated" {% if applied_filters.status == 'generated' %}selected{% endif %}>Generated</option>
+                    <option value="approved" {% if applied_filters.status == 'approved' %}selected{% endif %}>Approved</option>
+                    <option value="rejected" {% if applied_filters.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                    <option value="paid" {% if applied_filters.status == 'paid' %}selected{% endif %}>Paid</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="payroll_group" class="form-label">Payroll Group</label>
+                <select class="form-select" id="payroll_group" name="payroll_group">
+                    <option value="">All Groups</option>
+                    {% for group in payroll_groups %}
+                        <option value="{{ group.id }}" {% if applied_filters.payroll_group_id == group.id|stringformat:"s" %}selected{% endif %}>{{ group.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="department" class="form-label">Department</label>
+                <select class="form-select" id="department" name="department">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                        <option value="{{ dept.id }}" {% if applied_filters.department_id == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-outline-primary w-100"><i class="fas fa-filter"></i> Apply</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header"><h5 class="mb-0">Results ({{ rows|length }})</h5></div>
+    <div class="pinewood-table-responsive">
+        <table class="pinewood-table">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Department</th>
+                    <th>Period</th>
+                    <th>Gross</th>
+                    <th>Deductions</th>
+                    <th>Net Pay</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payslip in rows %}
+                    <tr>
+                        <td>{{ payslip.employee.first_name }} {{ payslip.employee.last_name }}</td>
+                        <td>{{ payslip.employee.employee_department.name|default:"—" }}</td>
+                        <td><small>{{ payslip.period_start|date:"M j" }} &ndash; {{ payslip.period_end|date:"M j, Y" }}</small></td>
+                        <td>{{ payslip.gross_earnings }}</td>
+                        <td>{{ payslip.total_deductions }}</td>
+                        <td>{{ payslip.net_pay }}</td>
+                        <td>{{ payslip.get_status_display }}</td>
+                    </tr>
+                {% empty %}
+                    <tr class="empty-state"><td colspan="7">No payslips match these filters.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-body">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#saveTemplateModal">
+            <i class="fas fa-save"></i> Save as Template
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h5 class="mb-0">Saved Report Templates</h5></div>
+    <div class="list-group list-group-flush">
+        {% for template in templates %}
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <span>{{ template.name }}</span>
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="runReportTemplate('{{ template.id }}')">Run</button>
+            </div>
+        {% empty %}
+            <div class="list-group-item text-muted">No saved templates yet.</div>
+        {% endfor %}
+    </div>
+    <div id="template-run-results" class="p-3"></div>
+</div>
+
+<div class="modal fade" id="saveTemplateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Save Report as Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label for="template-name" class="form-label">Template Name *</label>
+                <input type="text" class="form-control" id="template-name">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveReportTemplate()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% csrf_token %}
+<script>
+function csrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function saveReportTemplate() {
+    const body = new FormData();
+    body.append('name', document.getElementById('template-name').value);
+    body.append('payroll_group_id', '{{ applied_filters.payroll_group_id|default:"" }}');
+    body.append('department_id', '{{ applied_filters.department_id|default:"" }}');
+    body.append('status', '{{ applied_filters.status|default:"" }}');
+    ['employee', 'department', 'period', 'gross_earnings', 'total_deductions', 'net_pay', 'status'].forEach((c) => body.append('columns', c));
+
+    fetch("{% url 'core:hr_payslip_report_template_save' %}", { method: 'POST', headers: { 'X-CSRFToken': csrfToken() }, body })
+        .then((r) => r.json())
+        .then((data) => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('saveTemplateModal')).hide();
+                location.reload();
+            } else {
+                alert(data.error || 'An error occurred');
+            }
+        });
+}
+
+function runReportTemplate(templateId) {
+    fetch(`/hr/payroll/reports/templates/${templateId}/run/`)
+        .then((r) => r.text())
+        .then((html) => { document.getElementById('template-run-results').innerHTML = html; });
+}
+</script>
+{% endblock %}

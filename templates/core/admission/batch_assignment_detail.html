@@ -1,0 +1,385 @@
+{% extends 'core/layouts/detail.html' %}
+
+{% block layout_header %}
+{% url 'core:admission_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Batch Assignment Details" description="Review application details and assign to batch" icon="fa-list-check" back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Batch Assignment - {{ application.full_name }}{% endblock %}
+
+{% block layout_sections %}
+<div class="container-lg py-4">
+    <div class="d-flex justify-content-end mb-4">
+        <a href="{% url 'core:batch_assignment_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to List
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Application Details -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Application Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Basic Information -->
+                        <div class="col-md-6 mb-4">
+                            <h6 class="text-primary mb-3">Student Information</h6>
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Application Number</label>
+                                <div class="fw-semibold">{{ application.application_number }}</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Full Name</label>
+                                <div class="fw-semibold">{{ application.full_name }}</div>
+                            </div>
+                            
+                            {% if application.date_of_birth %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Date of Birth</label>
+                                <div>{{ application.date_of_birth|date:"d F Y" }}</div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if application.gender %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Gender</label>
+                                <div>{{ application.gender|title }}</div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if application.nationality %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Nationality</label>
+                                <div>{{ application.nationality }}</div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if application.religion %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Religion</label>
+                                <div>{{ application.religion }}</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Academic Information -->
+                        <div class="col-md-6 mb-4">
+                            <h6 class="text-primary mb-3">Academic Information</h6>
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Academic Year</label>
+                                <div class="fw-semibold">{{ application.academic_year.name }}</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Course Applied</label>
+                                <div class="fw-semibold">{{ application.course_applied.course_name }}</div>
+                            </div>
+                            
+                            {% if application.previous_school_name %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Previous School</label>
+                                <div>{{ application.previous_school_name }}</div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if application.student_category %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Student Category</label>
+                                <div>{{ application.student_category.name }}</div>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Application Date</label>
+                                <div>{{ application.application_date|date:"d F Y, H:i" }}</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Status</label>
+                                <div><span class="badge bg-success">{{ application.status|title }}</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Contact Information -->
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary mb-3">Contact Information</h6>
+                            
+                            {% if application.email %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Email</label>
+                                <div>{{ application.email }}</div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if application.mobile %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Mobile</label>
+                                <div>{{ application.mobile }}</div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if application.address_line1 %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Address</label>
+                                <div>
+                                    {{ application.address_line1 }}
+                                    {% if application.address_line2 %}<br>{{ application.address_line2 }}{% endif %}
+                                    {% if application.city %}<br>{{ application.city }}{% endif %}
+                                    {% if application.country %}, {{ application.country.name }}{% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="text-primary mb-3">Guardian Information</h6>
+                            
+                            {% if application.guardian1_first_name %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Primary Guardian</label>
+                                <div>
+                                    <strong>{{ application.guardian1_first_name }} {{ application.guardian1_last_name }}</strong>
+                                    {% if application.guardian1_relation %}<br><small class="text-muted">{{ application.guardian1_relation|title }}</small>{% endif %}
+                                    {% if application.guardian1_mobile %}<br>{{ application.guardian1_mobile }}{% endif %}
+                                    {% if application.guardian1_email %}<br>{{ application.guardian1_email }}{% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if application.guardian2_first_name %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Secondary Guardian</label>
+                                <div>
+                                    <strong>{{ application.guardian2_first_name }} {{ application.guardian2_last_name }}</strong>
+                                    {% if application.guardian2_relation %}<br><small class="text-muted">{{ application.guardian2_relation|title }}</small>{% endif %}
+                                    {% if application.guardian2_mobile %}<br>{{ application.guardian2_mobile }}{% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Health Information -->
+                    {% if application.has_medical_problems or application.has_allergies or application.medical_details %}
+                    <hr>
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="text-primary mb-3">Health Information</h6>
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label text-muted">Medical Problems</label>
+                                        <div>
+                                            {% if application.has_medical_problems %}
+                                                <span class="badge bg-warning text-dark">Yes</span>
+                                            {% else %}
+                                                <span class="badge bg-light text-dark">No</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label text-muted">Recent Hospitalization</label>
+                                        <div>
+                                            {% if application.recent_hospitalization %}
+                                                <span class="badge bg-warning text-dark">Yes</span>
+                                            {% else %}
+                                                <span class="badge bg-light text-dark">No</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label text-muted">Allergies</label>
+                                        <div>
+                                            {% if application.has_allergies %}
+                                                <span class="badge bg-warning text-dark">Yes</span>
+                                            {% else %}
+                                                <span class="badge bg-light text-dark">No</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if application.medical_details %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Medical Details</label>
+                                <div class="border rounded p-2 bg-light">{{ application.medical_details }}</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Batch Assignment Panel -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Assign to Batch</h5>
+                </div>
+                <div class="card-body">
+                    {% if available_batches %}
+                    <form id="assignmentForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="batch" class="form-label">Select Batch *</label>
+                            <select name="batch_id" id="batch" class="form-select" required>
+                                <option value="">Choose a batch...</option>
+                                {% for batch in available_batches %}
+                                <option value="{{ batch.id }}">{{ batch.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Available batches for {{ application.course_applied.course_name }}</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="roll_number" class="form-label">Roll Number</label>
+                            <input type="text" class="form-control" id="roll_number" name="roll_number" 
+                                   placeholder="Enter roll number (optional)">
+                            <div class="form-text">Leave blank to assign later</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="remarks" class="form-label">Assignment Remarks</label>
+                            <textarea class="form-control" id="remarks" name="remarks" rows="3" 
+                                      placeholder="Any special notes about this assignment (optional)"></textarea>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success" id="assignBtn">
+                                <i class="fas fa-user-plus me-1"></i> Assign to Batch
+                            </button>
+                            <small class="text-muted text-center">
+                                This will create a student record and assign them to the selected batch.
+                            </small>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>No Batches Available</strong>
+                        <p class="mb-0 mt-2">There are no active batches available for the course "{{ application.course_applied.course_name }}". Please create batches first before assigning students.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Quick Info Card -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'core:admission_manage' %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-list me-1"></i> View All Applications
+                        </a>
+                        <a href="{% url 'core:batch_assignment_list' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-users me-1"></i> Batch Assignment List
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success/Error Messages -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="successToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <!-- Success message will be inserted here -->
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+    
+    <div id="errorToast" class="toast align-items-center text-bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <!-- Error message will be inserted here -->
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+{% block extra_js %}
+<script>
+document.getElementById('assignmentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    formData.append('action', 'assign_single');
+    formData.append('application_id', '{{ application.id }}');
+    
+    // Show loading state
+    const assignBtn = document.getElementById('assignBtn');
+    assignBtn.disabled = true;
+    assignBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Assigning...';
+    
+    fetch('{% url "core:batch_assignment" %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess(data.message);
+            
+            // Redirect to batch assignment list after 2 seconds
+            setTimeout(() => {
+                window.location.href = '{% url "core:batch_assignment_list" %}';
+            }, 2000);
+        } else {
+            showError(data.error || 'Assignment failed');
+            // Reset button state
+            assignBtn.disabled = false;
+            assignBtn.innerHTML = '<i class="fas fa-user-plus me-1"></i> Assign to Batch';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showError('Network error occurred');
+        // Reset button state
+        assignBtn.disabled = false;
+        assignBtn.innerHTML = '<i class="fas fa-user-plus me-1"></i> Assign to Batch';
+    });
+});
+
+function showSuccess(message) {
+    const toast = document.getElementById('successToast');
+    toast.querySelector('.toast-body').textContent = message;
+    const toastInstance = new bootstrap.Toast(toast);
+    toastInstance.show();
+}
+
+function showError(message) {
+    const toast = document.getElementById('errorToast');
+    toast.querySelector('.toast-body').textContent = message;
+    const toastInstance = new bootstrap.Toast(toast);
+    toastInstance.show();
+}
+</script>
+{% endblock %}

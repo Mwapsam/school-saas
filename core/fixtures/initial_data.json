@@ -1,0 +1,389 @@
+[
+    {
+        "model": "core.country",
+        "pk": 1,
+        "fields": {
+            "name": "Zambia",
+            "code": "ZM"
+        }
+    },
+    {
+        "model": "core.school",
+        "pk": "123e4567-e89b-12d3-a456-426614174000",
+        "fields": {
+            "name": "Lusaka International School",
+            "code": "LIS001",
+            "logo_file_name": null,
+            "logo_content_type": null,
+            "logo_file_size": null,
+            "address_line1": "Plot 123, Roma",
+            "address_line2": null,
+            "city": "Lusaka",
+            "state": "Lusaka Province",
+            "pin_code": "10101",
+            "country": 1,
+            "phone": "+260211123456",
+            "email": "info@lusakais.ac.zm",
+            "fax": null,
+            "website": "https://lusakais.ac.zm",
+            "is_active": true,
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z",
+            "schema_name": "lis001"
+        }
+    },
+    {
+        "model": "core.domain",
+        "pk": 1,
+        "fields": {
+            "domain": "lis001.localhost",
+            "is_primary": true,
+            "tenant_id": "123e4567-e89b-12d3-a456-426614174000"
+        }
+    },
+    {
+        "model": "core.user",
+        "pk": "550e8400-e29b-41d4-a716-446655440000",
+        "fields": {
+            "username": "admin",
+            "email": "admin@lusakais.ac.zm",
+            "first_name": "Admin",
+            "last_name": "User",
+            "password": "password123",
+            "is_active": true,
+            "is_admin": true,
+            "is_superuser": true,
+            "last_login": null,
+            "school": "123e4567-e89b-12d3-a456-426614174000",
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z"
+        }
+    },
+    {
+        "model": "core.user",
+        "pk": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "username": "ST001",
+            "email": "john.doe@lusakais.ac.zm",
+            "first_name": "John",
+            "last_name": "Doe",
+            "password": "password123",
+            "is_active": true,
+            "is_admin": false,
+            "is_superuser": false,
+            "last_login": null,
+            "school": "123e4567-e89b-12d3-a456-426614174000",
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z"
+        }
+    },
+    {
+        "model": "core.student",
+        "pk": "7ba7b811-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "admission_no": "ST001",
+            "class_roll_no": "R001",
+            "admission_date": "2025-01-01",
+            "first_name": "John",
+            "middle_name": null,
+            "last_name": "Doe",
+            "date_of_birth": "2010-01-01",
+            "gender": "male",
+            "blood_group": "O+",
+            "birth_place": "Lusaka",
+            "nationality": 1,
+            "language": "English",
+            "religion": "Christian",
+            "student_category": null,
+            "address_line1": "Plot 456, Ibex Hill",
+            "address_line2": null,
+            "city": "Lusaka",
+            "state": "Lusaka Province",
+            "pin_code": "10101",
+            "country": 1,
+            "phone1": "+260971234567",
+            "phone2": null,
+            "email": "john.doe@lusakais.ac.zm",
+            "is_sms_enabled": true,
+            "photo_file_name": null,
+            "photo_content_type": null,
+            "photo_file_size": null,
+            "status_description": null,
+            "is_active": true,
+            "is_deleted": false,
+            "school": "123e4567-e89b-12d3-a456-426614174000",
+            "user": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+            "immediate_contact": null,
+            "has_paid_fees": false,
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z"
+        }
+    },
+    {
+        "model": "core.guardian",
+        "pk": "8ba7b812-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "relation": "Parent",
+            "email": "jane.doe@lusakais.ac.zm",
+            "mobile_phone": "+260971234568",
+            "office_phone": null,
+            "office_address_line1": null,
+            "office_address_line2": null,
+            "city": "Lusaka",
+            "state": "Lusaka Province",
+            "country": 1,
+            "dob": "1980-01-01",
+            "occupation": "Teacher",
+            "income": 15000.0,
+            "education": "Bachelor's Degree",
+            "school": "123e4567-e89b-12d3-a456-426614174000",
+            "user": null,
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z"
+        }
+    },
+    {
+        "model": "core.studentguardianrelation",
+        "pk": "9ba7b813-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "student": "7ba7b811-9dad-11d1-80b4-00c04fd430c8",
+            "guardian": "8ba7b812-9dad-11d1-80b4-00c04fd430c8",
+            "relation": "Mother",
+            "is_immediate_contact": true,
+            "school": "123e4567-e89b-12d3-a456-426614174000",
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z"
+        }
+    },
+    {
+        "model": "core.employee",
+        "pk": "aba7b814-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "employee_number": "EMP001",
+            "joining_date": "2025-01-01",
+            "first_name": "Mary",
+            "middle_name": null,
+            "last_name": "Banda",
+            "gender": true,
+            "job_title": "Teacher",
+            "employee_category": null,
+            "employee_position": null,
+            "employee_department": null,
+            "reporting_manager": null,
+            "employee_grade": null,
+            "qualification": "Bachelor of Education",
+            "experience_detail": "5 years teaching Mathematics",
+            "experience_year": 5,
+            "experience_month": 0,
+            "date_of_birth": "1985-03-15",
+            "marital_status": "Married",
+            "children_count": 2,
+            "blood_group": "A+",
+            "nationality": 1,
+            "home_address_line1": "Plot 789, Kabulonga",
+            "home_address_line2": null,
+            "home_city": "Lusaka",
+            "home_state": "Lusaka Province",
+            "home_country": 1,
+            "home_pin_code": "10101",
+            "office_address_line1": null,
+            "office_address_line2": null,
+            "office_city": null,
+            "office_state": null,
+            "office_country": null,
+            "office_pin_code": null,
+            "email": "mary.banda@lusakais.ac.zm",
+            "mobile_phone": "+260971234569",
+            "school": "123e4567-e89b-12d3-a456-426614174000",
+            "user": null,
+            "status": true,
+            "photo_file_name": null,
+            "photo_content_type": null,
+            "photo_file_size": null,
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z"
+        }
+    },
+    {
+        "model": "core.course",
+        "pk": "bba7b815-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "course_name": "Grade 10",
+            "code": "G10",
+            "section_name": null,
+            "is_deleted": false,
+            "school": "123e4567-e89b-12d3-a456-426614174000",
+            "grading_type": "GPA",
+            "max_hours_day": 6,
+            "max_hours_week": 30,
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z"
+        }
+    },
+    {
+        "model": "core.batch",
+        "pk": "cba7b816-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "name": "2025 Cohort",
+            "course": "bba7b815-9dad-11d1-80b4-00c04fd430c8",
+            "start_date": "2025-01-01T00:00:00Z",
+            "end_date": "2025-12-31T23:59:59Z",
+            "is_active": true,
+            "is_deleted": false,
+            "employee": "aba7b814-9dad-11d1-80b4-00c04fd430c8",
+            "school": "123e4567-e89b-12d3-a456-426614174000",
+            "grading_type": "GPA",
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z"
+        }
+    },
+    {
+        "model": "core.batchstudent",
+        "pk": "dba7b817-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "batch": "cba7b816-9dad-11d1-80b4-00c04fd430c8",
+            "student": "7ba7b811-9dad-11d1-80b4-00c04fd430c8",
+            "roll_number": "R001",
+            "is_active": true,
+            "school": "123e4567-e89b-12d3-a456-426614174000",
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z"
+        }
+    },
+    {
+        "model": "core.feecategory",
+        "pk": "eba7b818-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "name": "Tuition Fee",
+            "description": "Annual tuition fee for Grade 10",
+            "is_deleted": false,
+            "school": "123e4567-e89b-12d3-a456-426614174000",
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z"
+        }
+    },
+    {
+        "model": "core.financefee",
+        "pk": "fba7b819-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "fee_category": "eba7b818-9dad-11d1-80b4-00c04fd430c8",
+            "student": "7ba7b811-9dad-11d1-80b4-00c04fd430c8",
+            "balance": 15000.0,
+            "transaction_date": "2025-01-01",
+            "school": "123e4567-e89b-12d3-a456-426614174000",
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z"
+        }
+    },
+    {
+        "model": "core.subject",
+        "pk": "0ca7b81a-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "name": "Mathematics",
+            "code": "MATH10",
+            "batch": "cba7b816-9dad-11d1-80b4-00c04fd430c8",
+            "no_exams": false,
+            "max_weekly_classes": 5,
+            "elective_group": null,
+            "is_deleted": false,
+            "school": "123e4567-e89b-12d3-a456-426614174000",
+            "language": false,
+            "credit_hours": 5.0,
+            "prefer_consecutive": true,
+            "amount": null,
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z"
+        }
+    },
+    {
+        "model": "core.examgroup",
+        "pk": "1ca7b81b-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "name": "Midterm 2025",
+            "batch": "cba7b816-9dad-11d1-80b4-00c04fd430c8",
+            "exam_type": "Midterm",
+            "is_published": false,
+            "result_published": false,
+            "exam_date": "2025-06-15",
+            "school": "123e4567-e89b-12d3-a456-426614174000",
+            "is_final_exam": false,
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z"
+        }
+    },
+    {
+        "model": "core.exam",
+        "pk": "2ca7b81c-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "exam_group": "1ca7b81b-9dad-11d1-80b4-00c04fd430c8",
+            "subject": "0ca7b81a-9dad-11d1-80b4-00c04fd430c8",
+            "start_time": "2025-06-15T09:00:00Z",
+            "end_time": "2025-06-15T11:00:00Z",
+            "maximum_marks": 100.0,
+            "minimum_marks": 40.0,
+            "grading_level": null,
+            "weightage": 20,
+            "event": null,
+            "school": "123e4567-e89b-12d3-a456-426614174000",
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z"
+        }
+    },
+    {
+        "model": "core.examscore",
+        "pk": "3ca7b81d-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "student": "7ba7b811-9dad-11d1-80b4-00c04fd430c8",
+            "exam": "2ca7b81c-9dad-11d1-80b4-00c04fd430c8",
+            "marks": 85.0,
+            "grading_level": null,
+            "remarks": "Excellent performance",
+            "is_absent": false,
+            "school": "123e4567-e89b-12d3-a456-426614174000",
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z"
+        }
+    },
+    {
+        "model": "core.weekday",
+        "pk": "4ca7b81e-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "weekday": "Monday",
+            "day_of_week": 1,
+            "school": "123e4567-e89b-12d3-a456-426614174000",
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z"
+        }
+    },
+    {
+        "model": "core.classtiming",
+        "pk": "5ca7b81f-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "batch": "cba7b816-9dad-11d1-80b4-00c04fd430c8",
+            "name": "Period 1",
+            "start_time": "08:00:00",
+            "end_time": "09:00:00",
+            "is_break": false,
+            "school": "123e4567-e89b-12d3-a456-426614174000",
+            "is_deleted": false,
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z"
+        }
+    },
+    {
+        "model": "core.timetable",
+        "pk": "6ca7b820-9dad-11d1-80b4-00c04fd430c8",
+        "fields": {
+            "batch": "cba7b816-9dad-11d1-80b4-00c04fd430c8",
+            "weekday": "4ca7b81e-9dad-11d1-80b4-00c04fd430c8",
+            "class_timing": "5ca7b81f-9dad-11d1-80b4-00c04fd430c8",
+            "subject": "0ca7b81a-9dad-11d1-80b4-00c04fd430c8",
+            "employee": "aba7b814-9dad-11d1-80b4-00c04fd430c8",
+            "school": "123e4567-e89b-12d3-a456-426614174000",
+            "created_at": "2025-08-19T12:00:00Z",
+            "updated_at": "2025-08-19T12:00:00Z"
+        }
+    }
+]

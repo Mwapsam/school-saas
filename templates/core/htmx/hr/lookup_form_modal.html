@@ -1,0 +1,163 @@
+<div class="modal fade" id="hrLookupModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="hr-lookup-form" onsubmit="submitHRLookupForm(event)">
+                {% csrf_token %}
+                <input type="hidden" id="hr-lookup-key" name="lookup_key" value="">
+                <input type="hidden" id="hr-lookup-id" value="">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="hr-lookup-modal-title">Add</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="hr-lookup-form-errors" class="alert alert-danger d-none"></div>
+
+                    <div class="mb-3">
+                        <label for="hr-lookup-name" class="form-label">Name *</label>
+                        <input type="text" class="form-control" id="hr-lookup-name" name="name" required>
+                    </div>
+
+                    <div class="mb-3 hr-field-group" data-for="category">
+                        <label for="hr-lookup-prefix" class="form-label">Prefix</label>
+                        <input type="text" class="form-control" id="hr-lookup-prefix" name="prefix">
+                    </div>
+
+                    <div class="mb-3 hr-field-group" data-for="position">
+                        <label for="hr-lookup-category" class="form-label">Category *</label>
+                        <select class="form-select" id="hr-lookup-category" name="employee_category_id">
+                            <option value="">Select category...</option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3 hr-field-group" data-for="department leave_type">
+                        <label for="hr-lookup-code" class="form-label">Code</label>
+                        <input type="text" class="form-control" id="hr-lookup-code" name="code">
+                    </div>
+
+                    <div class="hr-field-group" data-for="grade">
+                        <div class="mb-3">
+                            <label for="hr-lookup-priority" class="form-label">Priority *</label>
+                            <input type="number" class="form-control" id="hr-lookup-priority" name="priority" min="0">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="hr-lookup-max-hours-day" class="form-label">Max Hours / Day</label>
+                                <input type="number" class="form-control" id="hr-lookup-max-hours-day" name="max_hours_day" min="0">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="hr-lookup-max-hours-week" class="form-label">Max Hours / Week</label>
+                                <input type="number" class="form-control" id="hr-lookup-max-hours-week" name="max_hours_week" min="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="hr-field-group" data-for="leave_type">
+                        <div class="mb-3">
+                            <label for="hr-lookup-default-days" class="form-label">Default Annual Days</label>
+                            <input type="number" class="form-control" id="hr-lookup-default-days" name="default_annual_days" min="0">
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="hr-lookup-is-paid" name="is_paid" checked>
+                            <label class="form-check-label" for="hr-lookup-is-paid">Paid leave</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-loading>
+                        <span id="hr-lookup-submit-text">Create</span>
+                        <div class="htmx-indicator loading-spinner d-inline-block ms-2"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openAddHRLookup(key) {
+    const form = document.getElementById('hr-lookup-form');
+    form.reset();
+    document.getElementById('hr-lookup-key').value = key;
+    document.getElementById('hr-lookup-id').value = '';
+    document.getElementById('hr-lookup-modal-title').textContent = 'Add ' + HR_LOOKUP_LABELS[key];
+    document.getElementById('hr-lookup-submit-text').textContent = 'Create';
+    document.getElementById('hr-lookup-form-errors').classList.add('d-none');
+    showHRLookupFieldGroups(key);
+    new bootstrap.Modal(document.getElementById('hrLookupModal')).show();
+}
+
+function openEditHRLookup(button) {
+    const key = button.closest('[data-lookup-key]').getAttribute('data-lookup-key');
+    const form = document.getElementById('hr-lookup-form');
+    form.reset();
+    document.getElementById('hr-lookup-key').value = key;
+    document.getElementById('hr-lookup-id').value = button.dataset.lookupItem;
+    document.getElementById('hr-lookup-name').value = button.dataset.lookupName || '';
+    document.getElementById('hr-lookup-prefix').value = button.dataset.lookupPrefix || '';
+    document.getElementById('hr-lookup-category').value = button.dataset.lookupCategory || '';
+    document.getElementById('hr-lookup-code').value = button.dataset.lookupCode || '';
+    document.getElementById('hr-lookup-priority').value = button.dataset.lookupPriority || '';
+    document.getElementById('hr-lookup-max-hours-day').value = button.dataset.lookupMaxHoursDay || '';
+    document.getElementById('hr-lookup-max-hours-week').value = button.dataset.lookupMaxHoursWeek || '';
+    document.getElementById('hr-lookup-default-days').value = button.dataset.lookupDefaultDays || '';
+    document.getElementById('hr-lookup-is-paid').checked = button.dataset.lookupIsPaid === '1';
+
+    document.getElementById('hr-lookup-modal-title').textContent = 'Edit ' + HR_LOOKUP_LABELS[key];
+    document.getElementById('hr-lookup-submit-text').textContent = 'Update';
+    document.getElementById('hr-lookup-form-errors').classList.add('d-none');
+    showHRLookupFieldGroups(key);
+    new bootstrap.Modal(document.getElementById('hrLookupModal')).show();
+}
+
+function showHRLookupFieldGroups(key) {
+    document.querySelectorAll('#hrLookupModal .hr-field-group').forEach(function (group) {
+        const forKeys = group.getAttribute('data-for').split(' ');
+        group.style.display = forKeys.includes(key) ? '' : 'none';
+    });
+}
+
+function submitHRLookupForm(event) {
+    event.preventDefault();
+    const key = document.getElementById('hr-lookup-key').value;
+    const id = document.getElementById('hr-lookup-id').value;
+    const form = document.getElementById('hr-lookup-form');
+    const url = id ? HR_LOOKUP_URLS.update(key, id) : HR_LOOKUP_URLS.create(key);
+
+    fetch(url, { method: 'POST', headers: { 'X-CSRFToken': csrfToken() }, body: new FormData(form) })
+        .then((response) => response.text().then((text) => ({ status: response.status, text })))
+        .then(({ status, text }) => {
+            if (status === 200) {
+                document.getElementById(`hr-lookup-content-${key}`).innerHTML = text;
+                bootstrap.Modal.getInstance(document.getElementById('hrLookupModal')).hide();
+                showAlert('Saved successfully!', 'success');
+            } else {
+                let errors;
+                try { errors = JSON.parse(text); } catch (e) { errors = { error: ['An error occurred'] }; }
+                showHRLookupFormErrors(errors);
+            }
+        })
+        .catch(() => showHRLookupFormErrors({ error: ['An error occurred'] }));
+}
+
+function showHRLookupFormErrors(errors) {
+    const errorDiv = document.getElementById('hr-lookup-form-errors');
+    let html = '';
+    for (const [field, messages] of Object.entries(errors)) {
+        html += `<strong>${field}:</strong> ${[].concat(messages).join(', ')}<br>`;
+    }
+    errorDiv.innerHTML = html;
+    errorDiv.classList.remove('d-none');
+}
+
+const HR_LOOKUP_LABELS = {
+    category: 'Employee Category',
+    position: 'Employee Position',
+    department: 'Employee Department',
+    grade: 'Employee Grade',
+    leave_type: 'Leave Type',
+};
+</script>

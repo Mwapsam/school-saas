@@ -1,0 +1,77 @@
+{% extends 'core/layouts/list.html' %}
+{% block page_title %}Leave Balances{% endblock %}
+
+{% block layout_header %}
+  {% url 'core:hr_dashboard' as back_fallback %}
+  {% include 'core/components/page_header.html' with title="Leave Balances" description="Entitlement, used and remaining leave days by employee" icon="fa-balance-scale" back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_filters %}
+  <form method="get" class="pw-card mb-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="pw-form-label" for="year">Year</label>
+        <select class="pw-form-select" id="year" name="year">
+          {% for y in year_choices %}<option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="pw-form-label" for="department">Department</label>
+        <select class="pw-form-select" id="department" name="department">
+          <option value="">All departments</option>
+          {% for dept in departments %}
+            <option value="{{ dept.id }}" {% if department_id == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-auto">
+        <button type="submit" class="pw-btn pw-btn-primary pw-btn-sm"><i class="fas fa-filter me-1"></i>Apply</button>
+      </div>
+      <div class="col-md-auto">
+        <a class="pw-btn pw-btn-outline pw-btn-sm" target="_blank"
+           href="{% url 'core:hr_leave_balance_report_pdf' %}?year={{ year }}{% if department_id %}&department={{ department_id }}{% endif %}">
+          <i class="fas fa-file-pdf me-1"></i>PDF
+        </a>
+      </div>
+    </div>
+  </form>
+{% endblock %}
+
+{% block layout_table %}
+  <div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th class="d-none d-md-table-cell">Department</th>
+          <th>Leave Type</th>
+          <th class="text-end">Allocated</th>
+          <th class="text-end">Used</th>
+          <th class="text-end">Remaining</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          {% for balance in row.balances %}
+            <tr>
+              <td>{% if forloop.first %}<strong>{{ row.employee.first_name }} {{ row.employee.last_name }}</strong>{% endif %}</td>
+              <td class="d-none d-md-table-cell">{% if forloop.first %}{{ row.department.name|default:"—" }}{% endif %}</td>
+              <td>{{ balance.leave_type.name }}</td>
+              <td class="text-end">{{ balance.allocated }}</td>
+              <td class="text-end">{{ balance.used }}</td>
+              <td class="text-end fw-semibold">{{ balance.remaining }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td><strong>{{ row.employee.first_name }} {{ row.employee.last_name }}</strong></td>
+              <td class="d-none d-md-table-cell">{{ row.department.name|default:"—" }}</td>
+              <td colspan="4" class="text-muted">No leave types configured.</td>
+            </tr>
+          {% endfor %}
+        {% empty %}
+          <tr class="empty-state"><td colspan="6">No employees found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

@@ -1,0 +1,396 @@
+{% extends 'core/layouts/detail.html' %}
+{% load static %}
+
+{% block page_title %}Skills Assessment Reports - {{ batch.name }}{% endblock %}
+
+{% block layout_header %}
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Skills Assessment Reports" description=reports_description icon="fa-file-alt" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_sections %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Student Reports</h5>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="selectAllStudents">
+                                <i class="fas fa-check-square"></i> Select All
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm" id="generateReportsBtn" disabled>
+                                <i class="fas fa-file-alt"></i> Generate Reports
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% include 'core/components/table_open.html' %}
+                        <thead>
+                            <tr>
+                                <th scope="col">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAllCheckbox">
+                                    </div>
+                                </th>
+                                <th scope="col">Student</th>
+                                <th scope="col">Admission No.</th>
+                                <th scope="col">Last Assessment</th>
+                                <th scope="col">Progress</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                                {% for student in students %}
+                                <tr>
+                                    <td>
+                                        <div class="form-check">
+                                            <input class="form-check-input student-checkbox" type="checkbox"
+                                                   value="{{ student.id }}">
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center text-white me-2">
+                                                {{ student.first_name|first }}{{ student.last_name|first }}
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-0">{{ student.first_name }} {{ student.last_name }}</h6>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ student.admission_no }}</td>
+                                    <td>
+                                        <span class="badge bg-success">Term 2 - June 2024</span>
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar bg-success" style="width: 85%"></div>
+                                        </div>
+                                        <small class="text-muted">85% Complete</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-outline-primary btn-sm"
+                                                    onclick="viewStudentReport('{{ student.id }}')">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-success btn-sm"
+                                                    onclick="downloadStudentReport('{{ student.id }}')">
+                                                <i class="fas fa-download"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">No students found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                    {% include 'core/components/table_close.html' %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Report Options</h5>
+                </div>
+                <div class="card-body">
+                    <form id="reportOptionsForm">
+                        <div class="mb-3">
+                            <label for="reportPeriod" class="form-label">Assessment Period</label>
+                            <select class="form-select" id="reportPeriod" name="report_period">
+                                <option value="current">Current Term</option>
+                                <option value="term1">Term 1</option>
+                                <option value="term2">Term 2</option>
+                                <option value="term3">Term 3</option>
+                                <option value="annual">Annual Report</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="reportFormat" class="form-label">Format</label>
+                            <select class="form-select" id="reportFormat" name="report_format">
+                                <option value="detailed">Detailed Report</option>
+                                <option value="summary">Summary Report</option>
+                                <option value="progress">Progress Report</option>
+                                <option value="comparative">Comparative Analysis</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Include Sections</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="includeSkills" name="sections" value="skills" checked>
+                                <label class="form-check-label" for="includeSkills">
+                                    Skills Assessment
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="includeProgress" name="sections" value="progress" checked>
+                                <label class="form-check-label" for="includeProgress">
+                                    Progress Tracking
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="includeRemarks" name="sections" value="remarks" checked>
+                                <label class="form-check-label" for="includeRemarks">
+                                    Teacher Remarks
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="includeRecommendations" name="sections" value="recommendations">
+                                <label class="form-check-label" for="includeRecommendations">
+                                    Recommendations
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="outputFormat" class="form-label">Output Format</label>
+                            <select class="form-select" id="outputFormat" name="output_format">
+                                <option value="pdf">PDF Document</option>
+                                <option value="excel">Excel Spreadsheet</option>
+                                <option value="word">Word Document</option>
+                            </select>
+                        </div>
+                    </form>
+
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-primary" id="generateSelectedReports" disabled>
+                            <i class="fas fa-file-alt"></i> Generate Selected Reports
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="previewReport()">
+                            <i class="fas fa-eye"></i> Preview Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Class Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border rounded p-2">
+                                <h4 class="text-primary">{{ students.count }}</h4>
+                                <small class="text-muted">Total Students</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2">
+                                <h4 class="text-success">{{ students.count }}</h4>
+                                <small class="text-muted">Assessed</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <h6>Skills Categories Progress</h6>
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between">
+                                <small>Language Development</small>
+                                <small>88%</small>
+                            </div>
+                            <div class="progress" style="height: 4px;">
+                                <div class="progress-bar bg-success" style="width: 88%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between">
+                                <small>Motor Skills</small>
+                                <small>92%</small>
+                            </div>
+                            <div class="progress" style="height: 4px;">
+                                <div class="progress-bar bg-success" style="width: 92%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between">
+                                <small>Social Development</small>
+                                <small>76%</small>
+                            </div>
+                            <div class="progress" style="height: 4px;">
+                                <div class="progress-bar bg-warning" style="width: 76%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block layout_extra %}
+<!-- Report Preview Modal -->
+{% include 'core/components/modal.html' with id="reportPreviewModal" title="Report Preview" size="xl" %}
+    <div id="reportPreviewContent"></div>
+{% include 'core/components/modal_close.html' with footer=report_preview_footer %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const studentCheckboxes = document.querySelectorAll('.student-checkbox');
+    const generateBtn = document.getElementById('generateSelectedReports');
+
+    // Select all functionality
+    selectAllCheckbox.addEventListener('change', function() {
+        studentCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+        updateGenerateButtonState();
+    });
+
+    // Individual checkbox changes
+    studentCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateGenerateButtonState);
+    });
+
+    // Select all button
+    document.getElementById('selectAllStudents').addEventListener('click', function() {
+        selectAllCheckbox.checked = true;
+        studentCheckboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        updateGenerateButtonState();
+    });
+
+    // Generate reports button
+    generateBtn.addEventListener('click', function() {
+        const selectedStudents = Array.from(studentCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+
+        if (selectedStudents.length === 0) {
+            alert('Please select at least one student.');
+            return;
+        }
+
+        generateReports(selectedStudents);
+    });
+
+    function updateGenerateButtonState() {
+        const selectedCount = Array.from(studentCheckboxes).filter(cb => cb.checked).length;
+        generateBtn.disabled = selectedCount === 0;
+        generateBtn.innerHTML = selectedCount > 0 ?
+            `<i class="fas fa-file-alt"></i> Generate Reports (${selectedCount})` :
+            '<i class="fas fa-file-alt"></i> Generate Selected Reports';
+    }
+
+    function generateReports(studentIds) {
+        const formData = new FormData(document.getElementById('reportOptionsForm'));
+        formData.append('student_ids', JSON.stringify(studentIds));
+        formData.append('batch_id', '{{ batch.id }}');
+
+        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        generateBtn.disabled = true;
+
+        // Simulate report generation
+        setTimeout(() => {
+            alert(`Successfully generated ${studentIds.length} reports!`);
+            generateBtn.innerHTML = '<i class="fas fa-file-alt"></i> Generate Selected Reports';
+            updateGenerateButtonState();
+        }, 3000);
+    }
+});
+
+function viewStudentReport(studentId) {
+    // Show loading in modal
+    const modal = new bootstrap.Modal(document.getElementById('reportPreviewModal'));
+    document.getElementById('reportPreviewContent').innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading student report...</p>
+        </div>
+    `;
+    modal.show();
+
+    // Simulate loading report
+    setTimeout(() => {
+        document.getElementById('reportPreviewContent').innerHTML = `
+            <div class="report-preview">
+                <div class="text-center mb-4">
+                    <h3>Skills Assessment Report</h3>
+                    <h5>Student Name - {{ batch.name }}</h5>
+                    <p class="text-muted">Assessment Period: Term 2, 2024</p>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Skills Categories</h5>
+                        <div class="mb-3">
+                            <h6>Language Development</h6>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-success" style="width: 85%"></div>
+                            </div>
+                            <p class="small">Shows excellent progress in vocabulary and sentence formation.</p>
+                        </div>
+                        <div class="mb-3">
+                            <h6>Motor Skills</h6>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-success" style="width: 92%"></div>
+                            </div>
+                            <p class="small">Demonstrates strong fine and gross motor coordination.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Teacher Observations</h5>
+                        <ul>
+                            <li>Actively participates in class discussions</li>
+                            <li>Shows improvement in social interactions</li>
+                            <li>Demonstrates creativity in activities</li>
+                        </ul>
+
+                        <h5>Recommendations</h5>
+                        <ul>
+                            <li>Continue encouraging reading at home</li>
+                            <li>Provide opportunities for group activities</li>
+                            <li>Maintain consistent routine</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        `;
+    }, 1000);
+}
+
+function downloadStudentReport(studentId) {
+    // Simulate download
+    const link = document.createElement('a');
+    link.href = '#'; // This would be the actual report URL
+    link.download = `student_report_${studentId}.pdf`;
+    link.click();
+
+    alert('Report download started...');
+}
+
+function previewReport() {
+    const selectedStudents = Array.from(document.querySelectorAll('.student-checkbox:checked'));
+    if (selectedStudents.length === 0) {
+        alert('Please select at least one student to preview.');
+        return;
+    }
+
+    // Use the first selected student for preview
+    const firstStudentId = selectedStudents[0].value;
+    viewStudentReport(firstStudentId);
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+{% endblock %}

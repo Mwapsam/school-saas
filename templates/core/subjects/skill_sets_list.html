@@ -1,0 +1,211 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:subjects_center' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-star' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Subject Skill Sets{% endblock %}
+
+{% block layout_table %}
+<div class="skill-sets-container">
+    <!-- Breadcrumb -->
+    
+
+    <!-- Page Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h2 class="mb-0">Subject Skill Sets</h2>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createSkillSetModal">
+            <i class="fas fa-plus me-2"></i>Create Skill Set
+        </button>
+    </div>
+
+    <!-- Description -->
+    <p class="text-muted mb-4">
+        Skills are parameters used to evaluate skill sets. Create Subject Skill Sets and assign them to subjects.
+        For example, Subject Skill Set English will have the skills Reading, Writing, Listening etc and Reading skill
+        will have sub skills Pronunciation, Comprehension, Fluency etc.
+    </p>
+
+    <!-- Skill Sets Table -->
+    <div class="card">
+        <div class="card-body">
+            {% if skill_sets %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Skill Set</th>
+                                <th class="text-center">No. of Subject skills</th>
+                                <th class="text-center">Formula</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for skill_set in skill_sets %}
+                            <tr>
+                                <td><strong>{{ skill_set.name }}</strong></td>
+                                <td class="text-center">{{ skill_set.skills_count }}</td>
+                                <td class="text-center">-</td>
+                                <td class="text-end">
+                                    <a href="{% url 'core:skillset_detail' skill_set.id %}" class="btn btn-link btn-sm">View</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if is_paginated %}
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted">
+                        Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} out of {{ paginator.count }}
+                    </div>
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination mb-0">
+                            {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo; previous</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">&laquo; previous</span>
+                            </li>
+                            {% endif %}
+
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">next &raquo;</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">next &raquo;</span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-tools fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No skill sets found</h5>
+                    <p class="text-muted">Create your first skill set to get started</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createSkillSetModal">
+                        <i class="fas fa-plus me-2"></i>Create First Skill Set
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Create Skill Set Modal -->
+<div class="modal fade" id="createSkillSetModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Skill Set</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="createSkillSetForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="skill_set_name" class="form-label">Skill Set Name</label>
+                        <p class="text-muted small">
+                            Skills are parameters used to evaluate subject exams. Create skill sets and assign to subjects.
+                            Example: Reading skills
+                        </p>
+                        <input type="text" class="form-control" id="skill_set_name" name="skill_set_name" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Calculation</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="calculate_scores" id="calculate_scores_yes" value="1" checked>
+                            <label class="form-check-label" for="calculate_scores_yes">
+                                <strong>Calculate Skill Scores</strong><br>
+                                <small class="text-muted">Select this option to calculate and display skill set marks in reports</small>
+                            </label>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="radio" name="calculate_scores" id="calculate_scores_no" value="0">
+                            <label class="form-check-label" for="calculate_scores_no">
+                                <strong>Don't Calculate Skill Scores</strong><br>
+                                <small class="text-muted">Select this option if you don't want to calculate total marks for a skill set</small>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-dark">Create Skill Set</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle Create Skill Set Form
+    document.getElementById('createSkillSetForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+
+        fetch("{% url 'core:create_skill_set_api' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Redirect to the new skill set detail page
+                window.location.href = `/skillsets/${data.skill_set_id}/`;
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while creating the skill set.');
+        });
+    });
+});
+
+// Helper function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

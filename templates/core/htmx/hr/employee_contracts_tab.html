@@ -1,0 +1,117 @@
+<div id="employee-contracts-content">
+    <div id="employee-contracts-errors" class="alert alert-danger d-none"></div>
+
+    {% if 'hr.contract.manage' in perms %}
+    <div class="pw-card mb-3">
+        <h2 class="h6 fw-bold">Add contract</h2>
+        <form onsubmit="submitContractCreate(event, '{{ employee.id }}')">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <label class="form-label">Type</label>
+                    <select class="form-select form-select-sm" name="contract_type">
+                        {% for value, label in contract_type_choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Start date</label>
+                    <input type="date" class="form-control form-control-sm" name="start_date" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">End date</label>
+                    <input type="date" class="form-control form-control-sm" name="end_date">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Probation ends</label>
+                    <input type="date" class="form-control form-control-sm" name="probation_end_date">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Notes</label>
+                    <input type="text" class="form-control form-control-sm" name="notes">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm mt-2">Add contract</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <div class="pinewood-table-responsive">
+        <table class="pinewood-table">
+            <thead>
+                <tr>
+                    <th>Type</th><th>Start</th><th>End</th>
+                    <th class="text-end">Days left</th><th>Status</th>
+                    {% if 'hr.contract.manage' in perms %}<th width="200">Actions</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in contracts %}
+                    <tr>
+                        <td>{{ c.get_contract_type_display }}</td>
+                        <td><small>{{ c.start_date|date:"M j, Y" }}</small></td>
+                        <td><small>{{ c.end_date|date:"M j, Y"|default:"—" }}</small></td>
+                        <td class="text-end">{{ c.days_remaining|default:"—" }}</td>
+                        <td>{{ c.get_renewal_status_display }}</td>
+                        {% if 'hr.contract.manage' in perms %}
+                        <td class="table-actions">
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-primary" title="Renew"
+                                    onclick="contractRenew('{{ c.id }}')"><i class="fas fa-sync"></i></button>
+                                <button type="button" class="btn btn-outline-secondary" title="Mark renewal pending"
+                                    onclick="contractDecision('{{ c.id }}', 'renewal_pending')">Pending</button>
+                                <button type="button" class="btn btn-outline-danger" title="Do not renew"
+                                    onclick="contractDecision('{{ c.id }}', 'not_renewed')">Don't renew</button>
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                {% empty %}
+                    <tr class="empty-state"><td colspan="6">No contracts recorded.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function _contractCsrf() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+function _swapContracts(status, text) {
+    if (status === 200) {
+        document.getElementById('employee-contracts-content').outerHTML = text;
+        if (typeof showAlert === 'function') showAlert('Saved', 'success');
+    } else {
+        const box = document.getElementById('employee-contracts-errors');
+        try { box.textContent = JSON.parse(text).error || 'An error occurred'; }
+        catch (e) { box.textContent = 'An error occurred'; }
+        box.classList.remove('d-none');
+    }
+}
+function submitContractCreate(event, employeeId) {
+    event.preventDefault();
+    const body = new FormData(event.target);
+    fetch(`/hr/contracts/employee/${employeeId}/create/`, {
+        method: 'POST', headers: { 'X-CSRFToken': _contractCsrf() }, body,
+    }).then(r => r.text().then(t => _swapContracts(r.status, t)));
+}
+function contractDecision(contractId, decision) {
+    const body = new FormData();
+    body.append('decision', decision);
+    fetch(`/hr/contracts/${contractId}/decision/`, {
+        method: 'POST', headers: { 'X-CSRFToken': _contractCsrf() }, body,
+    }).then(r => r.text().then(t => _swapContracts(r.status, t)));
+}
+function contractRenew(contractId) {
+    const start = prompt('New start date (YYYY-MM-DD):');
+    if (!start) return;
+    const end = prompt('New end date (YYYY-MM-DD, blank for open-ended):') || '';
+    const body = new FormData();
+    body.append('new_start_date', start);
+    body.append('new_end_date', end);
+    fetch(`/hr/contracts/${contractId}/renew/`, {
+        method: 'POST', headers: { 'X-CSRFToken': _contractCsrf() }, body,
+    }).then(r => r.text().then(t => _swapContracts(r.status, t)));
+}
+</script>

@@ -1,0 +1,95 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:hr_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-clipboard-list' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block page_title %}Employee Attendance{% endblock %}
+
+{% block layout_table %}
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="date" class="form-label">Date</label>
+                <input type="date" class="form-control" id="date" name="date" value="{{ target_date|date:'Y-m-d' }}" onchange="this.form.submit()">
+            </div>
+        </form>
+    </div>
+</div>
+
+<form id="attendance-form" onsubmit="submitAttendance(event)">
+    {% csrf_token %}
+    <input type="hidden" name="date" value="{{ target_date|date:'Y-m-d' }}">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Mark Attendance &mdash; {{ target_date|date:"F j, Y" }}</h5>
+            <button type="submit" class="btn btn-primary btn-sm">Save Attendance</button>
+        </div>
+        <div class="pinewood-table-responsive">
+            <table class="pinewood-table">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th class="d-none d-md-table-cell">Department</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            <td>
+                                <strong>{{ row.employee.first_name }} {{ row.employee.last_name }}</strong>
+                                <input type="hidden" name="employee_id" value="{{ row.employee.id }}">
+                            </td>
+                            <td class="d-none d-md-table-cell">{{ row.employee.employee_department.name|default:"—" }}</td>
+                            <td>
+                                <select class="form-select form-select-sm" name="status_{{ row.employee.id }}" style="max-width: 160px;">
+                                    <option value="present" {% if row.attendance.status == 'present' or not row.attendance %}selected{% endif %}>Present</option>
+                                    <option value="absent" {% if row.attendance.status == 'absent' %}selected{% endif %}>Absent</option>
+                                    <option value="on_leave" {% if row.attendance.status == 'on_leave' %}selected{% endif %}>On Leave</option>
+                                    <option value="half_day" {% if row.attendance.status == 'half_day' %}selected{% endif %}>Half Day</option>
+                                    <option value="holiday" {% if row.attendance.status == 'holiday' %}selected{% endif %}>Holiday</option>
+                                </select>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr class="empty-state"><td colspan="3">No employees found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</form>
+
+<script>
+function submitAttendance(event) {
+    event.preventDefault();
+    const form = document.getElementById('attendance-form');
+    fetch("{% url 'core:hr_attendance_mark' %}", {
+        method: 'POST',
+        headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+        body: new FormData(form),
+    })
+        .then((r) => r.json())
+        .then((data) => {
+            if (data.success) {
+                showAlert(`Attendance saved for ${data.marked} employee(s)`, 'success');
+            } else {
+                showAlert(data.error || 'An error occurred', 'danger');
+            }
+        })
+        .catch(() => showAlert('An error occurred', 'danger'));
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+    alertDiv.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => { if (alertDiv.parentNode) alertDiv.parentNode.removeChild(alertDiv); }, 3000);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% comment %}
+Pinewood stat cards — a responsive grid of summary numbers.
+
+Usage:
+  {% include 'core/components/stat_cards.html' with stats=stats %}
+
+  {# With a colored icon (consolidates the hand-rolled white/colored-icon
+     stat cards found on admission/list.html and similar summary rows): #}
+  {% include 'core/components/stat_cards.html' with stats=stats %}
+  {# stats = [{'label': 'Total Applications', 'value': 12, 'icon': 'fa-file-alt', 'variant': 'primary'}] #}
+
+Params:
+  stats (required) — list of {label, value, small?, icon?, variant?}.
+                     `small: True` shrinks the value (e.g. a year string like "AY2025").
+                     `icon` (Font Awesome class) renders a colored icon above the value;
+                     `variant` (primary/warning/success/danger, default "primary") sets its color.
+{% endcomment %}
+<div class="pw-stat-grid">
+  {% for s in stats %}
+  <div class="pw-stat-card{% if s.icon %} pw-stat-card--icon{% endif %}">
+    {% if s.icon %}<div class="pw-stat-icon text-{{ s.variant|default:'primary' }}"><i class="fas {{ s.icon }} fa-2x"></i></div>{% endif %}
+    <p class="pw-stat-label">{{ s.label }}</p>
+    <p class="pw-stat-value{% if s.small %} pw-stat-sm{% endif %}">{{ s.value }}</p>
+  </div>
+  {% endfor %}
+</div>

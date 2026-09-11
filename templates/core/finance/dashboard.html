@@ -1,0 +1,31 @@
+{% extends 'core/layouts/dashboard.html' %}
+
+{% block page_title %}Finance Dashboard{% endblock %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Finance" description="Fee structure, collections, tracking and reports" icon="fa-briefcase" actions=header_actions back_url=back_url|default:back_fallback %}
+<div class="d-flex justify-content-end mb-3">
+    {% include 'core/finance/_year_selector.html' %}
+</div>
+{% endblock %}
+
+{% block layout_primary %}
+<!-- Workflow Nav -->
+{% include 'core/finance/_workflow_nav.html' %}
+
+<div class="row g-3">
+    {% for tile in dashboard_tiles %}
+    <div class="col-md-6">
+        {% include 'core/components/nav_tile.html' with icon=tile.icon title=tile.title description=tile.description url=tile.url %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block layout_secondary %}
+<!-- Footer links -->
+<div class="text-center text-muted small mt-4">
+    <a href="{% url 'core:quickbooks_settings' %}" class="text-muted text-decoration-none">QuickBooks</a>
+</div>
+{% endblock %}

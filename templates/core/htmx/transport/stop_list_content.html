@@ -1,0 +1,44 @@
+<div class="pinewood-table-responsive">
+  <table class="pinewood-table">
+    <thead>
+      <tr>
+        <th>No.</th><th>Name</th><th class="d-none d-md-table-cell">Address</th>
+        <th class="d-none d-md-table-cell">Landmark</th><th>Status</th><th width="140">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+        <tr>
+          <td class="text-center">{{ forloop.counter0|add:page_obj.start_index }}</td>
+          <td><strong>{{ item.name }}</strong></td>
+          <td class="d-none d-md-table-cell">{{ item.address|default:"—" }}</td>
+          <td class="d-none d-md-table-cell">{{ item.landmark|default:"—" }}</td>
+          <td>
+            {% if item.is_active %}<span class="badge bg-success">Active</span>
+            {% else %}<span class="badge bg-warning">Inactive</span>{% endif %}
+          </td>
+          <td class="table-actions">
+            <div class="btn-group btn-group-sm" role="group">
+              <button type="button" class="btn btn-outline-secondary btn-sm" title="Edit"
+                data-entity="stops"
+                data-row='{"id":"{{ item.id }}","name":"{{ item.name|escapejs }}","address":"{{ item.address|escapejs }}","landmark":"{{ item.landmark|escapejs }}","latitude":"{{ item.latitude|default_if_none:'' }}","longitude":"{{ item.longitude|default_if_none:'' }}"}'
+                onclick="transportOpenEdit(this)"><i class="fas fa-edit"></i></button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" title="Toggle status"
+                onclick="transportAction('stops','toggle','{{ item.id }}')">
+                <i class="fas {% if item.is_active %}fa-pause{% else %}fa-play{% endif %}"></i></button>
+              <button type="button" class="btn btn-outline-danger btn-sm" title="Delete"
+                onclick="transportAction('stops','delete','{{ item.id }}','Delete stop {{ item.name|escapejs }}?')">
+                <i class="fas fa-trash"></i></button>
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">
+          No stops yet.
+          <a href="#" onclick="transportOpenAdd('stops');return false;">Add the first one</a>.
+        </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include 'core/htmx/transport/_pager.html' with list_url='/transport/stops/list/' entity='stops' %}

@@ -1,0 +1,34 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead><tr><th>Employee</th><th>Kind</th><th>Period</th><th>Date</th><th>Reviewer</th><th>Rating</th><th>Status</th><th width="70"></th></tr></thead>
+        <tbody>
+            {% for r in reviews %}
+                <tr>
+                    <td><strong>{{ r.employee.first_name }} {{ r.employee.last_name }}</strong></td>
+                    <td>{% if r.is_teacher_review %}Teacher{% else %}General{% endif %}</td>
+                    <td>{{ r.review_period }}</td>
+                    <td><small>{{ r.review_date|date:"M j, Y" }}</small></td>
+                    <td><small>{{ r.reviewer.first_name }} {{ r.reviewer.last_name }}</small></td>
+                    <td>{{ r.overall_rating|default:"—" }}</td>
+                    <td>
+                        {% if r.status == 'completed' %}<span class="badge bg-success">Completed</span>
+                        {% else %}<span class="badge bg-warning">{{ r.get_status_display }}</span>{% endif %}
+                    </td>
+                    <td><a class="btn btn-outline-primary btn-sm" href="{% url 'core:hr_performance_detail' r.id %}">Open</a></td>
+                </tr>
+            {% empty %}
+                <tr class="empty-state"><td colspan="8">No reviews found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if is_paginated %}
+<div class="pinewood-table-pagination">
+    <nav><ul class="pagination pagination-sm justify-content-center mb-0">
+        {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" hx-get="{% url 'core:hr_performance_list' %}?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" hx-target="#performance-list-content">Previous</a></li>{% endif %}
+        <li class="page-item active"><span class="page-link">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}<li class="page-item"><a class="page-link" hx-get="{% url 'core:hr_performance_list' %}?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" hx-target="#performance-list-content">Next</a></li>{% endif %}
+    </ul></nav>
+</div>
+{% endif %}

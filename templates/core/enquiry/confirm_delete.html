@@ -1,0 +1,115 @@
+{% extends 'core/layouts/form.html' %}
+
+{% block layout_header %}
+{% url 'core:enquiry_list' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-trash' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Delete Enquiry{% endblock %}
+
+{% block layout_form %}
+<div class="container-lg py-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle me-2 text-danger"></i>
+                <h2 class="h3 mb-0 text-danger">Delete Enquiry</h2>
+            </div>
+        </div>
+        <div>
+            <a href="{% url 'core:enquiry_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Enquiries
+            </a>
+        </div>
+    </div>
+
+    <!-- Breadcrumb -->
+    
+
+    <!-- Delete Confirmation Card -->
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Confirm Deletion
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger" role="alert">
+                        <h6><strong>Warning!</strong></h6>
+                        <p class="mb-0">This action cannot be undone. All data associated with this enquiry will be permanently deleted.</p>
+                    </div>
+
+                    <!-- Enquiry Details -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold">You are about to delete:</h6>
+                        <div class="bg-light p-3 rounded">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Enquiry Number:</strong> {{ object.enquiry_number }}</p>
+                                    <p class="mb-1"><strong>Student Name:</strong> {{ object.first_name }} {{ object.last_name }}</p>
+                                    <p class="mb-1"><strong>Email:</strong> {{ object.email|default:"Not provided" }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Phone:</strong> {{ object.phone|default:"Not provided" }}</p>
+                                    <p class="mb-1"><strong>Course:</strong> {{ object.course.name|default:"Not specified" }}</p>
+                                    <p class="mb-1"><strong>Enquired Date:</strong> {{ object.enquired_date|date:"M d, Y" }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Related Data Warning -->
+                    <div class="alert alert-warning" role="alert">
+                        <h6><strong>The following related data will also be deleted:</strong></h6>
+                        <ul class="mb-0">
+                            <li>All stage history and logs</li>
+                            <li>Follow-up records and notes</li>
+                            <li>Any uploaded documents</li>
+                            <li>Communication history</li>
+                        </ul>
+                    </div>
+
+                    <!-- Confirmation Form -->
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="confirmDelete" required>
+                            <label class="form-check-label" for="confirmDelete">
+                                I understand that this action cannot be undone and I want to permanently delete this enquiry.
+                            </label>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-danger" id="deleteBtn" disabled>
+                                <i class="fas fa-trash me-1"></i> Yes, Delete Enquiry
+                            </button>
+                            <a href="{% url 'core:enquiry_detail' pk=object.pk %}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmCheckbox = document.getElementById('confirmDelete');
+    const deleteBtn = document.getElementById('deleteBtn');
+
+    confirmCheckbox.addEventListener('change', function() {
+        deleteBtn.disabled = !this.checked;
+    });
+});
+</script>
+{% endblock %}

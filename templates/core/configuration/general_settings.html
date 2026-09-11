@@ -1,0 +1,50 @@
+{% extends 'core/layouts/form.html' %}
+{% block page_title %}General Settings{% endblock %}
+
+{% block layout_header %}
+{% url 'core:configuration' as back_fallback %}
+{% include 'core/components/page_header.html' with title="General Settings" description="Institution-wide preferences" icon="fa-sliders-h" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_form %}
+<form method="post" class="pw-card p-3" style="max-width:640px">
+  {% csrf_token %}
+  <div class="mb-3">
+    <label class="form-label">Date format</label>
+    <select name="date_format" class="form-select">
+      <option value="d/m/Y" {% if settings.date_format == 'd/m/Y' %}selected{% endif %}>DD/MM/YYYY</option>
+      <option value="m/d/Y" {% if settings.date_format == 'm/d/Y' %}selected{% endif %}>MM/DD/YYYY</option>
+      <option value="Y-m-d" {% if settings.date_format == 'Y-m-d' %}selected{% endif %}>YYYY-MM-DD</option>
+    </select>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Week starts on</label>
+    <select name="week_start" class="form-select">
+      <option value="monday" {% if settings.week_start == 'monday' %}selected{% endif %}>Monday</option>
+      <option value="sunday" {% if settings.week_start == 'sunday' %}selected{% endif %}>Sunday</option>
+    </select>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Currency symbol</label>
+    <input type="text" name="currency_symbol" class="form-control" value="{{ settings.currency_symbol }}" maxlength="6">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Academic terms per year</label>
+    <input type="number" name="academic_terms_per_year" class="form-control" value="{{ settings.academic_terms_per_year }}" min="1" max="6">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Lock attendance after (days)</label>
+    <input type="number" name="attendance_lock_after_days" class="form-control" value="{{ settings.attendance_lock_after_days }}" min="0" max="90">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Default pass percentage</label>
+    <input type="number" name="default_pass_percentage" class="form-control" value="{{ settings.default_pass_percentage }}" min="0" max="100">
+  </div>
+  <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Save settings</button>
+</form>
+<p class="text-muted small mt-3" style="max-width:640px">
+  Attendance rules, grading scales and report branding have their own dedicated screens
+  (<a href="{% url 'core:attendance_settings' %}">Attendance Settings</a>,
+  <a href="{% url 'core:school_settings' %}">School Settings</a>).
+</p>
+{% endblock %}

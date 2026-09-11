@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Payslip {{ payslip.employee.employee_number }}</title>
+<style>
+@page { size: A4 portrait; margin: 14mm; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #1a1a1a; }
+.hdr { text-align: center; border-bottom: 2pt solid #17833f; padding-bottom: 6pt; margin-bottom: 10pt; }
+.hdr-name { font-size: 16pt; font-weight: bold; color: #17833f; }
+.title { text-align: center; font-size: 12pt; font-weight: bold; background: #e8f5e8; color: #125e2d; padding: 4pt; margin-bottom: 10pt; }
+.meta { width: 100%; margin-bottom: 10pt; }
+.meta td { padding: 3pt 4pt; font-size: 9.5pt; vertical-align: top; }
+.meta .lbl { color: #666; width: 25%; }
+.meta .val { font-weight: bold; }
+table.lines { width: 100%; border-collapse: collapse; margin-top: 8pt; }
+table.lines th, table.lines td { border: 0.5pt solid #ccc; padding: 4pt 6pt; text-align: left; }
+table.lines th { background: #f0f0f0; }
+.totals { width: 100%; margin-top: 10pt; }
+.totals td { padding: 3pt 6pt; }
+.net-box { border: 1pt solid #9c9c9c; padding: 8pt; text-align: center; margin: 10pt 0; }
+.net-box .lbl { font-size: 8pt; color: #666; text-transform: uppercase; }
+.net-box .val { font-size: 16pt; font-weight: bold; color: #17833f; }
+.foot { margin-top: 20pt; font-size: 8pt; color: #666; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+    <div class="hdr-name">{{ school.name }}</div>
+</div>
+<div class="title">PAYSLIP</div>
+
+<table class="meta">
+    <tr>
+        <td class="lbl">Employee</td>
+        <td class="val">{{ payslip.employee.first_name }} {{ payslip.employee.last_name }} ({{ payslip.employee.employee_number }})</td>
+        <td class="lbl">Period</td>
+        <td class="val">{{ payslip.period_start|date:"M j" }} &ndash; {{ payslip.period_end|date:"M j, Y" }}</td>
+    </tr>
+    {% if settings.show_bank_details and profile %}
+    <tr>
+        <td class="lbl">Bank</td>
+        <td class="val">{{ profile.bank_name|default:"—" }}</td>
+        <td class="lbl">Account No.</td>
+        <td class="val">{{ profile.bank_account_number|default:"—" }}</td>
+    </tr>
+    {% endif %}
+</table>
+
+<table class="lines">
+    <thead><tr><th>Earnings</th><th style="text-align:right;">Amount</th></tr></thead>
+    <tbody>
+        {% for line in earnings %}
+            <tr><td>{{ line.category_name_snapshot }}</td><td style="text-align:right;">{{ line.amount }}</td></tr>
+        {% empty %}
+            <tr><td colspan="2">No earnings recorded.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<table class="lines">
+    <thead><tr><th>Deductions</th><th style="text-align:right;">Amount</th></tr></thead>
+    <tbody>
+        {% for line in deductions %}
+            <tr><td>{{ line.category_name_snapshot }}</td><td style="text-align:right;">{{ line.amount }}</td></tr>
+        {% empty %}
+            <tr><td colspan="2">No deductions recorded.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<table class="totals">
+    <tr><td>Gross Earnings</td><td style="text-align:right;">{{ gross_display }}</td></tr>
+    <tr><td>Total Deductions</td><td style="text-align:right;">{{ deductions_display }}</td></tr>
+</table>
+
+<div class="net-box">
+    <div class="lbl">Net Pay</div>
+    <div class="val">{{ net_display }}</div>
+</div>
+
+{% if settings.footer_text %}
+<div class="foot">{{ settings.footer_text }}</div>
+{% endif %}
+
+</body>
+</html>

@@ -1,0 +1,75 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead>
+            <tr>
+                <th>No.</th>
+                <th>Employee</th>
+                <th>Leave Type</th>
+                <th>Dates</th>
+                <th class="d-none d-md-table-cell">Reason</th>
+                <th>Status</th>
+                <th width="160">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for leave in leaves %}
+                <tr>
+                    <td class="text-center">{{ forloop.counter0|add:page_obj.start_index }}</td>
+                    <td><strong>{{ leave.employee.first_name }} {{ leave.employee.last_name }}</strong></td>
+                    <td>{{ leave.leave_type.name|default:"—" }}</td>
+                    <td><small>{{ leave.start_date|date:"M j" }} &ndash; {{ leave.end_date|date:"M j, Y" }}</small></td>
+                    <td class="d-none d-md-table-cell"><small class="text-muted">{{ leave.reason|truncatechars:60 }}</small></td>
+                    <td>
+                        {% if leave.status == 'approved' %}
+                            <span class="badge bg-success">Approved</span>
+                        {% elif leave.status == 'rejected' %}
+                            <span class="badge bg-danger">Rejected</span>
+                        {% else %}
+                            <span class="badge bg-warning">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td class="table-actions">
+                        {% if leave.status == 'pending' and 'hr.leave.approve' in perms %}
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-success btn-sm" title="Approve" onclick="approveLeave('{{ leave.id }}')">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" title="Reject" onclick="rejectLeave('{{ leave.id }}')">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% else %}
+                            <small class="text-muted">
+                                {% if leave.approved_by %}by {{ leave.approved_by.first_name }} {{ leave.approved_by.last_name }}{% endif %}
+                            </small>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr class="empty-state">
+                    <td colspan="7">No leave requests found.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if is_paginated %}
+    <div class="pinewood-table-pagination">
+        <nav>
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" hx-get="{% url 'core:hr_leave_list' %}?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}" hx-target="#leave-list-content" data-loading>Previous</a>
+                    </li>
+                {% endif %}
+                <li class="page-item active"><span class="page-link">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span></li>
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" hx-get="{% url 'core:hr_leave_list' %}?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}" hx-target="#leave-list-content" data-loading>Next</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+{% endif %}

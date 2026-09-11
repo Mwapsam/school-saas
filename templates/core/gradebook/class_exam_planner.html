@@ -1,0 +1,251 @@
+{% extends 'core/layouts/detail.html' %}
+{% load static %}
+
+{% block page_title %}{{ course.course_name }} - Exam Planner{% endblock %}
+
+
+{% block layout_header %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <span class="pw-breadcrumb">
+        <a href="{% url 'core:dashboard' %}">Home</a>
+        <span class="pw-breadcrumb-sep">›</span>
+        <a href="{% url 'core:gradebook_index' %}">Gradebook</a>
+        <span class="pw-breadcrumb-sep">›</span>
+        <a href="{% url 'core:gradebook_management' %}">Manage Gradebook</a>
+        <span class="pw-breadcrumb-sep">›</span>
+        <span class="pw-breadcrumb-current">{{ course.course_name }}</span>
+    </span>
+</nav>
+{% url 'core:exam_planners_list' as back_fallback %}
+{% include 'core/components/page_header.html' with title=course.course_name description=class_planner_description icon="fa-book-open" actions=header_actions back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_summary %}
+<div class="gb-class-exam-planner">
+<div class="ep-info-grid">
+    <div class="ep-info-cell">
+        <div class="label">Class</div>
+        <div class="value">{{ course.course_name }}</div>
+    </div>
+    <div class="ep-info-cell">
+        <div class="label">Academic Year</div>
+        <div class="value">{{ current_academic_year.name|default:"—" }}</div>
+    </div>
+    <div class="ep-info-cell">
+        <div class="label">Batches</div>
+        <div class="value">{{ related_batches_count|default:"0" }}</div>
+    </div>
+    <div class="ep-info-cell">
+        <div class="label">Students</div>
+        <div class="value">{{ total_students|default:"0" }}</div>
+    </div>
+</div>
+
+{% if user.is_superuser %}
+<div class="ep-debug">
+    <strong>Debug:</strong> Course: {{ course.course_name }} ({{ course.id }}),
+    Batches current year: {{ related_batches_count }},
+    Batches all years: {{ all_course_batches_count }},
+    Exam planners: {{ exam_planners|length }},
+    Year: {{ current_academic_year.name|default:"none (no active year set)" }}
+</div>
+{% endif %}
+
+<!-- Exam Year Plan Summary -->
+<div class="pw-card mb-4">
+    <div class="pw-card-header">
+        <span class="pw-card-title">Exam Year Plan</span>
+        <div style="display:flex;gap:0.5rem;align-items:center">
+            {% if exam_planners %}
+                {% with planner=exam_planners.0 %}
+                <a href="{% url 'core:exam_plan_detail' planner.id %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-edit me-1"></i>Edit Exams
+                </a>
+                <a href="{% url 'core:manage_exam_plan_classes' planner.id %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-users me-1"></i>Manage Classes
+                </a>
+                {% endwith %}
+            {% endif %}
+        </div>
+    </div>
+    <div style="padding:1rem 1.25rem">
+        <div style="font-size:0.88rem;color:var(--color-muted)">
+            Exam Planner — <strong style="color:var(--color-text)">{{ course.course_name }} {{ current_academic_year.name|default:"2025" }}</strong>
+        </div>
+        <div class="ep-stats-row">
+            <div class="ep-stats-cell">
+                <div class="stat-label">Terms</div>
+                <div class="stat-val">{{ terms|length|default:"0" }}</div>
+            </div>
+            <div class="ep-stats-cell">
+                <div class="stat-label">Subject Exams</div>
+                <div class="stat-val">{{ subject_exams_count|default:"0" }}</div>
+            </div>
+            <div class="ep-stats-cell">
+                <div class="stat-label">Attribute Exams</div>
+                <div class="stat-val">{{ attribute_exams_count|default:"0" }}</div>
+            </div>
+            <div class="ep-stats-cell">
+                <div class="stat-label">Activity Exams</div>
+                <div class="stat-val">{{ activity_exams_count|default:"0" }}</div>
+            </div>
+            <div class="ep-stats-cell">
+                <div class="stat-label">Derived Exams</div>
+                <div class="stat-val">{{ derived_exams_count|default:"0" }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block layout_sections %}
+<div class="gb-class-exam-planner">
+<!-- Per-batch Exam Groups -->
+{% for planner in exam_planners %}
+<div class="pw-card mb-3">
+    <div class="ep-batch-header">
+        <div>
+            <p class="ep-batch-title">
+                {{ planner.batch.name }}
+                {% if planner.is_published %}
+                    <span class="pw-badge pw-badge-active ms-2">Active</span>
+                {% else %}
+                    <span class="pw-badge pw-badge-zero ms-2">Inactive</span>
+                {% endif %}
+            </p>
+            <p class="ep-batch-sub">{{ planner.name }}</p>
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:center">
+            <a href="{% url 'core:exam_group_marks_entry' planner.id %}"
+               class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-list me-1"></i>View All Exams
+            </a>
+            {% if not planner.is_published %}
+            <button type="button" class="btn btn-primary btn-sm"
+                    onclick="toggleExamStatus('{{ planner.id }}', true)">
+                <i class="fas fa-toggle-on me-1"></i>Activate
+            </button>
+            {% else %}
+            <button type="button" class="btn btn-outline-warning btn-sm"
+                    onclick="toggleExamStatus('{{ planner.id }}', false)">
+                <i class="fas fa-toggle-off me-1"></i>Deactivate
+            </button>
+            {% endif %}
+            <div class="dropdown">
+                <button class="ep-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Actions">⋮</button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="#">Student Term Reports</a></li>
+                    <li><a class="dropdown-item" href="#">Generate Term Reports</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% include 'core/components/table_open.html' %}
+                <thead>
+                    <tr>
+                        <th scope="col">Exam Group</th>
+                        <th scope="col">Exam Mode</th>
+                        <th scope="col" style="width:140px"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% if planner.exams_list %}
+                    {% for exam in planner.exams_list %}
+                    <tr>
+                        <td>{{ exam.name }}</td>
+                        <td style="color:var(--color-muted);font-size:0.82rem">{{ exam.exam_mode }}</td>
+                        <td class="text-end">
+
+                            <div class="dropdown d-inline-block">
+                                <button class="ep-menu-btn" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" title="More">⋮</button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#"
+                                           onclick="deleteExamType('{{ planner.id }}', '{{ exam.exam_name|escapejs }}', '{{ exam.exam_code|escapejs }}', '{{ exam.name|escapejs }}'); return false;">
+                                            <i class="fas fa-trash me-2"></i>Delete
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="3">
+                            {% include 'core/components/empty_state.html' with title="No exam groups created for this batch." icon="fa-clipboard-list" %}
+                        </td>
+                    </tr>
+                {% endif %}
+                </tbody>
+    {% include 'core/components/table_close.html' %}
+</div>
+{% empty %}
+<div class="ep-no-planner">
+    <i class="fas fa-info-circle me-2" style="color:var(--color-brand)"></i>
+    No exam planners found for <strong>{{ course.course_name }}</strong>{% if current_academic_year %} ({{ current_academic_year.name }}){% endif %}.
+    {% if related_batches_count %}
+        <a href="{% url 'core:create_exam_plan' %}" style="color:var(--color-brand);font-weight:600">Create an exam planner</a> for this class to get started.
+        You can also <a href="{% url 'core:exam_planners_list' %}" style="color:var(--color-brand);font-weight:600">view all exam planners</a> to check if one already exists under a different academic year.
+    {% elif all_course_batches_count %}
+        Batches exist for this class but none are in the current academic year ({{ current_academic_year.name|default:"not set" }}).
+        Check the <a href="{% url 'core:exam_planners_list' %}" style="color:var(--color-brand);font-weight:600">exam planners list</a> to see if a planner already exists.
+    {% else %}
+        This class has no batches set up yet. Create batches for <strong>{{ course.course_name }}</strong> first, then
+        <a href="{% url 'core:exam_planners_list' %}" style="color:var(--color-brand);font-weight:600">create an exam planner</a>.
+    {% endif %}
+</div>
+{% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleExamStatus(examGroupId, shouldPublish) {
+    const action = shouldPublish ? 'activate' : 'deactivate';
+    const label  = shouldPublish ? 'Activate'  : 'Deactivate';
+    const type   = shouldPublish ? 'success'   : 'danger';
+
+    showConfirm(`Are you sure you want to ${action} this exam group?`, function() {
+        fetch(`/academic/publish-exam-group/${examGroupId}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`Exam group ${action}d successfully`, 'success');
+                location.reload();
+            } else {
+                showToast(data.error || 'Failed to update exam status', 'danger');
+            }
+        })
+        .catch(() => showToast('Error updating exam status', 'danger'));
+    }, label, type);
+}
+
+function deleteExamType(examGroupId, examName, examCode, displayName) {
+    const label = displayName || examName || examCode || 'this exam';
+    showConfirm(`Delete "${label}" from this exam group? This will remove all subject exam records for this type and cannot be undone.`, function() {
+        const fd = new FormData();
+        fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        fd.append('exam_group_id', examGroupId);
+        if (examName) fd.append('exam_name', examName);
+        if (examCode) fd.append('exam_code', examCode);
+
+        fetch('{% url "core:delete_exam_type_api" %}', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message || 'Deleted successfully', 'success');
+                    location.reload();
+                } else {
+                    showToast(data.error || 'Delete failed', 'danger');
+                }
+            })
+            .catch(() => showToast('Error deleting exam type', 'danger'));
+    }, 'Delete', 'danger');
+}
+</script>
+{% endblock %}

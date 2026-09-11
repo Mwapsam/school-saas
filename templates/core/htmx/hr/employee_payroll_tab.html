@@ -1,0 +1,65 @@
+<div id="employee-payroll-content">
+    <div id="employee-payroll-errors" class="alert alert-danger d-none"></div>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="payroll-group-select" class="form-label">Payroll Group</label>
+            <select class="form-select" id="payroll-group-select">
+                <option value="">No payroll group</option>
+                {% for group in payroll_groups %}
+                    <option value="{{ group.id }}" {% if profile.payroll_group_id == group.id %}selected{% endif %}>{{ group.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label for="basic-pay-amount" class="form-label">Basic Pay Amount</label>
+            <input type="number" step="0.01" class="form-control" id="basic-pay-amount" value="{{ profile.basic_pay_amount|default:'0' }}">
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label for="bank-name" class="form-label">Bank Name</label>
+            <input type="text" class="form-control" id="bank-name" value="{{ profile.bank_name|default:'' }}">
+        </div>
+        <div class="col-md-4 mb-3">
+            <label for="bank-account-number" class="form-label">Account Number</label>
+            <input type="text" class="form-control" id="bank-account-number" value="{{ profile.bank_account_number|default:'' }}">
+        </div>
+        <div class="col-md-4 mb-3">
+            <label for="bank-branch" class="form-label">Bank Branch</label>
+            <input type="text" class="form-control" id="bank-branch" value="{{ profile.bank_branch|default:'' }}">
+        </div>
+    </div>
+    <div class="mb-3">
+        <label for="effective-date" class="form-label">Effective Date</label>
+        <input type="date" class="form-control" id="effective-date" value="{{ profile.effective_date|date:'Y-m-d'|default:'' }}" style="max-width: 200px;">
+    </div>
+    <button type="button" class="btn btn-primary btn-sm" onclick="submitEmployeePayrollProfile('{{ employee_id }}')">Save Payroll Profile</button>
+</div>
+
+<script>
+function submitEmployeePayrollProfile(employeeId) {
+    const body = new FormData();
+    body.append('payroll_group_id', document.getElementById('payroll-group-select').value);
+    body.append('basic_pay_amount', document.getElementById('basic-pay-amount').value || '0');
+    body.append('bank_name', document.getElementById('bank-name').value);
+    body.append('bank_account_number', document.getElementById('bank-account-number').value);
+    body.append('bank_branch', document.getElementById('bank-branch').value);
+    body.append('effective_date', document.getElementById('effective-date').value);
+
+    fetch(`/employees/${employeeId}/payroll/update/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+        body: body,
+    })
+        .then((response) => response.text().then((text) => ({ status: response.status, text })))
+        .then(({ status, text }) => {
+            if (status === 200) {
+                document.getElementById('employee-payroll-content').outerHTML = text;
+                if (typeof showAlert === 'function') showAlert('Payroll profile saved', 'success');
+            } else {
+                document.getElementById('employee-payroll-errors').textContent = 'An error occurred while saving.';
+                document.getElementById('employee-payroll-errors').classList.remove('d-none');
+            }
+        });
+}
+</script>

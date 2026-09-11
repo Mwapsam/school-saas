@@ -1,0 +1,42 @@
+{% extends 'core/layouts/form.html' %}
+{% block page_title %}Transport Settings{% endblock %}
+
+{% block layout_header %}
+  <nav aria-label="breadcrumb" class="mb-3"><ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'core:transport' %}">Transport</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Settings</li>
+  </ol></nav>
+  {% url 'core:transport' as back_fallback %}
+  {% include 'core/components/page_header.html' with title="Transport Settings" description="Defaults and billing for the current academic year." icon="fa-cog" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_form %}
+  {% if settings_error %}
+    {% include 'core/components/alert.html' with message=settings_error variant="error" %}
+  {% elif settings %}
+    <form method="post" action="{% url 'core:transport_settings_update' %}" class="pw-card">
+      {% csrf_token %}
+      <p class="text-muted">Academic year: <strong>{{ settings.academic_year }}</strong> &middot;
+        Fee category: <strong>{{ settings.fee_category.name|default:"Transport Fee" }}</strong></p>
+      <div class="row g-2">
+        <div class="col-md-6">
+          {% include 'core/components/form_field.html' with name="default_pickup_time" label="Default pickup time" value=settings.default_pickup_time|default_if_none:'' attrs='placeholder="HH:MM"' %}
+        </div>
+        <div class="col-md-6">
+          {% include 'core/components/form_field.html' with name="default_dropoff_time" label="Default drop-off time" value=settings.default_dropoff_time|default_if_none:'' attrs='placeholder="HH:MM"' %}
+        </div>
+        <div class="col-md-6">
+          {% include 'core/components/form_field.html' with name="billing_frequency" label="Billing frequency" type="select" options=frequency_choices value=settings.billing_frequency %}
+        </div>
+      </div>
+      <div class="mt-2">
+        {% include 'core/components/form_field.html' with name="attendance_tracking_enabled" label="Enable transport attendance tracking" type="checkbox" checked=settings.attendance_tracking_enabled attrs='value="1"' %}
+        {% include 'core/components/form_field.html' with name="notify_on_changes" label="Notify guardians on route / schedule changes" type="checkbox" checked=settings.notify_on_changes attrs='value="1"' %}
+      </div>
+      <div class="mt-3">
+        <button type="submit" class="pw-btn pw-btn-primary">Save settings</button>
+        <a href="{% url 'core:transport' %}" class="pw-btn pw-btn-outline">Back</a>
+      </div>
+    </form>
+  {% endif %}
+{% endblock %}

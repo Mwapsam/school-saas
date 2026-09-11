@@ -1,0 +1,339 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-inbox' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Applicant Enquiries{% endblock %}
+
+
+
+{% block layout_table %}
+{# ── Breadcrumb ── #}
+
+
+{# ── Page header ── #}
+<div class="enq-header">
+    <div class="enq-header-icon" aria-hidden="true">
+        <i class="fas fa-question-circle"></i>
+    </div>
+    <div class="enq-header-body">
+        <h1>Applicant Enquiries</h1>
+        <p>Track and manage pre-admission enquiries from prospective students and their guardians</p>
+    </div>
+    <div class="d-flex gap-2 flex-shrink-0">
+        <a href="{% url 'core:enquiry_export' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
+           class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-download me-1" aria-hidden="true"></i>Export
+        </a>
+        <a href="{% url 'core:enquiry_create' %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus me-1" aria-hidden="true"></i>New Enquiry
+        </a>
+    </div>
+</div>
+
+{# ── Filters ── #}
+<div class="enq-filter">
+    <form method="get" id="filterForm">
+        <div class="enq-filter-row">
+            <div class="enq-filter-group" style="flex:1;min-width:180px">
+                <label for="{{ filter_form.search.id_for_label }}">Search</label>
+                {{ filter_form.search }}
+            </div>
+            <div class="enq-filter-group">
+                <label for="{{ filter_form.stage.id_for_label }}">Stage</label>
+                {{ filter_form.stage }}
+            </div>
+            <div class="enq-filter-group">
+                <label for="{{ filter_form.course.id_for_label }}">Course</label>
+                {{ filter_form.course }}
+            </div>
+            <div class="enq-filter-group">
+                <label for="{{ filter_form.academic_year.id_for_label }}">Year</label>
+                {{ filter_form.academic_year }}
+            </div>
+            <div class="enq-filter-group">
+                <label for="{{ filter_form.counselor.id_for_label }}">Counselor</label>
+                {{ filter_form.counselor }}
+            </div>
+            <div class="enq-filter-group">
+                <label for="{{ filter_form.is_processed.id_for_label }}">Status</label>
+                {{ filter_form.is_processed }}
+            </div>
+            <div class="enq-filter-group">
+                <label for="{{ filter_form.date_from.id_for_label }}">From</label>
+                {{ filter_form.date_from }}
+            </div>
+            <div class="enq-filter-group">
+                <label for="{{ filter_form.date_to.id_for_label }}">To</label>
+                {{ filter_form.date_to }}
+            </div>
+            <div class="d-flex gap-2 align-items-end">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-search me-1" aria-hidden="true"></i>Filter
+                </button>
+                <a href="{% url 'core:enquiry_list' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+{# ── Bulk actions ── #}
+<form id="bulkActionForm" method="post" action="{% url 'core:enquiry_bulk_action' %}">
+    {% csrf_token %}
+    <div class="enq-bulk">
+        <label>Bulk Action:</label>
+        {{ bulk_action_form.action }}
+        <div id="stageField" style="display:none">{{ bulk_action_form.stage }}</div>
+        <div id="counselorField" style="display:none">{{ bulk_action_form.counselor }}</div>
+        <button type="submit" class="btn btn-primary btn-sm" id="bulkActionBtn" disabled>
+            <i class="fas fa-play me-1" aria-hidden="true"></i>Execute
+        </button>
+        <span style="font-size:12px;color:var(--color-muted)">
+            <span id="selectedCount">0</span> selected
+        </span>
+    </div>
+
+    {# ── Result summary ── #}
+    <div class="enq-summary">
+        <span>Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} enquiries</span>
+    </div>
+
+    {# ── Table ── #}
+    <div class="pw-table-wrap">
+        <table class="pw-table">
+            <thead>
+                <tr>
+                    <th width="36">
+                        <input type="checkbox" id="selectAll" style="cursor:pointer">
+                    </th>
+                    <th>Enquiry #</th>
+                    <th>Student</th>
+                    <th>Contact</th>
+                    <th>Course</th>
+                    <th>Stage</th>
+                    <th>Counselor</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th width="48"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for enquiry in enquiries %}
+                <tr>
+                    <td>
+                        <input type="checkbox" name="enquiry_ids" value="{{ enquiry.id }}"
+                               class="enquiry-checkbox" style="cursor:pointer">
+                    </td>
+                    <td>
+                        <a href="{% url 'core:enquiry_detail' enquiry.pk %}"
+                           style="font-weight:700;color:var(--color-brand);text-decoration:none">
+                            {{ enquiry.enquiry_number }}
+                        </a>
+                        {% if not enquiry.is_viewed %}
+                        <span class="enq-badge enq-badge-new">New</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="font-weight:600;font-size:13px">{{ enquiry.first_name }} {{ enquiry.last_name }}</div>
+                        {% if enquiry.date_of_birth %}
+                        <div style="font-size:12px;color:var(--color-muted)">{{ enquiry.date_of_birth|date:"d M Y" }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if enquiry.email %}
+                        <div style="font-size:12px"><i class="fas fa-envelope" style="color:var(--color-muted);width:14px" aria-hidden="true"></i> {{ enquiry.email }}</div>
+                        {% endif %}
+                        {% if enquiry.phone %}
+                        <div style="font-size:12px"><i class="fas fa-phone" style="color:var(--color-muted);width:14px" aria-hidden="true"></i> {{ enquiry.phone }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if enquiry.course %}
+                        <span style="font-size:13px">{{ enquiry.course.name }}</span>
+                        {% else %}
+                        <span style="color:var(--color-muted);font-size:13px">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if enquiry.stage %}
+                        <span class="enq-badge"
+                              style="background-color:{{ enquiry.stage.color }}1a;color:{{ enquiry.stage.color }};border:1px solid {{ enquiry.stage.color }}">
+                            {{ enquiry.stage.name }}
+                        </span>
+                        {% else %}
+                        <span style="color:var(--color-muted);font-size:13px">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:13px">
+                        {% if enquiry.counselor %}
+                        {{ enquiry.counselor.first_name }} {{ enquiry.counselor.last_name }}
+                        {% else %}
+                        <span style="color:var(--color-muted)">Unassigned</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:12px;color:var(--color-muted);white-space:nowrap">
+                        {{ enquiry.enquired_date|date:"d M Y" }}
+                    </td>
+                    <td>
+                        {% if enquiry.is_rejected %}
+                        <span class="enq-badge enq-badge-rejected">Rejected</span>
+                        {% elif enquiry.is_processed %}
+                        <span class="enq-badge enq-badge-processed">Processed</span>
+                        {% else %}
+                        <span class="enq-badge enq-badge-pending">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="eq-dropdown dropdown">
+                            <button class="eq-menu-btn" type="button"
+                                    data-bs-toggle="dropdown" aria-expanded="false"
+                                    aria-label="Actions for {{ enquiry.enquiry_number }}">
+                                <i class="fas fa-ellipsis-v" aria-hidden="true"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'core:enquiry_detail' enquiry.pk %}">
+                                        <i class="fas fa-eye" aria-hidden="true"></i> View
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'core:enquiry_update' enquiry.pk %}">
+                                        <i class="fas fa-pencil-alt" aria-hidden="true"></i> Edit
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <button class="dropdown-item text-danger" type="button"
+                                            onclick="deleteEnquiry('{{ enquiry.pk }}', '{{ enquiry.enquiry_number }}')">
+                                        <i class="fas fa-trash-alt" aria-hidden="true"></i> Delete
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" style="padding:48px 20px;text-align:center">
+                        <div style="width:52px;height:52px;background:var(--color-brand-bg);color:var(--color-brand);display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 14px">
+                            <i class="fas fa-inbox" aria-hidden="true"></i>
+                        </div>
+                        <div style="font-size:15px;font-weight:600;margin-bottom:6px">No enquiries found</div>
+                        <div style="font-size:13px;color:var(--color-muted)">
+                            Try adjusting your search criteria or
+                            <a href="{% url 'core:enquiry_create' %}" style="color:var(--color-brand)">create a new enquiry</a>.
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</form>
+
+{# ── Pagination ── #}
+{% if page_obj.has_other_pages %}
+<div class="enq-pagination" role="navigation" aria-label="Page navigation">
+    {% if page_obj.has_previous %}
+    <a class="enq-page-btn" href="?page=1{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">
+        <i class="fas fa-angle-double-left" aria-hidden="true"></i>
+    </a>
+    <a class="enq-page-btn" href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">
+        <i class="fas fa-angle-left" aria-hidden="true"></i>
+    </a>
+    {% else %}
+    <span class="enq-page-btn disabled"><i class="fas fa-angle-double-left" aria-hidden="true"></i></span>
+    <span class="enq-page-btn disabled"><i class="fas fa-angle-left" aria-hidden="true"></i></span>
+    {% endif %}
+
+    <span class="enq-page-btn active" aria-current="page">
+        {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+    <a class="enq-page-btn" href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">
+        <i class="fas fa-angle-right" aria-hidden="true"></i>
+    </a>
+    <a class="enq-page-btn" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">
+        <i class="fas fa-angle-double-right" aria-hidden="true"></i>
+    </a>
+    {% else %}
+    <span class="enq-page-btn disabled"><i class="fas fa-angle-right" aria-hidden="true"></i></span>
+    <span class="enq-page-btn disabled"><i class="fas fa-angle-double-right" aria-hidden="true"></i></span>
+    {% endif %}
+</div>
+{% endif %}
+
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const selectAll    = document.getElementById('selectAll');
+    const checkboxes   = document.querySelectorAll('.enquiry-checkbox');
+    const bulkBtn      = document.getElementById('bulkActionBtn');
+    const countEl      = document.getElementById('selectedCount');
+    const actionSelect = document.querySelector('#id_action');
+
+    function refresh() {
+        const n = document.querySelectorAll('.enquiry-checkbox:checked').length;
+        countEl.textContent = n;
+        bulkBtn.disabled = (n === 0 || !actionSelect.value);
+
+        const total = checkboxes.length;
+        selectAll.indeterminate = n > 0 && n < total;
+        selectAll.checked = total > 0 && n === total;
+    }
+
+    selectAll.addEventListener('change', function () {
+        checkboxes.forEach(cb => cb.checked = this.checked);
+        refresh();
+    });
+    checkboxes.forEach(cb => cb.addEventListener('change', refresh));
+
+    actionSelect.addEventListener('change', function () {
+        document.getElementById('stageField').style.display    = this.value === 'change_stage'    ? 'block' : 'none';
+        document.getElementById('counselorField').style.display = this.value === 'assign_counselor' ? 'block' : 'none';
+        refresh();
+    });
+
+    document.getElementById('bulkActionForm').addEventListener('submit', function (e) {
+        const checked = document.querySelectorAll('.enquiry-checkbox:checked').length;
+        if (!checked) { e.preventDefault(); showToast('Select at least one enquiry.', 'warning'); return; }
+        if (!actionSelect.value) { e.preventDefault(); showToast('Select a bulk action.', 'warning'); return; }
+
+        if (actionSelect.value === 'delete') {
+            e.preventDefault();
+            showDanger(
+                `Delete ${checked} enquiry(ies)? This cannot be undone.`,
+                () => document.getElementById('bulkActionForm').submit(),
+                { heading: 'Confirm Bulk Delete', okLabel: 'Delete All' }
+            );
+        }
+    });
+})();
+
+function deleteEnquiry(id, number) {
+    showDanger(
+        `Delete enquiry <strong>${number}</strong>? This action cannot be undone.`,
+        function () {
+            const form = document.createElement('form');
+            form.method = 'post';
+            form.action = '/enquiry/' + id + '/delete/';
+            const csrf = document.createElement('input');
+            csrf.type  = 'hidden';
+            csrf.name  = 'csrfmiddlewaretoken';
+            csrf.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            form.appendChild(csrf);
+            document.body.appendChild(form);
+            form.submit();
+        },
+        { heading: 'Delete Enquiry', okLabel: 'Delete' }
+    );
+}
+</script>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:hr_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-receipt' back_url=back_url|default:back_fallback crumbs=crumbs %}
+<div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
+<a href="{% url 'core:hr_payslip_generate' %}" class="btn btn-primary">
+    <i class="fas fa-plus"></i> Generate Payslips
+</a>
+</div>
+{% endblock %}
+
+{% block page_title %}Payslips{% endblock %}
+
+
+{% block layout_table %}
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3" hx-get="{% url 'core:hr_payslip_list' %}" hx-target="#payslip-list-content" hx-trigger="change">
+            <div class="col-md-3">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">All</option>
+                    <option value="generated" {% if request.GET.status == 'generated' %}selected{% endif %}>Generated</option>
+                    <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>Approved</option>
+                    <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                    <option value="paid" {% if request.GET.status == 'paid' %}selected{% endif %}>Paid</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="payroll_group" class="form-label">Payroll Group</label>
+                <select class="form-select" id="payroll_group" name="payroll_group">
+                    <option value="">All Groups</option>
+                    {% for group in payroll_groups %}
+                        <option value="{{ group.id }}" {% if request.GET.payroll_group == group.id|stringformat:"s" %}selected{% endif %}>{{ group.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="department" class="form-label">Department</label>
+                <select class="form-select" id="department" name="department">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                        <option value="{{ dept.id }}" {% if request.GET.department == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h5 class="mb-0">Payslips</h5></div>
+    <div id="payslip-list-content">
+        {% include 'core/htmx/hr/payslip_list_content.html' %}
+    </div>
+</div>
+
+{% csrf_token %}
+<script>
+function csrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function payslipAction(action, id, extra) {
+    const body = new FormData();
+    if (extra) Object.entries(extra).forEach(([k, v]) => body.append(k, v));
+    fetch(`/hr/payroll/payslips/${id}/${action}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken() },
+        body: body,
+    })
+        .then((r) => r.text())
+        .then((html) => { document.getElementById('payslip-list-content').innerHTML = html; })
+        .catch(() => showAlert('An error occurred', 'danger'));
+}
+
+function approvePayslip(id) { payslipAction('approve', id); }
+function markPayslipPaid(id) { payslipAction('mark-paid', id); }
+function unmarkPayslipPaid(id) { payslipAction('unmark-paid', id); }
+function regeneratePayslip(id) { payslipAction('regenerate', id); }
+function rejectPayslip(id) {
+    const reason = prompt('Reason for rejecting this payslip:');
+    if (reason === null) return;
+    payslipAction('reject', id, { reason });
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+    alertDiv.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => { if (alertDiv.parentNode) alertDiv.parentNode.removeChild(alertDiv); }, 3000);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fees Defaulters</title>
+<style>
+@page {
+    size: A4;
+    margin: 18mm 15mm 22mm;
+    @bottom-center { content: "Signature"; color: #999; font-size: 8pt; font-family: Arial, sans-serif; }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #1a1a1a; }
+
+.hdr { display: flex; align-items: center; gap: 12pt; padding-bottom: 10pt; margin-bottom: 6pt; }
+.hdr-logo { width: 44pt; height: 44pt; object-fit: contain; }
+.hdr-name { font-size: 14pt; font-weight: bold; color: #8a1f1f; }
+.hdr-sub { font-size: 9pt; color: #333; margin-top: 2pt; }
+
+.title { text-align: center; font-size: 15pt; font-weight: bold; border-top: 1pt solid #ccc;
+         border-bottom: 1pt solid #ccc; padding: 10pt 0; margin: 14pt 0 12pt; }
+
+.class-line { font-size: 9.5pt; color: #555; margin-bottom: 10pt; }
+
+table.data { width: 100%; border-collapse: collapse; }
+table.data th, table.data td { border: 0.75pt solid #cfcfcf; padding: 6pt 8pt; font-size: 9.5pt;
+                               text-align: left; vertical-align: top; }
+table.data th { background: #f4f4f4; color: #333; font-weight: bold; }
+table.data td.num, table.data th.num { text-align: right; }
+table.data tr.total td { font-weight: bold; background: #f4f4f4; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+    {% if school.logo_url %}<img class="hdr-logo" src="{{ school.logo_url }}" alt="">{% endif %}
+    <div>
+        <div class="hdr-name">{{ school.name }}</div>
+        <div class="hdr-sub">
+            {% if school.address_line1 %}{{ school.address_line1 }}{% endif %}{% if school.city %}, {{ school.city }}{% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="title">Fees Defaulters</div>
+
+<div class="class-line">Class : {{ class_label }}</div>
+
+<table class="data">
+    <thead>
+        <tr>
+            <th style="width:8%">Sl No.</th>
+            <th>Name</th>
+            <th style="width:20%">Current batch</th>
+            <th style="width:28%">Fee collections (terms)</th>
+            <th class="num" style="width:16%">Amount ({{ currency_symbol }})</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ row.name }}</td>
+            <td>{{ row.batch }}</td>
+            <td>
+                {% for c in row.collections %}{{ c }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+            </td>
+            <td class="num">{{ row.amount|floatformat:2 }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" style="text-align:center; color:#999;">No defaulters selected</td></tr>
+        {% endfor %}
+        {% if rows %}
+        <tr class="total">
+            <td colspan="4" class="num">Total</td>
+            <td class="num">{{ total|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+    </tbody>
+</table>
+
+</body>
+</html>

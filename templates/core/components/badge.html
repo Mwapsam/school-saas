@@ -1,0 +1,13 @@
+{% comment %}
+Pinewood badge — small status/label pill.
+
+Usage:
+  {% include 'core/components/badge.html' with label="Active" variant="active" %}
+  {% include 'core/components/badge.html' with label="0 students" variant="zero" size="sm" %}
+
+Params:
+  label   (required)
+  variant (optional) — "active" (default, green) | "zero" (grey/neutral)
+  size    (optional) — unused today; reserved for future compact variant
+{% endcomment %}
+<span class="pw-badge pw-badge-{{ variant|default:'active' }}">{{ label }}</span>

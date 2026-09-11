@@ -1,0 +1,394 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:attendance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Attendance Management" description=active_academic_year.name icon='fa-users-cog' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Attendance Management{% endblock %}
+
+
+
+{% block layout_table %}
+{% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<!-- Filter Card -->
+<div class="card mb-4">
+    <div class="card-header bg-light fw-semibold">Filters</div>
+    <div class="card-body">
+        <form id="attendanceFilterForm" method="get">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="courseSelect" class="form-label">Class</label>
+                    <select id="courseSelect" name="course_id" class="form-select">
+                        <option value="">All classes</option>
+                        {% for course in courses %}
+                            <option value="{{ course.id }}"
+                                {% if course.id|stringformat:"s" == selected_course_id %}selected{% endif %}>
+                                {{ course.course_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="batchSelect" class="form-label">Batch</label>
+                    <select id="batchSelect" name="batch_id" class="form-select" required>
+                        <option value="">Choose a batch…</option>
+                        {% for batch in batches %}
+                            <option value="{{ batch.id }}"
+                                    data-course="{{ batch.course_id }}"
+                                    {% if batch.id|stringformat:"s" == selected_batch_id %}selected{% endif %}>
+                                {{ batch.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="attendanceDate" class="form-label">Date</label>
+                    <div class="input-group">
+                        <input type="date" id="attendanceDate" name="date"
+                               class="form-control" value="{{ selected_date }}" required>
+                        <button type="button" class="btn btn-outline-secondary" onclick="setToday()" title="Today">
+                            <i class="fas fa-calendar-day"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i> Load Attendance
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if date_invalid_reason %}
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+    <i class="fas fa-exclamation-triangle"></i>
+    {% if date_invalid_reason == 'future' %}
+        This date is in the future. Attendance cannot be recorded for dates that haven't occurred yet.
+    {% elif date_invalid_reason == 'before_year' %}
+        This date is before the start of the active academic year ({{ active_academic_year.start_date|date:"d M Y" }}).
+    {% elif date_invalid_reason == 'after_year' %}
+        This date is beyond the end of the active academic year ({{ active_academic_year.end_date|date:"d M Y" }}).
+    {% endif %}
+    Showing read-only view — saving is disabled.
+</div>
+{% endif %}
+
+{% if attendance_data %}
+
+<!-- Summary Stats -->
+<div class="row g-3 mb-4">
+    <div class="col">
+        <div class="card stat-card total h-100">
+            <div class="card-body py-3">
+                <div class="stat-number text-primary">{{ attendance_data.total_students }}</div>
+                <div class="text-muted small mt-1">Total</div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card stat-card present h-100">
+            <div class="card-body py-3">
+                <div class="stat-number text-success">{{ attendance_data.present_count }}</div>
+                <div class="text-muted small mt-1">Present</div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card stat-card absent h-100">
+            <div class="card-body py-3">
+                <div class="stat-number text-danger">{{ attendance_data.absent_count }}</div>
+                <div class="text-muted small mt-1">Absent</div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card stat-card partial h-100">
+            <div class="card-body py-3">
+                <div class="stat-number text-warning">{{ attendance_data.partial_count }}</div>
+                <div class="text-muted small mt-1">Partial</div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card stat-card pct h-100">
+            <div class="card-body py-3">
+                <div class="stat-number text-info">{{ attendance_data.attendance_percentage|floatformat:1 }}%</div>
+                <div class="text-muted small mt-1">Attendance</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance Sheet -->
+<div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <div>
+            <span class="fw-semibold">{{ attendance_data.batch.name }}</span>
+            <span class="text-muted ms-2">— {{ selected_date }}</span>
+        </div>
+        <small class="text-muted">Mark forenoon and afternoon sessions</small>
+    </div>
+
+    <form id="attendanceForm">
+        {% csrf_token %}
+        <input type="hidden" name="batch_id" value="{{ selected_batch_id }}">
+        <input type="hidden" name="attendance_date" value="{{ selected_date }}">
+
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-center" style="width:50px">#</th>
+                        <th>Student</th>
+                        <th style="width:110px">Admission No.</th>
+                        <th class="text-center" style="width:110px">
+                            Forenoon
+                            <div class="mt-1">
+                                <input type="checkbox" id="selectAllForenoon"
+                                       class="session-check" title="Select all">
+                            </div>
+                        </th>
+                        <th class="text-center" style="width:110px">
+                            Afternoon
+                            <div class="mt-1">
+                                <input type="checkbox" id="selectAllAfternoon"
+                                       class="session-check" title="Select all">
+                            </div>
+                        </th>
+                        <th class="text-center" style="width:100px">Status</th>
+                        <th style="width:200px">Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sd in attendance_data.students %}
+                        {% with s=sd.student fn=sd.forenoon aft=sd.afternoon %}
+                        <tr class="student-row {% if not date_invalid_reason %}{% if fn and aft %}present{% elif not fn and not aft %}absent{% else %}partial{% endif %}{% endif %}"
+                            data-student-id="{{ s.id }}">
+                            <td class="text-center text-muted">{{ forloop.counter }}</td>
+                            <td>
+                                <span class="fw-medium">
+                                    {{ s.first_name }}{% if s.middle_name %} {{ s.middle_name }}{% endif %} {{ s.last_name }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">{{ s.admission_no }}</span>
+                            </td>
+                            <td class="text-center">
+                                <input type="checkbox"
+                                       name="forenoon_{{ s.id }}"
+                                       class="session-check forenoon-checkbox"
+                                       {% if fn %}checked{% endif %}
+                                       {% if date_invalid_reason %}disabled{% endif %}>
+                            </td>
+                            <td class="text-center">
+                                <input type="checkbox"
+                                       name="afternoon_{{ s.id }}"
+                                       class="session-check afternoon-checkbox"
+                                       {% if aft %}checked{% endif %}
+                                       {% if date_invalid_reason %}disabled{% endif %}>
+                            </td>
+                            <td class="text-center">
+                                {% if date_invalid_reason %}
+                                    <span class="badge bg-secondary status-badge">—</span>
+                                {% elif fn and aft %}
+                                    <span class="badge bg-success status-badge">Present</span>
+                                {% elif not fn and not aft %}
+                                    <span class="badge bg-danger status-badge">Absent</span>
+                                {% else %}
+                                    <span class="badge bg-warning status-badge">Partial</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <input type="text"
+                                       name="reason_{{ s.id }}"
+                                       class="form-control form-control-sm reason-input"
+                                       placeholder="Reason…"
+                                       value="{{ sd.reason }}"
+                                       {% if date_invalid_reason %}disabled{% endif %}>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Actions Bar -->
+        <div class="card-footer d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-success" onclick="markAllPresent()"
+                        {% if date_invalid_reason %}disabled{% endif %}>
+                    <i class="fas fa-check-double me-1"></i> All Present
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="markAllAbsent()"
+                        {% if date_invalid_reason %}disabled{% endif %}>
+                    <i class="fas fa-times me-1"></i> All Absent
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearAll()"
+                        {% if date_invalid_reason %}disabled{% endif %}>
+                    <i class="fas fa-redo me-1"></i> Clear
+                </button>
+            </div>
+            <button type="submit" class="btn btn-primary px-4"
+                    {% if date_invalid_reason %}disabled title="Cannot save attendance for this date"{% endif %}>
+                <i class="fas fa-save me-1"></i> Save Attendance
+            </button>
+        </div>
+    </form>
+</div>
+
+{% else %}
+
+<!-- Empty State -->
+<div class="card">
+    <div class="card-body text-center py-5 text-muted">
+        <i class="fas fa-clipboard-list fa-3x mb-3 d-block"></i>
+        <h5>No attendance sheet loaded</h5>
+        <p class="mb-0">Select a class, batch and date above, then click <strong>Load Attendance</strong>.</p>
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Batch filter by course
+(function () {
+    const courseSelect = document.getElementById('courseSelect');
+    const batchSelect  = document.getElementById('batchSelect');
+    const allOptions   = Array.from(batchSelect.options);
+
+    function filterBatches() {
+        const courseId    = courseSelect.value;
+        const currentVal  = batchSelect.value;
+        while (batchSelect.options.length > 1) batchSelect.remove(1);
+        allOptions.forEach(opt => {
+            if (!opt.value) return;
+            if (!courseId || opt.dataset.course === courseId) batchSelect.add(opt.cloneNode(true));
+        });
+        batchSelect.value = currentVal;
+        if (!batchSelect.value) batchSelect.selectedIndex = 0;
+    }
+
+    courseSelect.addEventListener('change', filterBatches);
+    filterBatches();
+})();
+
+function setToday() {
+    document.getElementById('attendanceDate').value = new Date().toISOString().split('T')[0];
+}
+
+// Select-all checkboxes
+document.getElementById('selectAllForenoon')?.addEventListener('change', function () {
+    document.querySelectorAll('.forenoon-checkbox').forEach(cb => {
+        cb.checked = this.checked;
+        refreshRowStatus(cb.closest('tr'));
+    });
+});
+
+document.getElementById('selectAllAfternoon')?.addEventListener('change', function () {
+    document.querySelectorAll('.afternoon-checkbox').forEach(cb => {
+        cb.checked = this.checked;
+        refreshRowStatus(cb.closest('tr'));
+    });
+});
+
+// Per-checkbox live status update
+document.addEventListener('change', function (e) {
+    if ((e.target.classList.contains('forenoon-checkbox') ||
+         e.target.classList.contains('afternoon-checkbox'))) {
+        refreshRowStatus(e.target.closest('tr'));
+    }
+});
+
+function refreshRowStatus(row) {
+    const fn  = row.querySelector('.forenoon-checkbox').checked;
+    const aft = row.querySelector('.afternoon-checkbox').checked;
+    const badge = row.querySelector('.status-badge');
+    row.classList.remove('present', 'absent', 'partial');
+    if (fn && aft) {
+        row.classList.add('present');
+        badge.className = 'badge bg-success status-badge';
+        badge.textContent = 'Present';
+    } else if (!fn && !aft) {
+        row.classList.add('absent');
+        badge.className = 'badge bg-danger status-badge';
+        badge.textContent = 'Absent';
+    } else {
+        row.classList.add('partial');
+        badge.className = 'badge bg-warning status-badge';
+        badge.textContent = 'Partial';
+    }
+}
+
+function markAllPresent() {
+    document.querySelectorAll('.forenoon-checkbox, .afternoon-checkbox').forEach(cb => cb.checked = true);
+    document.querySelectorAll('.student-row').forEach(refreshRowStatus);
+    document.querySelectorAll('.reason-input').forEach(i => i.value = '');
+}
+
+function markAllAbsent() {
+    document.querySelectorAll('.forenoon-checkbox, .afternoon-checkbox').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.student-row').forEach(refreshRowStatus);
+}
+
+function clearAll() {
+    markAllAbsent();
+    document.querySelectorAll('.reason-input').forEach(i => i.value = '');
+}
+
+// Form submission
+document.getElementById('attendanceForm')?.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const records = [];
+    document.querySelectorAll('.student-row').forEach(row => {
+        records.push({
+            student_id: row.dataset.studentId,
+            forenoon:   row.querySelector('.forenoon-checkbox').checked,
+            afternoon:  row.querySelector('.afternoon-checkbox').checked,
+            reason:     row.querySelector('.reason-input').value || null,
+        });
+    });
+
+    const fd = new FormData(this);
+    const submitBtn = this.querySelector('[type=submit]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving…';
+
+    fetch('{% url "core:mark_attendance_api" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': fd.get('csrfmiddlewaretoken'),
+        },
+        body: JSON.stringify({
+            batch_id:           fd.get('batch_id'),
+            attendance_date:    fd.get('attendance_date'),
+            attendance_records: records,
+        }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Attendance saved successfully!', 'success');
+        } else {
+            showToast(data.error || 'Error saving attendance', 'danger');
+        }
+    })
+    .catch(() => showToast('Error saving attendance', 'danger'))
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Save Attendance';
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,105 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead>
+            <tr>
+                <th>No.</th>
+                <th>Name</th>
+                <th class="d-none d-md-table-cell">Details</th>
+                <th>Status</th>
+                <th width="140">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+                <tr>
+                    <td class="text-center">{{ forloop.counter0|add:page_obj.start_index }}</td>
+                    <td><strong>{{ item.name }}</strong></td>
+                    <td class="d-none d-md-table-cell">
+                        {% if lookup_key == 'category' %}
+                            <small class="text-muted">Prefix: {{ item.prefix|default:"—" }}</small>
+                        {% elif lookup_key == 'position' %}
+                            <small class="text-muted">{{ item.employee_category.name|default:"No category" }}</small>
+                        {% elif lookup_key == 'department' %}
+                            <small class="text-muted">Code: {{ item.code|default:"—" }}</small>
+                        {% elif lookup_key == 'grade' %}
+                            <small class="text-muted">Priority: {{ item.priority }}</small>
+                        {% elif lookup_key == 'leave_type' %}
+                            <small class="text-muted">
+                                {{ item.code|default:"—" }} &middot; {{ item.default_annual_days }} days/yr &middot;
+                                {% if item.is_paid %}Paid{% else %}Unpaid{% endif %}
+                            </small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.status %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-warning">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="table-actions">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" title="Edit"
+                                    data-lookup-item="{{ item.id }}"
+                                    data-lookup-name="{{ item.name }}"
+                                    {% if lookup_key == 'position' %}data-lookup-category="{{ item.employee_category_id|default:'' }}"{% endif %}
+                                    {% if lookup_key == 'department' %}data-lookup-code="{{ item.code }}"{% endif %}
+                                    {% if lookup_key == 'category' %}data-lookup-prefix="{{ item.prefix }}"{% endif %}
+                                    {% if lookup_key == 'grade' %}data-lookup-priority="{{ item.priority }}" data-lookup-max-hours-day="{{ item.max_hours_day|default:'' }}" data-lookup-max-hours-week="{{ item.max_hours_week|default:'' }}"{% endif %}
+                                    {% if lookup_key == 'leave_type' %}data-lookup-code="{{ item.code }}" data-lookup-default-days="{{ item.default_annual_days }}" data-lookup-is-paid="{{ item.is_paid|yesno:'1,0' }}"{% endif %}
+                                    onclick="openEditHRLookup(this)">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                    title="{% if item.status %}Deactivate{% else %}Activate{% endif %}"
+                                    onclick="toggleHRLookupStatus('{{ lookup_key }}', '{{ item.id }}')">
+                                <i class="fas {% if item.status %}fa-pause{% else %}fa-play{% endif %}"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" title="Delete"
+                                    onclick="deleteHRLookup('{{ lookup_key }}', '{{ item.id }}', '{{ item.name }}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr class="empty-state">
+                    <td colspan="5">
+                        No records found.
+                        <a href="#" class="btn btn-link p-0" onclick="openAddHRLookup('{{ lookup_key }}')">
+                            Add the first one
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if is_paginated %}
+    <div class="pinewood-table-pagination">
+        <nav>
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link"
+                           hx-get="{% url 'core:hr_lookup_list' lookup_key=lookup_key %}?page={{ page_obj.previous_page_number }}"
+                           hx-target="#hr-lookup-content-{{ lookup_key }}"
+                           data-loading>Previous</a>
+                    </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link"
+                           hx-get="{% url 'core:hr_lookup_list' lookup_key=lookup_key %}?page={{ page_obj.next_page_number }}"
+                           hx-target="#hr-lookup-content-{{ lookup_key }}"
+                           data-loading>Next</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+{% endif %}

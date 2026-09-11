@@ -1,0 +1,100 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead>
+            <tr>
+                <th>No.</th>
+                <th>Name</th>
+                <th class="d-none d-md-table-cell">Details</th>
+                <th>Status</th>
+                <th width="140">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+                <tr>
+                    <td class="text-center">{{ forloop.counter0|add:page_obj.start_index }}</td>
+                    <td>
+                        <strong>{{ item.name }}</strong>
+                        {% if lookup_key == 'payroll_category' and item.is_basic_pay %}
+                            <span class="badge bg-info-subtle text-info-emphasis">Basic Pay</span>
+                        {% endif %}
+                    </td>
+                    <td class="d-none d-md-table-cell">
+                        {% if lookup_key == 'payroll_category' %}
+                            <small class="text-muted">
+                                {{ item.get_category_type_display }} &middot;
+                                {% if item.calculation_type == 'percentage' %}
+                                    {{ item.default_percentage|default:"—" }}% of basic
+                                {% else %}
+                                    {{ item.default_amount|default:"—" }} fixed
+                                {% endif %}
+                            </small>
+                        {% elif lookup_key == 'payroll_group' %}
+                            <small class="text-muted">{{ item.description|default:"—"|truncatechars:60 }}</small>
+                            <a href="/hr/payroll/groups/{{ item.id }}/" class="ms-2">Manage components &rarr;</a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.status %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-warning">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="table-actions">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" title="Edit"
+                                    data-lookup-item="{{ item.id }}"
+                                    data-lookup-name="{{ item.name }}"
+                                    {% if lookup_key == 'payroll_category' %}
+                                    data-lookup-code="{{ item.code }}"
+                                    data-lookup-category-type="{{ item.category_type }}"
+                                    data-lookup-calculation-type="{{ item.calculation_type }}"
+                                    data-lookup-default-amount="{{ item.default_amount|default:'' }}"
+                                    data-lookup-default-percentage="{{ item.default_percentage|default:'' }}"
+                                    data-lookup-is-basic-pay="{{ item.is_basic_pay|yesno:'1,0' }}"
+                                    data-lookup-taxable="{{ item.taxable|yesno:'1,0' }}"
+                                    {% elif lookup_key == 'payroll_group' %}
+                                    data-lookup-description="{{ item.description }}"
+                                    {% endif %}
+                                    onclick="openEditPayrollLookup(this)">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                    title="{% if item.status %}Deactivate{% else %}Activate{% endif %}"
+                                    onclick="togglePayrollLookupStatus('{{ lookup_key }}', '{{ item.id }}')">
+                                <i class="fas {% if item.status %}fa-pause{% else %}fa-play{% endif %}"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" title="Delete"
+                                    onclick="deletePayrollLookup('{{ lookup_key }}', '{{ item.id }}', '{{ item.name }}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr class="empty-state"><td colspan="5">No records found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if is_paginated %}
+    <div class="pinewood-table-pagination">
+        <nav>
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" hx-get="/hr/payroll/{{ lookup_key }}/?page={{ page_obj.previous_page_number }}" hx-target="#payroll-lookup-content-{{ lookup_key }}" data-loading>Previous</a>
+                    </li>
+                {% endif %}
+                <li class="page-item active"><span class="page-link">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span></li>
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" hx-get="/hr/payroll/{{ lookup_key }}/?page={{ page_obj.next_page_number }}" hx-target="#payroll-lookup-content-{{ lookup_key }}" data-loading>Next</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+{% endif %}

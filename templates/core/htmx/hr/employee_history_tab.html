@@ -1,0 +1,20 @@
+<div class="pinewood-table-responsive">
+    <table class="pinewood-table">
+        <thead>
+            <tr><th>Date</th><th>Event</th><th>From</th><th>To</th><th class="d-none d-md-table-cell">Note</th></tr>
+        </thead>
+        <tbody>
+            {% for e in events %}
+                <tr>
+                    <td><small>{{ e.effective_date|date:"M j, Y" }}</small></td>
+                    <td>{{ e.get_event_type_display }}</td>
+                    <td class="text-muted"><small>{% if e.old_value %}{{ e.old_value.values|join:", " }}{% else %}—{% endif %}</small></td>
+                    <td><small>{% if e.new_value %}{{ e.new_value.values|join:", " }}{% else %}—{% endif %}</small></td>
+                    <td class="d-none d-md-table-cell"><small class="text-muted">{{ e.note|default:"" }}</small></td>
+                </tr>
+            {% empty %}
+                <tr class="empty-state"><td colspan="5">No employment-history events recorded yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

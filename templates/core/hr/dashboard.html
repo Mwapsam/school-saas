@@ -1,0 +1,42 @@
+{% extends 'core/layouts/dashboard.html' %}
+
+{% block page_title %}Human Resources{% endblock %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Human Resources" description="Staff records, attendance, leave and payroll" icon="fa-id-badge" actions=header_actions back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_stats %}
+{% if stat_cards %}{% include 'core/components/stat_cards.html' with stats=stat_cards %}{% endif %}
+{% endblock %}
+
+{% block layout_primary %}
+{% for section in dashboard_sections %}
+  <h2 class="h6 fw-bold text-uppercase text-muted mt-4 mb-2" style="letter-spacing:.05em">{{ section.title }}</h2>
+  <div class="row g-3">
+    {% for tile in section.tiles %}
+      <div class="col-md-6 col-xl-4">
+        {% include 'core/components/nav_tile.html' with icon=tile.icon title=tile.title description=tile.description url=tile.url %}
+      </div>
+    {% endfor %}
+  </div>
+{% endfor %}
+{% endblock %}
+
+{% block layout_secondary %}
+{% if hr_alerts %}
+<h2 class="h6 fw-bold text-uppercase text-muted mt-4 mb-2" style="letter-spacing:.05em">HR attention required</h2>
+<div class="row g-3">
+  {% include 'core/htmx/hr/_dashboard_alert.html' with title='Contracts expiring' rows=hr_alerts.contracts_expiring %}
+  {% include 'core/htmx/hr/_dashboard_alert.html' with title='Probation reviews due' rows=hr_alerts.probation_reviews_due %}
+  {% include 'core/htmx/hr/_dashboard_alert.html' with title='Documents expiring' rows=hr_alerts.documents_expiring %}
+  {% include 'core/htmx/hr/_dashboard_alert.html' with title='Missing documents' rows=hr_alerts.documents_missing %}
+  {% include 'core/htmx/hr/_dashboard_alert.html' with title='Appraisals due' rows=hr_alerts.appraisals_due %}
+  {% include 'core/htmx/hr/_dashboard_alert.html' with title='Attendance watchlist' rows=hr_alerts.attendance_watchlist %}
+  {% include 'core/htmx/hr/_dashboard_alert.html' with title='Onboarding outstanding' rows=hr_alerts.onboarding_outstanding %}
+  {% include 'core/htmx/hr/_dashboard_alert.html' with title='Training expiring' rows=hr_alerts.training_expiring %}
+  {% include 'core/htmx/hr/_dashboard_alert.html' with title='Exit clearance outstanding' rows=hr_alerts.exit_clearance_outstanding %}
+</div>
+{% endif %}
+{% endblock %}

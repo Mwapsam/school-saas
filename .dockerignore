@@ -1,0 +1,30 @@
+# Frontend has its own build context (./frontend) — keep it out of the
+# Python image entirely so its node_modules/.next never bloat the build or
+# the file-watcher.
+frontend
+
+# VCS & local Python envs
+.git
+.gitignore
+.venv
+.venv_test
+venv
+
+# Python caches
+**/__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Build / runtime artifacts (provided via volumes at runtime)
+logs
+*.log
+media
+staticfiles
+node_modules
+.next
+
+# Local env files (provided via compose env_file at runtime)
+.env
+
+utils/logging.log

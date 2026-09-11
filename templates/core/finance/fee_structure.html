@@ -1,0 +1,138 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}Fee Structure{% endblock %}
+
+{% block layout_header %}
+{% url 'core:finance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Build Fee Structure" description="Set up fee groups, their particulars and fine slabs, then assign to courses and batches." icon='fa-file-invoice' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+
+{% block extra_css %}
+{% include 'core/finance/_finance_ui_styles.html' %}
+{% endblock %}
+
+{% block layout_filters %}
+<!-- Filters will be extracted and moved here -->
+{% endblock %}
+
+{% block layout_table %}
+    <!-- Workflow Nav -->
+    {% include 'core/finance/_workflow_nav.html' %}
+
+    <!-- Fee Structure Modules Grid -->
+    <div class="row g-3">
+        <div class="col-md-6">
+            <a href="{% url 'core:fee_categories' %}" class="gb-card {% if fee_categories_count == 0 %}is-empty{% endif %}">
+                <div class="gb-card-icon"><i class="fas fa-tags"></i></div>
+                <div class="gb-card-body">
+                    <p class="gb-card-title">1.1 Fee Groups (Categories)</p>
+                    <p class="gb-card-desc">Term fees, transport, boarding — the top-level groups students are billed under.</p>
+                    <small class="text-muted">
+                        {% if fee_categories_count == 0 %}
+                        <i class="fas fa-circle-exclamation text-warning me-1"></i>No fee groups created yet
+                        {% else %}
+                        <i class="fas fa-check text-success me-1"></i>{{ fee_categories_count }} fee group{{ fee_categories_count|pluralize }}
+                        {% endif %}
+                    </small>
+                </div>
+                <i class="fas fa-chevron-right gb-card-arrow"></i>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a href="{% url 'core:fee_masters' %}" class="gb-card {% if master_particulars_count == 0 and master_discounts_count == 0 %}is-empty{% endif %}">
+                <div class="gb-card-icon"><i class="fas fa-clone"></i></div>
+                <div class="gb-card-body">
+                    <p class="gb-card-title">1.2 Fee Masters</p>
+                    <p class="gb-card-desc">Reusable templates for particulars and discounts — define once, link to many categories.</p>
+                    <small class="text-muted">
+                        {% if master_particulars_count == 0 and master_discounts_count == 0 %}
+                        <i class="fas fa-circle-exclamation text-warning me-1"></i>No masters created yet
+                        {% else %}
+                        <i class="fas fa-check text-success me-1"></i>{{ master_particulars_count }} particular{{ master_particulars_count|pluralize }}, {{ master_discounts_count }} discount{{ master_discounts_count|pluralize }}
+                        {% endif %}
+                    </small>
+                </div>
+                <i class="fas fa-chevron-right gb-card-arrow"></i>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a href="{% url 'core:fee_particulars' %}" class="gb-card {% if fee_particulars_count == 0 %}is-empty{% endif %}">
+                <div class="gb-card-icon"><i class="fas fa-list"></i></div>
+                <div class="gb-card-body">
+                    <p class="gb-card-title">1.3 Fee Particulars</p>
+                    <p class="gb-card-desc">Line items inside each group: tuition, levies, library fee — with amounts and due dates.</p>
+                    <small class="text-muted">
+                        {% if fee_particulars_count == 0 %}
+                        <i class="fas fa-circle-exclamation text-warning me-1"></i>No particulars created yet
+                        {% else %}
+                        <i class="fas fa-check text-success me-1"></i>{{ fee_particulars_count }} active particular{{ fee_particulars_count|pluralize }}
+                        {% endif %}
+                    </small>
+                </div>
+                <i class="fas fa-chevron-right gb-card-arrow"></i>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a href="{% url 'core:fine_slabs' %}" class="gb-card {% if fine_slabs_groups_count == 0 %}is-empty{% endif %}">
+                <div class="gb-card-icon"><i class="fas fa-gavel"></i></div>
+                <div class="gb-card-body">
+                    <p class="gb-card-title">1.4 Fine Slabs</p>
+                    <p class="gb-card-desc">Late-payment fines linked to particulars: grace period, slabs, per-day rates.</p>
+                    <small class="text-muted">
+                        {% if fine_slabs_groups_count == 0 %}
+                        <i class="fas fa-circle-exclamation text-warning me-1"></i>No fine slabs created yet
+                        {% else %}
+                        <i class="fas fa-check text-success me-1"></i>{{ fine_slabs_groups_count }} fine ladder{{ fine_slabs_groups_count|pluralize }}
+                        {% endif %}
+                    </small>
+                </div>
+                <i class="fas fa-chevron-right gb-card-arrow"></i>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a href="{% url 'core:fee_masters' %}#rules-content" class="gb-card {% if applicability_rules_count == 0 %}is-empty{% endif %}">
+                <div class="gb-card-icon"><i class="fas fa-filter"></i></div>
+                <div class="gb-card-body">
+                    <p class="gb-card-title">1.5 Applicability Rules</p>
+                    <p class="gb-card-desc">Control which students fees apply to: all students, by batch, by category, or individually.</p>
+                    <small class="text-muted">
+                        {% if applicability_rules_count == 0 %}
+                        <i class="fas fa-circle-exclamation text-warning me-1"></i>No rules created yet
+                        {% else %}
+                        <i class="fas fa-check text-success me-1"></i>{{ applicability_rules_count }} active rule{{ applicability_rules_count|pluralize }}
+                        {% endif %}
+                    </small>
+                </div>
+                <i class="fas fa-chevron-right gb-card-arrow"></i>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a href="{% url 'core:fee_batch_assignment' %}" class="gb-card {% if batch_assignments_count == 0 %}is-empty{% endif %}">
+                <div class="gb-card-icon"><i class="fas fa-layer-group"></i></div>
+                <div class="gb-card-body">
+                    <p class="gb-card-title">1.6 Assign to Course / Batch</p>
+                    <p class="gb-card-desc">Attach fee groups to batches so collections can generate student obligations.</p>
+                    <small class="text-muted">
+                        {% if batch_assignments_count == 0 %}
+                        <i class="fas fa-circle-exclamation text-warning me-1"></i>No assignments created yet
+                        {% else %}
+                        <i class="fas fa-check text-success me-1"></i>{{ batch_assignments_count }} assignment{{ batch_assignments_count|pluralize }}
+                        {% endif %}
+                    </small>
+                </div>
+                <i class="fas fa-chevron-right gb-card-arrow"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="alert alert-light border mt-4 small">
+        <i class="fas fa-arrow-right me-1"></i> Next step:
+        <a href="{% url 'core:fee_collections' %}">generate a fee collection</a> to bill students.
+    </div>
+{% endblock %}
+
+{% block layout_pagination %}{% endblock %}
+
+{% block layout_extra %}{% endblock %}

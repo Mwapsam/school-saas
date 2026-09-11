@@ -1,0 +1,318 @@
+{% extends 'core/layouts/form.html' %}
+{% load static %}
+{% load core_extras %}
+
+{% block page_title %}Edit Term Exam - {{ exam_group.name }}{% endblock %}
+
+
+{% block layout_header %}
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Edit Term Exam" description=edit_exam_description icon="fa-edit" back_url=planner_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_form %}
+<div class="gb-edit-term-exam">
+<div class="container-fluid">
+    <!-- Current Exam Group Info -->
+    <div class="exam-group-meta">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h5 class="mb-1">{{ exam_group.name }}</h5>
+                <p class="mb-0 text-muted">
+                    {{ exam_group.exam_date|date:"F j, Y" }} | {{ exam_group.exam_type }}
+                    {% if exam_group.batch %}
+                        | {{ exam_group.batch.name }}
+                    {% endif %}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                {% if exam_group.result_published %}
+                    <span class="exam-status-badge status-published">Published</span>
+                {% else %}
+                    <span class="exam-status-badge status-draft">Draft</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <form id="editTermExamForm" method="post" action="{% url 'core:update_term_exam_api' exam_group.id %}">
+        {% csrf_token %}
+        
+        <!-- Basic Exam Settings -->
+        <div class="exam-info-card">
+            <div class="card-header">
+                <i class="fas fa-cog me-2"></i>
+                Basic Exam Settings
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-section">
+                            <label for="exam_name" class="form-label">Exam Name</label>
+                            <input type="text" class="form-control" id="exam_name" name="exam_name" 
+                                   value="{{ exam_group.name }}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-section">
+                            <label for="exam_date" class="form-label">Exam Date</label>
+                            <input type="date" class="form-control" id="exam_date" name="exam_date" 
+                                   value="{{ exam_group.exam_date|date:'Y-m-d' }}" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-section">
+                            <label for="exam_type" class="form-label">Exam Type</label>
+                            <select class="form-select" id="exam_type" name="exam_type" required>
+                                <option value="Unit Test" {% if exam_group.exam_type == 'Unit Test' %}selected{% endif %}>Unit Test</option>
+                                <option value="Mid Term" {% if exam_group.exam_type == 'Mid Term' %}selected{% endif %}>Mid Term</option>
+                                <option value="Final Exam" {% if exam_group.exam_type == 'Final Exam' %}selected{% endif %}>Final Exam</option>
+                                <option value="Quarterly" {% if exam_group.exam_type == 'Quarterly' %}selected{% endif %}>Quarterly</option>
+                                <option value="Half Yearly" {% if exam_group.exam_type == 'Half Yearly' %}selected{% endif %}>Half Yearly</option>
+                                <option value="Annual" {% if exam_group.exam_type == 'Annual' %}selected{% endif %}>Annual</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-section">
+                            <label for="term" class="form-label">Term</label>
+                            <select class="form-select" id="term" name="term" required>
+                                <option value="Term 1" {% if exam_group.term == 'Term 1' %}selected{% endif %}>Term 1</option>
+                                <option value="Term 2" {% if exam_group.term == 'Term 2' %}selected{% endif %}>Term 2</option>
+                                <option value="Term 3" {% if exam_group.term == 'Term 3' %}selected{% endif %}>Term 3</option>
+                                <option value="Annual" {% if exam_group.term == 'Annual' %}selected{% endif %}>Annual</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subject Selection -->
+        <div class="exam-info-card">
+            <div class="card-header">
+                <i class="fas fa-book me-2"></i>
+                Subject Configuration
+            </div>
+            <div class="card-body">
+                <div class="form-section-title">Select Subjects for this Exam</div>
+                
+                <div id="subjectsContainer">
+                    {% for subject in available_subjects %}
+                        <div class="subject-selection-card {% if subject.id in current_exam_subjects %}selected-subject{% endif %}" 
+                             data-subject-id="{{ subject.id }}">
+                            <div class="subject-card-header">
+                                <div>
+                                    <div class="subject-name">{{ subject.name }}</div>
+                                    {% if subject.code %}
+                                        <div class="subject-code">{{ subject.code }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input subject-checkbox" type="checkbox" 
+                                           name="subjects" value="{{ subject.id }}" id="subject_{{ subject.id }}"
+                                           {% if subject.id in current_exam_subjects %}checked{% endif %}>
+                                    <label class="form-check-label" for="subject_{{ subject.id }}">
+                                        Include
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="subject-card-body" style="{% if subject.id not in current_exam_subjects %}display: none;{% endif %}">
+                                <div class="row align-items-center">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Maximum Marks</label>
+                                        <input type="number" class="form-control marks-input" 
+                                               name="max_marks_{{ subject.id }}" 
+                                               value="{% if subject.id in current_exam_subjects %}{{ current_exam_subjects|lookup:subject.id }}{% else %}100{% endif %}" 
+                                               min="1" max="1000">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Pass Marks</label>
+                                        <input type="number" class="form-control marks-input" 
+                                               name="pass_marks_{{ subject.id }}" 
+                                               value="{% if subject.id in current_exam_subjects %}{{ current_pass_marks|lookup:subject.id }}{% else %}40{% endif %}" 
+                                               min="1" max="1000">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check mt-4">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   name="is_practical_{{ subject.id }}" id="practical_{{ subject.id }}">
+                                            <label class="form-check-label" for="practical_{{ subject.id }}">
+                                                Practical Exam
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-book text-muted mb-2" style="font-size: 2rem;"></i>
+                            <p>No subjects available for this batch.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Settings -->
+        <div class="exam-info-card">
+            <div class="card-header">
+                <i class="fas fa-cogs me-2"></i>
+                Advanced Settings
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="result_published" 
+                                   name="result_published" {% if exam_group.result_published %}checked{% endif %}>
+                            <label class="form-check-label" for="result_published">
+                                Publish Results
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="is_final_exam" 
+                                   name="is_final_exam" {% if exam_group.is_final_exam %}checked{% endif %}>
+                            <label class="form-check-label" for="is_final_exam">
+                                Final Exam
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="remarks" class="form-label">Remarks</label>
+                            <textarea class="form-control" id="remarks" name="remarks" rows="4" 
+                                      placeholder="Additional notes or instructions...">{{ exam_group.remarks|default:'' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex gap-3 mb-4">
+            <button type="submit" class="btn btn-primary btn-save">
+                Save Changes
+            </button>
+            <a href="{% url 'core:class_exam_planner' exam_group.batch.course.id %}" class="btn btn-secondary btn-edit">
+                Cancel
+            </a>
+            {% if not exam_group.result_published %}
+                <button type="button" class="btn btn-danger ms-auto btn-delete" id="deleteExamGroup">
+                    Delete Exam Group
+                </button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Handle subject selection
+    $('.subject-checkbox').on('change', function() {
+        const subjectCard = $(this).closest('.subject-selection-card');
+        const subjectBody = subjectCard.find('.subject-card-body');
+        
+        if ($(this).is(':checked')) {
+            subjectCard.addClass('selected-subject');
+            subjectBody.slideDown();
+        } else {
+            subjectCard.removeClass('selected-subject');
+            subjectBody.slideUp();
+        }
+    });
+    
+    // Handle form submission
+    $('#editTermExamForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const examGroupId = '{{ exam_group.id }}';
+        
+        // Show loading state
+        const submitBtn = $(this).find('button[type="submit"]');
+        const originalText = submitBtn.html();
+        submitBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...').prop('disabled', true);
+        
+        $.ajax({
+            url: $(this).attr('action'),
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    // Show success message
+                    $('<div class="alert alert-success alert-dismissible fade show" role="alert">' +
+                      '<i class="fas fa-check-circle me-2"></i>Exam group updated successfully!' +
+                      '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                      '</div>').prependTo('.container-fluid');
+                    
+                    // Redirect after a short delay
+                    setTimeout(function() {
+                        window.location.href = "{% url 'core:class_exam_planner' exam_group.batch.course.id %}";
+                    }, 1500);
+                } else {
+                    // Show error message
+                    $('<div class="alert alert-danger alert-dismissible fade show" role="alert">' +
+                      '<i class="fas fa-exclamation-triangle me-2"></i>' + (response.message || 'Error updating exam group') +
+                      '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                      '</div>').prependTo('.container-fluid');
+                }
+            },
+            error: function(xhr, status, error) {
+                // Show error message
+                $('<div class="alert alert-danger alert-dismissible fade show" role="alert">' +
+                  '<i class="fas fa-exclamation-triangle me-2"></i>Error updating exam group. Please try again.' +
+                  '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                  '</div>').prependTo('.container-fluid');
+                console.error('Error:', error);
+            },
+            complete: function() {
+                // Restore button state
+                submitBtn.html(originalText).prop('disabled', false);
+            }
+        });
+    });
+    
+    // Handle delete action
+    $('#deleteExamGroup').on('click', function() {
+        showConfirm('Delete this exam group? This action cannot be undone.', function() {
+            const examGroupId = '{{ exam_group.id }}';
+            $.ajax({
+                url: `/api/gradebook/exam-group/${examGroupId}/delete/`,
+                method: 'DELETE',
+                data: { 'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val() },
+                success: function(response) {
+                    if (response.success) {
+                        showToast('Exam group deleted successfully', 'success');
+                        window.location.href = "{% url 'core:class_exam_planner' exam_group.batch.course.id %}";
+                    } else {
+                        showToast('Error deleting exam group: ' + (response.message || 'Unknown error'), 'danger');
+                    }
+                },
+                error: function() {
+                    showToast('Error deleting exam group. Please try again.', 'danger');
+                }
+            });
+        }, 'Delete', 'danger');
+    });
+    
+    // Auto-calculate pass marks (40% of max marks)
+    $('input[name^="max_marks_"]').on('input', function() {
+        const subjectId = $(this).attr('name').split('_')[2];
+        const maxMarks = parseInt($(this).val()) || 0;
+        const passMarks = Math.round(maxMarks * 0.4);
+        $(`input[name="pass_marks_${subjectId}"]`).val(passMarks);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% include 'core/components/modal.html' with id="transportModal-assignments" title="Assign student to transport" icon="fa-user-graduate" size="lg" %}
+  <form id="tform-assignments" onsubmit="transportSubmit(event,'assignments')">
+    {% csrf_token %}
+    <input type="hidden" name="pk">
+    <input type="hidden" name="student">
+    <p class="tform-error text-danger small" hidden></p>
+
+    <div class="pw-form-group">
+      <label class="pw-form-label" for="assign-student-search">Student *</label>
+      <input class="pw-form-control" type="text" id="assign-student-search" autocomplete="off" placeholder="Type a name or admission number">
+      <div id="assign-student-results" class="list-group mt-1"></div>
+    </div>
+
+    <div class="row g-2">
+      <div class="col-md-6">
+        <label class="pw-form-label" for="assign-route">Route *</label>
+        <select class="pw-form-control" id="assign-route" name="route" required>
+          <option value="">— route —</option>
+          {% for r in all_routes %}<option value="{{ r.id }}">{{ r.route_name }} ({{ r.fare }})</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="pw-form-label" for="assign-stop">Boarding stop</label>
+        <select class="pw-form-control" id="assign-stop" name="boarding_stop"><option value="">— none —</option></select>
+      </div>
+      <div class="col-md-4">
+        {% include 'core/components/form_field.html' with name="direction" label="Direction" type="select" options=direction_options value="both" %}
+      </div>
+      <div class="col-md-4">{% include 'core/components/form_field.html' with name="start_date" label="Start date" type="date" required=True %}</div>
+      <div class="col-md-4">{% include 'core/components/form_field.html' with name="end_date" label="End date" type="date" %}</div>
+      <div class="col-12">{% include 'core/components/form_field.html' with name="notes" label="Notes" %}</div>
+    </div>
+
+    <hr>
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        {% include 'core/components/form_field.html' with name="charge_now" label="Raise transport fee now" type="checkbox" attrs='value="1"' %}
+      </div>
+      <div class="col-md-4">
+        {% include 'core/components/form_field.html' with name="amount" label="Amount (blank = route fare)" type="number" attrs='step="0.01"' %}
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+      <button type="button" class="pw-btn pw-btn-outline" data-bs-dismiss="modal">Cancel</button>
+      <button type="submit" class="pw-btn pw-btn-primary">Assign</button>
+    </div>
+  </form>
+{% include 'core/components/modal_close.html' with no_footer=True %}

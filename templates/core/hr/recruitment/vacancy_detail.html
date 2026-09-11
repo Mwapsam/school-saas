@@ -1,0 +1,84 @@
+{% extends 'core/layouts/list.html' %}
+{% block page_title %}{{ vacancy.title }}{% endblock %}
+
+{% block layout_header %}
+{% url 'core:hr_vacancy_list' as back_fallback %}
+{% include 'core/components/page_header.html' with title=vacancy.title description=vacancy.department.name icon='fa-briefcase' back_url=back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_table %}
+{% csrf_token %}
+<div class="card mb-3"><div class="card-body">
+    <dl class="row mb-0">
+        <dt class="col-sm-3">Positions</dt><dd class="col-sm-9">{{ vacancy.number_of_positions }}</dd>
+        <dt class="col-sm-3">Employment type</dt><dd class="col-sm-9">{{ vacancy.get_employment_type_display }}</dd>
+        <dt class="col-sm-3">Closing date</dt><dd class="col-sm-9">{{ vacancy.closing_date|date:"M j, Y"|default:"—" }}</dd>
+        <dt class="col-sm-3">Status</dt><dd class="col-sm-9">
+            {% if can_manage %}
+            <select class="form-select form-select-sm d-inline-block" style="width:auto" onchange="updateVacancyStatus('{{ vacancy.id }}', this.value)">
+                <option value="open" {% if vacancy.status == 'open' %}selected{% endif %}>Open</option>
+                <option value="closed" {% if vacancy.status == 'closed' %}selected{% endif %}>Closed</option>
+                <option value="filled" {% if vacancy.status == 'filled' %}selected{% endif %}>Filled</option>
+                <option value="cancelled" {% if vacancy.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                <option value="draft" {% if vacancy.status == 'draft' %}selected{% endif %}>Draft</option>
+            </select>
+            {% else %}{{ vacancy.get_status_display }}{% endif %}
+        </dd>
+        <dt class="col-sm-3">Description</dt><dd class="col-sm-9">{{ vacancy.job_description|linebreaksbr|default:"—" }}</dd>
+    </dl>
+</div></div>
+
+{% if can_manage %}
+<div class="card mb-3"><div class="card-body">
+    <h6 class="fw-bold">Add applicant</h6>
+    <form onsubmit="addApplicant(event, '{{ vacancy.id }}')">
+        <div class="row g-2">
+            <div class="col-md-3"><input type="text" class="form-control form-control-sm" name="first_name" placeholder="First name" required></div>
+            <div class="col-md-3"><input type="text" class="form-control form-control-sm" name="last_name" placeholder="Last name" required></div>
+            <div class="col-md-3"><input type="email" class="form-control form-control-sm" name="email" placeholder="Email"></div>
+            <div class="col-md-3"><input type="text" class="form-control form-control-sm" name="phone" placeholder="Phone"></div>
+            <div class="col-12"><input type="text" class="form-control form-control-sm" name="qualifications_summary" placeholder="Qualifications summary"></div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm mt-2">Add applicant</button>
+    </form>
+</div></div>
+{% endif %}
+
+<div id="applicant-pipeline">
+    {% include 'core/htmx/hr/applicant_pipeline.html' %}
+</div>
+
+<script>
+function _vacCsrf() { return document.querySelector('[name=csrfmiddlewaretoken]').value; }
+function _swapPipeline(status, text) {
+    if (status === 200) document.getElementById('applicant-pipeline').innerHTML = text;
+    else { try { alert(JSON.parse(text).error); } catch (e) { alert('An error occurred'); } }
+}
+function addApplicant(event, vacancyId) {
+    event.preventDefault();
+    fetch(`/hr/recruitment/vacancies/${vacancyId}/applicants/`, { method: 'POST', headers: { 'X-CSRFToken': _vacCsrf() }, body: new FormData(event.target) })
+        .then(r => r.text().then(t => { _swapPipeline(r.status, t); if (r.status === 200) event.target.reset(); }));
+}
+function advanceApplicant(applicantId, stage) {
+    const body = new FormData(); body.append('stage', stage);
+    fetch(`/hr/recruitment/applicants/${applicantId}/advance/`, { method: 'POST', headers: { 'X-CSRFToken': _vacCsrf() }, body })
+        .then(r => r.text().then(t => _swapPipeline(r.status, t)));
+}
+function convertApplicant(applicantId) {
+    const num = prompt('Employee number for the new hire:');
+    if (!num) return;
+    const jd = prompt('Joining date (YYYY-MM-DD):');
+    if (!jd) return;
+    const gender = confirm('OK = Male, Cancel = Female') ? 'true' : 'false';
+    const body = new FormData();
+    body.append('employee_number', num); body.append('joining_date', jd); body.append('gender', gender);
+    fetch(`/hr/recruitment/applicants/${applicantId}/convert/`, { method: 'POST', headers: { 'X-CSRFToken': _vacCsrf() }, body })
+        .then(r => r.json().then(j => { if (r.status === 200 && j.redirect) window.location = j.redirect; else alert(j.error || 'An error occurred'); }));
+}
+function updateVacancyStatus(vacancyId, status) {
+    const body = new FormData(); body.append('status', status);
+    fetch(`/hr/recruitment/vacancies/${vacancyId}/update/`, { method: 'POST', headers: { 'X-CSRFToken': _vacCsrf() }, body })
+        .then(r => r.json()).then(() => {});
+}
+</script>
+{% endblock %}

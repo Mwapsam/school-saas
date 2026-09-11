@@ -1,0 +1,487 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:admission_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Admission Applications" description="Manage and review student admission applications" icon="fa-file-alt" back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Admission Applications{% endblock %}
+
+{% block layout_table %}
+<div x-data="admissionListApp()" x-init="init()">
+    <div class="d-flex justify-content-end mb-4">
+        <a href="{% url 'core:admission_apply' %}" class="btn btn-success">
+            <i class="fas fa-plus me-1"></i> New Application
+        </a>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4" x-show="statistics">
+        <div class="col-md-3 mb-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="text-primary mb-2">
+                        <i class="fas fa-file-alt fa-2x"></i>
+                    </div>
+                    <h3 class="h4 mb-0" x-text="statistics.total_applications || 0"></h3>
+                    <p class="text-muted small mb-0">Total Applications</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="text-warning mb-2">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                    <h3 class="h4 mb-0" x-text="statistics.pending_applications || 0"></h3>
+                    <p class="text-muted small mb-0">Pending Review</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="text-success mb-2">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                    <h3 class="h4 mb-0" x-text="statistics.approved_applications || 0"></h3>
+                    <p class="text-muted small mb-0">Approved</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="text-danger mb-2">
+                        <i class="fas fa-times-circle fa-2x"></i>
+                    </div>
+                    <h3 class="h4 mb-0" x-text="statistics.rejected_applications || 0"></h3>
+                    <p class="text-muted small mb-0">Rejected</p>
+                    <small class="text-muted" x-show="statistics.approval_rate">
+                        (<span x-text="statistics.approval_rate"></span>% approval rate)
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Search Applications</label>
+                    <input type="text" class="form-control" id="search" 
+                           x-model="filters.query" 
+                           @input.debounce.500ms="loadApplications(1)"
+                           placeholder="Name, application number, or guardian name...">
+                </div>
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" 
+                            x-model="filters.status" 
+                            @change="loadApplications(1)">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="course" class="form-label">Course</label>
+                    <select class="form-select" id="course" 
+                            x-model="filters.course" 
+                            @change="loadApplications(1)">
+                        <option value="">All Courses</option>
+                        <template x-for="course in courses" :key="course.id">
+                            <option :value="course.id" x-text="course.course_name"></option>
+                        </template>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-success w-100" 
+                            @click="loadApplications(1)" 
+                            :disabled="loading">
+                        <div x-show="!loading">
+                            <i class="fas fa-search me-1"></i> Search
+                        </div>
+                        <div x-show="loading" class="loading-spinner d-inline-block"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Applications List -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Applications</h5>
+            <span class="badge bg-secondary" x-show="pagination.count > 0" x-text="`${applications.length} of ${pagination.count} results`"></span>
+        </div>
+        
+        <!-- Loading State -->
+        <div x-show="loading && applications.length === 0" class="text-center py-4">
+            <div class="loading-spinner d-inline-block"></div>
+            <p class="mt-2">Loading applications...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div x-show="!loading && applications.length === 0" class="card-body text-center py-5">
+            <div class="text-muted mb-3">
+                <i class="fas fa-inbox fa-3x"></i>
+            </div>
+            <h5 class="text-muted">No Applications Found</h5>
+            <p class="text-muted">There are no admission applications matching your criteria.</p>
+            <a href="{% url 'core:admission_apply' %}" class="btn btn-success">
+                <i class="fas fa-plus me-1"></i> Create New Application
+            </a>
+        </div>
+        
+        <!-- Applications Table -->
+        <div class="pinewood-table-responsive" x-show="applications.length > 0">
+            <table class="pinewood-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Application #</th>
+                        <th>Applicant Name</th>
+                        <th>Course Applied</th>
+                        <th>Application Date</th>
+                        <th>Status</th>
+                        <th>Guardian Contact</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="application in applications" :key="application.id">
+                        <tr>
+                            <td>
+                                <strong class="text-primary" x-text="application.application_number"></strong>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm me-2">
+                                        <div class="avatar-title bg-light text-dark rounded" 
+                                             x-text="getInitials(application.first_name, application.last_name)">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold" x-text="`${application.first_name} ${application.last_name}`"></div>
+                                        <small class="text-muted">DOB: <span x-text="formatDate(application.date_of_birth)"></span></small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td x-text="application.course_applied?.course_name || 'N/A'"></td>
+                            <td x-text="formatDate(application.application_date)"></td>
+                            <td>
+                                <span class="badge"
+                                      :class="{
+                                          'bg-warning text-dark': application.status === 'pending',
+                                          'bg-success': application.status === 'approved', 
+                                          'bg-danger': application.status === 'rejected'
+                                      }"
+                                      x-text="application.status.charAt(0).toUpperCase() + application.status.slice(1)">
+                                </span>
+                            </td>
+                            <td>
+                                <div x-text="application.guardian_name"></div>
+                                <small class="text-muted" x-text="application.guardian_phone"></small>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            @click="viewApplication(application.id)" 
+                                            title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <template x-if="application.status === 'pending'">
+                                        <button class="btn btn-sm btn-outline-success" 
+                                                @click="reviewApplication(application.id, 'approve')" 
+                                                title="Approve">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </template>
+                                    <template x-if="application.status === 'pending'">
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                @click="reviewApplication(application.id, 'reject')" 
+                                                title="Reject">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </template>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="card-footer" x-show="pagination.count > 0">
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    Showing <span x-text="((currentPage - 1) * pageSize) + 1"></span> 
+                    to <span x-text="Math.min(currentPage * pageSize, pagination.count)"></span> 
+                    of <span x-text="pagination.count"></span> entries
+                </small>
+                
+                <nav x-show="totalPages > 1">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item" :class="{ 'disabled': !pagination.previous }">
+                            <button class="page-link" @click="loadApplications(currentPage - 1)" 
+                                    :disabled="!pagination.previous">Previous</button>
+                        </li>
+                        
+                        <template x-for="page in visiblePages" :key="page">
+                            <li class="page-item" :class="{ 'active': page === currentPage }">
+                                <button class="page-link" @click="loadApplications(page)" x-text="page"></button>
+                            </li>
+                        </template>
+                        
+                        <li class="page-item" :class="{ 'disabled': !pagination.next }">
+                            <button class="page-link" @click="loadApplications(currentPage + 1)" 
+                                    :disabled="!pagination.next">Next</button>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Review Modal -->
+<div class="modal fade" id="quickReviewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" x-data="reviewModal()">
+            <div class="modal-header">
+                <h5 class="modal-title" x-text="modalTitle"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form @submit.prevent="submitReview">
+                <div class="modal-body">
+                    <div class="mb-3" x-show="reviewAction === 'approve'">
+                        <label for="admissionNo" class="form-label">Admission Number</label>
+                        <input type="text" class="form-control" id="admissionNo" 
+                               x-model="reviewData.admission_no"
+                               placeholder="Leave blank to auto-generate">
+                        <div class="form-text">Leave blank to auto-generate admission number</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="remarks" class="form-label">Remarks</label>
+                        <textarea class="form-control" id="remarks" rows="3" 
+                                  x-model="reviewData.remarks"
+                                  :placeholder="reviewAction === 'approve' ? 'Enter approval remarks (optional)' : 'Enter reason for rejection'"
+                                  :required="reviewAction === 'reject'"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn" 
+                            :class="reviewAction === 'approve' ? 'btn-success' : 'btn-danger'"
+                            :disabled="reviewLoading">
+                        <span x-show="!reviewLoading" x-text="reviewAction === 'approve' ? 'Approve' : 'Reject'"></span>
+                        <div x-show="reviewLoading" class="loading-spinner d-inline-block"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function admissionListApp() {
+    return {
+        applications: [],
+        courses: [],
+        statistics: null,
+        loading: false,
+        
+        // Pagination
+        pagination: {},
+        currentPage: 1,
+        pageSize: 20,
+        
+        // Filters
+        filters: {
+            query: '',
+            status: '',
+            course: ''
+        },
+        
+        async init() {
+            await Promise.all([
+                this.loadCourses(),
+                this.loadStatistics(),
+                this.loadApplications(1)
+            ]);
+        },
+        
+        async loadCourses() {
+            try {
+                const data = await api.courses.list();
+                this.courses = data.results || data;
+            } catch (error) {
+                UIHelpers.handleAPIError(error, 'Failed to load courses');
+            }
+        },
+        
+        async loadStatistics() {
+            try {
+                this.statistics = await api.admissions.statistics();
+            } catch (error) {
+                UIHelpers.handleAPIError(error, 'Failed to load statistics');
+            }
+        },
+        
+        async loadApplications(page = 1) {
+            this.loading = true;
+            this.currentPage = page;
+            
+            try {
+                const params = {
+                    page: page,
+                    page_size: this.pageSize,
+                    ...this.filters
+                };
+                
+                // Remove empty filters
+                Object.keys(params).forEach(key => {
+                    if (params[key] === '' || params[key] === null || params[key] === undefined) {
+                        delete params[key];
+                    }
+                });
+                
+                const data = await api.admissions.list(params);
+                this.applications = data.results || [];
+                this.pagination = {
+                    count: data.count || 0,
+                    next: data.next,
+                    previous: data.previous
+                };
+                
+            } catch (error) {
+                UIHelpers.handleAPIError(error, 'Failed to load applications');
+                this.applications = [];
+                this.pagination = {};
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        viewApplication(applicationId) {
+            window.location.href = `/admission/detail/${applicationId}/`;
+        },
+        
+        reviewApplication(applicationId, action) {
+            // Trigger the review modal
+            const event = new CustomEvent('openReviewModal', {
+                detail: { applicationId, action }
+            });
+            document.dispatchEvent(event);
+        },
+        
+        formatDate(dateString) {
+            return UIHelpers.formatDate(dateString);
+        },
+        
+        getInitials(firstName, lastName) {
+            return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+        },
+        
+        // Computed properties
+        get totalPages() {
+            return Math.ceil(this.pagination.count / this.pageSize);
+        },
+        
+        get visiblePages() {
+            const total = this.totalPages;
+            const current = this.currentPage;
+            const delta = 2;
+            
+            const range = [];
+            for (let i = Math.max(1, current - delta); i <= Math.min(total, current + delta); i++) {
+                range.push(i);
+            }
+            
+            return range;
+        }
+    }
+}
+
+function reviewModal() {
+    return {
+        applicationId: null,
+        reviewAction: null,
+        reviewLoading: false,
+        reviewData: {
+            admission_no: '',
+            remarks: ''
+        },
+        
+        init() {
+            document.addEventListener('openReviewModal', (e) => {
+                const { applicationId, action } = e.detail;
+                this.applicationId = applicationId;
+                this.reviewAction = action;
+                this.reviewData = { admission_no: '', remarks: '' };
+                
+                const modal = new bootstrap.Modal(document.getElementById('quickReviewModal'));
+                modal.show();
+            });
+        },
+        
+        async submitReview() {
+            if (!this.applicationId || !this.reviewAction) return;
+            
+            this.reviewLoading = true;
+            
+            try {
+                let result;
+                if (this.reviewAction === 'approve') {
+                    result = await api.admissions.approve(this.applicationId, {
+                        admission_no: this.reviewData.admission_no || null,
+                        remarks: this.reviewData.remarks
+                    });
+                } else {
+                    result = await api.admissions.reject(this.applicationId, {
+                        reason: this.reviewData.remarks
+                    });
+                }
+                
+                // Close modal
+                bootstrap.Modal.getInstance(document.getElementById('quickReviewModal')).hide();
+                
+                // Show success message
+                UIHelpers.showAlert(`Application ${this.reviewAction}d successfully`, 'success');
+                
+                // Refresh applications and statistics
+                const listApp = Alpine.store('admissionListApp');
+                if (listApp) {
+                    await Promise.all([
+                        listApp.loadApplications(listApp.currentPage),
+                        listApp.loadStatistics()
+                    ]);
+                } else {
+                    // Fallback to page reload
+                    setTimeout(() => window.location.reload(), 1000);
+                }
+                
+            } catch (error) {
+                UIHelpers.handleAPIError(error, `Failed to ${this.reviewAction} application`);
+            } finally {
+                this.reviewLoading = false;
+            }
+        },
+        
+        get modalTitle() {
+            return this.reviewAction === 'approve' ? 'Approve Application' : 'Reject Application';
+        }
+    }
+}
+</script>
+
+{% csrf_token %}
+{% endblock %}
+

@@ -1,0 +1,498 @@
+{% extends 'core/layouts/form.html' %}
+{% load static %}
+
+{% block page_title %}Bulk Skills Assessment{% endblock %}
+
+{% block layout_header %}
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Bulk Skills Assessment" description="Assess multiple students across various skills efficiently" icon="fa-users" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_form %}
+<div class="gb-skills">
+<div class="container-fluid">
+    <form id="bulkAssessmentForm" method="post">
+        {% csrf_token %}
+
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Assessment Setup</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="assessmentTitle" class="form-label">Assessment Title</label>
+                            <input type="text" class="form-control" id="assessmentTitle" name="title"
+                                   placeholder="e.g., Term 2 Skills Assessment" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="assessmentPeriod" class="form-label">Period</label>
+                            <select class="form-select" id="assessmentPeriod" name="period" required>
+                                <option value="">Select Period</option>
+                                <option value="TERM1">Term 1</option>
+                                <option value="TERM2">Term 2</option>
+                                <option value="TERM3">Term 3</option>
+                                <option value="ANNUAL">Annual Assessment</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="assessmentDate" class="form-label">Assessment Date</label>
+                            <input type="date" class="form-control" id="assessmentDate" name="date" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="selectedBatch" class="form-label">Class/Batch</label>
+                            <select class="form-select" id="selectedBatch" name="batch_id" required>
+                                <option value="">Select Class</option>
+                                {% for batch in batches %}
+                                <option value="{{ batch.id }}">{{ batch.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Assessment Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="summary-stats">
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <span>Students:</span>
+                                    <span id="selectedStudentsCount" class="fw-bold text-primary">0</span>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <span>Skills:</span>
+                                    <span id="selectedSkillsCount" class="fw-bold text-info">0</span>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <span>Total Assessments:</span>
+                                    <span id="totalAssessments" class="fw-bold text-success">0</span>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>Estimated Time:</span>
+                                    <span id="estimatedTime" class="fw-bold text-warning">0 min</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" id="startAssessmentBtn" disabled>
+                                <i class="fas fa-play"></i> Start Assessment
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="resetAssessment()">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-9">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">Selection Matrix</h5>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="selectAllStudents">
+                                    Select All Students
+                                </button>
+                                <button type="button" class="btn btn-outline-info btn-sm" id="selectAllSkills">
+                                    Select All Skills
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Students Column -->
+                            <div class="col-md-4">
+                                <h6>Students <span id="studentsTitle">(Select a class first)</span></h6>
+                                <div id="studentsList" class="selection-list">
+                                    <div class="text-center text-muted py-4">
+                                        <i class="fas fa-users fa-2x mb-2"></i>
+                                        <p>Select a class to see students</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Skills Column -->
+                            <div class="col-md-8">
+                                <h6>Skills by Category</h6>
+                                <div id="skillsCategories" class="skills-categories">
+                                    {% for category in skill_categories %}
+                                    <div class="category-section mb-4">
+                                        <div class="category-header d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                                            <h6 class="mb-0">{{ category.name }}</h6>
+                                            <div class="form-check">
+                                                <input class="form-check-input category-toggle" type="checkbox"
+                                                       id="category_{{ category.id }}" data-category="{{ category.id }}">
+                                                <label class="form-check-label fw-bold" for="category_{{ category.id }}">
+                                                    Select All
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="skills-list mt-2" id="skills_{{ category.id }}">
+                                            {% for skill in category.skill_items.all %}
+                                            <div class="form-check mb-1">
+                                                <input class="form-check-input skill-checkbox" type="checkbox"
+                                                       value="{{ skill.id }}" id="skill_{{ skill.id }}"
+                                                       data-category="{{ category.id }}" name="skills">
+                                                <label class="form-check-label" for="skill_{{ skill.id }}">
+                                                    <span class="skill-name">{{ skill.name }}</span>
+                                                    <small class="text-muted d-block">{{ skill.description|truncatechars:60 }}</small>
+                                                    {% if skill.expected_age %}
+                                                    <small class="badge bg-info">{{ skill.expected_age }}mo</small>
+                                                    {% endif %}
+                                                </label>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% empty %}
+                                    <div class="text-center text-muted py-4">
+                                        <i class="fas fa-list fa-2x mb-2"></i>
+                                        <p>No skill categories found</p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+</div>
+{% endblock %}
+
+{% block layout_actions %}
+<div class="gb-skills">
+<!-- Assessment Progress Modal -->
+<div class="modal fade" id="assessmentProgressModal" tabindex="-1" role="dialog" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk Assessment in Progress</h5>
+                <div class="progress flex-grow-1 mx-3" style="height: 6px;">
+                    <div class="progress-bar" role="progressbar" style="width: 0%" id="overallProgress"></div>
+                </div>
+                <span id="progressText">0 / 0</span>
+            </div>
+            <div class="modal-body">
+                <div id="assessmentGrid"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" onclick="pauseAssessment()">
+                    <i class="fas fa-pause"></i> Pause
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveProgress()" disabled id="saveProgressBtn">
+                    <i class="fas fa-save"></i> Save Progress
+                </button>
+                <button type="button" class="btn btn-primary" onclick="completeAssessment()" disabled id="completeBtn">
+                    <i class="fas fa-check"></i> Complete Assessment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedStudents = [];
+let selectedSkills = [];
+let assessmentData = {};
+let currentAssessmentIndex = 0;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const batchSelect = document.getElementById('selectedBatch');
+    const categoryToggles = document.querySelectorAll('.category-toggle');
+    const skillCheckboxes = document.querySelectorAll('.skill-checkbox');
+
+    // Load students when batch is selected
+    batchSelect.addEventListener('change', function() {
+        if (this.value) {
+            loadStudents(this.value);
+        } else {
+            document.getElementById('studentsList').innerHTML = `
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-users fa-2x mb-2"></i>
+                    <p>Select a class to see students</p>
+                </div>
+            `;
+        }
+        updateSummary();
+    });
+
+    // Category toggle functionality
+    categoryToggles.forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const categoryId = this.dataset.category;
+            const categorySkills = document.querySelectorAll(`[data-category="${categoryId}"].skill-checkbox`);
+
+            categorySkills.forEach(skill => {
+                skill.checked = this.checked;
+            });
+            updateSummary();
+        });
+    });
+
+    // Skill checkbox changes
+    skillCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSummary);
+    });
+
+    // Select all buttons
+    document.getElementById('selectAllStudents').addEventListener('click', function() {
+        document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = true);
+        updateSummary();
+    });
+
+    document.getElementById('selectAllSkills').addEventListener('click', function() {
+        skillCheckboxes.forEach(cb => cb.checked = true);
+        categoryToggles.forEach(toggle => toggle.checked = true);
+        updateSummary();
+    });
+
+    // Form submission
+    document.getElementById('bulkAssessmentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        startBulkAssessment();
+    });
+});
+
+function loadStudents(batchId) {
+    document.getElementById('studentsList').innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            <p class="mt-2">Loading students...</p>
+        </div>
+    `;
+
+    // Simulate loading students
+    setTimeout(() => {
+        const students = [
+            {id: '1', name: 'Alice Johnson', admission_no: 'STU001'},
+            {id: '2', name: 'Bob Smith', admission_no: 'STU002'},
+            {id: '3', name: 'Carol Williams', admission_no: 'STU003'},
+            {id: '4', name: 'David Brown', admission_no: 'STU004'},
+            {id: '5', name: 'Emma Davis', admission_no: 'STU005'}
+        ];
+
+        document.getElementById('studentsTitle').textContent = `(${students.length} students)`;
+        document.getElementById('studentsList').innerHTML = students.map(student => `
+            <div class="form-check mb-2">
+                <input class="form-check-input student-checkbox" type="checkbox"
+                       value="${student.id}" id="student_${student.id}" name="students">
+                <label class="form-check-label" for="student_${student.id}">
+                    <span class="fw-medium">${student.name}</span>
+                    <small class="text-muted d-block">${student.admission_no}</small>
+                </label>
+            </div>
+        `).join('');
+
+        // Add event listeners to new checkboxes
+        document.querySelectorAll('.student-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', updateSummary);
+        });
+    }, 1000);
+}
+
+function updateSummary() {
+    const studentCount = document.querySelectorAll('.student-checkbox:checked').length;
+    const skillCount = document.querySelectorAll('.skill-checkbox:checked').length;
+    const totalAssessments = studentCount * skillCount;
+    const estimatedTime = totalAssessments * 3; // 3 minutes per assessment
+
+    document.getElementById('selectedStudentsCount').textContent = studentCount;
+    document.getElementById('selectedSkillsCount').textContent = skillCount;
+    document.getElementById('totalAssessments').textContent = totalAssessments;
+    document.getElementById('estimatedTime').textContent = `${estimatedTime} min`;
+
+    // Enable/disable start button
+    const startBtn = document.getElementById('startAssessmentBtn');
+    startBtn.disabled = studentCount === 0 || skillCount === 0;
+}
+
+function startBulkAssessment() {
+    selectedStudents = Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => ({
+        id: cb.value,
+        name: cb.parentElement.querySelector('.fw-medium').textContent
+    }));
+
+    selectedSkills = Array.from(document.querySelectorAll('.skill-checkbox:checked')).map(cb => ({
+        id: cb.value,
+        name: cb.parentElement.querySelector('.skill-name').textContent
+    }));
+
+    if (selectedStudents.length === 0 || selectedSkills.length === 0) {
+        alert('Please select at least one student and one skill.');
+        return;
+    }
+
+    // Initialize assessment data
+    assessmentData = {};
+    selectedStudents.forEach(student => {
+        assessmentData[student.id] = {};
+        selectedSkills.forEach(skill => {
+            assessmentData[student.id][skill.id] = {
+                proficiency: '',
+                observations: '',
+                completed: false
+            };
+        });
+    });
+
+    // Show assessment modal
+    const modal = new bootstrap.Modal(document.getElementById('assessmentProgressModal'));
+    modal.show();
+
+    // Create assessment grid
+    createAssessmentGrid();
+}
+
+function createAssessmentGrid() {
+    const gridContainer = document.getElementById('assessmentGrid');
+
+    let gridHTML = `
+        <div class="assessment-grid">
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            ${selectedSkills.map(skill => `<th class="text-center">${skill.name}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+
+    selectedStudents.forEach(student => {
+        gridHTML += `
+            <tr>
+                <td class="fw-medium">${student.name}</td>
+                ${selectedSkills.map(skill => `
+                    <td class="text-center p-1">
+                        <button class="btn btn-outline-secondary btn-sm assessment-cell"
+                                data-student="${student.id}" data-skill="${skill.id}"
+                                onclick="openAssessmentCell('${student.id}', '${skill.id}', '${student.name}', '${skill.name}')">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </td>
+                `).join('')}
+            </tr>
+        `;
+    });
+
+    gridHTML += `
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+
+    gridContainer.innerHTML = gridHTML;
+    updateProgressBar();
+}
+
+function openAssessmentCell(studentId, skillId, studentName, skillName) {
+    // This would open a detailed assessment interface for the specific student-skill combination
+    const proficiency = prompt(`Assess ${skillName} for ${studentName}:\n\n1 - Emerging\n2 - Developing\n3 - Secure\n4 - Exceeding\n\nEnter number (1-4):`);
+
+    if (proficiency && proficiency >= 1 && proficiency <= 4) {
+        const proficiencyLevels = ['', 'EMERGING', 'DEVELOPING', 'SECURE', 'EXCEEDING'];
+        const proficiencyColors = ['', 'secondary', 'warning', 'success', 'primary'];
+
+        assessmentData[studentId][skillId] = {
+            proficiency: proficiencyLevels[proficiency],
+            observations: '',
+            completed: true
+        };
+
+        // Update the cell appearance
+        const cell = document.querySelector(`[data-student="${studentId}"][data-skill="${skillId}"]`);
+        cell.className = `btn btn-${proficiencyColors[proficiency]} btn-sm assessment-cell`;
+        cell.innerHTML = `<i class="fas fa-check"></i>`;
+
+        updateProgressBar();
+    }
+}
+
+function updateProgressBar() {
+    let completedAssessments = 0;
+    const totalAssessments = selectedStudents.length * selectedSkills.length;
+
+    selectedStudents.forEach(student => {
+        selectedSkills.forEach(skill => {
+            if (assessmentData[student.id] && assessmentData[student.id][skill.id] && assessmentData[student.id][skill.id].completed) {
+                completedAssessments++;
+            }
+        });
+    });
+
+    const percentage = totalAssessments > 0 ? (completedAssessments / totalAssessments) * 100 : 0;
+
+    document.getElementById('overallProgress').style.width = `${percentage}%`;
+    document.getElementById('progressText').textContent = `${completedAssessments} / ${totalAssessments}`;
+
+    // Enable buttons based on progress
+    document.getElementById('saveProgressBtn').disabled = completedAssessments === 0;
+    document.getElementById('completeBtn').disabled = completedAssessments < totalAssessments;
+}
+
+function pauseAssessment() {
+    showConfirm('Pause this assessment? Progress will be saved.', function() {
+        saveProgress();
+        const modal = bootstrap.Modal.getInstance(document.getElementById('assessmentProgressModal'));
+        modal.hide();
+    }, 'Pause', 'warning');
+}
+
+function saveProgress() {
+    showToast('Assessment progress saved successfully!', 'success');
+}
+
+function completeAssessment() {
+    showConfirm('Complete this assessment? All data will be finalized.', function() {
+        showToast('Bulk assessment completed successfully!', 'success');
+
+        const modal = bootstrap.Modal.getInstance(document.getElementById('assessmentProgressModal'));
+        modal.hide();
+        resetAssessment();
+    }, 'Complete', 'success');
+}
+
+function resetAssessment() {
+    document.getElementById('bulkAssessmentForm').reset();
+    document.querySelectorAll('.student-checkbox, .skill-checkbox, .category-toggle').forEach(cb => {
+        cb.checked = false;
+    });
+
+    document.getElementById('studentsList').innerHTML = `
+        <div class="text-center text-muted py-4">
+            <i class="fas fa-users fa-2x mb-2"></i>
+            <p>Select a class to see students</p>
+        </div>
+    `;
+
+    updateSummary();
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+{% endblock %}

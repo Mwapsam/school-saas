@@ -1,0 +1,474 @@
+{% load currency_tags %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-money-bill text-warning"></i> Fee Report - {{ student.first_name }} {{ student.last_name }}</h5>
+        <small class="text-muted">{{ student.admission_no }}</small>
+    </div>
+    <div class="card-body">
+        <!-- Student Information -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <table class="table table-sm table-borderless">
+                    <tr>
+                        <td><strong>Fee Category Name:</strong></td>
+                        <td>{{ current_fee_category.name|default:"General Fees" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Student Category:</strong></td>
+                        <td>{{ student.student_category|default:"Regular" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Fee Collection Name:</strong></td>
+                        <td>{{ current_fee_collection.name|default:"Current Term Fee" }}</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <!-- Fine Management -->
+                <div class="mb-2">
+                    <div class="text-warning small">Due date has been exceeded. Please collect fine amount.</div>
+                    <div class="input-group input-group-sm">
+                        <input type="number" class="form-control" id="fineAmount" placeholder="0.00" step="0.01">
+                        <button class="btn btn-outline-dark btn-sm" id="addFineBtn" type="button">
+                            <i class="fas fa-plus"></i> Add Fine
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fee Particulars Table -->
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th width="10%">Sl No.</th>
+                        <th width="60%">Particulars</th>
+                        <th width="30%" class="text-end">Amount ({% currency_symbol %})</th>
+                    </tr>
+                </thead>
+                <tbody id="feeParticularsTable">
+                    <!-- Student Category-wise header -->
+                    <tr class="table-secondary">
+                        <td colspan="3" class="fw-bold">Student Category-wise</td>
+                    </tr>
+                    
+                    <!-- Fee Particulars -->
+                    {% for particular in fee_particulars %}
+                    <tr data-particular-id="{{ particular.id }}">
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ particular.name }}</td>
+                        <td class="text-end">{% currency_format particular.amount %}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td>1</td>
+                        <td>Tuition Fee</td>
+                        <td class="text-end">{% currency_format fee_balance %}</td>
+                    </tr>
+                    {% endfor %}
+                    
+                    <!-- Add buttons row -->
+                    <tr>
+                        <td colspan="2">
+                            <button type="button" class="btn btn-link btn-sm p-0" id="addParticularBtn">
+                                <i class="fas fa-plus text-primary"></i> Add Particular
+                            </button>
+                        </td>
+                        <td class="text-end">
+                            <button type="button" class="btn btn-link btn-sm p-0" id="addDiscountBtn">
+                                <i class="fas fa-plus text-success"></i> Add Discount
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Summary Section -->
+        <div class="row">
+            <div class="col-md-6 offset-md-6">
+                <table class="table table-sm table-borderless">
+                    <tbody class="table-light">
+                        <tr class="fw-bold border-top">
+                            <td colspan="3" class="text-center bg-light">Summary</td>
+                        </tr>
+                        <tr>
+                            <td width="10%">1</td>
+                            <td width="60%">Total Fees</td>
+                            <td width="30%" class="text-end fw-bold" id="totalFees">{% currency_format total_fees %}</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>Total Discount</td>
+                            <td class="text-end fw-bold text-success" id="totalDiscount">{% currency_format total_discount %}</td>
+                        </tr>
+                        <tr class="border-top">
+                            <td colspan="2" class="fw-bold">Total amount to pay</td>
+                            <td class="text-end fw-bold" id="totalAmountToPay">{% currency_format amount_to_pay %}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="fw-bold">Total amount paid</td>
+                            <td class="text-end fw-bold text-success" id="totalAmountPaid">{% currency_format amount_paid %}</td>
+                        </tr>
+                        <tr class="border-top">
+                            <td colspan="2" class="fw-bold text-danger">Total due amount</td>
+                            <td class="text-end fw-bold text-danger" id="totalDueAmount">{% currency_format due_amount %}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Payment Section -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Payment Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label class="form-label">Payment mode</label>
+                                <select class="form-select form-select-sm" id="paymentMode">
+                                    <option value="cash">Cash</option>
+                                    <option value="card">Card</option>
+                                    <option value="bank_transfer">Bank Transfer</option>
+                                    <option value="mobile_money">Mobile Money</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Reference number</label>
+                                <input type="text" class="form-control form-control-sm" id="referenceNumber" placeholder="Optional">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Amount</label>
+                                <input type="number" class="form-control form-control-sm" id="paymentAmount" 
+                                       value="{{ due_amount|floatformat:2 }}" step="0.01">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Payment date</label>
+                                <input type="date" class="form-control form-control-sm" id="paymentDate" 
+                                       value="{{ today|date:'Y-m-d' }}">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-9">
+                                <label class="form-label">Payment notes</label>
+                                <textarea class="form-control form-control-sm" id="paymentNotes" rows="2" 
+                                          placeholder="Optional payment notes"></textarea>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <div class="d-grid gap-2 w-100">
+                                    <button type="button" class="btn btn-dark btn-sm" id="printSummaryBtn">
+                                        <i class="fas fa-print"></i> Print summary
+                                    </button>
+                                    <button type="button" class="btn btn-success btn-sm" id="payFeesBtn">
+                                        <i class="fas fa-credit-card"></i> Pay fees
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals for Adding Particulars and Discounts -->
+<div id="modalContainer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const studentId = '{{ student.id }}';
+    
+    // Add Particular Modal
+    function showAddParticularModal() {
+        const modalHTML = `
+            <div class="modal fade" id="addParticularModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add Fee Particular</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="addParticularForm">
+                                <div class="mb-3">
+                                    <label for="particularName" class="form-label">Particular Name</label>
+                                    <input type="text" class="form-control" id="particularName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="particularAmount" class="form-label">Amount ({% currency_symbol %})</label>
+                                    <input type="number" class="form-control" id="particularAmount" step="0.01" required>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="saveParticularBtn">Add Particular</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.getElementById('modalContainer').innerHTML = modalHTML;
+        const modal = new bootstrap.Modal(document.getElementById('addParticularModal'));
+        modal.show();
+        
+        // Handle form submission
+        document.getElementById('saveParticularBtn').addEventListener('click', function() {
+            const name = document.getElementById('particularName').value;
+            const amount = document.getElementById('particularAmount').value;
+            
+            if (!name || !amount) {
+                alert('Please fill all fields');
+                return;
+            }
+            
+            fetch(`/api/students/${studentId}/fee/add-particular/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    name: name,
+                    amount: amount
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Add new row to the table
+                    addParticularRow(data.particular);
+                    updateTotals();
+                    modal.hide();
+                } else {
+                    alert(data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+            });
+        });
+    }
+    
+    // Add Discount Modal
+    function showAddDiscountModal() {
+        const modalHTML = `
+            <div class="modal fade" id="addDiscountModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add Discount</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="addDiscountForm">
+                                <div class="mb-3">
+                                    <label for="discountName" class="form-label">Discount Name</label>
+                                    <input type="text" class="form-control" id="discountName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="discountMode" class="form-label">Discount Type</label>
+                                    <select class="form-select" id="discountMode" required>
+                                        <option value="amount">Fixed Amount</option>
+                                        <option value="percentage">Percentage</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="discountValue" class="form-label">Discount Value</label>
+                                    <input type="number" class="form-control" id="discountValue" step="0.01" required>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-success" id="saveDiscountBtn">Add Discount</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.getElementById('modalContainer').innerHTML = modalHTML;
+        const modal = new bootstrap.Modal(document.getElementById('addDiscountModal'));
+        modal.show();
+        
+        // Handle form submission
+        document.getElementById('saveDiscountBtn').addEventListener('click', function() {
+            const name = document.getElementById('discountName').value;
+            const mode = document.getElementById('discountMode').value;
+            const value = document.getElementById('discountValue').value;
+            
+            if (!name || !value) {
+                alert('Please fill all fields');
+                return;
+            }
+            
+            fetch(`/api/students/${studentId}/fee/add-discount/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    name: name,
+                    mode: mode,
+                    value: value
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addDiscountRow(data.discount);
+                    updateTotals();
+                    modal.hide();
+                } else {
+                    alert(data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+            });
+        });
+    }
+    
+    // Add Fine functionality
+    function addFine() {
+        const fineAmount = document.getElementById('fineAmount').value;
+        
+        if (!fineAmount || fineAmount <= 0) {
+            alert('Please enter a valid fine amount');
+            return;
+        }
+        
+        fetch(`/api/students/${studentId}/fee/add-fine/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                amount: fineAmount
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                addFineRow(data.fine);
+                updateTotals();
+                document.getElementById('fineAmount').value = '';
+            } else {
+                alert(data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error.message);
+        });
+    }
+    
+    // Helper functions
+    function addParticularRow(particular) {
+        const table = document.getElementById('feeParticularsTable');
+        const addButtonsRow = table.querySelector('tr:last-child');
+        const rowCount = table.querySelectorAll('tr[data-particular-id]').length + 1;
+        
+        const newRow = document.createElement('tr');
+        newRow.setAttribute('data-particular-id', particular.id);
+        newRow.innerHTML = `
+            <td>${rowCount}</td>
+            <td>${particular.name}</td>
+            <td class="text-end">${formatCurrency(particular.amount)}</td>
+        `;
+        
+        table.insertBefore(newRow, addButtonsRow);
+    }
+    
+    function addDiscountRow(discount) {
+        const table = document.getElementById('feeParticularsTable');
+        const addButtonsRow = table.querySelector('tr:last-child');
+        
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+            <td>-</td>
+            <td>Discount: ${discount.name}</td>
+            <td class="text-end text-success">-${formatCurrency(discount.value)}</td>
+        `;
+        
+        table.insertBefore(newRow, addButtonsRow);
+    }
+    
+    function addFineRow(fine) {
+        const table = document.getElementById('feeParticularsTable');
+        const addButtonsRow = table.querySelector('tr:last-child');
+        
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+            <td>-</td>
+            <td>Fine: ${fine.reason}</td>
+            <td class="text-end text-warning">${formatCurrency(fine.amount)}</td>
+        `;
+        
+        table.insertBefore(newRow, addButtonsRow);
+    }
+    
+    function updateTotals() {
+        // This is a simplified update - in a real implementation,
+        // you'd recalculate all totals based on the current table contents
+        location.reload(); // For now, just reload to refresh the data
+    }
+    
+    function formatCurrency(amount) {
+        // Use the currency symbol from context
+        const symbol = '{% currency_symbol %}';
+        return symbol + parseFloat(amount).toFixed(2);
+    }
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Event listeners
+    document.getElementById('addParticularBtn').addEventListener('click', showAddParticularModal);
+    document.getElementById('addDiscountBtn').addEventListener('click', showAddDiscountModal);
+    document.getElementById('addFineBtn').addEventListener('click', addFine);
+    
+    // Print functionality
+    document.getElementById('printSummaryBtn').addEventListener('click', function() {
+        window.print();
+    });
+    
+    // Pay fees functionality
+    document.getElementById('payFeesBtn').addEventListener('click', function() {
+        const paymentAmount = document.getElementById('paymentAmount').value;
+        const paymentMode = document.getElementById('paymentMode').value;
+        const referenceNumber = document.getElementById('referenceNumber').value;
+        const paymentDate = document.getElementById('paymentDate').value;
+        const paymentNotes = document.getElementById('paymentNotes').value;
+        
+        if (!paymentAmount || paymentAmount <= 0) {
+            alert('Please enter a valid payment amount');
+            return;
+        }
+        
+        // For now, just show a confirmation
+        if (confirm(`Process payment of ${formatCurrency(paymentAmount)} via ${paymentMode}?`)) {
+            alert('Payment processing functionality will be implemented soon!');
+        }
+    });
+});
+</script>

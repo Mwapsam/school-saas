@@ -1,0 +1,327 @@
+{% extends 'core/layouts/list.html' %}
+{% load static %}
+
+{% block page_title %}Academic Year Reports{% endblock %}
+
+{% block layout_header %}
+{% url 'core:finance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Academic Year Reports" description="Year-scoped financial reporting" icon='fa-file-alt' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+
+{% block layout_filters %}
+<!-- Filters will be extracted and moved here -->
+{% endblock %}
+
+{% block layout_table %}
+<div class="container-lg py-4">
+    <!-- Breadcrumb -->
+    {% include 'core/finance/_workflow_nav.html' with active_step=5 %}
+
+    <div class="d-flex flex-wrap justify-content-end align-items-center gap-2 mb-3">
+<div class="d-flex align-items-center gap-2">
+            <a href="{% url 'core:fee_statistics_report' %}?academic_year={{ selected_year_id }}" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-chart-line me-1"></i>Statistics
+            </a>
+            {% include 'core/finance/_year_selector.html' %}
+            <a href="{% url 'core:finance_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i>Back
+            </a>
+    </div>
+    </div>
+
+    {% if not selected_year %}
+    <!-- Empty State -->
+    <div class="card">
+        <div class="card-body p-5 text-center">
+            <div class="mb-3">
+                <i class="fas fa-calendar-alt fa-3x text-muted opacity-25"></i>
+            </div>
+            <h6 class="text-muted">No Academic Year Configured</h6>
+            <p class="text-muted small">Select an academic year to view year-scoped reports.</p>
+        </div>
+    </div>
+    {% else %}
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-calculator fa-lg text-primary"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <small class="text-muted d-block">Total Charged</small>
+                            <h5 class="mb-0">₭{{ year_summary.total_charged|floatformat:2 }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-check-circle fa-lg text-success"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <small class="text-muted d-block">Collected</small>
+                            <h5 class="mb-0 text-success">₭{{ year_summary.total_collected|floatformat:2 }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle fa-lg text-warning"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <small class="text-muted d-block">Outstanding</small>
+                            <h5 class="mb-0">₭{{ year_summary.total_outstanding|floatformat:2 }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-users fa-lg text-info"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <small class="text-muted d-block">Students Outstanding</small>
+                            <h5 class="mb-0">{{ year_summary.students_outstanding }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- Payment summary by method -->
+        <div class="col-md-5">
+            <div class="card h-100">
+                <div class="card-header bg-light border-0">
+                    <h6 class="mb-0"><i class="fas fa-credit-card me-2 text-primary"></i>Payment Summary by Method</h6>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-striped table-hover mb-0">
+                        <tbody>
+                        {% for m in payment_summary.by_method %}
+                            <tr>
+                                <td>{{ m.payment_method|title }}</td>
+                                <td class="text-end fw-500">₭{{ m.total|floatformat:2 }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="2" class="text-muted text-center py-3">No payments</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="fw-bold border-top">
+                                <td>Total Collected</td>
+                                <td class="text-end">₭{{ payment_summary.total_collected|floatformat:2 }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Class / grade breakdown -->
+        <div class="col-md-7">
+            <div class="card h-100">
+                <div class="card-header bg-light border-0 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="fas fa-sitemap me-2 text-primary"></i>Class / Grade Breakdown</h6>
+                    <a class="btn btn-sm btn-outline-primary" href="?academic_year={{ selected_year_id }}&export=class" title="Export as CSV">
+                        <i class="fas fa-download"></i>
+                    </a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Grade</th>
+                                <th>Batch</th>
+                                <th class="text-end">Students</th>
+                                <th class="text-end">Collected</th>
+                                <th class="text-end">Outstanding</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for r in class_rows %}
+                            <tr class="align-middle">
+                                <td>{{ r.grade }}</td>
+                                <td>{{ r.batch }}</td>
+                                <td class="text-end fw-500">{{ r.students }}</td>
+                                <td class="text-end fw-500 text-success">₭{{ r.collected|floatformat:2 }}</td>
+                                <td class="text-end">
+                                    {% if r.outstanding > 0 %}
+                                        <span class="badge bg-warning text-dark">₭{{ r.outstanding|floatformat:2 }}</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Settled</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-muted text-center py-3">No batches</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Outstanding balances -->
+    <div class="card">
+        <div class="card-header bg-light border-0 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="fas fa-users-slash me-2 text-primary"></i>Outstanding Balances</h6>
+            <a class="btn btn-sm btn-outline-primary" href="?academic_year={{ selected_year_id }}&export=outstanding" title="Export as CSV">
+                <i class="fas fa-download"></i>
+            </a>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Admission No</th>
+                        <th>Student</th>
+                        <th class="text-end">Outstanding</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for r in outstanding_rows %}
+                    <tr class="align-middle">
+                        <td>
+                            <code class="text-dark">{{ r.admission_no }}</code>
+                        </td>
+                        <td>{{ r.student_name }}</td>
+                        <td class="text-end">
+                            <span class="badge bg-warning text-dark">₭{{ r.outstanding|floatformat:2 }}</span>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-muted text-center py-4">No outstanding balances this year</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block layout_pagination %}{% endblock %}
+
+{% block layout_extra %}{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header {
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 1.5rem;
+}
+
+.page-header h1 {
+    color: #212529;
+    font-weight: 600;
+}
+
+.breadcrumb-sm {
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+.breadcrumb-sm .breadcrumb-item a {
+    color: #28a745;
+    text-decoration: none;
+}
+
+.breadcrumb-sm .breadcrumb-item a:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-sm .breadcrumb-item.active {
+    color: #6c757d;
+}
+
+.breadcrumb-sm .breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+    color: #6c757d;
+}
+
+.card {
+    border: 1px solid #e9ecef;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    padding: 1rem;
+}
+
+.card-header h6 {
+    font-weight: 600;
+    color: #212529;
+    margin: 0;
+}
+
+.card-body {
+    padding: 1rem;
+}
+
+.card h5 {
+    font-weight: 600;
+    color: #212529;
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+    background-color: #f8f9fa;
+    border-top: none;
+}
+
+.table tbody tr {
+    vertical-align: middle;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.6rem;
+    font-weight: 500;
+}
+
+code {
+    background-color: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.opacity-25 {
+    opacity: 0.25;
+}
+</style>
+{% endblock %}

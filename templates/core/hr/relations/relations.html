@@ -1,0 +1,88 @@
+{% extends 'core/layouts/list.html' %}
+{% block page_title %}Employee Relations{% endblock %}
+
+{% block layout_header %}
+{% url 'core:hr_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title='Employee Relations' icon='fa-scale-balanced' back_url=back_url|default:back_fallback crumbs=crumbs %}
+<p class="text-muted"><i class="fas fa-lock me-1"></i>Restricted — disciplinary and grievance records are audit-logged.</p>
+{% endblock %}
+
+{% block layout_table %}
+{% csrf_token %}
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-cases" type="button">Disciplinary</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-grievances" type="button">Grievances</button></li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="tab-cases">
+        {% if can_manage %}
+        <div class="card mb-3"><div class="card-body">
+            <h6 class="fw-bold">New disciplinary case</h6>
+            <form onsubmit="createCase(event)">
+                <div class="row g-2">
+                    <div class="col-md-4"><select class="form-select form-select-sm" name="employee_id" required>
+                        <option value="">Employee…</option>
+                        {% for e in employees %}<option value="{{ e.id }}">{{ e.first_name }} {{ e.last_name }}</option>{% endfor %}
+                    </select></div>
+                    <div class="col-md-4"><select class="form-select form-select-sm" name="case_type">
+                        {% for value, label in case_type_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                    </select></div>
+                    <div class="col-md-4"><select class="form-select form-select-sm" name="severity">
+                        {% for value, label in severity_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                    </select></div>
+                    <div class="col-md-6"><input type="text" class="form-control form-control-sm" name="title" placeholder="Title" required></div>
+                    <div class="col-md-3"><input type="date" class="form-control form-control-sm" name="incident_date"></div>
+                    <div class="col-12"><textarea class="form-control form-control-sm" name="description" rows="2" placeholder="Description"></textarea></div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm mt-2">Create case</button>
+            </form>
+        </div></div>
+        {% endif %}
+        <div class="card"><div id="disciplinary-list-content">{% include 'core/htmx/hr/disciplinary_list_content.html' %}</div></div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-grievances">
+        {% if can_manage %}
+        <div class="card mb-3"><div class="card-body">
+            <h6 class="fw-bold">Log grievance</h6>
+            <form onsubmit="createGrievance(event)">
+                <div class="row g-2">
+                    <div class="col-md-4"><select class="form-select form-select-sm" name="raised_by_id" required>
+                        <option value="">Raised by…</option>
+                        {% for e in employees %}<option value="{{ e.id }}">{{ e.first_name }} {{ e.last_name }}</option>{% endfor %}
+                    </select></div>
+                    <div class="col-md-4"><select class="form-select form-select-sm" name="against_id">
+                        <option value="">Against (optional)…</option>
+                        {% for e in employees %}<option value="{{ e.id }}">{{ e.first_name }} {{ e.last_name }}</option>{% endfor %}
+                    </select></div>
+                    <div class="col-md-4"><select class="form-select form-select-sm" name="category">
+                        {% for value, label in grievance_category_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                    </select></div>
+                    <div class="col-md-6"><input type="text" class="form-control form-control-sm" name="title" placeholder="Title" required></div>
+                    <div class="col-md-3"><input type="date" class="form-control form-control-sm" name="date_raised"></div>
+                    <div class="col-12"><textarea class="form-control form-control-sm" name="description" rows="2" placeholder="Description"></textarea></div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm mt-2">Log grievance</button>
+            </form>
+        </div></div>
+        {% endif %}
+        <div class="card"><div id="grievance-list-content">{% include 'core/htmx/hr/grievance_list_content.html' %}</div></div>
+    </div>
+</div>
+
+<script>
+function _relCsrf() { return document.querySelector('[name=csrfmiddlewaretoken]').value; }
+function _postRel(url, body, targetId) {
+    fetch(url, { method: 'POST', headers: { 'X-CSRFToken': _relCsrf() }, body })
+        .then(r => r.text().then(t => {
+            if (r.status === 200) document.getElementById(targetId).innerHTML = t;
+            else { try { alert(JSON.parse(t).error); } catch (e) { alert('An error occurred'); } }
+        }));
+}
+function createCase(event) { event.preventDefault(); _postRel("{% url 'core:hr_disciplinary_create' %}", new FormData(event.target), 'disciplinary-list-content'); event.target.reset(); }
+function updateCase(event, id) { event.preventDefault(); _postRel(`/hr/relations/disciplinary/${id}/update/`, new FormData(event.target), 'disciplinary-list-content'); }
+function createGrievance(event) { event.preventDefault(); _postRel("{% url 'core:hr_grievance_create' %}", new FormData(event.target), 'grievance-list-content'); event.target.reset(); }
+function updateGrievance(event, id) { event.preventDefault(); _postRel(`/hr/relations/grievances/${id}/update/`, new FormData(event.target), 'grievance-list-content'); }
+</script>
+{% endblock %}

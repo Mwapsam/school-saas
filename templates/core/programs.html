@@ -1,0 +1,57 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with icon='fa-graduation-cap' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Programs{% endblock %}
+
+{% block layout_table %}
+<div class="container-lg py-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <div class="d-flex align-items-center">
+                <i class="fas fa-graduation-cap me-2 text-muted"></i>
+                <h2 class="h3 mb-0">Programs</h2>
+                <span class="mx-2 text-muted">|</span>
+                <span class="text-primary">Home</span>
+            </div>
+        </div>
+        <div>
+            <a href="{% url 'core:dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Breadcrumb -->
+    
+
+    <!-- Programs Modules Grid -->
+    <div class="row g-3">
+        <!-- Left Column -->
+        <div class="col-md-6">
+            <div class="program-module-item">
+                <a href="{% url 'core:course_list' %}" class="text-decoration-none">
+                    <h5 class="text-success mb-1">Manage Class</h5>
+                    <p class="text-muted mb-0 small">Manage classes and create batches</p>
+                </a>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-md-6">
+            <div class="program-module-item">
+                <a href="{% url 'core:batch_list' %}" class="text-decoration-none">
+                    <h5 class="text-success mb-1">Manage Batch</h5>
+                    <p class="text-muted mb-0 small">Manage active/inactive batches</p>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

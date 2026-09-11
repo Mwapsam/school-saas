@@ -1,0 +1,26 @@
+{% extends 'core/layouts/list.html' %}
+{% block page_title %}Employee Exit{% endblock %}
+
+{% block layout_header %}
+{% url 'core:hr_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title='Employee Exit' icon='fa-right-from-bracket' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+{% block layout_table %}
+<div class="card mb-4"><div class="card-body">
+    <form method="get" hx-get="{% url 'core:hr_exit_list' %}" hx-target="#exit-list-content" hx-trigger="change">
+        <div class="row g-3"><div class="col-md-4">
+            <label for="status" class="form-label">Status</label>
+            <select class="form-select" id="status" name="status">
+                <option value="">All</option>
+                {% for s in status_choices %}<option value="{{ s }}" {% if request.GET.status == s %}selected{% endif %}>{{ s|title }}</option>{% endfor %}
+            </select>
+        </div></div>
+    </form>
+</div></div>
+
+<div class="card">
+    <div class="card-header"><h5 class="mb-0">Exits</h5></div>
+    <div id="exit-list-content">{% include 'core/htmx/hr/exit_list_content.html' %}</div>
+</div>
+{% endblock %}

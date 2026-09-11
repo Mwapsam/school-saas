@@ -1,0 +1,30 @@
+<div id="attendance-summary-boxes"{% if oob %} hx-swap-oob="true"{% endif %}>
+    {% if attendance_summary %}
+        <div class="row text-center mb-3">
+            <div class="col-md-3">
+                <div class="border p-2 rounded">
+                    <h4 class="text-primary">{{ attendance_summary.total_days|default:0 }}</h4>
+                    <small>Total Expected Attendance</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border p-2 rounded">
+                    <h4 class="text-success">{{ attendance_summary.present_days|default:0 }}</h4>
+                    <small>Present Days</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border p-2 rounded">
+                    <h4 class="text-danger">{{ attendance_summary.absent_days|default:0 }}</h4>
+                    <small>Absent Days</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border p-2 rounded">
+                    <h4 class="text-info">{{ attendance_summary.attendance_percentage|floatformat:1|default:0 }}%</h4>
+                    <small>Attendance Rate</small>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>

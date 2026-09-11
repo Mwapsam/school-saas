@@ -1,0 +1,37 @@
+{% extends 'core/layouts/form.html' %}
+{% block page_title %}Notification Control{% endblock %}
+
+{% block layout_header %}
+{% url 'core:configuration' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Notification Control" description="Which channels fire for each event, and who receives it" icon="fa-bell" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_form %}
+<form method="post" class="pw-card p-0" style="overflow-x:auto">
+  {% csrf_token %}
+  <table class="table align-middle mb-0">
+    <thead>
+      <tr>
+        <th>Event</th><th>Audience</th>
+        <th class="text-center">SMS</th><th class="text-center">Email</th>
+        <th class="text-center">Push</th><th class="text-center">In-app</th>
+        <th class="text-center">Active</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td class="small">{{ r.event_label }}</td>
+        <td class="small text-muted">{{ r.audience_label }}</td>
+        <td class="text-center"><input type="checkbox" name="{{ r.event }}__{{ r.audience }}__sms" {% if r.sms %}checked{% endif %}></td>
+        <td class="text-center"><input type="checkbox" name="{{ r.event }}__{{ r.audience }}__email" {% if r.email %}checked{% endif %}></td>
+        <td class="text-center"><input type="checkbox" name="{{ r.event }}__{{ r.audience }}__push" {% if r.push %}checked{% endif %}></td>
+        <td class="text-center"><input type="checkbox" name="{{ r.event }}__{{ r.audience }}__in_app" {% if r.in_app %}checked{% endif %}></td>
+        <td class="text-center"><input type="checkbox" name="{{ r.event }}__{{ r.audience }}__active" {% if r.active %}checked{% endif %}></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="p-3"><button class="btn btn-primary"><i class="fas fa-save me-1"></i>Save rules</button></div>
+</form>
+{% endblock %}

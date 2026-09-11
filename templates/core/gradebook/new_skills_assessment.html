@@ -1,0 +1,265 @@
+{% extends 'core/layouts/form.html' %}
+{% load static %}
+
+{% block page_title %}New Skills Assessment - {{ batch.name }}{% endblock %}
+
+{% block layout_header %}
+{% url 'core:gradebook_index' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Create Skills Assessment" description=header_description icon="fa-clipboard-check" back_url=back_url|default:back_fallback %}
+{% endblock %}
+
+{% block layout_form %}
+<div class="gb-skills">
+<div class="container-fluid">
+    <form id="skillsAssessmentForm" method="post">
+        {% csrf_token %}
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Assessment Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="assessment_period" class="form-label">Assessment Period</label>
+                                <select class="form-select" id="assessment_period" name="assessment_period" required>
+                                    <option value="">Select Period</option>
+                                    <option value="TERM1">Term 1</option>
+                                    <option value="TERM2">Term 2</option>
+                                    <option value="TERM3">Term 3</option>
+                                    <option value="ANNUAL">Annual Assessment</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="assessment_date" class="form-label">Assessment Date</label>
+                                <input type="date" class="form-control" id="assessment_date" name="assessment_date" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="selected_students" class="form-label">Select Students</label>
+                            <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="select_all">
+                                    <label class="form-check-label fw-bold" for="select_all">
+                                        Select All Students
+                                    </label>
+                                </div>
+                                <hr>
+                                {% for student in batch.students.all %}
+                                <div class="form-check mb-1">
+                                    <input class="form-check-input student-checkbox" type="checkbox"
+                                           value="{{ student.id }}" id="student_{{ student.id }}"
+                                           name="students">
+                                    <label class="form-check-label" for="student_{{ student.id }}">
+                                        {{ student.first_name }} {{ student.last_name }} ({{ student.admission_no }})
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="overall_remarks" class="form-label">Overall Remarks</label>
+                            <textarea class="form-control" id="overall_remarks" name="overall_remarks"
+                                    rows="3" placeholder="General observations and comments..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Skill Categories</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for category in skill_categories %}
+                        <div class="skill-category mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="mb-0">{{ category.name }}</h6>
+                                <div class="form-check">
+                                    <input class="form-check-input category-toggle" type="checkbox"
+                                           id="category_{{ category.id }}" data-category="{{ category.id }}">
+                                    <label class="form-check-label" for="category_{{ category.id }}">
+                                        Include in Assessment
+                                    </label>
+                                </div>
+                            </div>
+                            <p class="text-muted small">{{ category.description }}</p>
+
+                            <div class="skill-items d-none" id="skills_{{ category.id }}">
+                                {% for skill in category.skill_items.all %}
+                                <div class="border rounded p-2 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input skill-item" type="checkbox"
+                                               value="{{ skill.id }}" id="skill_{{ skill.id }}"
+                                               name="skills" data-category="{{ category.id }}">
+                                        <label class="form-check-label fw-medium" for="skill_{{ skill.id }}">
+                                            {{ skill.name }}
+                                        </label>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">{{ skill.description }}</small>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Assessment Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Selected Students</label>
+                            <div id="selected-students-count" class="badge bg-primary">0 students</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Selected Skills</label>
+                            <div id="selected-skills-count" class="badge bg-info">0 skills</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Estimated Time</label>
+                            <div id="estimated-time" class="text-muted">0 minutes</div>
+                        </div>
+
+                        <hr>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" id="createAssessmentBtn" disabled>
+                                <i class="fas fa-plus"></i> Create Assessment
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                                <i class="fas fa-undo"></i> Reset Form
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h6>Assessment Guidelines</h6>
+                        <ul class="list-unstyled small text-muted">
+                            <li><i class="fas fa-info-circle text-info"></i> Select students and skills to assess</li>
+                            <li><i class="fas fa-clock text-warning"></i> Allow 3-5 minutes per skill per student</li>
+                            <li><i class="fas fa-edit text-success"></i> Use detailed observations for best results</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('select_all');
+    const studentCheckboxes = document.querySelectorAll('.student-checkbox');
+    const categoryToggles = document.querySelectorAll('.category-toggle');
+    const skillItems = document.querySelectorAll('.skill-item');
+    const createBtn = document.getElementById('createAssessmentBtn');
+
+    // Select all students functionality
+    selectAllCheckbox.addEventListener('change', function() {
+        studentCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+        updateSummary();
+    });
+
+    // Individual student selection
+    studentCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSummary);
+    });
+
+    // Category toggle functionality
+    categoryToggles.forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const categoryId = this.dataset.category;
+            const skillsContainer = document.getElementById(`skills_${categoryId}`);
+            const categorySkills = document.querySelectorAll(`[data-category="${categoryId}"]`);
+
+            if (this.checked) {
+                skillsContainer.classList.remove('d-none');
+                categorySkills.forEach(skill => {
+                    if (skill.classList.contains('skill-item')) {
+                        skill.checked = true;
+                    }
+                });
+            } else {
+                skillsContainer.classList.add('d-none');
+                categorySkills.forEach(skill => {
+                    if (skill.classList.contains('skill-item')) {
+                        skill.checked = false;
+                    }
+                });
+            }
+            updateSummary();
+        });
+    });
+
+    // Skill item selection
+    skillItems.forEach(item => {
+        item.addEventListener('change', updateSummary);
+    });
+
+    function updateSummary() {
+        const selectedStudents = document.querySelectorAll('.student-checkbox:checked').length;
+        const selectedSkills = document.querySelectorAll('.skill-item:checked').length;
+        const estimatedTime = selectedStudents * selectedSkills * 4; // 4 minutes per skill per student
+
+        document.getElementById('selected-students-count').textContent = `${selectedStudents} students`;
+        document.getElementById('selected-skills-count').textContent = `${selectedSkills} skills`;
+        document.getElementById('estimated-time').textContent = `${estimatedTime} minutes`;
+
+        // Enable/disable create button
+        createBtn.disabled = selectedStudents === 0 || selectedSkills === 0;
+    }
+
+    // Form submission
+    document.getElementById('skillsAssessmentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const selectedStudents = Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => cb.value);
+        const selectedSkills = Array.from(document.querySelectorAll('.skill-item:checked')).map(cb => cb.value);
+
+        if (selectedStudents.length === 0 || selectedSkills.length === 0) {
+            alert('Please select at least one student and one skill.');
+            return;
+        }
+
+        // Show loading state
+        createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+        createBtn.disabled = true;
+
+        // Here you would submit the form data via AJAX
+        // For now, just simulate success
+        setTimeout(() => {
+            alert('Assessment created successfully!');
+            window.location.href = "{% url 'core:class_skills_assessment' batch.id %}";
+        }, 2000);
+    });
+});
+
+function resetForm() {
+    document.getElementById('skillsAssessmentForm').reset();
+    document.querySelectorAll('.category-toggle:checked').forEach(toggle => {
+        toggle.checked = false;
+        const categoryId = toggle.dataset.category;
+        document.getElementById(`skills_${categoryId}`).classList.add('d-none');
+    });
+    updateSummary();
+}
+</script>
+{% endblock %}

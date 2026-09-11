@@ -1,0 +1,387 @@
+{% extends 'core/layouts/list.html' %}
+
+{% block layout_header %}
+{% url 'core:attendance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Attendance Register" description="Mark and review daily attendance by batch and month." icon='fa-list-check' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+{% load static %}
+
+{% block page_title %}Attendance Register{% endblock %}
+
+{% block layout_table %}
+<div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
+    <button class="btn btn-outline-secondary btn-sm" id="notification-status-btn">
+        <i class="fas fa-bell me-1"></i> Notification Status
+    </button>
+</div>
+
+<!-- Controls row -->
+<div class="card mb-3" style="border-radius:0">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label fw-medium">Batch</label>
+                <select class="form-select form-select-sm" id="batch-select" style="border-radius:0">
+                    <option value="">— Select a batch —</option>
+                    {% for batch in batches %}
+                    <option value="{{ batch.id }}">{{ batch.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-center gap-3">
+                <button class="btn btn-sm btn-outline-secondary" id="prev-month" aria-label="Previous month"><i class="fas fa-chevron-left"></i></button>
+                <span class="fw-semibold fs-6" id="month-label">— select batch —</span>
+                <button class="btn btn-sm btn-outline-secondary" id="next-month" aria-label="Next month"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div class="col-md-4 text-end d-flex gap-2 justify-content-end">
+                <button class="btn btn-sm btn-outline-secondary" id="export-pdf"><i class="fas fa-file-pdf me-1"></i>PDF</button>
+                <button class="btn btn-sm btn-outline-secondary" id="export-csv"><i class="fas fa-file-csv me-1"></i>CSV</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading indicator -->
+<div id="loading" class="text-center py-5 d-none">
+    <div class="spinner-border" role="status" style="color:var(--color-brand)"></div>
+    <p class="mt-2 text-muted">Loading attendance…</p>
+</div>
+
+<!-- Empty state -->
+<div id="empty-state" class="empty-state">
+    <div class="empty-state__icon"><i class="fas fa-calendar-check"></i></div>
+    <div class="empty-state__title">No batch selected</div>
+    <p class="empty-state__description">Select a batch above to view its attendance register.</p>
+</div>
+
+<!-- Attendance grid -->
+<div id="register-container" class="d-none">
+    <div class="attendance-grid-container border">
+        <div class="table-responsive">
+            <table class="table attendance-table mb-0" id="attendance-table">
+                <thead class="sticky-top" id="register-head"></thead>
+                <tbody id="register-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Summary bar -->
+    <div class="d-flex gap-4 mt-2 px-1 small text-muted" id="legend">
+        <span><span class="badge-dot present"></span> Present (both sessions)</span>
+        <span><span class="badge-dot present-implicit"></span> Present (default, unconfirmed)</span>
+        <span><span class="badge-dot half"></span> Half day</span>
+        <span><span class="badge-dot absent"></span> Absent</span>
+        <span><span class="badge-dot unmarked"></span> Not yet marked</span>
+        <span><span class="badge-dot weekend"></span> Weekend</span>
+        <span><span class="badge-dot holiday"></span> Holiday</span>
+    </div>
+</div>
+
+<!-- Attendance modal -->
+<div class="modal fade" id="attendanceModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content" style="border-radius:0">
+            <div class="modal-header pw-brand py-2">
+                <h6 class="modal-title mb-0" id="modal-title">Mark Attendance</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small mb-3"><strong id="modal-student"></strong><br>
+                    <span class="text-muted" id="modal-date"></span></p>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="modal-forenoon">
+                    <label class="form-check-label" for="modal-forenoon">Forenoon</label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="modal-afternoon">
+                    <label class="form-check-label" for="modal-afternoon">Afternoon</label>
+                </div>
+                <div>
+                    <label class="form-label small">Reason / Note</label>
+                    <input type="text" class="form-control form-control-sm" id="modal-reason" placeholder="Optional">
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm" id="modal-save">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+{% block extra_js %}
+<script>
+(function () {
+    const MARK_URL = '{% url "core:mark_attendance_api" %}';
+    const EXPORT_URL = '{% url "core:export_attendance_report_api" %}';
+    const CSRF = '{{ csrf_token }}';
+    const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    let batchId = null, year = new Date().getFullYear(), month = new Date().getMonth() + 1;
+    let roster = []; // [{id, name, admission_no, daily:{date: {forenoon,afternoon,reason}|null}}]
+    let lockDays = {{ lock_after_days|default:0 }};
+    let pendingCell = null; // {studentId, date, el}
+    let workingDays = [0, 1, 2, 3, 4]; // tenant's configured school weekdays (0=Mon..6=Sun)
+    let holidays = {}; // {'YYYY-MM-DD': 'Holiday title'}
+
+    const batchSel = document.getElementById('batch-select');
+    const monthLabel = document.getElementById('month-label');
+    const thead = document.getElementById('register-head');
+    const tbody = document.getElementById('register-body');
+    const loading = document.getElementById('loading');
+    const empty = document.getElementById('empty-state');
+    const container = document.getElementById('register-container');
+    const modalEl = document.getElementById('attendanceModal');
+    const bsModal = new bootstrap.Modal(modalEl);
+
+    function monthName(m) {
+        return new Date(2000, m - 1, 1).toLocaleString('default', {month: 'long'});
+    }
+
+    function daysInMonth(y, m) { return new Date(y, m, 0).getDate(); }
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function dateStr(y, m, d) { return `${y}-${pad(m)}-${pad(d)}`; }
+
+    function isNonSchoolDay(y, m, d) {
+        // JS Date.getDay() is Sun=0..Sat=6; AttendanceSettings.working_days is Mon=0..Sun=6.
+        const jsDay = new Date(y, m - 1, d).getDay();
+        const pyWeekday = (jsDay + 6) % 7;
+        return !workingDays.includes(pyWeekday);
+    }
+
+    function holidayTitle(ds) { return holidays[ds] || null; }
+
+    function isToday(ds) { return ds === dateStr(...todayParts()); }
+    function todayParts() { const t = new Date(); return [t.getFullYear(), t.getMonth() + 1, t.getDate()]; }
+
+    function isFuture(ds) { return ds > dateStr(...todayParts()); }
+
+    function isLocked(ds) {
+        if (lockDays <= 0) return false;
+        const [ty, tm, td] = todayParts();
+        const today = new Date(ty, tm - 1, td);
+        const rec = new Date(ds);
+        return (today - rec) / 86400000 > lockDays;
+    }
+
+    function cellStatus(rec) {
+        if (!rec) return 'unmarked';
+        if (rec.forenoon && rec.afternoon) return rec.implicit ? 'present-implicit' : 'present';
+        if (rec.forenoon || rec.afternoon) return 'half';
+        return 'absent';
+    }
+
+    function cellLabel(rec) {
+        if (!rec) return '';
+        if (rec.forenoon && rec.afternoon) return rec.implicit ? 'p' : 'P';
+        if (rec.forenoon) return 'F';
+        if (rec.afternoon) return 'A';
+        return 'X';
+    }
+
+    function renderGrid() {
+        const days = daysInMonth(year, month);
+        monthLabel.textContent = `${monthName(month)} ${year}`;
+
+        // Build header
+        let hRow = '<tr><th class="student-col">Student</th>';
+        for (let d = 1; d <= days; d++) {
+            const ds = dateStr(year, month, d);
+            const dow = new Date(year, month - 1, d).getDay();
+            const hTitle = holidayTitle(ds);
+            const nonSchool = isNonSchoolDay(year, month, d);
+            let cls = '';
+            if (hTitle) cls = ' style="background:rgba(255,255,255,.28)"';
+            else if (nonSchool) cls = ' style="background:rgba(255,255,255,.14)"';
+            const todayCls = isToday(ds) ? ' style="box-shadow:inset 0 -3px 0 #fff"' : '';
+            const hAttr = hTitle ? ` title="${hTitle}"` : '';
+            const hasImplicit = !isFuture(ds) && !isLocked(ds) && roster.some(s => s.daily[ds] && s.daily[ds].implicit);
+            const confirmBtn = hasImplicit
+                ? `<button type="button" class="confirm-day-btn" title="Confirm all as present for ${ds}" onclick="confirmDayPresent('${ds}')"><i class="fas fa-check"></i></button>`
+                : '';
+            hRow += `<th${cls}${todayCls}${hAttr}>${DAYS[dow]}<br>${pad(d)}${confirmBtn}</th>`;
+        }
+        hRow += '</tr>';
+        thead.innerHTML = hRow;
+
+        // Build body
+        let html = '';
+        roster.forEach(s => {
+            html += `<tr>`;
+            html += `<td class="student-col">${s.name}<br><small class="text-muted">(${s.admission_no})</small></td>`;
+            for (let d = 1; d <= days; d++) {
+                const ds = dateStr(year, month, d);
+                const rec = s.daily[ds] ?? null;
+                const status = cellStatus(rec);
+                const label = cellLabel(rec);
+                const nonSchool = isNonSchoolDay(year, month, d);
+                const hTitle = holidayTitle(ds);
+                const isHoliday = !!hTitle;
+                const future = isFuture(ds);
+                const locked = isLocked(ds);
+                let cls = `attendance-cell cell-${status}`;
+                let displayLabel = label;
+                if (isHoliday) { cls += ' cell-holiday'; displayLabel = 'H'; }
+                else if (nonSchool) { cls += ' cell-weekend'; displayLabel = '·'; }
+                if (isToday(ds)) cls += ' cell-today';
+                if (future) cls += ' cell-future';
+                if (locked) cls += ' cell-locked';
+                const clickable = !nonSchool && !isHoliday && !future && !locked;
+                const onclick = clickable ? `onclick="openModal('${s.id}','${s.name}','${ds}')"` : '';
+                const title = hTitle ? `title="${hTitle}"` : (rec?.reason ? `title="${rec.reason}"` : '');
+                html += `<td class="${cls}" data-sid="${s.id}" data-date="${ds}" ${onclick} ${title}>${displayLabel}</td>`;
+            }
+            html += `</tr>`;
+        });
+        tbody.innerHTML = html || '<tr><td colspan="100" class="text-center text-muted py-4">No students found in this batch.</td></tr>';
+    }
+
+    async function loadMonth() {
+        if (!batchId) return;
+        loading.classList.remove('d-none');
+        container.classList.add('d-none');
+        empty.classList.add('d-none');
+
+        try {
+            const res = await fetch(`/academic/batch-monthly-attendance/${batchId}/?year=${year}&month=${month}`);
+            const data = await res.json();
+            roster = data.students || [];
+            workingDays = data.working_days || [0, 1, 2, 3, 4];
+            holidays = data.holidays || {};
+            renderGrid();
+            container.classList.remove('d-none');
+        } catch (e) {
+            showToast('Failed to load attendance data. Please try again.', 'danger');
+        } finally {
+            loading.classList.add('d-none');
+        }
+    }
+
+    // Batch select
+    batchSel.addEventListener('change', function () {
+        batchId = this.value;
+        if (!batchId) { empty.classList.remove('d-none'); container.classList.add('d-none'); return; }
+        loadMonth();
+    });
+
+    // Month nav
+    document.getElementById('prev-month').addEventListener('click', () => {
+        if (!batchId) return;
+        month--; if (month < 1) { month = 12; year--; }
+        loadMonth();
+    });
+    document.getElementById('next-month').addEventListener('click', () => {
+        if (!batchId) return;
+        month++; if (month > 12) { month = 1; year++; }
+        loadMonth();
+    });
+
+    // Modal
+    window.openModal = function (studentId, studentName, ds) {
+        const s = roster.find(r => r.id === studentId);
+        const rec = s?.daily?.[ds] ?? null;
+        document.getElementById('modal-student').textContent = studentName;
+        document.getElementById('modal-date').textContent = ds;
+        document.getElementById('modal-forenoon').checked = rec ? rec.forenoon : true;
+        document.getElementById('modal-afternoon').checked = rec ? rec.afternoon : true;
+        document.getElementById('modal-reason').value = rec?.reason ?? '';
+        pendingCell = {studentId, date: ds};
+        bsModal.show();
+    };
+
+    document.getElementById('modal-save').addEventListener('click', async function () {
+        if (!pendingCell) return;
+        const forenoon = document.getElementById('modal-forenoon').checked;
+        const afternoon = document.getElementById('modal-afternoon').checked;
+        const reason = document.getElementById('modal-reason').value.trim();
+
+        this.disabled = true;
+        try {
+            const res = await fetch(MARK_URL, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+                body: JSON.stringify({
+                    batch_id: batchId,
+                    attendance_date: pendingCell.date,
+                    attendance_records: [{
+                        student_id: pendingCell.studentId,
+                        forenoon, afternoon, reason
+                    }]
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                // Update local state
+                const s = roster.find(r => r.id === pendingCell.studentId);
+                if (s) s.daily[pendingCell.date] = {forenoon, afternoon, reason, implicit: false};
+                renderGrid(); // re-render so the day's "confirm all" header button updates too
+                bsModal.hide();
+            } else {
+                showToast(data.error || 'Failed to save attendance.', 'danger');
+            }
+        } catch (e) {
+            showToast('Network error. Please try again.', 'danger');
+        } finally {
+            this.disabled = false;
+        }
+    });
+
+    // Bulk-confirm a day's premarked-present (implicit) students as real saved records.
+    window.confirmDayPresent = async function (ds) {
+        const records = roster
+            .filter(s => s.daily[ds] && s.daily[ds].implicit)
+            .map(s => ({student_id: s.id, forenoon: true, afternoon: true, reason: ''}));
+        if (!records.length) return;
+
+        try {
+            const res = await fetch(MARK_URL, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+                body: JSON.stringify({
+                    batch_id: batchId,
+                    attendance_date: ds,
+                    attendance_records: records
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                records.forEach(r => {
+                    const s = roster.find(x => x.id === r.student_id);
+                    if (s) s.daily[ds] = {forenoon: true, afternoon: true, reason: '', implicit: false};
+                });
+                renderGrid();
+                showToast(`Confirmed ${records.length} student(s) as present for ${ds}.`, 'success');
+            } else {
+                showToast(data.error || 'Failed to confirm attendance.', 'danger');
+            }
+        } catch (e) {
+            showToast('Network error. Please try again.', 'danger');
+        }
+    };
+
+    // Exports
+    document.getElementById('export-csv').addEventListener('click', function () {
+        if (!batchId) { showToast('Please select a batch first.', 'warning'); return; }
+        const start = dateStr(year, month, 1);
+        const end = dateStr(year, month, daysInMonth(year, month));
+        window.location.href = `${EXPORT_URL}?type=csv&batch_id=${batchId}&start_date=${start}&end_date=${end}&format=batch`;
+    });
+
+    document.getElementById('export-pdf').addEventListener('click', function () {
+        if (!batchId) { showToast('Please select a batch first.', 'warning'); return; }
+        const start = dateStr(year, month, 1);
+        const end = dateStr(year, month, daysInMonth(year, month));
+        window.location.href = `${EXPORT_URL}?type=pdf&batch_id=${batchId}&start_date=${start}&end_date=${end}&format=batch`;
+    });
+
+    document.getElementById('notification-status-btn').addEventListener('click', function () {
+        showToast('Notification status: feature coming soon.', 'info');
+    });
+})();
+</script>
+{% endblock %}

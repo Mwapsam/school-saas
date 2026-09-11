@@ -1,0 +1,419 @@
+{% extends 'core/layouts/form.html' %}
+{% load static %}
+
+{% block page_title %}Currency Configuration{% endblock %}
+
+{% block layout_header %}
+{% url 'core:finance_dashboard' as back_fallback %}
+{% include 'core/components/page_header.html' with title="Currency Configuration" description="Configure currency symbol, format, and display preferences for fees and transactions." icon='fa-money-bill-wave' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% endblock %}
+
+
+{% block layout_form %}
+<div class="container-lg py-4">
+    <div class="d-flex justify-content-end mb-3">
+        <a href="{% url 'core:finance_settings' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i> Back to Finance Settings
+        </a>
+    </div>
+
+    <!-- Workflow Nav -->
+    {% include 'core/finance/_workflow_nav.html' %}
+
+    <div class="row">
+        <!-- Configuration Form -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Currency Settings</h5>
+                </div>
+                <div class="card-body">
+                    <form id="currencyForm">
+                        {% csrf_token %}
+                        
+                        <!-- Currency Selection -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="currencySelect" class="form-label">Select Currency</label>
+                                    <select class="form-select" id="currencySelect">
+                                        <option value="">Choose a currency...</option>
+                                        {% for option in currency_options %}
+                                        <option value="{{ option.code }}" 
+                                                data-symbol="{{ option.symbol }}" 
+                                                data-name="{{ option.name }}"
+                                                {% if active_currency and active_currency.currency_code == option.code %}selected{% elif not active_currency and option.code == 'ZMW' %}selected{% endif %}>
+                                            {{ option.name }} ({{ option.code }}) - {{ option.symbol }}
+                                        </option>
+                                        {% endfor %}
+                                        <option value="custom">Custom Currency...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Currency Details -->
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="currencyCode" class="form-label">Currency Code</label>
+                                    <input type="text" class="form-control" id="currencyCode" name="currency_code" 
+                                           value="{% if active_currency %}{{ active_currency.currency_code }}{% else %}ZMW{% endif %}"
+                                           placeholder="e.g., ZMW" maxlength="3" required>
+                                    <div class="form-text">3-letter ISO currency code</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="currencySymbol" class="form-label">Currency Symbol</label>
+                                    <input type="text" class="form-control" id="currencySymbol" name="currency_symbol" 
+                                           value="{% if active_currency %}{{ active_currency.currency_symbol }}{% else %}K{% endif %}"
+                                           placeholder="e.g., K" maxlength="10" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="currencyName" class="form-label">Currency Name</label>
+                                    <input type="text" class="form-control" id="currencyName" name="currency_name" 
+                                           value="{% if active_currency %}{{ active_currency.currency_name }}{% endif %}"
+                                           placeholder="e.g., US Dollar" maxlength="100" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Display Formatting -->
+                        <h6 class="mt-4 mb-3">Display Formatting</h6>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="symbolPosition" class="form-label">Symbol Position</label>
+                                    <select class="form-select" id="symbolPosition" name="symbol_position">
+                                        <option value="before" {% if active_currency and active_currency.symbol_position == 'before' %}selected{% endif %}>
+                                            Before amount ($100)
+                                        </option>
+                                        <option value="after" {% if active_currency and active_currency.symbol_position == 'after' %}selected{% endif %}>
+                                            After amount (100$)
+                                        </option>
+                                        <option value="before_space" {% if active_currency and active_currency.symbol_position == 'before_space' %}selected{% endif %}>
+                                            Before with space ($ 100)
+                                        </option>
+                                        <option value="after_space" {% if active_currency and active_currency.symbol_position == 'after_space' %}selected{% endif %}>
+                                            After with space (100 $)
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="decimalPlaces" class="form-label">Decimal Places</label>
+                                    <select class="form-select" id="decimalPlaces" name="decimal_places">
+                                        <option value="0" {% if active_currency and active_currency.decimal_places == 0 %}selected{% endif %}>0 (100)</option>
+                                        <option value="1" {% if active_currency and active_currency.decimal_places == 1 %}selected{% endif %}>1 (100.5)</option>
+                                        <option value="2" {% if active_currency and active_currency.decimal_places == 2 or not active_currency %}selected{% endif %}>2 (100.50)</option>
+                                        <option value="3" {% if active_currency and active_currency.decimal_places == 3 %}selected{% endif %}>3 (100.500)</option>
+                                        <option value="4" {% if active_currency and active_currency.decimal_places == 4 %}selected{% endif %}>4 (100.5000)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="thousandsSeparator" class="form-label">Thousands Separator</label>
+                                    <select class="form-select" id="thousandsSeparator" name="thousands_separator">
+                                        <option value="," {% if active_currency and active_currency.thousands_separator == ',' or not active_currency %}selected{% endif %}>
+                                            Comma (1,000)
+                                        </option>
+                                        <option value="." {% if active_currency and active_currency.thousands_separator == '.' %}selected{% endif %}>
+                                            Period (1.000)
+                                        </option>
+                                        <option value=" " {% if active_currency and active_currency.thousands_separator == ' ' %}selected{% endif %}>
+                                            Space (1 000)
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="decimalSeparator" class="form-label">Decimal Separator</label>
+                                    <select class="form-select" id="decimalSeparator" name="decimal_separator">
+                                        <option value="." {% if active_currency and active_currency.decimal_separator == '.' or not active_currency %}selected{% endif %}>
+                                            Period (100.50)
+                                        </option>
+                                        <option value="," {% if active_currency and active_currency.decimal_separator == ',' %}selected{% endif %}>
+                                            Comma (100,50)
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save Currency Configuration
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Panel -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-eye me-2"></i>Preview</h5>
+                </div>
+                <div class="card-body">
+                    <div id="previewPanel">
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-2">Current Configuration:</h6>
+                            {% if active_currency %}
+                            <div class="alert alert-info">
+                                <strong>{{ active_currency.currency_name }}</strong><br>
+                                <small>{{ active_currency.currency_code }} - {{ active_currency.currency_symbol }}</small>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-warning">
+                                <small>No currency configured</small>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-2">Format Examples:</h6>
+                            <div id="formatExamples">
+                                <div class="small mb-1">Small amount: <span id="exampleSmall" class="fw-bold">-</span></div>
+                                <div class="small mb-1">Medium amount: <span id="exampleMedium" class="fw-bold">-</span></div>
+                                <div class="small mb-1">Large amount: <span id="exampleLarge" class="fw-bold">-</span></div>
+                                <div class="small">Zero amount: <span id="exampleZero" class="fw-bold">-</span></div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-secondary">
+                            <small><i class="fas fa-info-circle me-1"></i>
+                            Examples update automatically as you change settings.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Currency List -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-list me-2"></i>Popular Currencies</h6>
+                </div>
+                <div class="card-body p-2">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <button type="button" class="btn btn-primary btn-sm w-100 quick-currency" 
+                                    data-code="ZMW" data-symbol="K" data-name="Zambian Kwacha">ZMW K</button>
+                        </div>
+                        <div class="col-6">
+                            <button type="button" class="btn btn-outline-secondary btn-sm w-100 quick-currency" 
+                                    data-code="USD" data-symbol="$" data-name="US Dollar">USD $</button>
+                        </div>
+                        <div class="col-6">
+                            <button type="button" class="btn btn-outline-secondary btn-sm w-100 quick-currency" 
+                                    data-code="EUR" data-symbol="€" data-name="Euro">EUR €</button>
+                        </div>
+                        <div class="col-6">
+                            <button type="button" class="btn btn-outline-secondary btn-sm w-100 quick-currency" 
+                                    data-code="KES" data-symbol="KSh" data-name="Kenyan Shilling">KES KSh</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block layout_extra %}{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    // Update preview when settings change
+    function updatePreview() {
+        const formData = {
+            currency_symbol: $('#currencySymbol').val() || '$',
+            symbol_position: $('#symbolPosition').val(),
+            decimal_places: $('#decimalPlaces').val(),
+            thousands_separator: $('#thousandsSeparator').val(),
+            decimal_separator: $('#decimalSeparator').val()
+        };
+
+        $.ajax({
+            url: '{% url "core:currency_preview" %}',
+            method: 'GET',
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    $('#exampleSmall').text(response.examples.small);
+                    $('#exampleMedium').text(response.examples.medium);
+                    $('#exampleLarge').text(response.examples.large);
+                    $('#exampleZero').text(response.examples.zero);
+                }
+            },
+            error: function() {
+                $('#formatExamples span').text('-');
+            }
+        });
+    }
+
+    // Currency selection dropdown
+    $('#currencySelect').change(function() {
+        const selectedOption = $(this).find('option:selected');
+        if (selectedOption.val() && selectedOption.val() !== 'custom') {
+            $('#currencyCode').val(selectedOption.val());
+            $('#currencySymbol').val(selectedOption.data('symbol'));
+            $('#currencyName').val(selectedOption.data('name'));
+            updatePreview();
+        } else if (selectedOption.val() === 'custom') {
+            $('#currencyCode').val('').focus();
+            $('#currencySymbol').val('');
+            $('#currencyName').val('');
+        }
+    });
+
+    // Quick currency buttons
+    $('.quick-currency').click(function() {
+        const code = $(this).data('code');
+        const symbol = $(this).data('symbol');
+        const name = $(this).data('name');
+        
+        $('#currencyCode').val(code);
+        $('#currencySymbol').val(symbol);
+        $('#currencyName').val(name);
+        $('#currencySelect').val(code);
+        updatePreview();
+    });
+
+    // Update preview on any form change
+    $('#currencyForm').on('change input', 'input, select', function() {
+        updatePreview();
+    });
+
+    // Form submission
+    $('#currencyForm').submit(function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        $.ajax({
+            url: '{% url "core:currency_configuration_update" %}',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRFToken': csrftoken
+            },
+            success: function(response) {
+                if (response.success) {
+                    showAlert('success', response.message);
+                    // Update current configuration display
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showAlert('danger', response.error || 'Configuration failed');
+                }
+            },
+            error: function(xhr) {
+                const response = xhr.responseJSON;
+                showAlert('danger', response?.error || 'Configuration failed');
+            }
+        });
+    });
+
+    function showAlert(type, message) {
+        const alertHtml = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>`;
+        
+        $('.alert-dismissible').remove();
+        $('.container-lg').prepend(alertHtml);
+        
+        setTimeout(() => {
+            $('.alert-dismissible').alert('close');
+        }, 5000);
+    }
+
+    // Initial preview update
+    updatePreview();
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+{% include 'core/finance/_finance_ui_styles.html' %}
+<style>
+.breadcrumb {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+.breadcrumb-item a {
+    color: #28a745;
+    text-decoration: none;
+}
+
+.breadcrumb-item a:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+    color: #6c757d;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+    color: #6c757d;
+}
+
+.card {
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.quick-currency {
+    font-size: 0.8rem;
+}
+
+.quick-currency:hover {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+#formatExamples {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+}
+</style>
+{% endblock %}
