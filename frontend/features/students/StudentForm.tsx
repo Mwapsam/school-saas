@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Button,
@@ -25,7 +25,6 @@ import { Student, CreateStudentInput, UpdateStudentInput } from './hooks';
 
 export interface StudentFormProps {
   student?: Student;
-  loading?: boolean;
   error?: string | null;
   onSubmit: (data: CreateStudentInput | UpdateStudentInput) => Promise<void>;
   onCancel?: () => void;
@@ -33,7 +32,6 @@ export interface StudentFormProps {
 
 export function StudentForm({
   student,
-  loading = false,
   error,
   onSubmit,
   onCancel,

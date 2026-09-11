@@ -13,7 +13,7 @@ import { InvoiceForm } from '@/features/finance/InvoiceForm';
 export default function CreateInvoicePage() {
   const router = useRouter();
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
-  const { mutateAsync: createInvoice, isPending, error } = useCreateInvoice();
+  const { mutateAsync: createInvoice, error } = useCreateInvoice();
 
   if (!bootstrap || !isModuleEnabled('finance') || !can('finance.invoices.create')) {
     return (
@@ -46,7 +46,6 @@ export default function CreateInvoicePage() {
 
         <Box sx={{ mt: 3 }}>
           <InvoiceForm
-            loading={isPending}
             error={error?.message}
             onSubmit={handleSubmit}
             onCancel={() => router.back()}

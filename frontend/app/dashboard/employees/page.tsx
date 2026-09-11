@@ -12,7 +12,7 @@ import { useEmployeeList } from '@/features/hr/hooks';
 
 export default function EmployeesPage() {
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
-  const { data, isLoading, error } = useEmployeeList({ page: 1, page_size: 10 });
+  const { data, error } = useEmployeeList({ page: 1, page_size: 10 });
 
   if (!bootstrap || !isModuleEnabled('hr') || !can('hr.employees.view')) {
     return (

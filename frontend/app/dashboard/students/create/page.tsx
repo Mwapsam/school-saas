@@ -13,7 +13,7 @@ import { StudentForm } from '@/features/students/StudentForm';
 export default function CreateStudentPage() {
   const router = useRouter();
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
-  const { mutateAsync: createStudent, isPending, error } = useCreateStudent();
+  const { mutateAsync: createStudent, error } = useCreateStudent();
 
   if (!bootstrap) {
     return (
@@ -68,7 +68,6 @@ export default function CreateStudentPage() {
 
         <Box sx={{ mt: 3 }}>
           <StudentForm
-            loading={isPending}
             error={error?.message}
             onSubmit={handleSubmit}
             onCancel={() => router.back()}

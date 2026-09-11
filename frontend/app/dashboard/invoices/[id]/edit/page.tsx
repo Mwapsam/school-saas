@@ -14,7 +14,7 @@ export default function EditInvoicePage({ params }: { params: { id: string } }) 
   const router = useRouter();
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
   const { data: invoice, isLoading: invoiceLoading, error: invoiceError } = useInvoice(params.id);
-  const { mutateAsync: updateInvoice, isPending: updating, error: updateError } = useUpdateInvoice(params.id);
+  const { mutateAsync: updateInvoice, error: updateError } = useUpdateInvoice(params.id);
 
   if (!bootstrap || !isModuleEnabled('finance') || !can('finance.invoices.update')) {
     return (
@@ -70,7 +70,6 @@ export default function EditInvoicePage({ params }: { params: { id: string } }) 
         <Box sx={{ mt: 3 }}>
           <InvoiceForm
             invoice={invoice}
-            loading={updating}
             error={updateError?.message}
             onSubmit={handleSubmit}
             onCancel={() => router.back()}

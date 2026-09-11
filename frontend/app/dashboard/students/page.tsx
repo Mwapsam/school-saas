@@ -38,8 +38,6 @@ export default function StudentsPage() {
     ordering,
   });
 
-  const deleteStudent = useDeleteStudent('');
-
   // Module/permission checks
   if (!bootstrap) {
     return (

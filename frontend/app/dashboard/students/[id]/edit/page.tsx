@@ -14,7 +14,7 @@ export default function EditStudentPage({ params }: { params: { id: string } }) 
   const router = useRouter();
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
   const { data: student, isLoading: studentLoading, error: studentError } = useStudent(params.id);
-  const { mutateAsync: updateStudent, isPending: updating, error: updateError } = useUpdateStudent(params.id);
+  const { mutateAsync: updateStudent, error: updateError } = useUpdateStudent(params.id);
 
   if (!bootstrap) {
     return (
@@ -92,7 +92,6 @@ export default function EditStudentPage({ params }: { params: { id: string } }) 
         <Box sx={{ mt: 3 }}>
           <StudentForm
             student={student}
-            loading={updating}
             error={updateError?.message}
             onSubmit={handleSubmit}
             onCancel={() => router.back()}

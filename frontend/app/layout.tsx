@@ -10,7 +10,6 @@
 import type { Metadata } from 'next';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { QueryClientProvider } from '@tanstack/react-query';
 import { createTheme } from '@mui/material/styles';
 
 export const metadata: Metadata = {

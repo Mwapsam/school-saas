@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Button,
@@ -17,7 +17,6 @@ import { Invoice, CreateInvoiceInput, UpdateInvoiceInput } from './hooks';
 
 export interface InvoiceFormProps {
   invoice?: Invoice;
-  loading?: boolean;
   error?: string | null;
   onSubmit: (data: CreateInvoiceInput | UpdateInvoiceInput) => Promise<void>;
   onCancel?: () => void;
@@ -25,7 +24,6 @@ export interface InvoiceFormProps {
 
 export function InvoiceForm({
   invoice,
-  loading = false,
   error,
   onSubmit,
   onCancel,
