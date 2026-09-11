@@ -12,7 +12,7 @@ import { useAdmissionApplicationList } from '@/features/admissions/hooks';
 
 export default function AdmissionsPage() {
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
-  const { data, isLoading, error } = useAdmissionApplicationList({ page: 1, page_size: 10 });
+  const { data, error } = useAdmissionApplicationList({ page: 1, page_size: 10 });
 
   if (!bootstrap || !isModuleEnabled('admissions') || !can('admissions.view')) {
     return (
