@@ -32,18 +32,18 @@ export function Sidebar() {
       key: 'finance',
       label: 'Finance',
       sections: [
-        { label: 'Invoices', href: '/dashboard/invoices', capability: 'invoices.view' },
-        { label: 'Fees', href: '/dashboard/fees', capability: 'fees.view' },
-        { label: 'Transactions', href: '/dashboard/transactions', capability: 'transactions.view' },
+        { label: 'Invoices', href: '/dashboard/invoices', capability: 'finance.invoices.view' },
+        { label: 'Fees', href: '/dashboard/fees', capability: 'finance.fees.view' },
+        { label: 'Transactions', href: '/dashboard/transactions', capability: 'finance.transactions.view' },
       ],
     },
     {
       key: 'hr',
       label: 'HR',
       sections: [
-        { label: 'Employees', href: '/dashboard/employees', capability: 'employees.view' },
-        { label: 'Leave', href: '/dashboard/leave', capability: 'leave.view' },
-        { label: 'Attendance', href: '/dashboard/attendance', capability: 'attendance.view' },
+        { label: 'Employees', href: '/dashboard/employees', capability: 'hr.employees.view' },
+        { label: 'Leave', href: '/dashboard/leave-requests', capability: 'hr.leave.view' },
+        { label: 'Attendance', href: '/dashboard/attendance', capability: 'hr.attendance.view' },
       ],
     },
     {
@@ -51,7 +51,7 @@ export function Sidebar() {
       label: 'Admissions',
       sections: [
         { label: 'Applications', href: '/dashboard/admissions', capability: 'admissions.view' },
-        { label: 'Inquiries', href: '/dashboard/inquiries', capability: 'inquiries.view' },
+        { label: 'Inquiries', href: '/dashboard/inquiries', capability: 'admissions.view' },
       ],
     },
     {
@@ -68,6 +68,7 @@ export function Sidebar() {
       sections: [
         { label: 'Routes', href: '/dashboard/routes', capability: 'transport.view' },
         { label: 'Vehicles', href: '/dashboard/vehicles', capability: 'transport.view' },
+        { label: 'Staff', href: '/dashboard/transport-staff', capability: 'transport.view' },
       ],
     },
     {
