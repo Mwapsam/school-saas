@@ -1,10 +1,10 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Box, TextField, Alert, MenuItem } from '@mui/material';
 import { step3Schema, type Step3FormData } from '../schemas';
-import { FormSection, FormActions, FormGrid } from '@/components/forms';
+import { FormSection, FormActions, FormGrid, FileUploadField } from '@/components/forms';
 
 interface Step3FormProps {
   initialData?: any;
@@ -20,6 +20,7 @@ export function Step3Form({ initialData, onSubmit, isLoading, error, onNext }: S
     handleSubmit,
     formState: { errors },
     watch,
+    control,
   } = useForm<Step3FormData>({
     resolver: zodResolver(step3Schema),
     defaultValues: initialData || undefined,
@@ -160,15 +161,6 @@ export function Step3Form({ initialData, onSubmit, isLoading, error, onNext }: S
             disabled={isLoading}
           />
 
-          <TextField
-            fullWidth
-            label="Student Photo"
-            type="file"
-            {...register('student_photo')}
-            disabled={isLoading}
-            inputProps={{ accept: 'image/*' }}
-          />
-
           <Box sx={{ gridColumn: { md: '1 / -1' } }}>
             <TextField
               fullWidth
@@ -178,6 +170,24 @@ export function Step3Form({ initialData, onSubmit, isLoading, error, onNext }: S
               {...register('authorized_pickup_persons')}
               disabled={isLoading}
               helperText="Please notify us immediately of any changes"
+            />
+          </Box>
+
+          <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+            <Controller
+              name="student_photo"
+              control={control}
+              render={({ field: { value, onChange } }) => (
+                <FileUploadField
+                  label="Student Photo"
+                  accept="image/*"
+                  onChange={onChange}
+                  value={value}
+                  disabled={isLoading}
+                  error={!!errors.student_photo}
+                  helperText={errors.student_photo?.message}
+                />
+              )}
             />
           </Box>
         </FormGrid>

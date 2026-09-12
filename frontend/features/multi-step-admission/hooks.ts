@@ -213,11 +213,28 @@ export function useGetApplication(id: string, options: { enabled?: boolean } = {
 export function useUpdateApplicationStep(id: string, step: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: any) =>
-      await apiClient.post<ExtendedAdmissionApplication>(
+    mutationFn: async (data: any) => {
+      let payload: any = data;
+
+      // If data contains File objects, convert to FormData
+      if (data && typeof data === 'object') {
+        const hasFile = Object.values(data).some(v => v instanceof File);
+        if (hasFile) {
+          const formData = new FormData();
+          Object.entries(data).forEach(([key, value]) => {
+            if (value !== null && value !== undefined) {
+              formData.append(key, value as any);
+            }
+          });
+          payload = formData;
+        }
+      }
+
+      return await apiClient.post<ExtendedAdmissionApplication>(
         `/admission-multistep/${id}/step${step}/`,
-        data
-      ),
+        payload
+      );
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['multi-step-application', id] });
       queryClient.invalidateQueries({ queryKey: ['multi-step-applications'] });

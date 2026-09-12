@@ -180,7 +180,8 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
           sx={{
             py: 2,
             '& .MuiStepLabel-label': {
-              fontSize: { xs: '0.65rem', sm: '0.8rem', md: '0.9rem' },
+              display: { xs: 'none', sm: 'block' },
+              fontSize: { sm: '0.8rem', md: '0.9rem' },
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -188,6 +189,7 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
             '& .MuiStep-root': {
               flex: '1 1 auto',
               minWidth: 0,
+              padding: { xs: '0 2px', sm: '0 8px' },
             },
           }}
         >
@@ -197,6 +199,13 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
             </Step>
           ))}
         </Stepper>
+
+        {/* Mobile: step progress indicator */}
+        <Box sx={{ display: { xs: 'block', sm: 'none' }, textAlign: 'center', mb: 2 }}>
+          <Typography variant="caption" color="textSecondary">
+            Step {activeStep + 1} of {STEP_LABELS.length}
+          </Typography>
+        </Box>
 
         <Box sx={{ mt: 4 }}>
           {submitError && <Alert severity="error" sx={{ mb: 2 }}>{submitError}</Alert>}
