@@ -27,7 +27,7 @@ export default function HostelRoomDetailPage({ params }: { params: { id: string 
     );
   }
 
-  if (!isModuleEnabled('hostel') || !can('hostel.view')) {
+  if (!isModuleEnabled('hostel') || !can('hostel.rooms.view')) {
     return (
       <Container maxWidth="lg">
         <Box sx={{ py: 4 }}>

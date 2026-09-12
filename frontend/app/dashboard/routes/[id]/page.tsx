@@ -27,7 +27,7 @@ export default function TransportRouteDetailPage({ params }: { params: { id: str
     );
   }
 
-  if (!isModuleEnabled('transport') || !can('transport.view')) {
+  if (!isModuleEnabled('transport') || !can('transport.routes.view')) {
     return (
       <Container maxWidth="lg">
         <Box sx={{ py: 4 }}>
