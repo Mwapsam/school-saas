@@ -2,12 +2,12 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Box, Grid, TextField, Button, CircularProgress, Alert, Typography } from '@mui/material';
+import { Box, TextField, Alert } from '@mui/material';
 import { step6Schema, type Step6FormData } from '../schemas';
 import { useGetAdditionalFields } from '../hooks';
+import { FormSection, FormActions, FormGrid } from '@/components/forms';
 
 interface Step6FormProps {
-  applicationId: string;
   initialData?: any;
   onSubmit: (data: Step6FormData) => Promise<void>;
   isLoading?: boolean;
@@ -15,7 +15,7 @@ interface Step6FormProps {
   onNext?: () => void;
 }
 
-export function Step6Form({ applicationId, initialData, onSubmit, isLoading, error, onNext }: Step6FormProps) {
+export function Step6Form({ initialData, onSubmit, isLoading, error, onNext }: Step6FormProps) {
   const {
     register,
     handleSubmit,
@@ -56,33 +56,28 @@ export function Step6Form({ applicationId, initialData, onSubmit, isLoading, err
     <Box component="form" onSubmit={handleSubmit(handleFormSubmit)} noValidate>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <Grid container spacing={2}>
-        {/* Student Address */}
-        <Grid item xs={12}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Student Address</Typography>
-        </Grid>
+      <FormSection title="Student Address">
+        <FormGrid>
+          <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+            <TextField
+              fullWidth
+              label="Address Line 1"
+              {...register('address_line1')}
+              error={!!errors.address_line1}
+              helperText={errors.address_line1?.message}
+              disabled={isLoading}
+            />
+          </Box>
 
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="Address Line 1"
-            {...register('address_line1')}
-            error={!!errors.address_line1}
-            helperText={errors.address_line1?.message}
-            disabled={isLoading}
-          />
-        </Grid>
+          <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+            <TextField
+              fullWidth
+              label="Address Line 2"
+              {...register('address_line2')}
+              disabled={isLoading}
+            />
+          </Box>
 
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="Address Line 2"
-            {...register('address_line2')}
-            disabled={isLoading}
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="City"
@@ -91,9 +86,7 @@ export function Step6Form({ applicationId, initialData, onSubmit, isLoading, err
             helperText={errors.city?.message}
             disabled={isLoading}
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="Country"
@@ -102,61 +95,52 @@ export function Step6Form({ applicationId, initialData, onSubmit, isLoading, err
             helperText={errors.country?.message}
             disabled={isLoading}
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="Phone"
             {...register('phone')}
             disabled={isLoading}
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="Mobile"
             {...register('mobile')}
             disabled={isLoading}
           />
-        </Grid>
+        </FormGrid>
+      </FormSection>
 
-        {/* Previous School */}
-        <Grid item xs={12}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Previous School</Typography>
-        </Grid>
+      <FormSection title="Previous School">
+        <FormGrid>
+          <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+            <TextField
+              fullWidth
+              label="School Name"
+              {...register('previous_school_name')}
+              disabled={isLoading}
+            />
+          </Box>
 
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="School Name"
-            {...register('previous_school_name')}
-            disabled={isLoading}
-          />
-        </Grid>
+          <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+            <TextField
+              fullWidth
+              label="School Address"
+              multiline
+              rows={2}
+              {...register('previous_school_address')}
+              disabled={isLoading}
+            />
+          </Box>
 
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="School Address"
-            multiline
-            rows={2}
-            {...register('previous_school_address')}
-            disabled={isLoading}
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="School Phone"
             {...register('previous_school_phone')}
             disabled={isLoading}
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="School Email"
@@ -166,14 +150,11 @@ export function Step6Form({ applicationId, initialData, onSubmit, isLoading, err
             helperText={errors.previous_school_email?.message}
             disabled={isLoading}
           />
-        </Grid>
+        </FormGrid>
+      </FormSection>
 
-        {/* Additional Information */}
-        <Grid item xs={12}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Additional Information</Typography>
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
+      <FormSection title="Additional Information">
+        <FormGrid>
           <TextField
             fullWidth
             label="Expected Start Date"
@@ -184,60 +165,53 @@ export function Step6Form({ applicationId, initialData, onSubmit, isLoading, err
             InputLabelProps={{ shrink: true }}
             disabled={isLoading}
           />
-        </Grid>
 
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="Religious Observances"
-            multiline
-            rows={2}
-            {...register('religious_observances')}
-            disabled={isLoading}
-          />
-        </Grid>
+          <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+            <TextField
+              fullWidth
+              label="Religious Observances"
+              multiline
+              rows={2}
+              {...register('religious_observances')}
+              disabled={isLoading}
+            />
+          </Box>
 
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="Background Information"
-            multiline
-            rows={3}
-            {...register('background_information')}
-            disabled={isLoading}
-          />
-        </Grid>
+          <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+            <TextField
+              fullWidth
+              label="Background Information"
+              multiline
+              rows={3}
+              {...register('background_information')}
+              disabled={isLoading}
+            />
+          </Box>
+        </FormGrid>
+      </FormSection>
 
-        {/* Dynamic Additional Fields */}
-        {additionalFieldsData && additionalFieldsData.length > 0 && (
-          <>
-            <Grid item xs={12}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Additional School Information</Typography>
-            </Grid>
+      {additionalFieldsData && additionalFieldsData.length > 0 && (
+        <FormSection title="Additional School Information">
+          <FormGrid>
             {additionalFieldsData.map((field) => (
-              <Grid item xs={12} key={field.id}>
+              <Box key={field.id} sx={{ gridColumn: { md: '1 / -1' } }}>
                 <TextField
                   fullWidth
                   label={field.name}
                   disabled={isLoading}
                   required={field.is_mandatory}
                 />
-              </Grid>
+              </Box>
             ))}
-          </>
-        )}
+          </FormGrid>
+        </FormSection>
+      )}
 
-        <Grid item xs={12}>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={isLoading}
-            startIcon={isLoading && <CircularProgress size={20} />}
-          >
-            {isLoading ? 'Saving...' : 'Continue to Step 7'}
-          </Button>
-        </Grid>
-      </Grid>
+      <FormActions
+        submitLabel="Continue to Step 7"
+        isSubmitting={isLoading}
+        isDirty={true}
+      />
     </Box>
   );
 }

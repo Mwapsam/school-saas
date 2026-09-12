@@ -2,11 +2,11 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Box, Grid, TextField, Button, CircularProgress, Alert, MenuItem, FormControlLabel, Checkbox, Typography, Paper } from '@mui/material';
+import { Box, TextField, Alert, MenuItem } from '@mui/material';
 import { step3Schema, type Step3FormData } from '../schemas';
+import { FormSection, FormActions, FormGrid } from '@/components/forms';
 
 interface Step3FormProps {
-  applicationId: string;
   initialData?: any;
   onSubmit: (data: Step3FormData) => Promise<void>;
   isLoading?: boolean;
@@ -14,7 +14,7 @@ interface Step3FormProps {
   onNext?: () => void;
 }
 
-export function Step3Form({ applicationId, initialData, onSubmit, isLoading, error, onNext }: Step3FormProps) {
+export function Step3Form({ initialData, onSubmit, isLoading, error, onNext }: Step3FormProps) {
   const {
     register,
     handleSubmit,
@@ -38,17 +38,14 @@ export function Step3Form({ applicationId, initialData, onSubmit, isLoading, err
     }
   };
 
+  const computedValidity = !errors.first_name && !errors.last_name && !errors.date_of_birth && !errors.gender && !errors.nationality;
+
   return (
     <Box component="form" onSubmit={handleSubmit(handleFormSubmit)} noValidate>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <Grid container spacing={2}>
-        {/* Child's Name Section */}
-        <Grid item xs={12}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Child's Name</Typography>
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
+      <FormSection title="Child's Name">
+        <FormGrid>
           <TextField
             fullWidth
             label="First Name *"
@@ -58,18 +55,14 @@ export function Step3Form({ applicationId, initialData, onSubmit, isLoading, err
             disabled={isLoading}
             required
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="Middle Name"
             {...register('middle_name')}
             disabled={isLoading}
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="Last Name *"
@@ -79,14 +72,11 @@ export function Step3Form({ applicationId, initialData, onSubmit, isLoading, err
             disabled={isLoading}
             required
           />
-        </Grid>
+        </FormGrid>
+      </FormSection>
 
-        {/* Basic Information */}
-        <Grid item xs={12}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Basic Information</Typography>
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
+      <FormSection title="Basic Information">
+        <FormGrid>
           <TextField
             fullWidth
             label="Date of Birth *"
@@ -98,9 +88,7 @@ export function Step3Form({ applicationId, initialData, onSubmit, isLoading, err
             disabled={isLoading}
             required
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             select
@@ -115,9 +103,7 @@ export function Step3Form({ applicationId, initialData, onSubmit, isLoading, err
             <MenuItem value="female">Female</MenuItem>
             <MenuItem value="other">Other</MenuItem>
           </TextField>
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="Nationality *"
@@ -127,55 +113,43 @@ export function Step3Form({ applicationId, initialData, onSubmit, isLoading, err
             disabled={isLoading}
             required
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="Religion"
             {...register('religion')}
             disabled={isLoading}
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="Birth Place"
             {...register('birth_place')}
             disabled={isLoading}
           />
-        </Grid>
+        </FormGrid>
+      </FormSection>
 
-        {/* School-Specific Information */}
-        <Grid item xs={12}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>School-Specific Information</Typography>
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
+      <FormSection title="School-Specific Information">
+        <FormGrid>
           <TextField
             fullWidth
             label="Preferred Name"
             {...register('preferred_name')}
             disabled={isLoading}
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="Home Language"
             {...register('home_language')}
             disabled={isLoading}
           />
-        </Grid>
+        </FormGrid>
+      </FormSection>
 
-        {/* Contact Information */}
-        <Grid item xs={12}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Contact & Pickup Information</Typography>
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
+      <FormSection title="Contact & Pickup Information">
+        <FormGrid>
           <TextField
             fullWidth
             label="Email"
@@ -185,9 +159,7 @@ export function Step3Form({ applicationId, initialData, onSubmit, isLoading, err
             helperText={errors.email?.message}
             disabled={isLoading}
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="Student Photo"
@@ -196,63 +168,60 @@ export function Step3Form({ applicationId, initialData, onSubmit, isLoading, err
             disabled={isLoading}
             inputProps={{ accept: 'image/*' }}
           />
-        </Grid>
 
-        <Grid item xs={12}>
+          <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+            <TextField
+              fullWidth
+              label="Authorized Pickup Persons"
+              multiline
+              rows={2}
+              {...register('authorized_pickup_persons')}
+              disabled={isLoading}
+              helperText="Please notify us immediately of any changes"
+            />
+          </Box>
+        </FormGrid>
+      </FormSection>
+
+      <FormSection title="Health Information">
+        <FormGrid columns={1}>
           <TextField
             fullWidth
-            label="Authorized Pickup Persons"
-            multiline
-            rows={2}
-            {...register('authorized_pickup_persons')}
-            disabled={isLoading}
-            helperText="Please notify us immediately of any changes"
-          />
-        </Grid>
-
-        {/* Health Information */}
-        <Grid item xs={12}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Health Information</Typography>
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                {...register('has_medical_problems')}
-                disabled={isLoading}
-              />
-            }
             label="Any ongoing medical problems?"
-          />
-        </Grid>
+            select
+            {...register('has_medical_problems')}
+            disabled={isLoading}
+          >
+            <MenuItem value="">-- Select --</MenuItem>
+            <MenuItem value="yes">Yes</MenuItem>
+            <MenuItem value="no">No</MenuItem>
+          </TextField>
 
-        <Grid item xs={12} sm={6}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                {...register('recent_hospitalization')}
-                disabled={isLoading}
-              />
-            }
+          <TextField
+            fullWidth
             label="Been in hospital recently?"
-          />
-        </Grid>
+            select
+            {...register('recent_hospitalization')}
+            disabled={isLoading}
+          >
+            <MenuItem value="">-- Select --</MenuItem>
+            <MenuItem value="yes">Yes</MenuItem>
+            <MenuItem value="no">No</MenuItem>
+          </TextField>
 
-        <Grid item xs={12} sm={6}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                {...register('has_allergies')}
-                disabled={isLoading}
-              />
-            }
+          <TextField
+            fullWidth
             label="Any allergies?"
-          />
-        </Grid>
+            select
+            {...register('has_allergies')}
+            disabled={isLoading}
+          >
+            <MenuItem value="">-- Select --</MenuItem>
+            <MenuItem value="yes">Yes</MenuItem>
+            <MenuItem value="no">No</MenuItem>
+          </TextField>
 
-        {(hasMedicalProblems || hasHospitalization || hasAllergies) && (
-          <Grid item xs={12}>
+          {(hasMedicalProblems || hasHospitalization || hasAllergies) && (
             <TextField
               fullWidth
               label="Medical Details *"
@@ -264,20 +233,15 @@ export function Step3Form({ applicationId, initialData, onSubmit, isLoading, err
               disabled={isLoading}
               required
             />
-          </Grid>
-        )}
+          )}
+        </FormGrid>
+      </FormSection>
 
-        <Grid item xs={12}>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={isLoading || !!errors.first_name || !!errors.last_name || !!errors.date_of_birth || !!errors.gender || !!errors.nationality}
-            startIcon={isLoading && <CircularProgress size={20} />}
-          >
-            {isLoading ? 'Saving...' : 'Continue to Step 4'}
-          </Button>
-        </Grid>
-      </Grid>
+      <FormActions
+        submitLabel="Continue to Step 4"
+        isSubmitting={isLoading}
+        isDirty={computedValidity}
+      />
     </Box>
   );
 }

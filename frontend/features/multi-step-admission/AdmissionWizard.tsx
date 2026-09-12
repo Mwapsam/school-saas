@@ -175,7 +175,23 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
           <Typography variant="h5">{application.application_number}</Typography>
         </Box>
 
-        <Stepper activeStep={activeStep}>
+        <Stepper
+          activeStep={activeStep}
+          sx={{
+            overflow: 'auto',
+            py: 2,
+            '& .MuiStepLabel-label': {
+              fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
+              textAlign: 'center',
+              whiteSpace: 'normal',
+              wordBreak: 'break-word',
+            },
+            '& .MuiStep-root': {
+              minWidth: { xs: '60px', sm: '80px', md: '100px' },
+              flex: '1 1 auto',
+            },
+          }}
+        >
           {STEP_LABELS.map((label) => (
             <Step key={label}>
               <StepLabel>{label}</StepLabel>
@@ -188,7 +204,6 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
 
           {activeStep === 0 && (
             <Step1Form
-              applicationId={applicationId}
               initialData={application}
               onSubmit={handleStep1Submit}
               isLoading={step1Mutation.isPending}
@@ -199,7 +214,6 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
 
           {activeStep === 1 && (
             <Step2Form
-              applicationId={applicationId}
               initialData={application}
               onSubmit={handleStep2Submit}
               isLoading={step2Mutation.isPending}
@@ -210,7 +224,6 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
 
           {activeStep === 2 && (
             <Step3Form
-              applicationId={applicationId}
               initialData={application}
               onSubmit={handleStep3Submit}
               isLoading={step3Mutation.isPending}
@@ -221,7 +234,6 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
 
           {activeStep === 3 && (
             <Step4Form
-              applicationId={applicationId}
               initialData={application}
               onSubmit={handleStep4Submit}
               isLoading={step4Mutation.isPending}
@@ -232,7 +244,6 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
 
           {activeStep === 4 && (
             <Step5Form
-              applicationId={applicationId}
               initialData={application}
               onSubmit={handleStep5Submit}
               isLoading={step5Mutation.isPending}
@@ -243,7 +254,6 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
 
           {activeStep === 5 && (
             <Step6Form
-              applicationId={applicationId}
               initialData={application}
               onSubmit={handleStep6Submit}
               isLoading={step6Mutation.isPending}
@@ -262,7 +272,6 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
 
           {activeStep === 7 && (
             <Step8Form
-              applicationId={applicationId}
               applicationData={application}
               initialData={application}
               onSubmit={handleStep8Submit}

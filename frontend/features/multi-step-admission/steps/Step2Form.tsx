@@ -2,12 +2,12 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Box, Grid, TextField, Button, CircularProgress, Alert, MenuItem } from '@mui/material';
+import { Box, TextField, Alert, MenuItem } from '@mui/material';
 import { step2Schema, type Step2FormData } from '../schemas';
 import { useGetAcademicYears, useGetCourses } from '../hooks';
+import { FormSection, FormActions, FormGrid } from '@/components/forms';
 
 interface Step2FormProps {
-  applicationId: string;
   initialData?: any;
   onSubmit: (data: Step2FormData) => Promise<void>;
   isLoading?: boolean;
@@ -15,7 +15,7 @@ interface Step2FormProps {
   onNext?: () => void;
 }
 
-export function Step2Form({ applicationId, initialData, onSubmit, isLoading, error, onNext }: Step2FormProps) {
+export function Step2Form({ initialData, onSubmit, isLoading, error, onNext }: Step2FormProps) {
   const { data: academicYearsData } = useGetAcademicYears();
   const { data: coursesData } = useGetCourses();
 
@@ -42,12 +42,14 @@ export function Step2Form({ applicationId, initialData, onSubmit, isLoading, err
     }
   };
 
+  const computedValidity = !errors.academic_year && !errors.course_applied;
+
   return (
     <Box component="form" onSubmit={handleSubmit(handleFormSubmit)} noValidate>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <Grid container spacing={2}>
-        <Grid item xs={12}>
+      <FormSection title="Academic & Admission Details">
+        <FormGrid columns={1}>
           <TextField
             fullWidth
             select
@@ -64,9 +66,7 @@ export function Step2Form({ applicationId, initialData, onSubmit, isLoading, err
               </MenuItem>
             ))}
           </TextField>
-        </Grid>
 
-        <Grid item xs={12}>
           <TextField
             fullWidth
             select
@@ -83,19 +83,14 @@ export function Step2Form({ applicationId, initialData, onSubmit, isLoading, err
               </MenuItem>
             ))}
           </TextField>
-        </Grid>
+        </FormGrid>
+      </FormSection>
 
-        <Grid item xs={12}>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={isLoading || !!errors.academic_year || !!errors.course_applied}
-            startIcon={isLoading && <CircularProgress size={20} />}
-          >
-            {isLoading ? 'Saving...' : 'Continue to Step 3'}
-          </Button>
-        </Grid>
-      </Grid>
+      <FormActions
+        submitLabel="Continue to Step 3"
+        isSubmitting={isLoading}
+        isDirty={computedValidity}
+      />
     </Box>
   );
 }

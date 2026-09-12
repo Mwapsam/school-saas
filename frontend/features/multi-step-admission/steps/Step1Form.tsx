@@ -8,7 +8,6 @@ import { step1Schema, type Step1FormData } from '../schemas';
 import { useGetAdmissionTerms } from '../hooks';
 
 interface Step1FormProps {
-  applicationId: string;
   initialData?: any;
   onSubmit: (data: Step1FormData) => Promise<void>;
   isLoading?: boolean;
@@ -41,7 +40,7 @@ const DEFAULT_TERMS = `
 <p>Children must wear school uniforms at all times unless otherwise instructed. Requirements for any special clothing will be announced when required. All clothes and items carried by the child should be clearly labelled.</p>
 `;
 
-export function Step1Form({ applicationId, initialData, onSubmit, isLoading, error, onNext }: Step1FormProps) {
+export function Step1Form({ initialData, onSubmit, isLoading, error, onNext }: Step1FormProps) {
   const { data: termsData } = useGetAdmissionTerms();
 
   const {

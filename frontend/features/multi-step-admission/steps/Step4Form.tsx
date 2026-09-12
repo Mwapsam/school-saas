@@ -2,11 +2,11 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Box, Grid, TextField, Button, CircularProgress, Alert, Typography } from '@mui/material';
+import { Box, TextField, Alert } from '@mui/material';
 import { step4Schema, type Step4FormData } from '../schemas';
+import { FormSection, FormActions, FormGrid } from '@/components/forms';
 
 interface Step4FormProps {
-  applicationId: string;
   initialData?: any;
   onSubmit: (data: Step4FormData) => Promise<void>;
   isLoading?: boolean;
@@ -14,7 +14,7 @@ interface Step4FormProps {
   onNext?: () => void;
 }
 
-export function Step4Form({ applicationId, initialData, onSubmit, isLoading, error, onNext }: Step4FormProps) {
+export function Step4Form({ initialData, onSubmit, isLoading, error, onNext }: Step4FormProps) {
   const {
     register,
     handleSubmit,
@@ -33,17 +33,14 @@ export function Step4Form({ applicationId, initialData, onSubmit, isLoading, err
     }
   };
 
+  const computedValidity = !errors.guardian1_first_name && !errors.guardian1_last_name && !errors.guardian1_relation && !errors.guardian1_mobile;
+
   return (
     <Box component="form" onSubmit={handleSubmit(handleFormSubmit)} noValidate>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <Grid container spacing={2}>
-        {/* Guardian 1 Personal Information */}
-        <Grid item xs={12}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Guardian 1 — Personal Information</Typography>
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
+      <FormSection title="Guardian 1 — Personal Information">
+        <FormGrid>
           <TextField
             fullWidth
             label="First Name *"
@@ -53,9 +50,7 @@ export function Step4Form({ applicationId, initialData, onSubmit, isLoading, err
             disabled={isLoading}
             required
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="Last Name *"
@@ -65,9 +60,7 @@ export function Step4Form({ applicationId, initialData, onSubmit, isLoading, err
             disabled={isLoading}
             required
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="Relationship to Child *"
@@ -77,9 +70,7 @@ export function Step4Form({ applicationId, initialData, onSubmit, isLoading, err
             disabled={isLoading}
             required
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="Mobile Phone *"
@@ -89,114 +80,92 @@ export function Step4Form({ applicationId, initialData, onSubmit, isLoading, err
             disabled={isLoading}
             required
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Email"
-            type="email"
-            {...register('guardian1_email')}
-            error={!!errors.guardian1_email}
-            helperText={errors.guardian1_email?.message}
-            disabled={isLoading}
-          />
-        </Grid>
+          <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+            <TextField
+              fullWidth
+              label="Email"
+              type="email"
+              {...register('guardian1_email')}
+              error={!!errors.guardian1_email}
+              helperText={errors.guardian1_email?.message}
+              disabled={isLoading}
+            />
+          </Box>
+        </FormGrid>
+      </FormSection>
 
-        {/* Guardian 1 Professional Information */}
-        <Grid item xs={12}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Guardian 1 — Professional Information</Typography>
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
+      <FormSection title="Guardian 1 — Professional Information">
+        <FormGrid>
           <TextField
             fullWidth
             label="Occupation"
             {...register('guardian1_occupation')}
             disabled={isLoading}
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="Office Phone"
             {...register('guardian1_office_phone1')}
             disabled={isLoading}
           />
-        </Grid>
 
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="Office Address"
-            {...register('guardian1_office_address_line1')}
-            disabled={isLoading}
-          />
-        </Grid>
+          <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+            <TextField
+              fullWidth
+              label="Office Address"
+              {...register('guardian1_office_address_line1')}
+              disabled={isLoading}
+            />
+          </Box>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="City"
             {...register('guardian1_city')}
             disabled={isLoading}
           />
-        </Grid>
+        </FormGrid>
+      </FormSection>
 
-        {/* Guardian 1 Residential Address */}
-        <Grid item xs={12}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Guardian 1 — Residential Address</Typography>
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
+      <FormSection title="Guardian 1 — Residential Address">
+        <FormGrid>
           <TextField
             fullWidth
             label="House/Plot No"
             {...register('guardian1_house_plot_no')}
             disabled={isLoading}
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="Road Name"
             {...register('guardian1_road_name')}
             disabled={isLoading}
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="Area/Location"
             {...register('guardian1_area_location')}
             disabled={isLoading}
           />
-        </Grid>
 
-        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="Flat/Block Name"
             {...register('guardian1_flat_block_name')}
             disabled={isLoading}
           />
-        </Grid>
+        </FormGrid>
+      </FormSection>
 
-
-        <Grid item xs={12}>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={isLoading || !!errors.guardian1_first_name || !!errors.guardian1_last_name || !!errors.guardian1_relation || !!errors.guardian1_mobile}
-            startIcon={isLoading && <CircularProgress size={20} />}
-          >
-            {isLoading ? 'Saving...' : 'Continue to Step 5'}
-          </Button>
-        </Grid>
-      </Grid>
+      <FormActions
+        submitLabel="Continue to Step 5"
+        isSubmitting={isLoading}
+        isDirty={computedValidity}
+      />
     </Box>
   );
 }

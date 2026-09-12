@@ -6,7 +6,6 @@ import { Box, Grid, TextField, Button, CircularProgress, Alert, FormControlLabel
 import { step8Schema, type Step8FormData } from '../schemas';
 
 interface Step8FormProps {
-  applicationId: string;
   applicationData?: any;
   initialData?: any;
   onSubmit: (data: Step8FormData) => Promise<void>;
@@ -14,7 +13,7 @@ interface Step8FormProps {
   error?: string | null;
 }
 
-export function Step8Form({ applicationId, applicationData, initialData, onSubmit, isLoading, error }: Step8FormProps) {
+export function Step8Form({ applicationData, initialData, onSubmit, isLoading, error }: Step8FormProps) {
   const today = new Date().toISOString().split('T')[0];
 
   const {

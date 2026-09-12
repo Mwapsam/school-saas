@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { Box, Grid, Button, CircularProgress, Alert, List, ListItem, ListItemText, Card, CardContent, Typography, LinearProgress } from '@mui/material';
-import { CloudUpload as UploadIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { CloudUpload as UploadIcon } from '@mui/icons-material';
 import { useGetRequiredDocuments, useGetDocuments, useUploadDocument } from '../hooks';
 
 interface Step7FormProps {
-  applicationId: string;
+  applicationId?: string;
   onNext?: () => void;
   isLoading?: boolean;
 }
@@ -14,14 +14,13 @@ interface Step7FormProps {
 export function Step7Form({ applicationId, onNext, isLoading }: Step7FormProps) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const { data: requiredDocsData } = useGetRequiredDocuments();
-  const { data: documentsData, refetch } = useGetDocuments(applicationId);
-  const uploadMutation = useUploadDocument(applicationId);
+  const { data: documentsData, refetch } = useGetDocuments(applicationId || '');
+  const uploadMutation = useUploadDocument(applicationId || '');
 
   const uploadedDocTypes = new Set(documentsData?.results.map((d) => d.document_type) || []);
   const allDocTypes = new Set(
     requiredDocsData?.map((d) => d.type) || []
   );
-  const allUploaded = Array.from(allDocTypes).every((type) => uploadedDocTypes.has(type));
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, docType: string) => {
     const file = e.target.files?.[0];
