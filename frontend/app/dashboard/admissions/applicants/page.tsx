@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Box, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField, CircularProgress, Grid, Paper, MenuItem, Typography } from '@mui/material';
+import { Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField, CircularProgress, Grid, Paper, MenuItem, Typography } from '@mui/material';
 import { Assignment as AssignIcon } from '@mui/icons-material';
 import { ApplicationAdminActions } from '@/features/admission-management';
 import type { GridColDef } from '@mui/x-data-grid';
@@ -45,7 +45,6 @@ export default function ApplicantsPage() {
 
   const { data: batches } = useAvailableBatches();
   const { data: stats } = useAdmissionStats();
-  const assignSingleMutation = useAssignSingle();
   const assignBulkMutation = useAssignBulk();
 
   if (!bootstrap || !isModuleEnabled('admissions') || !can('admissions.application.manage')) {

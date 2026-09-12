@@ -166,6 +166,23 @@ export interface StudentCategoryOption {
   name: string;
 }
 
+export interface AdmissionTermsOption {
+  id: string;
+  title: string;
+  terms_content: string;
+  admission_fee?: number;
+  fee_currency?: string;
+  order: number;
+}
+
+export interface AdditionalFieldOption {
+  id: string;
+  name: string;
+  input_type: string;
+  is_mandatory: boolean;
+  options: string[];
+}
+
 export interface ListResponse<T> {
   count: number;
   results: T[];
@@ -304,6 +321,26 @@ export function useGetStudentCategories() {
     queryKey: ['student-categories'],
     queryFn: async () => {
       const response = await apiClient.get<StudentCategoryOption[]>('/admission-lookups/student_categories/');
+      return Array.isArray(response) ? response : response.results || [];
+    },
+  });
+}
+
+export function useGetAdmissionTerms() {
+  return useQuery({
+    queryKey: ['admission-terms'],
+    queryFn: async () => {
+      const response = await apiClient.get<AdmissionTermsOption[]>('/admission-lookups/terms/');
+      return Array.isArray(response) ? response : response.results || [];
+    },
+  });
+}
+
+export function useGetAdditionalFields() {
+  return useQuery({
+    queryKey: ['admission-additional-fields'],
+    queryFn: async () => {
+      const response = await apiClient.get<AdditionalFieldOption[]>('/admission-lookups/additional_fields/');
       return Array.isArray(response) ? response : response.results || [];
     },
   });

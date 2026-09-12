@@ -10,7 +10,7 @@ from django.core.validators import (
 )
 import uuid
 import logging
-from datetime import timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 
 from core.db_fields import EncryptedTextField
@@ -5395,7 +5395,7 @@ class QuickBooksIntegration(TenantAwareModel):
         if not self.token_expires_at:
             return True
         from django.utils import timezone
-        from datetime import timedelta
+        from datetime import date, timedelta
 
         # Add buffer time to avoid using tokens that are about to expire
         buffer_time = timedelta(minutes=buffer_minutes)
@@ -8178,7 +8178,7 @@ class ApplicantEnquiry(TenantAwareModel):
 
     # Basic info
     enquiry_number = models.CharField(max_length=50, unique=True, blank=True)
-    enquired_date = models.DateField(default=lambda: timezone.now().date())
+    enquired_date = models.DateField(default=date.today)
 
     # Student Information
     first_name = models.CharField(max_length=100)

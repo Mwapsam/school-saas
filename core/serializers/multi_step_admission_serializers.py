@@ -7,6 +7,7 @@ from core.models import (
     ExtendedAdmissionApplication, AcademicYear, Course, Country, StudentCategory,
     AdmissionDocument, AdmissionTerms, AdditionalField, AdmissionAdditionalDetail
 )
+from core.services.extended_admission_service import ExtendedAdmissionService
 from .base import TenantAwareSerializer
 
 
@@ -24,6 +25,12 @@ class AdmissionStep1Serializer(TenantAwareSerializer):
             raise serializers.ValidationError("You must agree to the terms and conditions")
         return value
 
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
 
 class AdmissionTermsSerializer(serializers.ModelSerializer):
     """Lookup: Active admission terms and conditions"""
@@ -35,6 +42,7 @@ class AdmissionTermsSerializer(serializers.ModelSerializer):
 # ===== STEP 2: Academic & Admission Details =====
 class AdmissionStep2Serializer(TenantAwareSerializer):
     """Step 2: Academic year and course selection"""
+
     class Meta:
         model = ExtendedAdmissionApplication
         fields = ['id', 'academic_year', 'course_applied', 'application_number', 'current_step', 'status']
@@ -48,10 +56,17 @@ class AdmissionStep2Serializer(TenantAwareSerializer):
             raise serializers.ValidationError("Admission period for this academic year has ended")
         return value
 
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
 
 # ===== STEP 3: Details of Child =====
 class AdmissionStep3Serializer(TenantAwareSerializer):
     """Step 3: Student personal details, contact, and health information"""
+
     class Meta:
         model = ExtendedAdmissionApplication
         fields = [
@@ -78,6 +93,12 @@ class AdmissionStep3Serializer(TenantAwareSerializer):
             raise serializers.ValidationError(f"Gender must be one of: {valid_genders}")
         return value.lower() if value else value
 
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
 
 # ===== STEP 4: Guardian 1 =====
 class AdmissionStep4Serializer(TenantAwareSerializer):
@@ -93,6 +114,12 @@ class AdmissionStep4Serializer(TenantAwareSerializer):
             'application_number', 'current_step', 'status'
         ]
         read_only_fields = ['id', 'application_number', 'current_step', 'status']
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
 
 
 # ===== STEP 5: Guardian 2 & Emergency Contact =====
@@ -110,6 +137,12 @@ class AdmissionStep5Serializer(TenantAwareSerializer):
             'application_number', 'current_step', 'status'
         ]
         read_only_fields = ['id', 'application_number', 'current_step', 'status']
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
 
 
 # ===== STEP 6: Student Address & Additional Information =====
@@ -198,6 +231,12 @@ class AdmissionStep8Serializer(TenantAwareSerializer):
             raise serializers.ValidationError("Please provide your full name as signature")
         return value
 
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
 
 # ===== PROGRESS TRACKING =====
 class AdmissionProgressSerializer(serializers.ModelSerializer):
@@ -209,14 +248,13 @@ class AdmissionProgressSerializer(serializers.ModelSerializer):
     step5_complete = serializers.SerializerMethodField()
     step6_complete = serializers.SerializerMethodField()
     step7_complete = serializers.SerializerMethodField()
-    step8_complete = serializers.SerializerMethodField()
 
     class Meta:
         model = ExtendedAdmissionApplication
         fields = [
             'id', 'current_step', 'status',
             'step1_complete', 'step2_complete', 'step3_complete', 'step4_complete',
-            'step5_complete', 'step6_complete', 'step7_complete', 'step8_complete'
+            'step5_complete', 'step6_complete', 'step7_complete'
         ]
 
     def get_step1_complete(self, obj): return obj.is_step1_complete
@@ -226,7 +264,6 @@ class AdmissionProgressSerializer(serializers.ModelSerializer):
     def get_step5_complete(self, obj): return obj.is_step5_complete
     def get_step6_complete(self, obj): return obj.is_step6_complete
     def get_step7_complete(self, obj): return obj.is_step7_complete
-    def get_step8_complete(self, obj): return obj.is_step8_complete
 
 
 # ===== EXTENDED DETAIL =====
