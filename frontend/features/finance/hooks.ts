@@ -90,9 +90,10 @@ export interface UpdateInvoiceInput {
 }
 
 // Invoices
-export function useInvoiceList(params: InvoiceListParams = {}) {
+export function useInvoiceList(params: InvoiceListParams = {}, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['invoices', params],
+    enabled: options.enabled,
     queryFn: async () => {
       const queryString = new URLSearchParams();
       if (params.page) queryString.append('page', params.page.toString());
@@ -147,11 +148,15 @@ export function useUpdateInvoice(id: string) {
   });
 }
 
-export function useDeleteInvoice(id: string) {
+/**
+ * Delete invoice. Call `.mutate(id)` / `.mutateAsync(id)` with the target id —
+ * this hook itself must be called once at component top level (Rules of Hooks).
+ */
+export function useDeleteInvoice() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (id: string) => {
       return await apiClient.delete(`/invoices/${id}/`);
     },
     onSuccess: () => {

@@ -46,6 +46,25 @@ export interface EmployeeListParams {
   ordering?: string;
 }
 
+export interface CreateEmployeeInput {
+  employee_id: string;
+  full_name: string;
+  email: string;
+  phone?: string;
+  department?: string;
+  position?: string;
+  hire_date: string;
+}
+
+export interface UpdateEmployeeInput {
+  full_name?: string;
+  email?: string;
+  phone?: string;
+  department?: string;
+  position?: string;
+  is_active?: boolean;
+}
+
 export interface ListResponse<T> {
   count: number;
   next?: string;
@@ -54,9 +73,10 @@ export interface ListResponse<T> {
 }
 
 // Employees
-export function useEmployeeList(params: EmployeeListParams = {}) {
+export function useEmployeeList(params: EmployeeListParams = {}, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['employees', params],
+    enabled: options.enabled,
     queryFn: async () => {
       const qs = new URLSearchParams();
       if (params.page) qs.append('page', params.page.toString());
@@ -80,7 +100,7 @@ export function useEmployee(id: string) {
 export function useCreateEmployee() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: any) => await apiClient.post<Employee>('/employees/', data),
+    mutationFn: async (data: CreateEmployeeInput) => await apiClient.post<Employee>('/employees/', data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['employees'] }),
   });
 }
@@ -88,7 +108,7 @@ export function useCreateEmployee() {
 export function useUpdateEmployee(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: any) => await apiClient.patch<Employee>(`/employees/${id}/`, data),
+    mutationFn: async (data: UpdateEmployeeInput) => await apiClient.patch<Employee>(`/employees/${id}/`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['employees', id] });
@@ -96,10 +116,14 @@ export function useUpdateEmployee(id: string) {
   });
 }
 
-export function useDeleteEmployee(id: string) {
+/**
+ * Delete employee. Call `.mutate(id)` / `.mutateAsync(id)` with the target id —
+ * this hook itself must be called once at component top level (Rules of Hooks).
+ */
+export function useDeleteEmployee() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async () => await apiClient.delete(`/employees/${id}/`),
+    mutationFn: async (id: string) => await apiClient.delete(`/employees/${id}/`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['employees'] }),
   });
 }

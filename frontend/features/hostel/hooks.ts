@@ -15,9 +15,20 @@ export interface ListResponse<T> {
   results: T[];
 }
 
-export function useHostelRoomList(params: any = {}) {
+export function useHostelRoom(id: string) {
+  return useQuery({
+    queryKey: ['hostel-rooms', id],
+    queryFn: async () => {
+      return await apiClient.get<HostelRoom>(`/hostel-rooms/${id}/`);
+    },
+    enabled: !!id,
+  });
+}
+
+export function useHostelRoomList(params: any = {}, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['hostel-rooms', params],
+    enabled: options.enabled,
     queryFn: async () => {
       const qs = new URLSearchParams();
       if (params.page) qs.append('page', params.page.toString());

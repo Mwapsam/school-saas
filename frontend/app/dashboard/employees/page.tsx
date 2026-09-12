@@ -7,14 +7,29 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
-import { Container, Box, Typography, Button, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import { useRouter } from 'next/navigation';
+import { Container, Box, Typography, Button, Alert, IconButton } from '@mui/material';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Visibility as ViewIcon,
+} from '@mui/icons-material';
+import type { GridColDef } from '@mui/x-data-grid';
 import { useTenantStore } from '@/lib/tenant/store';
-import { useEmployeeList } from '@/features/hr/hooks';
+import { useEmployeeList, useDeleteEmployee, type Employee } from '@/features/hr/hooks';
+import { useServerTable } from '@/hooks/useServerTable';
+import { DataTable } from '@/components/data-table/DataTable';
 
 export default function EmployeesPage() {
+  const router = useRouter();
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
-  const { data, error } = useEmployeeList({ page: 1, page_size: 10 });
+  const table = useServerTable();
+  const { data, error, isLoading, refetch } = useEmployeeList(table.queryParams);
+  const deleteEmployee = useDeleteEmployee();
+
+  const canEdit = can('hr.employees.update');
+  const canDelete = can('hr.employees.delete');
 
   if (!bootstrap || !isModuleEnabled('hr') || !can('hr.employees.view')) {
     return (
@@ -27,6 +42,64 @@ export default function EmployeesPage() {
       </Container>
     );
   }
+
+  const handleDeleteEmployee = async (id: string, name: string) => {
+    if (!window.confirm(`Delete ${name}?`)) return;
+    try {
+      await deleteEmployee.mutateAsync(id);
+      router.refresh();
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
+  };
+
+  const columns: GridColDef<Employee>[] = [
+    { field: 'employee_id', headerName: 'Employee ID', flex: 1 },
+    { field: 'full_name', headerName: 'Name', flex: 1.5 },
+    { field: 'department', headerName: 'Department', flex: 1, valueGetter: (params) => params.row.department || '-' },
+    { field: 'position', headerName: 'Position', flex: 1, valueGetter: (params) => params.row.position || '-' },
+    {
+      field: 'is_active',
+      headerName: 'Status',
+      flex: 0.8,
+      valueGetter: (params) => (params.row.is_active ? 'Active' : 'Inactive'),
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      flex: 1,
+      minWidth: 130,
+      sortable: false,
+      filterable: false,
+      align: 'right',
+      headerAlign: 'right',
+      renderCell: (params) => (
+        <Box>
+          <Link href={`/dashboard/employees/${params.row.id}`} passHref legacyBehavior>
+            <IconButton size="small" component="a" title="View">
+              <ViewIcon fontSize="small" />
+            </IconButton>
+          </Link>
+          {canEdit && (
+            <Link href={`/dashboard/employees/${params.row.id}/edit`} passHref legacyBehavior>
+              <IconButton size="small" component="a" title="Edit">
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Link>
+          )}
+          {canDelete && (
+            <IconButton
+              size="small"
+              title="Delete"
+              onClick={() => handleDeleteEmployee(params.row.id, params.row.full_name)}
+            >
+              <DeleteIcon fontSize="small" color="error" />
+            </IconButton>
+          )}
+        </Box>
+      ),
+    },
+  ];
 
   return (
     <Container maxWidth="lg">
@@ -44,32 +117,21 @@ export default function EmployeesPage() {
           )}
         </Box>
 
-        {error && <Alert severity="error">{error.message}</Alert>}
-
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
-              <TableRow>
-                <TableCell>Employee ID</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Department</TableCell>
-                <TableCell>Position</TableCell>
-                <TableCell>Status</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {data?.results?.map((emp) => (
-                <TableRow key={emp.id} hover>
-                  <TableCell>{emp.employee_id}</TableCell>
-                  <TableCell>{emp.full_name}</TableCell>
-                  <TableCell>{emp.department || '-'}</TableCell>
-                  <TableCell>{emp.position || '-'}</TableCell>
-                  <TableCell>{emp.is_active ? 'Active' : 'Inactive'}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <DataTable<Employee>
+          rows={data?.results ?? []}
+          columns={columns}
+          rowCount={data?.count ?? 0}
+          loading={isLoading}
+          error={error as Error | null}
+          onRetry={() => refetch()}
+          paginationModel={table.paginationModel}
+          onPaginationModelChange={table.onPaginationModelChange}
+          onSortModelChange={(model) => table.onSortModelChange(model as Array<{ field: string; sort: 'asc' | 'desc' | null }>)}
+          search={table.search}
+          onSearchChange={table.onSearchChange}
+          searchPlaceholder="Search employees..."
+          emptyMessage="No employees found"
+        />
       </Box>
     </Container>
   );

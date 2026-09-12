@@ -8,17 +8,23 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Box, List, ListItem, ListItemButton, ListItemText, Typography, Divider } from '@mui/material';
 import { useTenantStore } from '@/lib/tenant/store';
 
-export function Sidebar() {
-  const { bootstrap, can, isModuleEnabled } = useTenantStore();
+export interface NavSection {
+  label: string;
+  href: string;
+  capability: string;
+}
 
-  if (!bootstrap) {
-    return null;
-  }
+export interface NavModule {
+  key: string;
+  label: string;
+  sections: NavSection[];
+}
 
-  const modules = [
+export const NAV_MODULES: NavModule[] = [
     {
       key: 'academics',
       label: 'Academics',
@@ -81,7 +87,15 @@ export function Sidebar() {
     },
   ];
 
-  const enabledModules = modules.filter((m) => isModuleEnabled(m.key));
+export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
+  const { bootstrap, can, isModuleEnabled } = useTenantStore();
+  const pathname = usePathname();
+
+  if (!bootstrap) {
+    return null;
+  }
+
+  const enabledModules = NAV_MODULES.filter((m) => isModuleEnabled(m.key));
 
   if (enabledModules.length === 0) {
     return (
@@ -114,27 +128,38 @@ export function Sidebar() {
           <List sx={{ py: 0 }}>
             {module.sections
               .filter((s) => can(s.capability))
-              .map((section) => (
-                <ListItem key={section.href} disablePadding>
-                  <Link href={section.href} passHref legacyBehavior>
-                    <ListItemButton
-                      component="a"
-                      sx={{
-                        pl: 4,
-                        py: 1,
-                        '&:hover': {
-                          backgroundColor: '#f5f5f5',
-                        },
-                      }}
-                    >
-                      <ListItemText
-                        primary={section.label}
-                        primaryTypographyProps={{ variant: 'body2' }}
-                      />
-                    </ListItemButton>
-                  </Link>
-                </ListItem>
-              ))}
+              .map((section) => {
+                const isActive =
+                  pathname === section.href || pathname?.startsWith(`${section.href}/`);
+                return (
+                  <ListItem key={section.href} disablePadding>
+                    <Link href={section.href} passHref legacyBehavior>
+                      <ListItemButton
+                        component="a"
+                        selected={isActive}
+                        onClick={onNavigate}
+                        sx={{
+                          pl: 4,
+                          py: 1,
+                          '&:hover': {
+                            backgroundColor: '#f5f5f5',
+                          },
+                          '&.Mui-selected': {
+                            backgroundColor: 'primary.main',
+                            color: 'primary.contrastText',
+                            '&:hover': { backgroundColor: 'primary.dark' },
+                          },
+                        }}
+                      >
+                        <ListItemText
+                          primary={section.label}
+                          primaryTypographyProps={{ variant: 'body2' }}
+                        />
+                      </ListItemButton>
+                    </Link>
+                  </ListItem>
+                );
+              })}
           </List>
           {idx < enabledModules.length - 1 && <Divider sx={{ my: 1 }} />}
         </Box>

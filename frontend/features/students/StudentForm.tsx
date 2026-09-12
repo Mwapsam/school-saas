@@ -8,7 +8,6 @@
 
 'use client';
 
-import { useState } from 'react';
 import {
   Box,
   Button,
@@ -21,7 +20,15 @@ import {
   Alert,
   Grid,
 } from '@mui/material';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Student, CreateStudentInput, UpdateStudentInput } from './hooks';
+import {
+  createStudentSchema,
+  updateStudentSchema,
+  CreateStudentFormValues,
+  UpdateStudentFormValues,
+} from './schemas';
 
 export interface StudentFormProps {
   student?: Student;
@@ -36,47 +43,42 @@ export function StudentForm({
   onSubmit,
   onCancel,
 }: StudentFormProps) {
-  const [formData, setFormData] = useState<CreateStudentInput | UpdateStudentInput>(
-    student
-      ? {
-          full_name: student.full_name,
-          email: student.email || '',
-          phone: student.phone || '',
-          batch_id: student.batch_id,
-        }
-      : {
-          admission_number: '',
-          full_name: '',
-          date_of_birth: '',
-          gender: 'M',
-          email: '',
-          phone: '',
-        }
-  );
-
-  const [submitting, setSubmitting] = useState(false);
-
   const isCreate = !student;
 
-  const handleChange = (field: string, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
+  const createForm = useForm<CreateStudentFormValues>({
+    resolver: zodResolver(createStudentSchema),
+    defaultValues: {
+      admission_number: '',
+      full_name: '',
+      date_of_birth: '',
+      gender: 'M',
+      email: '',
+      phone: '',
+      batch_id: '',
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      await onSubmit(formData);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const updateForm = useForm<UpdateStudentFormValues>({
+    resolver: zodResolver(updateStudentSchema),
+    defaultValues: {
+      full_name: student?.full_name || '',
+      email: student?.email || '',
+      phone: student?.phone || '',
+      batch_id: student?.batch_id || '',
+    },
+  });
+
+  const form = isCreate ? createForm : updateForm;
+  const control = form.control as unknown as typeof createForm.control;
+  const errors = form.formState.errors as Record<string, { message?: string } | undefined>;
+  const isSubmitting = form.formState.isSubmitting;
+
+  const submitHandler = form.handleSubmit(async (data) => {
+    await onSubmit(data as CreateStudentInput | UpdateStudentInput);
+  });
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 600 }}>
+    <Box component="form" onSubmit={submitHandler} sx={{ maxWidth: 600 }}>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
@@ -88,41 +90,57 @@ export function StudentForm({
         {isCreate && (
           <>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Admission Number"
-                value={(formData as CreateStudentInput).admission_number || ''}
-                onChange={(e) => handleChange('admission_number', e.target.value)}
-                required
-                disabled={submitting}
+              <Controller
+                name="admission_number"
+                control={createForm.control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label="Admission Number"
+                    required
+                    disabled={isSubmitting}
+                    error={!!createForm.formState.errors.admission_number}
+                    helperText={createForm.formState.errors.admission_number?.message}
+                  />
+                )}
               />
             </Grid>
 
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Date of Birth"
-                type="date"
-                value={(formData as CreateStudentInput).date_of_birth || ''}
-                onChange={(e) => handleChange('date_of_birth', e.target.value)}
-                required
-                disabled={submitting}
-                InputLabelProps={{ shrink: true }}
+              <Controller
+                name="date_of_birth"
+                control={createForm.control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label="Date of Birth"
+                    type="date"
+                    required
+                    disabled={isSubmitting}
+                    InputLabelProps={{ shrink: true }}
+                    error={!!createForm.formState.errors.date_of_birth}
+                    helperText={createForm.formState.errors.date_of_birth?.message}
+                  />
+                )}
               />
             </Grid>
 
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth disabled={submitting}>
+              <FormControl fullWidth disabled={isSubmitting}>
                 <InputLabel>Gender</InputLabel>
-                <Select
-                  value={(formData as CreateStudentInput).gender || 'M'}
-                  onChange={(e) => handleChange('gender', e.target.value)}
-                  label="Gender"
-                >
-                  <MenuItem value="M">Male</MenuItem>
-                  <MenuItem value="F">Female</MenuItem>
-                  <MenuItem value="O">Other</MenuItem>
-                </Select>
+                <Controller
+                  name="gender"
+                  control={createForm.control}
+                  render={({ field }) => (
+                    <Select {...field} label="Gender">
+                      <MenuItem value="M">Male</MenuItem>
+                      <MenuItem value="F">Female</MenuItem>
+                      <MenuItem value="O">Other</MenuItem>
+                    </Select>
+                  )}
+                />
               </FormControl>
             </Grid>
           </>
@@ -130,63 +148,90 @@ export function StudentForm({
 
         {/* Common fields */}
         <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="Full Name"
-            value={formData.full_name || ''}
-            onChange={(e) => handleChange('full_name', e.target.value)}
-            required
-            disabled={submitting}
+          <Controller
+            name="full_name"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="Full Name"
+                required
+                disabled={isSubmitting}
+                error={!!errors.full_name}
+                helperText={errors.full_name?.message}
+              />
+            )}
           />
         </Grid>
 
         <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Email"
-            type="email"
-            value={formData.email || ''}
-            onChange={(e) => handleChange('email', e.target.value)}
-            disabled={submitting}
+          <Controller
+            name="email"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="Email"
+                type="email"
+                disabled={isSubmitting}
+                error={!!errors.email}
+                helperText={errors.email?.message}
+              />
+            )}
           />
         </Grid>
 
         <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Phone"
-            value={formData.phone || ''}
-            onChange={(e) => handleChange('phone', e.target.value)}
-            disabled={submitting}
+          <Controller
+            name="phone"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="Phone"
+                disabled={isSubmitting}
+                error={!!errors.phone}
+                helperText={errors.phone?.message}
+              />
+            )}
           />
         </Grid>
 
         {/* Batch selection */}
         <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="Batch ID"
-            value={formData.batch_id || ''}
-            onChange={(e) => handleChange('batch_id', e.target.value)}
-            disabled={submitting}
-            helperText="Leave empty for no batch assignment"
+          <Controller
+            name="batch_id"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="Batch ID"
+                disabled={isSubmitting}
+                helperText={errors.batch_id?.message || 'Leave empty for no batch assignment'}
+                error={!!errors.batch_id}
+              />
+            )}
           />
         </Grid>
 
         {/* Buttons */}
         <Grid item xs={12} sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
           {onCancel && (
-            <Button onClick={onCancel} disabled={submitting}>
+            <Button onClick={onCancel} disabled={isSubmitting}>
               Cancel
             </Button>
           )}
           <Button
             type="submit"
             variant="contained"
-            disabled={submitting}
+            disabled={isSubmitting}
             sx={{ minWidth: 120 }}
           >
-            {submitting ? <CircularProgress size={24} /> : isCreate ? 'Create' : 'Save'}
+            {isSubmitting ? <CircularProgress size={24} /> : isCreate ? 'Create' : 'Save'}
           </Button>
         </Grid>
       </Grid>

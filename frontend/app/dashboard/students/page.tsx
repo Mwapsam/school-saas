@@ -13,43 +13,36 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Container, Box, Typography, Button, Alert } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import { Container, Box, Typography, Button, Alert, Chip, IconButton } from '@mui/material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as ViewIcon } from '@mui/icons-material';
+import type { GridColDef } from '@mui/x-data-grid';
 import { useTenantStore } from '@/lib/tenant/store';
-import { useStudentList, useDeleteStudent } from '@/features/students/hooks';
-import { StudentTable } from '@/features/students/StudentTable';
+import { useStudentList, useDeleteStudent, Student } from '@/features/students/hooks';
+import { useServerTable } from '@/hooks/useServerTable';
+import { DataTable } from '@/components/data-table/DataTable';
 
 export default function StudentsPage() {
   const router = useRouter();
-  const { bootstrap, can, isModuleEnabled } = useTenantStore();
+  const { can, isModuleEnabled } = useTenantStore();
 
-  // Pagination & filtering state
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [search, setSearch] = useState('');
-  const [ordering, setOrdering] = useState('-created_at');
+  const table = useServerTable({ initialOrdering: '-created_at' });
+  const { data, isLoading, error, refetch } = useStudentList(table.queryParams);
+  const deleteStudent = useDeleteStudent();
 
-  // Queries & mutations
-  const { data, isLoading, error } = useStudentList({
-    page,
-    page_size: pageSize,
-    search,
-    ordering,
-  });
+  const canEdit = can('students.update');
+  const canDelete = can('students.delete');
 
-  // Module/permission checks
-  if (!bootstrap) {
-    return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Typography>Loading configuration...</Typography>
-        </Box>
-      </Container>
-    );
-  }
+  const handleDeleteStudent = async (id: string, name: string) => {
+    if (!window.confirm(`Delete ${name}?`)) return;
+    try {
+      await deleteStudent.mutateAsync(id);
+      router.refresh();
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
+  };
 
   if (!isModuleEnabled('academics')) {
     return (
@@ -75,15 +68,74 @@ export default function StudentsPage() {
     );
   }
 
-  const handleDeleteStudent = async (id: string) => {
-    try {
-      const { mutateAsync } = useDeleteStudent(id);
-      await mutateAsync();
-      router.refresh();
-    } catch (err) {
-      console.error('Delete failed:', err);
-    }
-  };
+  const columns: GridColDef<Student>[] = [
+    { field: 'admission_number', headerName: 'Admission #', flex: 1, minWidth: 120 },
+    { field: 'full_name', headerName: 'Name', flex: 1.5, minWidth: 160 },
+    { field: 'date_of_birth', headerName: 'DOB', flex: 1, minWidth: 120 },
+    {
+      field: 'email',
+      headerName: 'Email',
+      flex: 1.5,
+      minWidth: 160,
+      valueGetter: (params) => params.row.email || '-',
+    },
+    {
+      field: 'batch_name',
+      headerName: 'Batch',
+      flex: 1,
+      minWidth: 120,
+      valueGetter: (params) => params.row.batch_name || '-',
+    },
+    {
+      field: 'is_active',
+      headerName: 'Status',
+      flex: 1,
+      minWidth: 100,
+      sortable: false,
+      renderCell: (params) => (
+        <Chip
+          label={params.row.is_active ? 'Active' : 'Inactive'}
+          color={params.row.is_active ? 'success' : 'error'}
+          size="small"
+        />
+      ),
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      flex: 1,
+      minWidth: 130,
+      sortable: false,
+      filterable: false,
+      align: 'right',
+      headerAlign: 'right',
+      renderCell: (params) => (
+        <Box>
+          <Link href={`/dashboard/students/${params.row.id}`} passHref legacyBehavior>
+            <IconButton size="small" component="a" title="View">
+              <ViewIcon fontSize="small" />
+            </IconButton>
+          </Link>
+          {canEdit && (
+            <Link href={`/dashboard/students/${params.row.id}/edit`} passHref legacyBehavior>
+              <IconButton size="small" component="a" title="Edit">
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Link>
+          )}
+          {canDelete && (
+            <IconButton
+              size="small"
+              title="Delete"
+              onClick={() => handleDeleteStudent(params.row.id, params.row.full_name)}
+            >
+              <DeleteIcon fontSize="small" color="error" />
+            </IconButton>
+          )}
+        </Box>
+      ),
+    },
+  ];
 
   return (
     <Container maxWidth="lg">
@@ -107,28 +159,22 @@ export default function StudentsPage() {
         </Box>
 
         {/* Table */}
-        <StudentTable
-          students={data?.results}
+        <DataTable<Student>
+          rows={data?.results || []}
+          columns={columns}
+          rowCount={data?.count || 0}
           loading={isLoading}
-          error={error}
-          total={data?.count || 0}
-          page={page}
-          pageSize={pageSize}
-          search={search}
-          ordering={ordering}
-          onPageChange={setPage}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setPage(1); // Reset to first page
-          }}
-          onSearchChange={(s) => {
-            setSearch(s);
-            setPage(1); // Reset to first page
-          }}
-          onOrderingChange={setOrdering}
-          onDelete={can('students.delete') ? handleDeleteStudent : undefined}
-          canEdit={can('students.update')}
-          canDelete={can('students.delete')}
+          error={error as Error | null}
+          onRetry={() => refetch()}
+          paginationModel={table.paginationModel}
+          onPaginationModelChange={table.onPaginationModelChange}
+          onSortModelChange={(model) =>
+            table.onSortModelChange(model.map((m) => ({ field: m.field, sort: m.sort ?? null })))
+          }
+          search={table.search}
+          onSearchChange={table.onSearchChange}
+          searchPlaceholder="Search by name or admission number"
+          emptyMessage="No students found"
         />
       </Box>
     </Container>

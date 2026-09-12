@@ -5,10 +5,12 @@ Registers models with Unfold (the modern admin interface used by platform operat
 for multi-tenant management). School, User, Domain, and SchoolModule are managed here.
 """
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from unfold.admin import ModelAdmin, TabularInline
+from unfold.decorators import action
 
 from .models import School, SchoolModule, User, Domain
+from .modules import MODULES
 
 
 class SchoolModuleInline(TabularInline):
@@ -16,12 +18,30 @@ class SchoolModuleInline(TabularInline):
 
     Platform operators can quickly enable/disable modules for a school and configure
     module-specific settings (e.g., transport fleet management options) without
-    leaving the School detail page.
+    leaving the School detail page. The module field is a dropdown constrained to
+    core.modules.MODULES, so operators can add rows for modules that don't exist
+    yet for a school (e.g. a newly created school with zero SchoolModule rows)
+    instead of being blocked by a read-only field with nothing to edit.
     """
     model = SchoolModule
     extra = 0
     fields = ("module", "enabled", "configuration")
-    readonly_fields = ("module",)  # Module key shouldn't be changed after creation
+
+
+def _provision_all_modules(schools):
+    """Ensure every school has a SchoolModule row for every registered module key.
+    Missing rows are created enabled by default; existing rows are left untouched.
+    Mirrors `manage.py provision_school_modules`.
+    """
+    created = 0
+    for school in schools:
+        for module_key in MODULES.keys():
+            _, was_created = SchoolModule.objects.get_or_create(
+                school=school, module=module_key, defaults={"enabled": True}
+            )
+            if was_created:
+                created += 1
+    return created
 
 
 @admin.register(School)

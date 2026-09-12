@@ -18,7 +18,7 @@ export default function NotFound() {
           Page Not Found
         </Typography>
         <Typography sx={{ mb: 4, color: 'text.secondary' }}>
-          The page you're looking for doesn't exist.
+          The page you&apos;re looking for doesn&apos;t exist.
         </Typography>
         <Link href="/dashboard" passHref legacyBehavior>
           <Button component="a" variant="contained">

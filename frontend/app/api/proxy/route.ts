@@ -51,7 +51,34 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
   }
 }
 
-export async function GET(request: NextRequest) {
+/**
+ * Safely turn a Django response into a JSON-serializable body.
+ * Django can return non-JSON (HTML error pages on 404/500, empty body on 204) —
+ * never assume res.json() will succeed.
+ */
+async function safeReadBody(res: Response): Promise<unknown> {
+  if (res.status === 204) return null;
+
+  const text = await res.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    // Upstream returned non-JSON (e.g. an HTML 404/500 page). Surface a
+    // structured error instead of crashing on JSON.parse.
+    return {
+      error: 'Upstream returned a non-JSON response',
+      status: res.status,
+      preview: text.slice(0, 500),
+    };
+  }
+}
+
+async function forward(
+  request: NextRequest,
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
+): Promise<NextResponse> {
   const session = getSessionData(request);
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -62,106 +89,74 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing path parameter' }, { status: 400 });
   }
 
-  try {
-    const res = await fetch(`${DJANGO_BASE_URL}${djangoPath}`, {
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-    });
+  const hasBody = method === 'POST' || method === 'PATCH' || method === 'PUT';
+  let body: string | undefined;
+  if (hasBody) {
+    const raw = await request.text();
+    body = raw || undefined;
+  }
 
-    // If 401, try refreshing token and retry
+  async function callDjango(accessToken: string) {
+    return fetch(`${DJANGO_BASE_URL}${djangoPath}`, {
+      method,
+      headers: {
+        ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+        Authorization: `Bearer ${accessToken}`,
+      },
+      ...(hasBody ? { body } : {}),
+    });
+  }
+
+  try {
+    let res = await callDjango(session.accessToken);
+    let refreshedToken: string | null = null;
+
     if (res.status === 401) {
-      const newAccessToken = await refreshAccessToken(session.refreshToken);
-      if (!newAccessToken) {
+      refreshedToken = await refreshAccessToken(session.refreshToken);
+      if (!refreshedToken) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-
-      const retryRes = await fetch(`${DJANGO_BASE_URL}${djangoPath}`, {
-        headers: {
-          Authorization: `Bearer ${newAccessToken}`,
-        },
-      });
-
-      // Update session cookie with new token
-      const response = NextResponse.json(await retryRes.json(), {
-        status: retryRes.status,
-      });
-      response.cookies.set('school-saas-session', JSON.stringify({
-        ...session,
-        accessToken: newAccessToken,
-      }), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-      });
-
-      return response;
+      res = await callDjango(refreshedToken);
     }
 
-    return NextResponse.json(await res.json(), { status: res.status });
+    const responseBody = await safeReadBody(res);
+    const response = NextResponse.json(responseBody, { status: res.status });
+
+    if (refreshedToken) {
+      response.cookies.set(
+        'school-saas-session',
+        JSON.stringify({ ...session, accessToken: refreshedToken }),
+        {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+        }
+      );
+    }
+
+    return response;
   } catch (error) {
     console.error('Proxy error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
+export async function GET(request: NextRequest) {
+  return forward(request, 'GET');
+}
+
 export async function POST(request: NextRequest) {
-  const session = getSessionData(request);
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  return forward(request, 'POST');
+}
 
-  const djangoPath = request.nextUrl.searchParams.get('path') || '';
-  if (!djangoPath) {
-    return NextResponse.json({ error: 'Missing path parameter' }, { status: 400 });
-  }
+export async function PATCH(request: NextRequest) {
+  return forward(request, 'PATCH');
+}
 
-  const body = await request.json();
+export async function PUT(request: NextRequest) {
+  return forward(request, 'PUT');
+}
 
-  try {
-    const res = await fetch(`${DJANGO_BASE_URL}${djangoPath}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-      body: JSON.stringify(body),
-    });
-
-    // Handle 401 and refresh if needed
-    if (res.status === 401) {
-      const newAccessToken = await refreshAccessToken(session.refreshToken);
-      if (!newAccessToken) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-
-      const retryRes = await fetch(`${DJANGO_BASE_URL}${djangoPath}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${newAccessToken}`,
-        },
-        body: JSON.stringify(body),
-      });
-
-      const response = NextResponse.json(await retryRes.json(), {
-        status: retryRes.status,
-      });
-      response.cookies.set('school-saas-session', JSON.stringify({
-        ...session,
-        accessToken: newAccessToken,
-      }), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-      });
-
-      return response;
-    }
-
-    return NextResponse.json(await res.json(), { status: res.status });
-  } catch (error) {
-    console.error('Proxy error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
+export async function DELETE(request: NextRequest) {
+  return forward(request, 'DELETE');
 }

@@ -16,9 +16,17 @@ export interface ListResponse<T> {
   results: T[];
 }
 
-export function useAdmissionApplicationList(params: any = {}) {
+export interface CreateAdmissionApplicationInput {
+  student_name: string;
+  email: string;
+  phone?: string;
+  notes?: string;
+}
+
+export function useAdmissionApplicationList(params: any = {}, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['admissions', params],
+    enabled: options.enabled,
     queryFn: async () => {
       const qs = new URLSearchParams();
       if (params.page) qs.append('page', params.page.toString());
@@ -32,7 +40,8 @@ export function useAdmissionApplicationList(params: any = {}) {
 export function useCreateAdmissionApplication() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: any) => await apiClient.post('/admission-applications/', data),
+    mutationFn: async (data: CreateAdmissionApplicationInput) =>
+      await apiClient.post<AdmissionApplication>('/admission-applications/', data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admissions'] }),
   });
 }

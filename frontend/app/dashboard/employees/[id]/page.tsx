@@ -1,0 +1,162 @@
+/**
+ * Employee detail view page.
+ */
+
+'use client';
+
+export const dynamic = 'force-dynamic';
+
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Container, Box, Typography, Button, Grid, Paper, CircularProgress, Alert } from '@mui/material';
+import { Edit as EditIcon, ArrowBack as BackIcon } from '@mui/icons-material';
+import { useTenantStore } from '@/lib/tenant/store';
+import { useEmployee } from '@/features/hr/hooks';
+
+export default function EmployeeDetailPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
+  const { can, isModuleEnabled } = useTenantStore();
+  const { data: employee, isLoading, error } = useEmployee(params.id);
+
+  if (!isModuleEnabled('hr') || !can('employees.view')) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ py: 4 }}>
+          <Alert severity="error">You do not have permission to view this employee.</Alert>
+        </Box>
+      </Container>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
+
+  if (error || !employee) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ py: 4 }}>
+          <Alert severity="error">
+            Failed to load employee: {(error as any)?.message || 'Employee not found'}
+          </Alert>
+        </Box>
+      </Container>
+    );
+  }
+
+  return (
+    <Container maxWidth="lg">
+      <Box sx={{ py: 4 }}>
+        {/* Header */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Button startIcon={<BackIcon />} onClick={() => router.back()} variant="text">
+              Back
+            </Button>
+            <Typography variant="h4" component="h1">
+              {employee.full_name}
+            </Typography>
+          </Box>
+
+          {can('employees.update') && (
+            <Link href={`/dashboard/employees/${employee.id}/edit`} passHref legacyBehavior>
+              <Button component="a" variant="contained" startIcon={<EditIcon />}>
+                Edit
+              </Button>
+            </Link>
+          )}
+        </Box>
+
+        {/* Details */}
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Personal Information
+              </Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 1 }}>
+                <Typography variant="body2" color="textSecondary">
+                  Employee ID:
+                </Typography>
+                <Typography variant="body2">{employee.employee_id}</Typography>
+
+                <Typography variant="body2" color="textSecondary">
+                  Email:
+                </Typography>
+                <Typography variant="body2">{employee.email || '-'}</Typography>
+
+                <Typography variant="body2" color="textSecondary">
+                  Phone:
+                </Typography>
+                <Typography variant="body2">{employee.phone || '-'}</Typography>
+              </Box>
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Employment Information
+              </Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 1 }}>
+                <Typography variant="body2" color="textSecondary">
+                  Department:
+                </Typography>
+                <Typography variant="body2">{employee.department || '-'}</Typography>
+
+                <Typography variant="body2" color="textSecondary">
+                  Position:
+                </Typography>
+                <Typography variant="body2">{employee.position || '-'}</Typography>
+
+                <Typography variant="body2" color="textSecondary">
+                  Hire Date:
+                </Typography>
+                <Typography variant="body2">{employee.hire_date}</Typography>
+
+                <Typography variant="body2" color="textSecondary">
+                  Status:
+                </Typography>
+                <Box
+                  sx={{
+                    display: 'inline-block',
+                    px: 1,
+                    py: 0.5,
+                    backgroundColor: employee.is_active ? '#e8f5e9' : '#ffebee',
+                    color: employee.is_active ? '#2e7d32' : '#c62828',
+                    borderRadius: 1,
+                    fontSize: '0.85rem',
+                    fontWeight: 500,
+                    width: 'fit-content',
+                  }}
+                >
+                  {employee.is_active ? 'Active' : 'Inactive'}
+                </Box>
+
+                <Typography variant="body2" color="textSecondary">
+                  Created:
+                </Typography>
+                <Typography variant="body2">
+                  {new Date(employee.created_at).toLocaleDateString()}
+                </Typography>
+
+                <Typography variant="body2" color="textSecondary">
+                  Updated:
+                </Typography>
+                <Typography variant="body2">
+                  {new Date(employee.updated_at).toLocaleDateString()}
+                </Typography>
+              </Box>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Box>
+    </Container>
+  );
+}

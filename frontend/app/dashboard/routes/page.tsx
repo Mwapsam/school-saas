@@ -6,13 +6,21 @@
 
 export const dynamic = 'force-dynamic';
 
-import { Container, Box, Typography, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { Container, Box, Typography, Alert } from '@mui/material';
+import type { GridColDef } from '@mui/x-data-grid';
 import { useTenantStore } from '@/lib/tenant/store';
-import { useTransportRouteList } from '@/features/transport/hooks';
+import { useTransportRouteList, type TransportRoute } from '@/features/transport/hooks';
+import { useServerTable } from '@/hooks/useServerTable';
+import { DataTable } from '@/components/data-table/DataTable';
 
 export default function RoutesPage() {
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
-  const { data, error } = useTransportRouteList({ page: 1, page_size: 10 });
+  const table = useServerTable();
+  const { data, error, isLoading, refetch } = useTransportRouteList({
+    page: table.queryParams.page,
+    page_size: table.queryParams.page_size,
+    search: table.queryParams.search,
+  });
 
   if (!bootstrap || !isModuleEnabled('transport') || !can('transport.view')) {
     return (
@@ -24,6 +32,14 @@ export default function RoutesPage() {
     );
   }
 
+  const columns: GridColDef<TransportRoute>[] = [
+    { field: 'name', headerName: 'Route Name', flex: 1.5 },
+    { field: 'code', headerName: 'Code', flex: 1 },
+    { field: 'route_type', headerName: 'Type', flex: 1 },
+    { field: 'vehicle_name', headerName: 'Vehicle', flex: 1 },
+    { field: 'student_count', headerName: 'Students', flex: 0.8 },
+  ];
+
   return (
     <Container maxWidth="lg">
       <Box sx={{ py: 4 }}>
@@ -31,32 +47,20 @@ export default function RoutesPage() {
           Transport Routes
         </Typography>
 
-        {error && <Alert severity="error">{error.message}</Alert>}
-
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
-              <TableRow>
-                <TableCell>Route Name</TableCell>
-                <TableCell>Code</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Vehicle</TableCell>
-                <TableCell>Students</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {data?.results?.map((route) => (
-                <TableRow key={route.id} hover>
-                  <TableCell>{route.name}</TableCell>
-                  <TableCell>{route.code}</TableCell>
-                  <TableCell>{route.route_type}</TableCell>
-                  <TableCell>{route.vehicle_name}</TableCell>
-                  <TableCell>{route.student_count}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <DataTable<TransportRoute>
+          rows={data?.results ?? []}
+          columns={columns}
+          rowCount={data?.count ?? 0}
+          loading={isLoading}
+          error={error as Error | null}
+          onRetry={() => refetch()}
+          paginationModel={table.paginationModel}
+          onPaginationModelChange={table.onPaginationModelChange}
+          search={table.search}
+          onSearchChange={table.onSearchChange}
+          searchPlaceholder="Search routes..."
+          emptyMessage="No routes found"
+        />
       </Box>
     </Container>
   );

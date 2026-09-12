@@ -83,6 +83,7 @@ from .api.transport import (
 from .api.library import (
     LibraryViewSet,
     LibraryStaffViewSet,
+    BookViewSet,
 )
 
 from .view_modules.multi_step_admission_views import (
@@ -145,6 +146,7 @@ router.register(r'transport-fees', TransportFeeViewSet, basename='transport-fee'
 # Library domain endpoints
 router.register(r'libraries', LibraryViewSet, basename='library')
 router.register(r'library-staff', LibraryStaffViewSet, basename='library-staff')
+router.register(r'library-books', BookViewSet, basename='library-book')
 
 # Bootstrap endpoint — tenant configuration contract for frontend
 from .api.bootstrap import bootstrap

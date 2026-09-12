@@ -14,6 +14,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from core.db_fields import EncryptedTextField
+from core.modules import MODULES
 
 logger = logging.getLogger(__name__)
 
@@ -176,6 +177,7 @@ class SchoolModule(BaseModel):
     )
     module = models.CharField(
         max_length=50,
+        choices=[(key, meta["label"]) for key, meta in MODULES.items()],
         help_text="Module key (e.g. 'finance', 'hr', 'hostel') — must match core.modules.MODULES"
     )
     enabled = models.BooleanField(

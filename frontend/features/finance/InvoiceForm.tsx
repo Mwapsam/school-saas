@@ -4,7 +4,6 @@
 
 'use client';
 
-import { useState } from 'react';
 import {
   Box,
   Button,
@@ -13,7 +12,15 @@ import {
   Alert,
   Grid,
 } from '@mui/material';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Invoice, CreateInvoiceInput, UpdateInvoiceInput } from './hooks';
+import {
+  createInvoiceSchema,
+  updateInvoiceSchema,
+  CreateInvoiceFormValues,
+  UpdateInvoiceFormValues,
+} from './schemas';
 
 export interface InvoiceFormProps {
   invoice?: Invoice;
@@ -28,46 +35,40 @@ export function InvoiceForm({
   onSubmit,
   onCancel,
 }: InvoiceFormProps) {
-  const [formData, setFormData] = useState<CreateInvoiceInput | UpdateInvoiceInput>(
-    invoice
-      ? {
-          amount: invoice.amount,
-          due_date: invoice.due_date,
-          status: invoice.status,
-          notes: invoice.notes,
-        }
-      : {
-          student_id: '',
-          invoice_number: '',
-          amount: 0,
-          due_date: '',
-          notes: '',
-        }
-  );
-
-  const [submitting, setSubmitting] = useState(false);
-
   const isCreate = !invoice;
 
-  const handleChange = (field: string, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
+  const createForm = useForm<CreateInvoiceFormValues>({
+    resolver: zodResolver(createInvoiceSchema),
+    defaultValues: {
+      student_id: '',
+      invoice_number: '',
+      amount: 0,
+      due_date: '',
+      notes: '',
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      await onSubmit(formData);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const updateForm = useForm<UpdateInvoiceFormValues>({
+    resolver: zodResolver(updateInvoiceSchema),
+    defaultValues: {
+      amount: invoice?.amount ?? 0,
+      due_date: invoice?.due_date || '',
+      status: invoice?.status || '',
+      notes: invoice?.notes || '',
+    },
+  });
+
+  const form = isCreate ? createForm : updateForm;
+  const control = form.control as unknown as typeof createForm.control;
+  const errors = form.formState.errors as Record<string, { message?: string } | undefined>;
+  const isSubmitting = form.formState.isSubmitting;
+
+  const submitHandler = form.handleSubmit(async (data) => {
+    await onSubmit(data as CreateInvoiceInput | UpdateInvoiceInput);
+  });
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 600 }}>
+    <Box component="form" onSubmit={submitHandler} sx={{ maxWidth: 600 }}>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
@@ -78,80 +79,116 @@ export function InvoiceForm({
         {isCreate && (
           <>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Student ID"
-                value={(formData as CreateInvoiceInput).student_id || ''}
-                onChange={(e) => handleChange('student_id', e.target.value)}
-                required
-                disabled={submitting}
+              <Controller
+                name="student_id"
+                control={createForm.control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label="Student ID"
+                    required
+                    disabled={isSubmitting}
+                    error={!!createForm.formState.errors.student_id}
+                    helperText={createForm.formState.errors.student_id?.message}
+                  />
+                )}
               />
             </Grid>
 
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Invoice Number"
-                value={(formData as CreateInvoiceInput).invoice_number || ''}
-                onChange={(e) => handleChange('invoice_number', e.target.value)}
-                required
-                disabled={submitting}
+              <Controller
+                name="invoice_number"
+                control={createForm.control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label="Invoice Number"
+                    required
+                    disabled={isSubmitting}
+                    error={!!createForm.formState.errors.invoice_number}
+                    helperText={createForm.formState.errors.invoice_number?.message}
+                  />
+                )}
               />
             </Grid>
           </>
         )}
 
         <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Amount"
-            type="number"
-            inputProps={{ step: '0.01' }}
-            value={formData.amount || 0}
-            onChange={(e) => handleChange('amount', parseFloat(e.target.value))}
-            required
-            disabled={submitting}
+          <Controller
+            name="amount"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="Amount"
+                type="number"
+                inputProps={{ step: '0.01' }}
+                required
+                disabled={isSubmitting}
+                onChange={(e) => field.onChange(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                error={!!errors.amount}
+                helperText={errors.amount?.message}
+              />
+            )}
           />
         </Grid>
 
         <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Due Date"
-            type="date"
-            value={formData.due_date || ''}
-            onChange={(e) => handleChange('due_date', e.target.value)}
-            required
-            disabled={submitting}
-            InputLabelProps={{ shrink: true }}
+          <Controller
+            name="due_date"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="Due Date"
+                type="date"
+                required
+                disabled={isSubmitting}
+                InputLabelProps={{ shrink: true }}
+                error={!!errors.due_date}
+                helperText={errors.due_date?.message}
+              />
+            )}
           />
         </Grid>
 
         <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="Notes"
-            multiline
-            rows={3}
-            value={formData.notes || ''}
-            onChange={(e) => handleChange('notes', e.target.value)}
-            disabled={submitting}
+          <Controller
+            name="notes"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="Notes"
+                multiline
+                rows={3}
+                disabled={isSubmitting}
+                error={!!errors.notes}
+                helperText={errors.notes?.message}
+              />
+            )}
           />
         </Grid>
 
         <Grid item xs={12} sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
           {onCancel && (
-            <Button onClick={onCancel} disabled={submitting}>
+            <Button onClick={onCancel} disabled={isSubmitting}>
               Cancel
             </Button>
           )}
           <Button
             type="submit"
             variant="contained"
-            disabled={submitting}
+            disabled={isSubmitting}
             sx={{ minWidth: 120 }}
           >
-            {submitting ? <CircularProgress size={24} /> : isCreate ? 'Create' : 'Save'}
+            {isSubmitting ? <CircularProgress size={24} /> : isCreate ? 'Create' : 'Save'}
           </Button>
         </Grid>
       </Grid>

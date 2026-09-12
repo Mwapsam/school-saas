@@ -4,8 +4,9 @@ Library domain API — library management.
 Covers:
 - Library configuration (library name, location, contact)
 - Library staff (librarians, assistants)
+- Book catalog (title/author/copies/availability)
 
-Note: Full library circulation system (book catalog, borrowing, returns) requires additional models for future implementation.
+Note: Borrowing/returns (BookMovement) still requires additional API work for future implementation.
 
 Reuses existing services: See core/services/
 """
@@ -13,7 +14,7 @@ Reuses existing services: See core/services/
 from rest_framework import viewsets, serializers
 from rest_framework.permissions import IsAuthenticated
 
-from core.models import Library, LibraryStaff
+from core.models import Library, LibraryStaff, Book
 from core.authz.drf import ModuleEnabled, HasPermission
 
 
@@ -40,6 +41,20 @@ class LibraryStaffSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'staff_type', 'phone', 'email', 'is_active',
             'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class BookSerializer(serializers.ModelSerializer):
+    """Serializer for Book — library catalog entries."""
+    category_name = serializers.CharField(source='category.name', read_only=True)
+
+    class Meta:
+        model = Book
+        fields = [
+            'id', 'title', 'author', 'isbn', 'book_number', 'category', 'category_name',
+            'location', 'total_copies', 'available_copies', 'price', 'book_type',
+            'school_level', 'barcode', 'library', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
@@ -92,3 +107,29 @@ class LibraryStaffViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'email']
     ordering_fields = ['name', 'staff_type', 'created_at']
     ordering = ['name']
+
+
+class BookViewSet(viewsets.ModelViewSet):
+    """
+    Book catalog management.
+
+    Covers:
+    - List/create/update/delete book records
+    - Filter by category, book type, school level, or library
+    - Search by title, author, ISBN, or book number
+
+    Note: borrowing/returns (checkout workflow) is not yet exposed here —
+    only catalog CRUD. See BookMovement model for future circulation API.
+    """
+    queryset = Book.objects.select_related('category', 'library').all()
+    serializer_class = BookSerializer
+    permission_classes = [
+        IsAuthenticated,
+        ModuleEnabled,
+        HasPermission(read="library.view", write="library.manage"),
+    ]
+    module = "library"
+    filterset_fields = ['category', 'book_type', 'school_level', 'library']
+    search_fields = ['title', 'author', 'isbn', 'book_number']
+    ordering_fields = ['title', 'author', 'created_at']
+    ordering = ['title']

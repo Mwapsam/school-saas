@@ -64,9 +64,10 @@ export interface UpdateStudentInput {
 /**
  * Fetch paginated list of students.
  */
-export function useStudentList(params: StudentListParams = {}) {
+export function useStudentList(params: StudentListParams = {}, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['students', params],
+    enabled: options.enabled,
     queryFn: async () => {
       const queryString = new URLSearchParams();
       if (params.page) queryString.append('page', params.page.toString());
@@ -129,13 +130,14 @@ export function useUpdateStudent(id: string) {
 }
 
 /**
- * Delete student.
+ * Delete student. Call `.mutate(id)` / `.mutateAsync(id)` with the target id —
+ * this hook itself must be called once at component top level (Rules of Hooks).
  */
-export function useDeleteStudent(id: string) {
+export function useDeleteStudent() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (id: string) => {
       return await apiClient.delete(`/students/${id}/`);
     },
     onSuccess: () => {

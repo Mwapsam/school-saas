@@ -7,14 +7,22 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
-import { Container, Box, Typography, Button, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip } from '@mui/material';
+import { Container, Box, Typography, Button, Alert, Chip } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
+import type { GridColDef } from '@mui/x-data-grid';
 import { useTenantStore } from '@/lib/tenant/store';
-import { useAdmissionApplicationList } from '@/features/admissions/hooks';
+import { useAdmissionApplicationList, type AdmissionApplication } from '@/features/admissions/hooks';
+import { useServerTable } from '@/hooks/useServerTable';
+import { DataTable } from '@/components/data-table/DataTable';
 
 export default function AdmissionsPage() {
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
-  const { data, error } = useAdmissionApplicationList({ page: 1, page_size: 10 });
+  const table = useServerTable();
+  const { data, error, isLoading, refetch } = useAdmissionApplicationList({
+    page: table.queryParams.page,
+    page_size: table.queryParams.page_size,
+    search: table.queryParams.search,
+  });
 
   if (!bootstrap || !isModuleEnabled('admissions') || !can('admissions.view')) {
     return (
@@ -27,6 +35,25 @@ export default function AdmissionsPage() {
       </Container>
     );
   }
+
+  const columns: GridColDef<AdmissionApplication>[] = [
+    { field: 'application_number', headerName: 'Application #', flex: 1 },
+    { field: 'student_name', headerName: 'Student Name', flex: 1.5 },
+    { field: 'email', headerName: 'Email', flex: 1.5 },
+    {
+      field: 'status',
+      headerName: 'Status',
+      flex: 1,
+      sortable: false,
+      renderCell: (params) => (
+        <Chip
+          label={params.row.status}
+          color={params.row.status === 'approved' ? 'success' : params.row.status === 'rejected' ? 'error' : 'default'}
+          size="small"
+        />
+      ),
+    },
+  ];
 
   return (
     <Container maxWidth="lg">
@@ -44,36 +71,20 @@ export default function AdmissionsPage() {
           )}
         </Box>
 
-        {error && <Alert severity="error">{error.message}</Alert>}
-
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
-              <TableRow>
-                <TableCell>Application #</TableCell>
-                <TableCell>Student Name</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Status</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {data?.results?.map((app) => (
-                <TableRow key={app.id} hover>
-                  <TableCell>{app.application_number}</TableCell>
-                  <TableCell>{app.student_name}</TableCell>
-                  <TableCell>{app.email}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={app.status}
-                      color={app.status === 'approved' ? 'success' : app.status === 'rejected' ? 'error' : 'default'}
-                      size="small"
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <DataTable<AdmissionApplication>
+          rows={data?.results ?? []}
+          columns={columns}
+          rowCount={data?.count ?? 0}
+          loading={isLoading}
+          error={error as Error | null}
+          onRetry={() => refetch()}
+          paginationModel={table.paginationModel}
+          onPaginationModelChange={table.onPaginationModelChange}
+          search={table.search}
+          onSearchChange={table.onSearchChange}
+          searchPlaceholder="Search applications..."
+          emptyMessage="No applications found"
+        />
       </Box>
     </Container>
   );

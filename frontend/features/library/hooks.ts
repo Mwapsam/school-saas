@@ -17,9 +17,20 @@ export interface ListResponse<T> {
   results: T[];
 }
 
-export function useLibraryBookList(params: any = {}) {
+export function useBook(id: string) {
+  return useQuery({
+    queryKey: ['library-books', id],
+    queryFn: async () => {
+      return await apiClient.get<LibraryBook>(`/library-books/${id}/`);
+    },
+    enabled: !!id,
+  });
+}
+
+export function useLibraryBookList(params: any = {}, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['library-books', params],
+    enabled: options.enabled,
     queryFn: async () => {
       const qs = new URLSearchParams();
       if (params.page) qs.append('page', params.page.toString());

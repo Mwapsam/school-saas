@@ -16,9 +16,20 @@ export interface ListResponse<T> {
   results: T[];
 }
 
-export function useTransportRouteList(params: any = {}) {
+export function useTransportRoute(id: string) {
+  return useQuery({
+    queryKey: ['routes', id],
+    queryFn: async () => {
+      return await apiClient.get<TransportRoute>(`/routes/${id}/`);
+    },
+    enabled: !!id,
+  });
+}
+
+export function useTransportRouteList(params: any = {}, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['routes', params],
+    enabled: options.enabled,
     queryFn: async () => {
       const qs = new URLSearchParams();
       if (params.page) qs.append('page', params.page.toString());
