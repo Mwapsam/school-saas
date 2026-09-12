@@ -26,6 +26,9 @@ export interface DataTableProps<T extends { id: string }> {
   toolbarActions?: React.ReactNode;
   emptyMessage?: string;
   height?: number;
+
+  checkboxSelection?: boolean;
+  onSelectionChange?: (selectedIds: (string | number)[]) => void;
 }
 
 /**
@@ -50,9 +53,12 @@ export function DataTable<T extends { id: string }>({
   toolbarActions,
   emptyMessage = 'No records found',
   height = 520,
+  checkboxSelection = false,
+  onSelectionChange,
 }: DataTableProps<T>) {
   // Debounce search input so we don't refetch on every keystroke.
   const [localSearch, setLocalSearch] = useState(search);
+  const [selectedRows, setSelectedRows] = useState<(string | number)[]>([]);
 
   useEffect(() => setLocalSearch(search), [search]);
 
@@ -115,7 +121,13 @@ export function DataTable<T extends { id: string }>({
           onSortModelChange={onSortModelChange}
           pageSizeOptions={[10, 25, 50]}
           disableColumnMenu
-          disableRowSelectionOnClick
+          disableRowSelectionOnClick={!checkboxSelection}
+          checkboxSelection={checkboxSelection}
+          rowSelectionModel={selectedRows}
+          onRowSelectionModelChange={(newSelection) => {
+            setSelectedRows(newSelection);
+            onSelectionChange?.(newSelection);
+          }}
           localeText={{ noRowsLabel: emptyMessage }}
           sx={{
             border: 'none',

@@ -1,41 +1,42 @@
 /**
  * MUI theme factory.
  *
- * Builds the app theme from tenant branding colors (bootstrap.tenant.primary_color /
- * secondary_color) when available, falling back to platform defaults before
- * bootstrap has loaded or when a tenant hasn't set custom colors.
+ * Builds the app theme from:
+ * 1. Token-based design system (colors, typography, spacing, etc.)
+ * 2. Tenant branding overrides (primary_color, secondary_color) when available
+ *
+ * All component styling is centralized in theme.components, so raw MUI usage
+ * automatically inherits the product design without per-page sx overrides.
  */
 
-import { createTheme, type Theme } from '@mui/material/styles';
+import type { Theme } from '@mui/material/styles';
+import { buildTheme as buildTokenTheme } from '@/design-system/theme/createTheme';
 import type { BootstrapData } from './tenant/bootstrap';
 
-const DEFAULT_PRIMARY = '#1976d2';
-const DEFAULT_SECONDARY = '#dc004e';
-
-const FONT_FAMILY = [
-  '-apple-system',
-  'BlinkMacSystemFont',
-  '"Segoe UI"',
-  'Roboto',
-  '"Helvetica Neue"',
-  'Arial',
-  'sans-serif',
-].join(',');
-
+/**
+ * Create the MUI theme with optional tenant branding overrides.
+ *
+ * The theme includes:
+ * - Full component style overrides (theme.components) from the design system
+ * - Semantic tokens for colors, typography, spacing, etc.
+ * - Tenant branding applied as palette overrides only (primary/secondary colors)
+ *
+ * Tenants can only change:
+ * - Primary color
+ * - Secondary color
+ * - Typeface (when tenant.font_family is set — currently not yet implemented)
+ *
+ * Tenants cannot change:
+ * - Spacing scale
+ * - Border radius scale
+ * - Component styling
+ * - Typography scale (sizes, weights, line heights)
+ */
 export function buildTheme(bootstrap: BootstrapData | null): Theme {
-  const primary = bootstrap?.tenant?.primary_color || DEFAULT_PRIMARY;
-  const secondary = bootstrap?.tenant?.secondary_color || DEFAULT_SECONDARY;
+  const tenantBranding = {
+    primaryColor: bootstrap?.tenant?.primary_color,
+    secondaryColor: bootstrap?.tenant?.secondary_color,
+  };
 
-  return createTheme({
-    palette: {
-      primary: { main: primary },
-      secondary: { main: secondary },
-    },
-    typography: {
-      fontFamily: FONT_FAMILY,
-    },
-    shape: {
-      borderRadius: 8,
-    },
-  });
+  return buildTokenTheme(tenantBranding);
 }

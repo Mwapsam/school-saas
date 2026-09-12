@@ -65,7 +65,7 @@ export function useApplicationsForAssignment(
       if (params.status) qs.append('status', params.status);
       if (params.search) qs.append('search', params.search);
       return await apiClient.get<ListResponse<ApplicantForAssignment>>(
-        `/admission-batch-assignment/list/${qs.toString() ? '?' + qs.toString() : ''}`
+        `/admission-batch-assignment/applications/${qs.toString() ? '?' + qs.toString() : ''}`
       );
     },
   });

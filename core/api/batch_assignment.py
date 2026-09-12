@@ -46,7 +46,7 @@ class BatchAssignmentViewSet(TenantAwareViewSetMixin, viewsets.ViewSet):
         )
 
     @action(detail=False, methods=['get'])
-    def list(self, request):
+    def applications(self, request):
         """
         List all approved/admitted applications
         """
