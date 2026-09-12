@@ -343,6 +343,98 @@ The product looks and behaves identically across all tenants. Only brand identit
 
 ---
 
+## Colour Budget & Governance
+
+This section establishes a permanent rule for the design system to ensure the interface remains calm and professional as new modules and features are added.
+
+### Core Principle
+
+**Colour is a tool for communication, not decoration.** Approximately **80–90% of the interface should remain neutral**, with the remaining colour reserved exclusively for brand interaction and meaningful semantic states.
+
+### Colour Hierarchy
+
+1. **Neutral is the default** — Most backgrounds, text, borders, and icons use neutral tokens (`colors.background.*`, `colors.text.*`, `colors.border.*`, `colors.gray[*]`). When in doubt, use neutral.
+
+2. **Tenant primary colour = the single brand accent** — Reserved for interactive elements and the currently selected/active context only:
+   - Primary buttons and links
+   - Active navigation item indicator (icon, label, left-border)
+   - Focus rings on interactive elements
+   - Checked toggles (checkbox, radio, switch)
+   - User avatar background
+   - **NOT** for passive/decorative differentiation; **NOT** for module/section identity
+
+3. **Semantic colours communicate state only** — `success`, `warning`, `error`, `info`, and `pending` are used exclusively when they represent an actual outcome or status:
+   - StatusBadge (Active, Pending, Inactive, Completed, Failed, etc.)
+   - Alerts and inline validation feedback
+   - **NEVER** repurposed as category/module colour
+   - **NEVER** used for decorative variety
+
+4. **Secondary tenant colour** — Used only in semantically distinct contexts (e.g., `<Button variant="secondary">`) or where two complementary brand tones are intentional. **NOT** for module/section identity.
+
+### When Building New Components or Features
+
+Before adding colour to a new element, ask:
+
+> **"Does this colour communicate something meaningful?"**
+
+- **No** → Use a neutral token
+- **Brand/selection** → Use tenant primary colour
+- **State/outcome** → Use the appropriate semantic status colour
+- **Anything else** → Stop. Use non-colour tools (typography, spacing, size, weight, borders, elevation, iconography, layout, whitespace) to create differentiation instead
+
+### Non-Colour Hierarchy Tools
+
+Prefer these to establish visual hierarchy and differentiation:
+
+- **Typography** — Font size, weight, line height. Larger, bolder, or more prominent text is more important.
+- **Spacing** — Generous padding/margins between sections signal importance and breathing room.
+- **Size** — Larger elements naturally draw attention.
+- **Weight** — Bolder text communicates importance.
+- **Borders** — Subtle or strong borders can separate regions without colour.
+- **Elevation** — MUI's shadow/elevation system creates depth and layering.
+- **Iconography** — Distinct icon shapes help users differentiate modules/sections without colour.
+- **Layout** — Grid placement, alignment, and grouping communicate relationship.
+- **Whitespace** — Negative space is a design tool, not empty space.
+
+### Module Identity (Sidebar, Navigation, etc.)
+
+Modules should NOT be differentiated by colour. Instead:
+
+- Use distinct icon shapes for each module (School icon for Academics, Dollar icon for Finance, People icon for HR, etc.)
+- All module icons are neutral-coloured when inactive
+- The currently active/selected module uses the tenant primary colour on its icon, label, and left-border indicator
+- Grouping, typography weight, and layout communicate module structure
+- The product feels professional and calm, not "highly visual" or "each module has its own colour"
+
+### Dashboard Summary Cards
+
+All dashboard cards use a consistent neutral treatment:
+
+- Icon chip: `colors.gray[100]` background, `colors.text.secondary` icon colour
+- No per-card or per-module colour variation
+- Differentiation comes from icon shape, label, and count size, not colour
+
+### Enforcement
+
+- During code review, flag any new colour application that violates these principles
+- Add to the theme, not to component `sx` prop, if colour needs to reach multiple places
+- When a request comes to "add colour to X to make it more distinctive," ask the requester to use typography, spacing, or icon differentiation instead
+- This rule set is discoverable in this document, so future builders can reference it
+
+### Visual Target
+
+The interface should feel:
+
+**Calm → Clean → Structured → Professional → Sophisticated**
+
+rather than:
+
+**Colourful → Busy → Dashboard-like → Visually noisy**
+
+The product can still have personality and delight, but that personality should come from the **overall design language** (typography, spacing, subtle interactions, thoughtful iconography), not from using many different colours.
+
+---
+
 ## Typeface Strategy
 
 ### Platform Default

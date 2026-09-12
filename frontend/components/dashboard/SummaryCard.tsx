@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Card, CardActionArea, CardContent, Box, Typography, Skeleton } from '@mui/material';
 import type { SvgIconComponent } from '@mui/icons-material';
+import { colors } from '@/design-system/tokens';
 
 export interface SummaryCardProps {
   icon: SvgIconComponent;
@@ -30,8 +31,8 @@ export function SummaryCard({ icon: Icon, label, count, loading, href }: Summary
                 width: 48,
                 height: 48,
                 borderRadius: 2,
-                bgcolor: 'primary.light',
-                color: 'primary.contrastText',
+                bgcolor: colors.gray[100],
+                color: colors.text.secondary,
               }}
             >
               <Icon />

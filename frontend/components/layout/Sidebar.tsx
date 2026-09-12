@@ -55,13 +55,10 @@ export interface NavSection {
   capability: string;
 }
 
-type Accent = 'primary' | 'secondary' | 'success' | 'warning' | 'info' | 'error';
-
 export interface NavModule {
   key: string;
   label: string;
   icon: SvgIconComponent;
-  accent: Accent;
   sections: NavSection[];
 }
 
@@ -70,7 +67,6 @@ export const NAV_MODULES: NavModule[] = [
     key: 'academics',
     label: 'Academics',
     icon: AcademicsIcon,
-    accent: 'primary',
     sections: [
       { label: 'Students', href: '/dashboard/students', capability: 'students.view' },
       { label: 'Batches', href: '/dashboard/batches', capability: 'academics.batches.view' },
@@ -81,7 +77,6 @@ export const NAV_MODULES: NavModule[] = [
     key: 'finance',
     label: 'Finance',
     icon: FinanceIcon,
-    accent: 'success',
     sections: [
       { label: 'Invoices', href: '/dashboard/invoices', capability: 'finance.invoices.view' },
       { label: 'Fees', href: '/dashboard/invoices/fees', capability: 'finance.fees.view' },
@@ -96,7 +91,6 @@ export const NAV_MODULES: NavModule[] = [
     key: 'hr',
     label: 'HR',
     icon: HRIcon,
-    accent: 'secondary',
     sections: [
       { label: 'Employees', href: '/dashboard/employees', capability: 'hr.employees.view' },
       { label: 'Leave', href: '/dashboard/employees/leave', capability: 'hr.leave.view' },
@@ -107,7 +101,6 @@ export const NAV_MODULES: NavModule[] = [
     key: 'admissions',
     label: 'Admissions',
     icon: AdmissionsIcon,
-    accent: 'warning',
     sections: [
       { label: 'New Application', href: '/dashboard/admissions/multi-step', capability: 'admissions.application.manage' },
       { label: 'Applicants', href: '/dashboard/admissions/applicants', capability: 'admissions.application.manage' },
@@ -119,7 +112,6 @@ export const NAV_MODULES: NavModule[] = [
     key: 'hostel',
     label: 'Hostel',
     icon: HostelIcon,
-    accent: 'info',
     sections: [
       { label: 'Rooms', href: '/dashboard/hostel-rooms', capability: 'hostel.rooms.view' },
       { label: 'Assignments', href: '/dashboard/hostel-assignments', capability: 'hostel.rooms.view' },
@@ -129,7 +121,6 @@ export const NAV_MODULES: NavModule[] = [
     key: 'transport',
     label: 'Transport',
     icon: TransportIcon,
-    accent: 'error',
     sections: [
       { label: 'Routes', href: '/dashboard/routes', capability: 'transport.routes.view' },
       { label: 'Vehicles', href: '/dashboard/vehicles', capability: 'transport.routes.view' },
@@ -140,7 +131,6 @@ export const NAV_MODULES: NavModule[] = [
     key: 'library',
     label: 'Library',
     icon: LibraryIcon,
-    accent: 'secondary',
     sections: [
       { label: 'Books', href: '/dashboard/books', capability: 'library.view' },
       { label: 'Borrowing', href: '/dashboard/borrowing', capability: 'library.view' },
@@ -493,7 +483,6 @@ export function Sidebar({
 
         {displayModules.map((module) => {
           const ModuleIcon = module.icon;
-          const accentMain = `${module.accent}.main` as const;
           const isOpen = !collapsed && (isSearching || expanded.has(module.key));
           const hasActiveItem = module.sections.some((s) => isActivePath(pathname, s.href));
 
@@ -519,16 +508,15 @@ export function Sidebar({
                 ...(hasActiveItem
                   ? {
                       backgroundColor: (theme) =>
-                        alpha(theme.palette[module.accent].main, 0.1),
+                        alpha(theme.palette.primary.main, 0.08),
                     }
                   : {}),
                 '&:hover': {
-                  backgroundColor: (theme) =>
-                    alpha(theme.palette[module.accent].main, hasActiveItem ? 0.14 : 0.07),
+                  backgroundColor: hasActiveItem ? (theme) => alpha(theme.palette.primary.main, 0.12) : alpha(colors.text.primary, 0.04),
                 },
                 '&.Mui-focusVisible': {
                   outline: `2px solid`,
-                  outlineColor: (theme) => theme.palette[module.accent].main,
+                  outlineColor: (theme) => theme.palette.primary.main,
                   outlineOffset: 2,
                 },
               }}
@@ -542,9 +530,8 @@ export function Sidebar({
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
-                  backgroundColor: (theme) =>
-                    alpha(theme.palette[module.accent].main, 0.16),
-                  color: accentMain,
+                  backgroundColor: colors.gray[100],
+                  color: hasActiveItem ? (theme) => theme.palette.primary.main : colors.text.secondary,
                 }}
               >
                 <ModuleIcon sx={{ fontSize: 18 }} />
@@ -556,7 +543,7 @@ export function Sidebar({
                     variant="body1"
                     sx={{
                       fontWeight: 650,
-                      color: hasActiveItem ? accentMain : colors.text.primary,
+                      color: hasActiveItem ? (theme) => theme.palette.primary.main : colors.text.primary,
                       flex: 1,
                       letterSpacing: 0.15,
                       fontSize: '0.95rem',
@@ -646,11 +633,11 @@ export function Sidebar({
                             py: 1, // taller hit area
                             ml: -0.25,
                             borderLeft: '2px solid',
-                            borderLeftColor: isActive ? accentMain : 'transparent',
+                            borderLeftColor: isActive ? (theme) => theme.palette.primary.main : 'transparent',
                             borderRadius: '0 10px 10px 0',
-                            color: isActive ? accentMain : colors.text.primary,
+                            color: isActive ? (theme) => theme.palette.primary.main : colors.text.primary,
                             backgroundColor: isActive
-                              ? (theme) => alpha(theme.palette[module.accent].main, 0.1)
+                              ? (theme) => alpha(theme.palette.primary.main, 0.08)
                               : 'transparent',
                             transition: 'background-color 140ms ease, border-color 140ms ease',
                             '@media (prefers-reduced-motion: reduce)': {
@@ -658,13 +645,13 @@ export function Sidebar({
                             },
                             '&:hover': {
                               backgroundColor: isActive
-                                ? (theme) => alpha(theme.palette[module.accent].main, 0.15)
+                                ? (theme) => alpha(theme.palette.primary.main, 0.12)
                                 : colors.background.default,
-                              borderLeftColor: isActive ? accentMain : colors.border.default,
+                              borderLeftColor: isActive ? (theme) => theme.palette.primary.main : colors.border.default,
                             },
                             '&.Mui-focusVisible': {
                               outline: `2px solid`,
-                              outlineColor: (theme) => theme.palette[module.accent].main,
+                              outlineColor: (theme) => theme.palette.primary.main,
                               outlineOffset: 1,
                             },
                           }}

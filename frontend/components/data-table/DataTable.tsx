@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { DataGrid, type GridColDef, type GridSortModel } from '@mui/x-data-grid';
 import { Box, TextField, Alert, Button, InputAdornment } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import { colors } from '@/design-system/tokens';
 
 export interface DataTableProps<T extends { id: string }> {
   rows: T[];
@@ -131,7 +132,7 @@ export function DataTable<T extends { id: string }>({
           localeText={{ noRowsLabel: emptyMessage }}
           sx={{
             border: 'none',
-            '& .MuiDataGrid-columnHeaders': { bgcolor: 'grey.100' },
+            '& .MuiDataGrid-columnHeaders': { bgcolor: colors.gray[100] },
           }}
         />
       </Box>

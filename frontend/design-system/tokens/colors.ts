@@ -21,8 +21,8 @@ export const colors = {
   // Background surfaces (Canvas, Surface, Elevated)
   background: {
     default: '#f9fafb',    // app canvas
-    surface: '#ffffff',    // main content surfaces
-    elevated: '#ffffff',   // dialogs, menus, floating elements
+    surface: '#ffffff',    // main content surfaces (cards, panels)
+    elevated: '#fafbfc',   // dialogs, menus, floating elements (subtle lift)
   },
 
   // Text colors with semantic meaning
