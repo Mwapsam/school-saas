@@ -3,10 +3,10 @@ import { apiClient } from '@/lib/api/client';
 
 export interface HostelRoom {
   id: string;
-  hostel_name: string;
   room_number: string;
+  room_type: string;
   capacity: number;
-  current_occupancy: number;
+  rent: string;
   created_at: string;
 }
 

@@ -33,16 +33,10 @@ export default function HostelRoomsPage() {
   }
 
   const columns: GridColDef<HostelRoom>[] = [
-    { field: 'hostel_name', headerName: 'Hostel', flex: 1 },
     { field: 'room_number', headerName: 'Room Number', flex: 1 },
+    { field: 'room_type', headerName: 'Room Type', flex: 1 },
     { field: 'capacity', headerName: 'Capacity', flex: 0.8 },
-    {
-      field: 'current_occupancy',
-      headerName: 'Occupancy',
-      flex: 1,
-      sortable: false,
-      valueGetter: (params) => `${params.row.current_occupancy} / ${params.row.capacity}`,
-    },
+    { field: 'rent', headerName: 'Rent', flex: 0.8 },
   ];
 
   return (

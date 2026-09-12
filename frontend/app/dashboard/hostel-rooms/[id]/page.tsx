@@ -69,7 +69,7 @@ export default function HostelRoomDetailPage({ params }: { params: { id: string 
             Back
           </Button>
           <Typography variant="h4" component="h1">
-            {room.hostel_name} — Room {room.room_number}
+            Room {room.room_number}
           </Typography>
         </Box>
 
@@ -81,14 +81,14 @@ export default function HostelRoomDetailPage({ params }: { params: { id: string 
               </Typography>
               <Box sx={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 1 }}>
                 <Typography variant="body2" color="textSecondary">
-                  Hostel:
-                </Typography>
-                <Typography variant="body2">{room.hostel_name}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
                   Room Number:
                 </Typography>
                 <Typography variant="body2">{room.room_number}</Typography>
+
+                <Typography variant="body2" color="textSecondary">
+                  Room Type:
+                </Typography>
+                <Typography variant="body2">{room.room_type}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
                   Capacity:
@@ -96,9 +96,9 @@ export default function HostelRoomDetailPage({ params }: { params: { id: string 
                 <Typography variant="body2">{room.capacity}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
-                  Current Occupancy:
+                  Rent:
                 </Typography>
-                <Typography variant="body2">{room.current_occupancy}</Typography>
+                <Typography variant="body2">{room.rent}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
                   Created:

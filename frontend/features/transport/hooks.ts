@@ -3,11 +3,17 @@ import { apiClient } from '@/lib/api/client';
 
 export interface TransportRoute {
   id: string;
-  name: string;
+  route_name: string;
   code: string;
-  route_type: 'morning' | 'afternoon' | 'custom';
-  vehicle_name: string;
-  student_count: number;
+  fare: string;
+  description: string;
+  vehicle: string | null;
+  driver: string | null;
+  driver_name: string | null;
+  attendant: string | null;
+  attendant_name: string | null;
+  estimated_duration_minutes: number | null;
+  is_active: boolean;
   created_at: string;
 }
 

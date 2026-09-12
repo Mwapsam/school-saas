@@ -38,8 +38,14 @@ export default function AdmissionsPage() {
 
   const columns: GridColDef<AdmissionApplication>[] = [
     { field: 'application_number', headerName: 'Application #', flex: 1 },
-    { field: 'student_name', headerName: 'Student Name', flex: 1.5 },
-    { field: 'email', headerName: 'Email', flex: 1.5 },
+    {
+      field: 'student_name',
+      headerName: 'Student Name',
+      flex: 1.5,
+      valueGetter: (params) => `${params.row.first_name} ${params.row.last_name}`,
+    },
+    { field: 'guardian_email', headerName: 'Guardian Email', flex: 1.5 },
+    { field: 'course_name', headerName: 'Course', flex: 1 },
     {
       field: 'status',
       headerName: 'Status',

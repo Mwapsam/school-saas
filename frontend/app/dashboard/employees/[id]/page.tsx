@@ -84,7 +84,7 @@ export default function EmployeeDetailPage({ params }: { params: { id: string } 
                 <Typography variant="body2" color="textSecondary">
                   Employee ID:
                 </Typography>
-                <Typography variant="body2">{employee.employee_id}</Typography>
+                <Typography variant="body2">{employee.employee_number}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
                   Email:
@@ -94,7 +94,7 @@ export default function EmployeeDetailPage({ params }: { params: { id: string } 
                 <Typography variant="body2" color="textSecondary">
                   Phone:
                 </Typography>
-                <Typography variant="body2">{employee.phone || '-'}</Typography>
+                <Typography variant="body2">{employee.mobile_phone || '-'}</Typography>
               </Box>
             </Paper>
           </Grid>
@@ -108,17 +108,17 @@ export default function EmployeeDetailPage({ params }: { params: { id: string } 
                 <Typography variant="body2" color="textSecondary">
                   Department:
                 </Typography>
-                <Typography variant="body2">{employee.department || '-'}</Typography>
+                <Typography variant="body2">{employee.department_name || '-'}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
                   Position:
                 </Typography>
-                <Typography variant="body2">{employee.position || '-'}</Typography>
+                <Typography variant="body2">{employee.position_name || '-'}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
                   Hire Date:
                 </Typography>
-                <Typography variant="body2">{employee.hire_date}</Typography>
+                <Typography variant="body2">{employee.joining_date}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
                   Status:
@@ -128,15 +128,15 @@ export default function EmployeeDetailPage({ params }: { params: { id: string } 
                     display: 'inline-block',
                     px: 1,
                     py: 0.5,
-                    backgroundColor: employee.is_active ? '#e8f5e9' : '#ffebee',
-                    color: employee.is_active ? '#2e7d32' : '#c62828',
+                    backgroundColor: employee.status ? '#e8f5e9' : '#ffebee',
+                    color: employee.status ? '#2e7d32' : '#c62828',
                     borderRadius: 1,
                     fontSize: '0.85rem',
                     fontWeight: 500,
                     width: 'fit-content',
                   }}
                 >
-                  {employee.is_active ? 'Active' : 'Inactive'}
+                  {employee.status ? 'Active' : 'Inactive'}
                 </Box>
 
                 <Typography variant="body2" color="textSecondary">

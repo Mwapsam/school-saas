@@ -3,14 +3,30 @@ import { apiClient } from '@/lib/api/client';
 
 export interface Employee {
   id: string;
-  employee_id: string;
+  employee_number: string;
+  first_name: string;
+  middle_name?: string | null;
+  last_name: string;
   full_name: string;
-  email: string;
-  phone?: string;
-  department?: string;
-  position?: string;
-  hire_date: string;
-  is_active: boolean;
+  email?: string | null;
+  mobile_phone?: string | null;
+  gender?: boolean | null;
+  gender_display?: 'M' | 'F' | null;
+  job_title?: string | null;
+  is_teaching_staff: boolean;
+  employee_category?: string | null;
+  category_name?: string | null;
+  employee_position?: string | null;
+  position_name?: string | null;
+  employee_department?: string | null;
+  department_name?: string | null;
+  reporting_manager?: string | null;
+  employee_grade?: string | null;
+  joining_date: string;
+  date_of_birth?: string | null;
+  national_id?: string | null;
+  status: boolean;
+  employment_status: 'active' | 'probation' | 'on_leave' | 'suspended' | 'notice_period' | 'exited';
   created_at: string;
   updated_at: string;
 }
@@ -38,11 +54,16 @@ export interface LeaveRequest {
 
 export interface AttendanceRecord {
   id: string;
-  employee_id: string;
-  employee_name: string;
+  employee: string;
+  employee_name?: string;
   date: string;
-  status: 'present' | 'absent' | 'late';
-  notes?: string;
+  status: 'present' | 'absent' | 'late' | 'on_leave' | 'half_day' | 'official_duty' | 'training' | 'holiday';
+  marked_by?: string | null;
+  remarks?: string | null;
+  clock_in?: string | null;
+  clock_out?: string | null;
+  hours_worked?: string | null;
+  late_minutes?: number;
   created_at: string;
   updated_at: string;
 }
@@ -51,27 +72,33 @@ export interface EmployeeListParams {
   page?: number;
   page_size?: number;
   search?: string;
-  department?: string;
+  employee_department?: string;
   ordering?: string;
 }
 
 export interface CreateEmployeeInput {
-  employee_id: string;
-  full_name: string;
-  email: string;
-  phone?: string;
-  department?: string;
-  position?: string;
-  hire_date: string;
+  employee_number: string;
+  first_name: string;
+  last_name: string;
+  middle_name?: string;
+  email?: string;
+  mobile_phone?: string;
+  employee_department?: string;
+  employee_position?: string;
+  joining_date: string;
+  gender?: boolean;
 }
 
 export interface UpdateEmployeeInput {
-  full_name?: string;
+  first_name?: string;
+  last_name?: string;
+  middle_name?: string;
   email?: string;
-  phone?: string;
-  department?: string;
-  position?: string;
-  is_active?: boolean;
+  mobile_phone?: string;
+  employee_department?: string;
+  employee_position?: string;
+  status?: boolean;
+  employment_status?: Employee['employment_status'];
 }
 
 export interface ListResponse<T> {
@@ -91,7 +118,7 @@ export function useEmployeeList(params: EmployeeListParams = {}, options: { enab
       if (params.page) qs.append('page', params.page.toString());
       if (params.page_size) qs.append('page_size', params.page_size.toString());
       if (params.search) qs.append('search', params.search);
-      if (params.department) qs.append('department', params.department);
+      if (params.employee_department) qs.append('employee_department', params.employee_department);
       if (params.ordering) qs.append('ordering', params.ordering);
       return await apiClient.get<ListResponse<Employee>>(`/employees/${qs.toString() ? '?' + qs.toString() : ''}`);
     },

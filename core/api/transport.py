@@ -29,13 +29,14 @@ from core.authz.drf import ModuleEnabled, HasPermission
 
 class TransportRouteStopSerializer(serializers.ModelSerializer):
     """Serializer for TransportRouteStop — stops on a route."""
-    route_name = serializers.CharField(source='route.name', read_only=True)
+    route_name = serializers.CharField(source='route.route_name', read_only=True)
+    stop_name = serializers.CharField(source='stop.name', read_only=True)
 
     class Meta:
         model = TransportRouteStop
         fields = [
-            'id', 'route', 'route_name', 'stop_name', 'stop_order',
-            'arrival_time', 'departure_time', 'is_active',
+            'id', 'route', 'route_name', 'stop', 'stop_name', 'order',
+            'pickup_time', 'dropoff_time',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
@@ -43,11 +44,15 @@ class TransportRouteStopSerializer(serializers.ModelSerializer):
 
 class TransportRouteSerializer(serializers.ModelSerializer):
     """Serializer for TransportRoute — daily routes."""
+    driver_name = serializers.CharField(source='driver.full_name', read_only=True)
+    attendant_name = serializers.CharField(source='attendant.full_name', read_only=True)
+
     class Meta:
         model = TransportRoute
         fields = [
-            'id', 'name', 'route_code', 'from_location', 'to_location',
-            'distance_km', 'duration_minutes', 'departure_time', 'arrival_time',
+            'id', 'route_name', 'code', 'fare', 'description', 'vehicle',
+            'driver', 'driver_name', 'attendant', 'attendant_name',
+            'estimated_duration_minutes',
             'is_active', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
@@ -58,19 +63,25 @@ class TransportStaffSerializer(serializers.ModelSerializer):
     class Meta:
         model = TransportStaff
         fields = [
-            'id', 'name', 'staff_type', 'license_number', 'license_expiry',
-            'phone', 'email', 'is_active', 'created_at', 'updated_at'
+            'id', 'full_name', 'staff_type', 'license_number', 'license_expiry',
+            'phone', 'alt_phone', 'email', 'national_id',
+            'emergency_contact_name', 'emergency_contact_phone', 'employee',
+            'is_active', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class TransportFeeSerializer(serializers.ModelSerializer):
-    """Serializer for TransportFee — transport charges."""
+    """Serializer for TransportFee — transport charges (DEPRECATED, historical rows only)."""
+    student_name = serializers.CharField(source='student.full_name', read_only=True)
+    route_name = serializers.CharField(source='route.route_name', read_only=True)
+
     class Meta:
         model = TransportFee
         fields = [
-            'id', 'route', 'student_category', 'monthly_fee', 'annual_fee',
-            'is_active', 'created_at', 'updated_at'
+            'id', 'student', 'student_name', 'route', 'route_name',
+            'start_date', 'end_date', 'total_amount',
+            'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
@@ -97,9 +108,9 @@ class TransportRouteViewSet(viewsets.ModelViewSet):
     ]
     module = "transport"
     filterset_fields = ['is_active']
-    search_fields = ['name', 'route_code']
-    ordering_fields = ['name', 'departure_time', 'created_at']
-    ordering = ['name']
+    search_fields = ['route_name', 'code']
+    ordering_fields = ['route_name', 'fare', 'created_at']
+    ordering = ['route_name']
 
 
 class TransportRouteStopViewSet(viewsets.ModelViewSet):
@@ -119,13 +130,13 @@ class TransportRouteStopViewSet(viewsets.ModelViewSet):
         HasPermission(read="transport.stops.view", write="transport.stops.manage"),
     ]
     module = "transport"
-    filterset_fields = ['route', 'is_active']
-    search_fields = ['stop_name']
-    ordering_fields = ['stop_order', 'arrival_time', 'created_at']
-    ordering = ['stop_order']
+    filterset_fields = ['route']
+    search_fields = ['stop__name']
+    ordering_fields = ['order', 'pickup_time', 'created_at']
+    ordering = ['order']
 
     def get_queryset(self):
-        return super().get_queryset().select_related('route')
+        return super().get_queryset().select_related('route', 'stop')
 
 
 class TransportStaffViewSet(viewsets.ModelViewSet):
@@ -146,9 +157,9 @@ class TransportStaffViewSet(viewsets.ModelViewSet):
     ]
     module = "transport"
     filterset_fields = ['staff_type', 'is_active']
-    search_fields = ['name', 'license_number']
-    ordering_fields = ['name', 'staff_type', 'created_at']
-    ordering = ['name']
+    search_fields = ['full_name', 'license_number']
+    ordering_fields = ['full_name', 'staff_type', 'created_at']
+    ordering = ['full_name']
 
 
 class TransportFeeViewSet(viewsets.ModelViewSet):
@@ -168,10 +179,10 @@ class TransportFeeViewSet(viewsets.ModelViewSet):
         HasPermission(read="transport.fees.view", write="transport.fees.manage"),
     ]
     module = "transport"
-    filterset_fields = ['route', 'student_category', 'is_active']
-    search_fields = ['route__name']
-    ordering_fields = ['monthly_fee', 'annual_fee', 'created_at']
-    ordering = ['route__name']
+    filterset_fields = ['route', 'student']
+    search_fields = ['route__route_name', 'student__first_name', 'student__last_name']
+    ordering_fields = ['total_amount', 'start_date', 'end_date', 'created_at']
+    ordering = ['-start_date']
 
     def get_queryset(self):
-        return super().get_queryset().select_related('route')
+        return super().get_queryset().select_related('route', 'student')

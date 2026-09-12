@@ -5,10 +5,17 @@
 import { z } from 'zod';
 
 export const createAdmissionApplicationSchema = z.object({
-  student_name: z.string().min(1, 'Student name is required'),
-  email: z.string().min(1, 'Email is required').email('Enter a valid email'),
-  phone: z.string().optional().or(z.literal('')),
-  notes: z.string().optional().or(z.literal('')),
+  first_name: z.string().min(1, 'First name is required'),
+  middle_name: z.string().optional().or(z.literal('')),
+  last_name: z.string().min(1, 'Last name is required'),
+  date_of_birth: z.string().min(1, 'Date of birth is required'),
+  gender: z.enum(['male', 'female', 'other'], { message: 'Gender is required' }),
+  course_applied: z.string().min(1, 'Course is required'),
+  guardian_name: z.string().min(1, 'Guardian name is required'),
+  guardian_phone: z.string().min(1, 'Guardian phone is required'),
+  guardian_email: z.string().email('Enter a valid email').optional().or(z.literal('')),
+  address: z.string().min(1, 'Address is required'),
+  remarks: z.string().optional().or(z.literal('')),
 });
 
 export type CreateAdmissionApplicationFormValues = z.infer<typeof createAdmissionApplicationSchema>;

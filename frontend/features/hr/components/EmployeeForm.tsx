@@ -46,21 +46,25 @@ export function EmployeeForm({ employee, error, onSubmit, onCancel }: EmployeeFo
     resolver: zodResolver(isCreate ? createEmployeeSchema : updateEmployeeSchema) as any,
     defaultValues: employee
       ? {
-          full_name: employee.full_name,
+          first_name: employee.first_name,
+          last_name: employee.last_name,
+          middle_name: employee.middle_name || '',
           email: employee.email || '',
-          phone: employee.phone || '',
-          department: employee.department || '',
-          position: employee.position || '',
-          is_active: employee.is_active,
+          mobile_phone: employee.mobile_phone || '',
+          employee_department: employee.employee_department || '',
+          employee_position: employee.employee_position || '',
+          status: employee.status,
         }
       : {
-          employee_id: '',
-          full_name: '',
+          employee_number: '',
+          first_name: '',
+          last_name: '',
+          middle_name: '',
           email: '',
-          phone: '',
-          department: '',
-          position: '',
-          hire_date: '',
+          mobile_phone: '',
+          employee_department: '',
+          employee_position: '',
+          joining_date: '',
         },
   });
 
@@ -84,13 +88,13 @@ export function EmployeeForm({ employee, error, onSubmit, onCancel }: EmployeeFo
           <>
             <Grid item xs={12}>
               <Controller
-                name="employee_id"
+                name="employee_number"
                 control={control}
                 render={({ field, fieldState }) => (
                   <TextField
                     {...field}
                     fullWidth
-                    label="Employee ID"
+                    label="Employee Number"
                     required
                     disabled={submitting}
                     error={!!fieldState.error}
@@ -102,13 +106,13 @@ export function EmployeeForm({ employee, error, onSubmit, onCancel }: EmployeeFo
 
             <Grid item xs={12} sm={6}>
               <Controller
-                name="hire_date"
+                name="joining_date"
                 control={control}
                 render={({ field, fieldState }) => (
                   <TextField
                     {...field}
                     fullWidth
-                    label="Hire Date"
+                    label="Joining Date"
                     type="date"
                     required
                     disabled={submitting}
@@ -123,15 +127,33 @@ export function EmployeeForm({ employee, error, onSubmit, onCancel }: EmployeeFo
         )}
 
         {/* Common fields */}
-        <Grid item xs={12}>
+        <Grid item xs={12} sm={6}>
           <Controller
-            name="full_name"
+            name="first_name"
             control={control}
             render={({ field, fieldState }) => (
               <TextField
                 {...field}
                 fullWidth
-                label="Full Name"
+                label="First Name"
+                required
+                disabled={submitting}
+                error={!!fieldState.error}
+                helperText={fieldState.error?.message}
+              />
+            )}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <Controller
+            name="last_name"
+            control={control}
+            render={({ field, fieldState }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="Last Name"
                 required
                 disabled={submitting}
                 error={!!fieldState.error}
@@ -151,7 +173,6 @@ export function EmployeeForm({ employee, error, onSubmit, onCancel }: EmployeeFo
                 fullWidth
                 label="Email"
                 type="email"
-                required={isCreate}
                 disabled={submitting}
                 error={!!fieldState.error}
                 helperText={fieldState.error?.message}
@@ -162,13 +183,13 @@ export function EmployeeForm({ employee, error, onSubmit, onCancel }: EmployeeFo
 
         <Grid item xs={12} sm={6}>
           <Controller
-            name="phone"
+            name="mobile_phone"
             control={control}
             render={({ field, fieldState }) => (
               <TextField
                 {...field}
                 fullWidth
-                label="Phone"
+                label="Mobile Phone"
                 disabled={submitting}
                 error={!!fieldState.error}
                 helperText={fieldState.error?.message}
@@ -179,7 +200,7 @@ export function EmployeeForm({ employee, error, onSubmit, onCancel }: EmployeeFo
 
         <Grid item xs={12} sm={6}>
           <Controller
-            name="department"
+            name="employee_department"
             control={control}
             render={({ field, fieldState }) => (
               <TextField
@@ -196,7 +217,7 @@ export function EmployeeForm({ employee, error, onSubmit, onCancel }: EmployeeFo
 
         <Grid item xs={12} sm={6}>
           <Controller
-            name="position"
+            name="employee_position"
             control={control}
             render={({ field, fieldState }) => (
               <TextField
@@ -215,7 +236,7 @@ export function EmployeeForm({ employee, error, onSubmit, onCancel }: EmployeeFo
         {!isCreate && (
           <Grid item xs={12}>
             <Controller
-              name="is_active"
+              name="status"
               control={control}
               render={({ field }) => (
                 <FormControlLabel

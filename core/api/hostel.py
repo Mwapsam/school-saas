@@ -27,8 +27,8 @@ class HostelRoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = HostelRoom
         fields = [
-            'id', 'room_number', 'floor', 'capacity', 'occupancy',
-            'room_type', 'is_active', 'created_at', 'updated_at'
+            'id', 'room_number', 'room_type', 'capacity', 'rent',
+            'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
@@ -40,8 +40,8 @@ class HostelFeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = HostelFee
         fields = [
-            'id', 'student', 'student_name', 'room', 'fee_amount',
-            'fee_type', 'due_date', 'is_paid', 'paid_date',
+            'id', 'student', 'student_name', 'room', 'start_date',
+            'end_date', 'total_amount',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
@@ -68,10 +68,10 @@ class HostelRoomViewSet(viewsets.ModelViewSet):
         HasPermission(read="hostel.rooms.view", write="hostel.rooms.manage"),
     ]
     module = "hostel"
-    filterset_fields = ['room_type', 'floor', 'is_active']
+    filterset_fields = ['room_type']
     search_fields = ['room_number']
-    ordering_fields = ['room_number', 'floor', 'capacity']
-    ordering = ['floor', 'room_number']
+    ordering_fields = ['room_number', 'capacity', 'rent']
+    ordering = ['room_number']
 
 
 class HostelFeeViewSet(viewsets.ModelViewSet):
@@ -91,10 +91,10 @@ class HostelFeeViewSet(viewsets.ModelViewSet):
         HasPermission(read="hostel.fees.view", write="hostel.fees.manage"),
     ]
     module = "hostel"
-    filterset_fields = ['student', 'room', 'fee_type', 'is_paid']
-    search_fields = ['student__full_name']
-    ordering_fields = ['due_date', 'fee_amount', 'created_at']
-    ordering = ['-due_date']
+    filterset_fields = ['student', 'room']
+    search_fields = ['student__first_name', 'student__last_name']
+    ordering_fields = ['start_date', 'end_date', 'total_amount', 'created_at']
+    ordering = ['-start_date']
 
     def get_queryset(self):
         return super().get_queryset().select_related('student', 'room')

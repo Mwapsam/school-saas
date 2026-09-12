@@ -54,15 +54,15 @@ export default function EmployeesPage() {
   };
 
   const columns: GridColDef<Employee>[] = [
-    { field: 'employee_id', headerName: 'Employee ID', flex: 1 },
+    { field: 'employee_number', headerName: 'Employee ID', flex: 1 },
     { field: 'full_name', headerName: 'Name', flex: 1.5 },
-    { field: 'department', headerName: 'Department', flex: 1, valueGetter: (params) => params.row.department || '-' },
-    { field: 'position', headerName: 'Position', flex: 1, valueGetter: (params) => params.row.position || '-' },
+    { field: 'department_name', headerName: 'Department', flex: 1, valueGetter: (params) => params.row.department_name || '-' },
+    { field: 'position_name', headerName: 'Position', flex: 1, valueGetter: (params) => params.row.position_name || '-' },
     {
-      field: 'is_active',
+      field: 'status',
       headerName: 'Status',
       flex: 0.8,
-      valueGetter: (params) => (params.row.is_active ? 'Active' : 'Inactive'),
+      valueGetter: (params) => (params.row.status ? 'Active' : 'Inactive'),
     },
     {
       field: 'actions',

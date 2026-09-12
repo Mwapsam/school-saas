@@ -33,11 +33,11 @@ export default function RoutesPage() {
   }
 
   const columns: GridColDef<TransportRoute>[] = [
-    { field: 'name', headerName: 'Route Name', flex: 1.5 },
+    { field: 'route_name', headerName: 'Route Name', flex: 1.5 },
     { field: 'code', headerName: 'Code', flex: 1 },
-    { field: 'route_type', headerName: 'Type', flex: 1 },
-    { field: 'vehicle_name', headerName: 'Vehicle', flex: 1 },
-    { field: 'student_count', headerName: 'Students', flex: 0.8 },
+    { field: 'fare', headerName: 'Fare', flex: 0.8 },
+    { field: 'driver_name', headerName: 'Driver', flex: 1 },
+    { field: 'attendant_name', headerName: 'Attendant', flex: 1 },
   ];
 
   return (

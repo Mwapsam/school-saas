@@ -69,7 +69,7 @@ export default function TransportRouteDetailPage({ params }: { params: { id: str
             Back
           </Button>
           <Typography variant="h4" component="h1">
-            {route.name}
+            {route.route_name}
           </Typography>
         </Box>
 
@@ -83,7 +83,7 @@ export default function TransportRouteDetailPage({ params }: { params: { id: str
                 <Typography variant="body2" color="textSecondary">
                   Name:
                 </Typography>
-                <Typography variant="body2">{route.name}</Typography>
+                <Typography variant="body2">{route.route_name}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
                   Code:
@@ -91,19 +91,19 @@ export default function TransportRouteDetailPage({ params }: { params: { id: str
                 <Typography variant="body2">{route.code}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
-                  Type:
+                  Fare:
                 </Typography>
-                <Typography variant="body2">{route.route_type}</Typography>
+                <Typography variant="body2">{route.fare}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
-                  Vehicle:
+                  Driver:
                 </Typography>
-                <Typography variant="body2">{route.vehicle_name || '-'}</Typography>
+                <Typography variant="body2">{route.driver_name || '-'}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
-                  Students:
+                  Attendant:
                 </Typography>
-                <Typography variant="body2">{route.student_count}</Typography>
+                <Typography variant="body2">{route.attendant_name || '-'}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
                   Created:

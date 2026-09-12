@@ -41,7 +41,7 @@ export default function FeesPage() {
       field: 'is_paid',
       headerName: 'Status',
       flex: 0.6,
-      valueFormatter: (value: boolean) => (value ? 'Paid' : 'Unpaid'),
+      valueGetter: (params) => (params.row.is_paid ? 'Paid' : 'Unpaid'),
     },
     { field: 'transaction_date', headerName: 'Date', flex: 0.8 },
   ];

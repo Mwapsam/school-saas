@@ -37,7 +37,7 @@ export default function AttendancePage() {
     { field: 'employee_name', headerName: 'Employee', flex: 1.2 },
     { field: 'date', headerName: 'Date', flex: 1 },
     { field: 'status', headerName: 'Status', flex: 0.8 },
-    { field: 'notes', headerName: 'Notes', flex: 1.2 },
+    { field: 'remarks', headerName: 'Remarks', flex: 1.2 },
   ];
 
   return (

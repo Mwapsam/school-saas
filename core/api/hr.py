@@ -141,10 +141,12 @@ class AttendanceSerializer(serializers.ModelSerializer):
     non-model field names' the moment it was hit. Fixed to use the real
     ``EmployeeAttendance`` model.
     """
+    employee_name = serializers.CharField(source='employee.full_name', read_only=True)
+
     class Meta:
         model = EmployeeAttendance
         fields = [
-            'id', 'employee', 'date', 'status', 'marked_by', 'remarks',
+            'id', 'employee', 'employee_name', 'date', 'status', 'marked_by', 'remarks',
             'clock_in', 'clock_out', 'hours_worked', 'late_minutes',
             'created_at', 'updated_at',
         ]
@@ -445,7 +447,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         date_to_str = request.query_params.get('date_to')
 
         try:
-            records = Attendance.objects.filter(
+            records = EmployeeAttendance.objects.filter(
                 employee_id=employee_id,
                 tenant=request.tenant
             )
@@ -485,9 +487,9 @@ class PerformanceReviewViewSet(viewsets.ModelViewSet):
         HasPermission(read="hr.reviews.view", write="hr.reviews.manage"),
     ]
     module = "hr"
-    filterset_fields = ['employee', 'review_date', 'is_active']
+    filterset_fields = ['employee', 'review_date', 'status', 'is_teacher_review']
     search_fields = ['employee__first_name', 'employee__last_name']
-    ordering_fields = ['review_date', 'rating', 'created_at']
+    ordering_fields = ['review_date', 'overall_rating', 'created_at']
     ordering = ['-review_date']
 
     def get_queryset(self):
@@ -510,8 +512,8 @@ class TrainingRecordViewSet(viewsets.ModelViewSet):
         HasPermission(read="hr.training.view", write="hr.training.manage"),
     ]
     module = "hr"
-    filterset_fields = ['employee', 'certificate_received']
-    search_fields = ['training_name', 'employee__first_name', 'employee__last_name']
+    filterset_fields = ['employee', 'category', 'status', 'is_mandatory']
+    search_fields = ['name', 'employee__first_name', 'employee__last_name']
     ordering_fields = ['training_date', 'created_at']
     ordering = ['-training_date']
 
@@ -535,10 +537,10 @@ class EmployeeExitViewSet(viewsets.ModelViewSet):
         HasPermission(read="hr.exit.view", write="hr.exit.manage"),
     ]
     module = "hr"
-    filterset_fields = ['exit_date', 'reason']
+    filterset_fields = ['exit_type', 'status', 'final_payment_status']
     search_fields = ['employee__first_name', 'employee__last_name']
-    ordering_fields = ['exit_date', 'created_at']
-    ordering = ['-exit_date']
+    ordering_fields = ['last_working_date', 'created_at']
+    ordering = ['-created_at']
 
     def get_queryset(self):
         return super().get_queryset().select_related('employee')

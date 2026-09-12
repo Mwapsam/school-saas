@@ -18,9 +18,10 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from datetime import date
 
 from core.models import (
-    AdmissionApplication, AdmissionDocument, Batch, Course
+    AdmissionApplication, Batch, Course
 )
 from core.authz.drf import ModuleEnabled, HasPermission
+from core.services.admission_service import AdmissionService
 
 
 # ───────────────────────────────────────────────────────────────────────────
@@ -29,22 +30,20 @@ from core.authz.drf import ModuleEnabled, HasPermission
 
 class AdmissionApplicationSerializer(serializers.ModelSerializer):
     """Serializer for AdmissionApplication — student applications."""
-    batch_name = serializers.CharField(source='batch.name', read_only=True)
-    course_name = serializers.CharField(source='course.name', read_only=True)
+    course_name = serializers.CharField(source='course_applied.course_name', read_only=True)
 
     class Meta:
         model = AdmissionApplication
         fields = [
-            'id', 'application_number', 'student_name', 'date_of_birth',
-            'gender', 'email', 'phone', 'parent_name', 'parent_email',
-            'parent_phone', 'address', 'batch', 'batch_name', 'course',
-            'course_name', 'application_date', 'status', 'admission_date',
-            'rejection_reason', 'notes', 'documents_submitted',
+            'id', 'application_number', 'first_name', 'middle_name', 'last_name',
+            'date_of_birth', 'gender', 'course_applied', 'course_name',
+            'guardian_name', 'guardian_phone', 'guardian_email', 'address',
+            'application_date', 'status', 'remarks',
             'created_at', 'updated_at'
         ]
         read_only_fields = [
             'id', 'application_number', 'application_date',
-            'admission_date', 'created_at', 'updated_at'
+            'created_at', 'updated_at'
         ]
 
     def validate_date_of_birth(self, value):
@@ -76,7 +75,7 @@ class AdmissionApplicationViewSet(viewsets.ModelViewSet):
     - Batch assignment
     - Generate admission letters
     """
-    queryset = AdmissionApplication.objects.select_related('batch', 'course')
+    queryset = AdmissionApplication.objects.select_related('course_applied')
     serializer_class = AdmissionApplicationSerializer
     permission_classes = [
         IsAuthenticated,
@@ -84,9 +83,9 @@ class AdmissionApplicationViewSet(viewsets.ModelViewSet):
         HasPermission(read="admissions.application.view", write="admissions.application.manage"),
     ]
     module = "admissions"
-    filterset_fields = ['status', 'batch', 'course', 'application_date']
-    search_fields = ['student_name', 'application_number', 'parent_email']
-    ordering_fields = ['application_date', 'student_name', 'status']
+    filterset_fields = ['status', 'course_applied', 'application_date']
+    search_fields = ['first_name', 'last_name', 'application_number', 'guardian_email']
+    ordering_fields = ['application_date', 'last_name', 'status']
     ordering = ['-application_date']
 
     @extend_schema(
@@ -112,7 +111,6 @@ class AdmissionApplicationViewSet(viewsets.ModelViewSet):
         """Approve an admission application."""
         application = self.get_object()
         application.status = 'approved'
-        application.admission_date = date.today()
         application.save()
         return Response(AdmissionApplicationSerializer(application).data)
 
@@ -126,7 +124,9 @@ class AdmissionApplicationViewSet(viewsets.ModelViewSet):
         """Reject an admission application."""
         application = self.get_object()
         application.status = 'rejected'
-        application.rejection_reason = request.data.get('reason', '')
+        reason = request.data.get('reason', '')
+        if reason:
+            application.remarks = f"{application.remarks}\nRejection reason: {reason}" if application.remarks else f"Rejection reason: {reason}"
         application.save()
         return Response(AdmissionApplicationSerializer(application).data)
 
@@ -137,7 +137,13 @@ class AdmissionApplicationViewSet(viewsets.ModelViewSet):
         responses={200: AdmissionApplicationSerializer},
     )
     def assign_batch(self, request, pk=None):
-        """Assign approved application to a batch."""
+        """Mark an approved application as enrolled, recording the batch in remarks.
+
+        Note: AdmissionApplication has no `batch` relation on the model — batch
+        assignment for enrolled students happens elsewhere (see
+        core/view_modules/admission_batch_assignment_views.py). This endpoint
+        only validates the batch exists and updates status/remarks accordingly.
+        """
         application = self.get_object()
         batch_id = request.data.get('batch_id')
         notes = request.data.get('notes', '')
@@ -147,11 +153,12 @@ class AdmissionApplicationViewSet(viewsets.ModelViewSet):
         except Batch.DoesNotExist:
             return Response({'error': 'Batch not found'}, status=400)
 
-        application.batch = batch
-        application.course = batch.course
         application.status = 'enrolled'
+        application.course_applied = batch.course
+        assignment_note = f"Batch Assignment: {batch.name}"
         if notes:
-            application.notes = f"{application.notes}\nBatch Assignment: {notes}"
+            assignment_note += f" — {notes}"
+        application.remarks = f"{application.remarks}\n{assignment_note}" if application.remarks else assignment_note
         application.save()
         return Response(AdmissionApplicationSerializer(application).data)
 
@@ -171,7 +178,7 @@ class AdmissionApplicationViewSet(viewsets.ModelViewSet):
         # In production: generate/retrieve signed URL to letter PDF
         return Response({
             'letter_url': f'/media/admission-letters/{application.id}.pdf',
-            'student_name': application.student_name,
+            'student_name': f"{application.first_name} {application.last_name}",
             'application_number': application.application_number,
         })
 
@@ -222,14 +229,22 @@ class PublicAdmissionApplicationCreateView(viewsets.ViewSet):
     )
     def create(self, request):
         """Submit a public admissions application."""
-        # This would use a public schema tenant or the current tenant
         serializer = AdmissionApplicationSerializer(data=request.data)
         if serializer.is_valid():
-            # Create application
-            application = AdmissionApplication.objects.create(
-                **serializer.validated_data,
-                status='pending_review',
-                tenant=request.tenant,
+            data = serializer.validated_data
+            course = data.pop('course_applied', None)
+            service = AdmissionService(request.tenant)
+            application = service.create_application(
+                first_name=data.get('first_name'),
+                last_name=data.get('last_name'),
+                date_of_birth=data.get('date_of_birth'),
+                gender=data.get('gender'),
+                course_id=str(course.id) if course else None,
+                guardian_name=data.get('guardian_name'),
+                guardian_phone=data.get('guardian_phone'),
+                address=data.get('address'),
+                middle_name=data.get('middle_name'),
+                guardian_email=data.get('guardian_email'),
             )
             return Response(
                 {

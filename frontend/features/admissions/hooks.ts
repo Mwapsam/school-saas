@@ -4,9 +4,20 @@ import { apiClient } from '@/lib/api/client';
 export interface AdmissionApplication {
   id: string;
   application_number: string;
-  student_name: string;
-  email: string;
-  status: 'pending' | 'approved' | 'rejected';
+  first_name: string;
+  middle_name?: string | null;
+  last_name: string;
+  date_of_birth: string;
+  gender: 'male' | 'female' | 'other';
+  course_applied: string;
+  course_name: string;
+  guardian_name: string;
+  guardian_phone: string;
+  guardian_email?: string | null;
+  address: string;
+  application_date: string;
+  status: string;
+  remarks?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -17,10 +28,31 @@ export interface ListResponse<T> {
 }
 
 export interface CreateAdmissionApplicationInput {
-  student_name: string;
-  email: string;
-  phone?: string;
-  notes?: string;
+  first_name: string;
+  middle_name?: string;
+  last_name: string;
+  date_of_birth: string;
+  gender: 'male' | 'female' | 'other';
+  course_applied: string;
+  guardian_name: string;
+  guardian_phone: string;
+  guardian_email?: string;
+  address: string;
+  remarks?: string;
+}
+
+export interface CourseOption {
+  id: string;
+  course_name: string;
+}
+
+export function useCourseOptions() {
+  return useQuery({
+    queryKey: ['admissions-course-options'],
+    queryFn: async () => {
+      return await apiClient.get<{ results: CourseOption[] }>('/courses/?page_size=200');
+    },
+  });
 }
 
 export function useAdmissionApplicationList(params: any = {}, options: { enabled?: boolean } = {}) {

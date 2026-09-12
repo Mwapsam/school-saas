@@ -5,22 +5,26 @@
 import { z } from 'zod';
 
 export const createEmployeeSchema = z.object({
-  employee_id: z.string().min(1, 'Employee ID is required'),
-  full_name: z.string().min(1, 'Full name is required'),
-  email: z.string().min(1, 'Email is required').email('Enter a valid email'),
-  phone: z.string().optional().or(z.literal('')),
-  department: z.string().optional().or(z.literal('')),
-  position: z.string().optional().or(z.literal('')),
-  hire_date: z.string().min(1, 'Hire date is required'),
+  employee_number: z.string().min(1, 'Employee number is required'),
+  first_name: z.string().min(1, 'First name is required'),
+  last_name: z.string().min(1, 'Last name is required'),
+  middle_name: z.string().optional().or(z.literal('')),
+  email: z.string().email('Enter a valid email').optional().or(z.literal('')),
+  mobile_phone: z.string().optional().or(z.literal('')),
+  employee_department: z.string().optional().or(z.literal('')),
+  employee_position: z.string().optional().or(z.literal('')),
+  joining_date: z.string().min(1, 'Joining date is required'),
 });
 
 export const updateEmployeeSchema = z.object({
-  full_name: z.string().min(1, 'Full name is required').optional(),
-  email: z.string().email('Enter a valid email').optional().or(z.literal('')),
-  phone: z.string().optional().or(z.literal('')),
-  department: z.string().optional().or(z.literal('')),
-  position: z.string().optional().or(z.literal('')),
-  is_active: z.boolean().optional(),
+  first_name: z.string().min(1, 'First name is required').optional(),
+  last_name: z.string().min(1, 'Last name is required').optional(),
+  middle_name: z.string().optional().or(z.literal('')),
+  email: z.string().optional().or(z.literal('')),
+  mobile_phone: z.string().optional().or(z.literal('')),
+  employee_department: z.string().optional().or(z.literal('')),
+  employee_position: z.string().optional().or(z.literal('')),
+  status: z.boolean().optional(),
 });
 
 export type CreateEmployeeFormValues = z.infer<typeof createEmployeeSchema>;

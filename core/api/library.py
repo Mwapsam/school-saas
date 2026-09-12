@@ -27,8 +27,7 @@ class LibrarySerializer(serializers.ModelSerializer):
     class Meta:
         model = Library
         fields = [
-            'id', 'name', 'location', 'phone', 'email', 'opening_time',
-            'closing_time', 'max_book_checkout_duration', 'max_books_per_checkout',
+            'id', 'name', 'code', 'description',
             'is_active', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
@@ -36,10 +35,15 @@ class LibrarySerializer(serializers.ModelSerializer):
 
 class LibraryStaffSerializer(serializers.ModelSerializer):
     """Serializer for LibraryStaff — librarians and library assistants."""
+    employee_name = serializers.CharField(source='employee.full_name', read_only=True)
+    employee_email = serializers.EmailField(source='employee.email', read_only=True)
+    library_name = serializers.CharField(source='library.name', read_only=True)
+
     class Meta:
         model = LibraryStaff
         fields = [
-            'id', 'name', 'staff_type', 'phone', 'email', 'is_active',
+            'id', 'employee', 'employee_name', 'employee_email',
+            'library', 'library_name', 'is_active',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
@@ -81,7 +85,7 @@ class LibraryViewSet(viewsets.ModelViewSet):
     ]
     module = "library"
     filterset_fields = ['is_active']
-    search_fields = ['name', 'location']
+    search_fields = ['name', 'code']
     ordering_fields = ['name', 'created_at']
     ordering = ['name']
 
@@ -103,10 +107,13 @@ class LibraryStaffViewSet(viewsets.ModelViewSet):
         HasPermission(read="library.staff.view", write="library.staff.manage"),
     ]
     module = "library"
-    filterset_fields = ['staff_type', 'is_active']
-    search_fields = ['name', 'email']
-    ordering_fields = ['name', 'staff_type', 'created_at']
-    ordering = ['name']
+    filterset_fields = ['library', 'is_active']
+    search_fields = ['employee__first_name', 'employee__last_name', 'employee__email']
+    ordering_fields = ['employee__last_name', 'created_at']
+    ordering = ['employee__last_name']
+
+    def get_queryset(self):
+        return super().get_queryset().select_related('employee', 'library')
 
 
 class BookViewSet(viewsets.ModelViewSet):
