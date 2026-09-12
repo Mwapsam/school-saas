@@ -34,11 +34,12 @@ export default function TransactionsPage() {
   }
 
   const columns: GridColDef<Transaction>[] = [
-    { field: 'reference', headerName: 'Reference', flex: 1 },
-    { field: 'type', headerName: 'Type', flex: 0.8 },
+    { field: 'title', headerName: 'Title', flex: 1.2 },
+    { field: 'category_name', headerName: 'Category', flex: 1 },
     { field: 'amount', headerName: 'Amount', flex: 0.8 },
-    { field: 'date', headerName: 'Date', flex: 1 },
-    { field: 'notes', headerName: 'Notes', flex: 1.2 },
+    { field: 'payment_method', headerName: 'Payment Method', flex: 0.8 },
+    { field: 'transaction_date', headerName: 'Date', flex: 0.8 },
+    { field: 'reference_number', headerName: 'Reference', flex: 1 },
   ];
 
   return (

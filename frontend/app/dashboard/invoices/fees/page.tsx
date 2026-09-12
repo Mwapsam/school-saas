@@ -35,10 +35,15 @@ export default function FeesPage() {
 
   const columns: GridColDef<StudentFee>[] = [
     { field: 'student_name', headerName: 'Student', flex: 1.2 },
-    { field: 'total_fees', headerName: 'Total Fees', flex: 1 },
-    { field: 'fees_paid', headerName: 'Paid', flex: 1 },
-    { field: 'balance', headerName: 'Balance', flex: 1 },
-    { field: 'fee_count', headerName: 'Fee Count', flex: 0.8 },
+    { field: 'fee_category_name', headerName: 'Fee Category', flex: 1 },
+    { field: 'balance', headerName: 'Balance', flex: 0.8 },
+    {
+      field: 'is_paid',
+      headerName: 'Status',
+      flex: 0.6,
+      valueFormatter: (value: boolean) => (value ? 'Paid' : 'Unpaid'),
+    },
+    { field: 'transaction_date', headerName: 'Date', flex: 0.8 },
   ];
 
   return (

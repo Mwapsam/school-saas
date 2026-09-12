@@ -42,7 +42,7 @@ export function FeeDiscountForm({
 }: FeeDiscountFormProps) {
   const isCreate = !feeDiscount;
 
-  const { data: feeCategoriesData } = useFeeCategoryList({ page_size: 100, is_active: true });
+  const { data: feeCategoriesData } = useFeeCategoryList({ page_size: 100 });
 
   const form = useForm<FeeDiscountFormValues>({
     resolver: zodResolver(feeDiscountSchema),
@@ -50,6 +50,7 @@ export function FeeDiscountForm({
       fee_category: feeDiscount?.fee_category || '',
       name: feeDiscount?.name || '',
       discount_type: feeDiscount?.discount_type || 'batch',
+      discount_mode: feeDiscount?.discount_mode || 'percentage',
       discount_value: feeDiscount?.discount_value ?? undefined,
       is_active: feeDiscount?.is_active ?? true,
     },
@@ -118,6 +119,22 @@ export function FeeDiscountForm({
                 <Select {...field} label="Discount Type">
                   <MenuItem value="batch">Batch Discount</MenuItem>
                   <MenuItem value="individual">Individual Discount</MenuItem>
+                </Select>
+              )}
+            />
+          </FormControl>
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth disabled={isSubmitting}>
+            <InputLabel>Discount Mode</InputLabel>
+            <Controller
+              name="discount_mode"
+              control={control}
+              render={({ field }) => (
+                <Select {...field} label="Discount Mode">
+                  <MenuItem value="percentage">Percentage</MenuItem>
+                  <MenuItem value="amount">Fixed Amount</MenuItem>
                 </Select>
               )}
             />

@@ -1,5 +1,9 @@
 /**
  * Invoice detail page.
+ *
+ * Shows the guardian's consolidated invoice for an academic year: totals,
+ * status, and every child's billed line item. Entirely read-only — there is
+ * no edit or mark-paid action (see features/finance/hooks.ts).
  */
 
 'use client';
@@ -7,17 +11,30 @@
 export const dynamic = 'force-dynamic';
 
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Container, Box, Typography, Button, Grid, Paper, CircularProgress, Alert, Chip } from '@mui/material';
-import { Edit as EditIcon, ArrowBack as BackIcon } from '@mui/icons-material';
+import {
+  Container,
+  Box,
+  Typography,
+  Button,
+  Grid,
+  Paper,
+  CircularProgress,
+  Alert,
+  Chip,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@mui/material';
+import { ArrowBack as BackIcon, PictureAsPdf as PdfIcon } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
-import { useInvoice } from '@/features/finance/hooks';
+import { useInvoice, getInvoicePdfUrl } from '@/features/finance/hooks';
 
 const statusColors = {
-  draft: 'default',
-  sent: 'info',
+  open: 'info',
   paid: 'success',
-  overdue: 'error',
+  void: 'default',
 } as const;
 
 export default function InvoiceDetailPage({ params }: { params: { id: string } }) {
@@ -70,13 +87,16 @@ export default function InvoiceDetailPage({ params }: { params: { id: string } }
             </Typography>
           </Box>
 
-          {can('finance.invoices.update') && (
-            <Link href={`/dashboard/invoices/${invoice.id}/edit`} passHref legacyBehavior>
-              <Button component="a" variant="contained" startIcon={<EditIcon />}>
-                Edit
-              </Button>
-            </Link>
-          )}
+          <Button
+            component="a"
+            href={getInvoicePdfUrl(invoice.id)}
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="outlined"
+            startIcon={<PdfIcon />}
+          >
+            Download PDF
+          </Button>
         </Box>
 
         <Grid container spacing={3}>
@@ -92,27 +112,25 @@ export default function InvoiceDetailPage({ params }: { params: { id: string } }
                 <Typography variant="body2">{invoice.invoice_number}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
-                  Student:
+                  Guardian:
                 </Typography>
-                <Typography variant="body2">{invoice.student_name}</Typography>
+                <Typography variant="body2">{invoice.guardian_name}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
-                  Amount:
+                  Academic Year:
                 </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: '#2e7d32' }}>
-                  ${invoice.amount.toFixed(2)}
-                </Typography>
+                <Typography variant="body2">{invoice.academic_year_label}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
                   Due Date:
                 </Typography>
-                <Typography variant="body2">{invoice.due_date}</Typography>
+                <Typography variant="body2">{invoice.due_date || '—'}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
                   Status:
                 </Typography>
                 <Box>
-                  <Chip label={invoice.status} color={statusColors[invoice.status as keyof typeof statusColors]} size="small" />
+                  <Chip label={invoice.status} color={statusColors[invoice.status]} size="small" />
                 </Box>
               </Box>
             </Paper>
@@ -121,32 +139,72 @@ export default function InvoiceDetailPage({ params }: { params: { id: string } }
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2 }}>
               <Typography variant="h6" gutterBottom>
-                Payment Information
+                Amounts
               </Typography>
               <Box sx={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 1 }}>
                 <Typography variant="body2" color="textSecondary">
-                  Is Paid:
+                  Subtotal:
                 </Typography>
-                <Typography variant="body2">
-                  {invoice.is_paid ? '✓ Yes' : 'No'}
-                </Typography>
-
-                {invoice.paid_date && (
-                  <>
-                    <Typography variant="body2" color="textSecondary">
-                      Paid Date:
-                    </Typography>
-                    <Typography variant="body2">{invoice.paid_date}</Typography>
-                  </>
-                )}
+                <Typography variant="body2">${Number(invoice.subtotal).toFixed(2)}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
-                  Created:
+                  Amount Paid:
+                </Typography>
+                <Typography variant="body2">${Number(invoice.amount_paid).toFixed(2)}</Typography>
+
+                <Typography variant="body2" color="textSecondary">
+                  Balance Due:
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: invoice.balance_due > 0 ? '#c62828' : '#2e7d32' }}>
+                  ${Number(invoice.balance_due).toFixed(2)}
+                </Typography>
+
+                <Typography variant="body2" color="textSecondary">
+                  Generated:
                 </Typography>
                 <Typography variant="body2">
-                  {new Date(invoice.created_at).toLocaleDateString()}
+                  {new Date(invoice.generated_at).toLocaleDateString()}
+                </Typography>
+
+                <Typography variant="body2" color="textSecondary">
+                  Last Updated:
+                </Typography>
+                <Typography variant="body2">
+                  {new Date(invoice.last_updated_at).toLocaleDateString()}
                 </Typography>
               </Box>
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Billed Items
+              </Typography>
+              {invoice.lines.length === 0 ? (
+                <Typography variant="body2" color="textSecondary">
+                  No line items on this invoice.
+                </Typography>
+              ) : (
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Student</TableCell>
+                      <TableCell>Description</TableCell>
+                      <TableCell align="right">Amount</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {invoice.lines.map((line) => (
+                      <TableRow key={line.id}>
+                        <TableCell>{line.student_name}</TableCell>
+                        <TableCell>{line.description}</TableCell>
+                        <TableCell align="right">${Number(line.amount).toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </Paper>
           </Grid>
         </Grid>

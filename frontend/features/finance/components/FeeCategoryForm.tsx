@@ -12,8 +12,6 @@ import {
   Box,
   Button,
   TextField,
-  FormControlLabel,
-  Switch,
   CircularProgress,
   Alert,
   Grid,
@@ -43,7 +41,7 @@ export function FeeCategoryForm({
     defaultValues: {
       name: feeCategory?.name || '',
       description: feeCategory?.description || '',
-      is_active: feeCategory?.is_active ?? true,
+      academic_year: feeCategory?.academic_year || '',
     },
   });
 
@@ -95,25 +93,6 @@ export function FeeCategoryForm({
                 disabled={isSubmitting}
                 error={!!errors.description}
                 helperText={errors.description?.message}
-              />
-            )}
-          />
-        </Grid>
-
-        <Grid item xs={12}>
-          <Controller
-            name="is_active"
-            control={control}
-            render={({ field }) => (
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={!!field.value}
-                    onChange={(e) => field.onChange(e.target.checked)}
-                    disabled={isSubmitting}
-                  />
-                }
-                label="Active"
               />
             )}
           />

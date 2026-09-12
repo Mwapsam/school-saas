@@ -46,24 +46,36 @@ export interface InvoiceLine {
 
 export interface StudentFee {
   id: string;
-  student_id: string;
+  student: string;
   student_name: string;
-  total_fees: number;
-  fees_paid: number;
+  fee_category: string;
+  fee_category_name: string;
+  academic_year: string | null;
   balance: number;
-  fee_count: number;
+  transaction_date: string | null;
+  is_paid: boolean;
+  tax_amount: number;
+  discount_amount: number;
+  invoice_number: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface Transaction {
   id: string;
-  invoice_id?: string;
+  title: string;
+  transaction_date: string;
+  category: string;
+  category_name: string;
+  student: string | null;
+  student_name: string | null;
+  employee: string | null;
+  employee_name: string | null;
+  academic_year: string | null;
+  description?: string;
   amount: number;
-  type: 'payment' | 'refund' | 'credit';
-  date: string;
-  reference: string;
-  notes?: string;
+  payment_method: 'cash' | 'card' | 'bank_transfer' | 'mobile_money' | 'cheque' | 'online' | 'other';
+  reference_number?: string;
   created_at: string;
   updated_at: string;
 }
@@ -116,11 +128,13 @@ export function useInvoice(id: string) {
   });
 }
 
-/** Same-origin PDF download URL for an invoice, routed through the BFF proxy
- * path convention used elsewhere in this feature (see
- * getStudentLedgerCsvExportUrl) — links directly to the DRF `pdf` action. */
+/** Same-origin PDF download URL for an invoice, routed through a dedicated
+ * Next.js route handler (not the shared BFF proxy, which always returns
+ * JSON and can't pass through a binary PDF response) — see
+ * app/api/finance/invoice-pdf/route.ts and the CSV equivalent,
+ * getStudentLedgerCsvExportUrl. */
 export function getInvoicePdfUrl(id: string): string {
-  return `/api/proxy/invoices/${id}/pdf/`;
+  return `/api/finance/invoice-pdf?id=${id}`;
 }
 
 // Student Fees
@@ -155,7 +169,8 @@ export interface FeeCategory {
   id: string;
   name: string;
   description?: string;
-  is_active: boolean;
+  academic_year?: string | null;
+  academic_year_label?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -164,7 +179,7 @@ export interface FeeCategoryListParams {
   page?: number;
   page_size?: number;
   search?: string;
-  is_active?: boolean;
+  academic_year?: string;
   ordering?: string;
 }
 
@@ -178,13 +193,13 @@ export interface FeeCategoryListResponse {
 export interface CreateFeeCategoryInput {
   name: string;
   description?: string;
-  is_active?: boolean;
+  academic_year?: string | null;
 }
 
 export interface UpdateFeeCategoryInput {
   name?: string;
   description?: string;
-  is_active?: boolean;
+  academic_year?: string | null;
 }
 
 export function useFeeCategoryList(params: FeeCategoryListParams = {}, options: { enabled?: boolean } = {}) {
@@ -196,7 +211,7 @@ export function useFeeCategoryList(params: FeeCategoryListParams = {}, options: 
       if (params.page) queryString.append('page', params.page.toString());
       if (params.page_size) queryString.append('page_size', params.page_size.toString());
       if (params.search) queryString.append('search', params.search);
-      if (params.is_active !== undefined) queryString.append('is_active', params.is_active.toString());
+      if (params.academic_year) queryString.append('academic_year', params.academic_year);
       if (params.ordering) queryString.append('ordering', params.ordering);
 
       const path = `/fee-categories/${queryString.toString() ? '?' + queryString.toString() : ''}`;
@@ -266,6 +281,7 @@ export interface FeeDiscount {
   fee_category_name: string;
   name: string;
   discount_type: 'batch' | 'individual';
+  discount_mode: 'percentage' | 'amount';
   discount_value: number;
   is_active: boolean;
   created_at: string;
@@ -293,6 +309,7 @@ export interface CreateFeeDiscountInput {
   fee_category: string;
   name: string;
   discount_type: 'batch' | 'individual';
+  discount_mode: 'percentage' | 'amount';
   discount_value: number;
   is_active?: boolean;
 }
@@ -301,6 +318,7 @@ export interface UpdateFeeDiscountInput {
   fee_category?: string;
   name?: string;
   discount_type?: 'batch' | 'individual';
+  discount_mode?: 'percentage' | 'amount';
   discount_value?: number;
   is_active?: boolean;
 }

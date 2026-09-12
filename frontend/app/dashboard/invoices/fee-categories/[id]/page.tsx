@@ -98,23 +98,9 @@ export default function FeeCategoryDetailPage({ params }: { params: { id: string
                 <Typography variant="body2">{feeCategory.description || '-'}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
-                  Status:
+                  Academic Year:
                 </Typography>
-                <Box
-                  sx={{
-                    display: 'inline-block',
-                    px: 1,
-                    py: 0.5,
-                    backgroundColor: feeCategory.is_active ? '#e8f5e9' : '#ffebee',
-                    color: feeCategory.is_active ? '#2e7d32' : '#c62828',
-                    borderRadius: 1,
-                    fontSize: '0.85rem',
-                    fontWeight: 500,
-                    width: 'fit-content',
-                  }}
-                >
-                  {feeCategory.is_active ? 'Active' : 'Inactive'}
-                </Box>
+                <Typography variant="body2">{feeCategory.academic_year_label || '-'}</Typography>
 
                 <Typography variant="body2" color="textSecondary">
                   Created:

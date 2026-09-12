@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Container, Box, Typography, Button, Alert, Chip, IconButton } from '@mui/material';
+import { Container, Box, Typography, Button, Alert, IconButton } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as ViewIcon } from '@mui/icons-material';
 import type { GridColDef } from '@mui/x-data-grid';
 import { useTenantStore } from '@/lib/tenant/store';
@@ -78,18 +78,12 @@ export default function FeeCategoriesPage() {
       valueGetter: (params) => params.row.description || '-',
     },
     {
-      field: 'is_active',
-      headerName: 'Status',
+      field: 'academic_year_label',
+      headerName: 'Academic Year',
       flex: 1,
       minWidth: 100,
       sortable: false,
-      renderCell: (params) => (
-        <Chip
-          label={params.row.is_active ? 'Active' : 'Inactive'}
-          color={params.row.is_active ? 'success' : 'error'}
-          size="small"
-        />
-      ),
+      valueGetter: (params) => params.row.academic_year_label || '-',
     },
     {
       field: 'actions',

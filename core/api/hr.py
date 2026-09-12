@@ -16,7 +16,7 @@ from datetime import date, timedelta
 
 from core.models import (
     Employee, EmployeeContract, EmployeeQualification, EmployeeDocument,
-    LeaveType, Attendance, PerformanceReview, TrainingRecord, EmployeeExit,
+    LeaveType, EmployeeAttendance, PerformanceReview, TrainingRecord, EmployeeExit,
     EmployeeLeave,
 )
 from core.authz.drf import ModuleEnabled, HasPermission
@@ -32,39 +32,79 @@ class EmployeeQualificationSerializer(serializers.ModelSerializer):
     """Serializer for EmployeeQualification — degrees, certifications."""
     class Meta:
         model = EmployeeQualification
-        fields = ['id', 'employee', 'qualification_type', 'institution', 'year_obtained', 'is_active', 'created_at', 'updated_at']
+        fields = [
+            'id', 'employee', 'qualification_type', 'name', 'institution',
+            'year_obtained', 'is_highest', 'document', 'created_at', 'updated_at',
+        ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class EmployeeDocumentSerializer(serializers.ModelSerializer):
-    """Serializer for EmployeeDocument — contracts, certifications, etc."""
+    """Serializer for EmployeeDocument — NRC, CV, certificates, contracts, etc."""
     class Meta:
         model = EmployeeDocument
-        fields = ['id', 'employee', 'document_type', 'file', 'uploaded_at', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        fields = [
+            'id', 'employee', 'document_type', 'file', 'original_filename', 'note',
+            'issued_date', 'expiry_date', 'uploaded_at', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'uploaded_at', 'created_at', 'updated_at']
 
 
 class EmployeeContractSerializer(serializers.ModelSerializer):
     """Serializer for EmployeeContract — employment agreements."""
     class Meta:
         model = EmployeeContract
-        fields = ['id', 'employee', 'contract_type', 'start_date', 'end_date', 'is_active', 'created_at', 'updated_at']
+        fields = [
+            'id', 'employee', 'contract_type', 'start_date', 'end_date',
+            'probation_end_date', 'salary_review_date', 'renewal_status',
+            'notes', 'document', 'supersedes', 'created_at', 'updated_at',
+        ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
-    """Serializer for Employee — staff directory."""
+    """Serializer for Employee — staff directory.
+
+    Note on unusual fields:
+    - ``gender`` is a real BooleanField on the model (True=Male, False=Female).
+      Exposed as-is plus a computed ``gender_display`` ('M'/'F'/None) for
+      convenience.
+    - ``status`` is the boolean login/soft-delete gate; ``employment_status``
+      is the richer HR lifecycle CharField (active/on_leave/exited/etc).
+    - ``department_name``/``position_name``/``category_name`` are computed
+      from the FK relations, following this codebase's `source='x.name'`
+      convention, since the frontend displays department/position as plain
+      strings.
+    """
+    department_name = serializers.CharField(source='employee_department.name', read_only=True, default=None)
+    position_name = serializers.CharField(source='employee_position.name', read_only=True, default=None)
+    category_name = serializers.CharField(source='employee_category.name', read_only=True, default=None)
+    gender_display = serializers.SerializerMethodField()
+    full_name = serializers.CharField(read_only=True)
+
     class Meta:
         model = Employee
-        fields = ['id', 'first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'is_active', 'created_at', 'updated_at']
+        fields = [
+            'id', 'employee_number', 'first_name', 'middle_name', 'last_name', 'full_name',
+            'email', 'mobile_phone', 'gender', 'gender_display', 'job_title', 'is_teaching_staff',
+            'employee_category', 'category_name', 'employee_position', 'position_name',
+            'employee_department', 'department_name', 'reporting_manager', 'employee_grade',
+            'joining_date', 'date_of_birth', 'national_id', 'status', 'employment_status',
+            'created_at', 'updated_at',
+        ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_gender_display(self, obj):
+        if obj.gender is None:
+            return None
+        return 'M' if obj.gender else 'F'
 
 
 class LeaveTypeSerializer(serializers.ModelSerializer):
     """Serializer for LeaveType — leave categories (sick, vacation, etc.)."""
     class Meta:
         model = LeaveType
-        fields = ['id', 'name', 'description', 'is_active', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'code', 'default_annual_days', 'is_paid', 'status', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
@@ -92,26 +132,48 @@ class LeaveRequestSerializer(serializers.ModelSerializer):
 
 
 class AttendanceSerializer(serializers.ModelSerializer):
-    """Serializer for Attendance — daily attendance records."""
+    """Serializer for EmployeeAttendance — daily staff attendance records.
+
+    Note: previously mistakenly backed by ``Attendance`` (the STUDENT
+    attendance model — student/forenoon/afternoon/month_date/batch), which
+    shares none of the fields this serializer declared (employee/date/status/
+    notes) and would have crashed with 'Meta.fields must not contain
+    non-model field names' the moment it was hit. Fixed to use the real
+    ``EmployeeAttendance`` model.
+    """
     class Meta:
-        model = Attendance
-        fields = ['id', 'employee', 'date', 'status', 'notes', 'created_at', 'updated_at']
+        model = EmployeeAttendance
+        fields = [
+            'id', 'employee', 'date', 'status', 'marked_by', 'remarks',
+            'clock_in', 'clock_out', 'hours_worked', 'late_minutes',
+            'created_at', 'updated_at',
+        ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class PerformanceReviewSerializer(serializers.ModelSerializer):
-    """Serializer for PerformanceReview — annual reviews."""
+    """Serializer for PerformanceReview — annual/periodic appraisals."""
     class Meta:
         model = PerformanceReview
-        fields = ['id', 'employee', 'review_date', 'rating', 'comments', 'is_active', 'created_at', 'updated_at']
+        fields = [
+            'id', 'employee', 'reviewer', 'review_period', 'review_date', 'status',
+            'is_teacher_review', 'overall_rating', 'objectives', 'strengths',
+            'improvement_areas', 'development_actions', 'reviewer_comments',
+            'employee_comments', 'next_review_date', 'completed_at',
+            'created_at', 'updated_at',
+        ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class TrainingRecordSerializer(serializers.ModelSerializer):
-    """Serializer for TrainingRecord — training programs attended."""
+    """Serializer for TrainingRecord — training/CPD programs attended."""
     class Meta:
         model = TrainingRecord
-        fields = ['id', 'employee', 'training_name', 'training_date', 'certificate_received', 'created_at', 'updated_at']
+        fields = [
+            'id', 'employee', 'name', 'category', 'provider', 'training_date',
+            'cost', 'certificate', 'expiry_date', 'status', 'is_mandatory',
+            'notes', 'created_at', 'updated_at',
+        ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
@@ -119,7 +181,12 @@ class EmployeeExitSerializer(serializers.ModelSerializer):
     """Serializer for EmployeeExit — exit/offboarding records."""
     class Meta:
         model = EmployeeExit
-        fields = ['id', 'employee', 'exit_date', 'reason', 'comments', 'created_at', 'updated_at']
+        fields = [
+            'id', 'employee', 'exit_type', 'notice_date', 'last_working_date',
+            'reason', 'exit_interview_notes', 'final_payment_status',
+            'outstanding_leave_days', 'handover_status', 'status', 'completed_at',
+            'created_at', 'updated_at',
+        ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
@@ -144,10 +211,13 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         HasPermission(read="hr.employees.view", write="hr.employees.manage"),
     ]
     module = "hr"
-    filterset_fields = ['is_active']
-    search_fields = ['first_name', 'last_name', 'email']
-    ordering_fields = ['first_name', 'last_name', 'email', 'created_at']
+    filterset_fields = ['status', 'employment_status', 'employee_department', 'employee_position', 'is_teaching_staff']
+    search_fields = ['first_name', 'last_name', 'email', 'employee_number']
+    ordering_fields = ['first_name', 'last_name', 'email', 'joining_date', 'created_at']
     ordering = ['first_name', 'last_name']
+
+    def get_queryset(self):
+        return super().get_queryset().select_related('employee_department', 'employee_position', 'employee_category')
 
 
 class EmployeeQualificationViewSet(viewsets.ModelViewSet):
@@ -166,7 +236,7 @@ class EmployeeQualificationViewSet(viewsets.ModelViewSet):
         HasPermission(read="hr.qualifications.view", write="hr.qualifications.manage"),
     ]
     module = "hr"
-    filterset_fields = ['employee', 'qualification_type', 'is_active']
+    filterset_fields = ['employee', 'qualification_type', 'is_highest']
     ordering_fields = ['year_obtained', 'created_at']
     ordering = ['-year_obtained']
 
@@ -214,7 +284,7 @@ class EmployeeContractViewSet(viewsets.ModelViewSet):
         HasPermission(read="hr.contracts.view", write="hr.contracts.manage"),
     ]
     module = "hr"
-    filterset_fields = ['employee', 'contract_type', 'is_active']
+    filterset_fields = ['employee', 'contract_type', 'renewal_status']
     ordering_fields = ['start_date', 'end_date', 'created_at']
     ordering = ['-start_date']
 
@@ -238,8 +308,8 @@ class LeaveTypeViewSet(viewsets.ModelViewSet):
         HasPermission(read="hr.leave-types.view", write="hr.leave-types.manage"),
     ]
     module = "hr"
-    filterset_fields = ['is_active']
-    search_fields = ['name']
+    filterset_fields = ['status', 'is_paid']
+    search_fields = ['name', 'code']
     ordering_fields = ['name', 'created_at']
     ordering = ['name']
 
@@ -340,7 +410,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     - Filter by employee, date, or status
     - Generate attendance reports
     """
-    queryset = Attendance.objects.all()
+    queryset = EmployeeAttendance.objects.all()
     serializer_class = AttendanceSerializer
     permission_classes = [
         IsAuthenticated,
