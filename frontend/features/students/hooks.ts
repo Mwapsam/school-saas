@@ -250,3 +250,232 @@ export function useDeleteStudent() {
     },
   });
 }
+
+/**
+ * Fee balance response shape
+ */
+export interface FeeBalanceResponse {
+  student_id: string;
+  balance: number;
+  currency?: string;
+  as_of_date?: string;
+}
+
+/**
+ * Get student fee balance
+ */
+export function useStudentFeeBalance(studentId: string, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ['students', studentId, 'fee-balance'],
+    queryFn: async () => {
+      return await apiClient.get<FeeBalanceResponse>(`/students/${studentId}/fee-balance/`);
+    },
+    enabled: !!studentId && options.enabled !== false,
+  });
+}
+
+/**
+ * Term summary in attendance response
+ */
+export interface TermSummary {
+  id: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+}
+
+/**
+ * Attendance summary response shape
+ */
+export interface AttendanceSummaryResponse {
+  student_id: string;
+  total_days: number;
+  present_days: number;
+  absent_days: number;
+  attendance_percentage: number;
+  available_terms?: TermSummary[];
+  current_term_id?: string;
+}
+
+/**
+ * Get student attendance summary
+ */
+export function useStudentAttendanceSummary(studentId: string, termId?: string, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ['students', studentId, 'attendance-summary', termId],
+    queryFn: async () => {
+      const path = termId
+        ? `/students/${studentId}/attendance-summary/?term_id=${termId}`
+        : `/students/${studentId}/attendance-summary/`;
+      return await apiClient.get<AttendanceSummaryResponse>(path);
+    },
+    enabled: !!studentId && options.enabled !== false,
+  });
+}
+
+/**
+ * Student document shape
+ */
+export interface StudentDocument {
+  id: string;
+  category: string;
+  category_name: string;
+  original_filename: string;
+  note: string;
+  uploaded_by_id: string | null;
+  uploaded_at: string;
+  file_url: string | null;
+  file_size_mb: number | null;
+}
+
+/**
+ * Documents list response
+ */
+export interface DocumentsResponse {
+  results: StudentDocument[];
+  count: number;
+}
+
+/**
+ * Get student documents
+ */
+export function useStudentDocuments(studentId: string, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ['students', studentId, 'documents'],
+    queryFn: async () => {
+      return await apiClient.get<DocumentsResponse>(`/students/${studentId}/documents/`);
+    },
+    enabled: !!studentId && options.enabled !== false,
+  });
+}
+
+/**
+ * Upload a student document
+ */
+export function useUploadDocument(studentId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { categoryId: string; file: File; note?: string }) => {
+      const formData = new FormData();
+      formData.append('category_id', data.categoryId);
+      formData.append('file', data.file);
+      if (data.note) formData.append('note', data.note);
+
+      return await apiClient.post<StudentDocument>(
+        `/students/${studentId}/upload-document/`,
+        formData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        }
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students', studentId, 'documents'] });
+    },
+  });
+}
+
+/**
+ * Delete a student document
+ */
+export function useDeleteDocument(studentId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (docId: string) => {
+      return await apiClient.delete(`/students/${studentId}/delete-document/?doc_id=${docId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students', studentId, 'documents'] });
+    },
+  });
+}
+
+/**
+ * Guardian summary shape
+ */
+export interface GuardianSummary {
+  id: string;
+  name: string;
+  relation: string;
+  phone: string | null;
+  email: string | null;
+  is_immediate_contact: boolean;
+}
+
+/**
+ * Guardians list response
+ */
+export interface GuardiansResponse {
+  results: GuardianSummary[];
+  count: number;
+}
+
+/**
+ * Get student guardians
+ */
+export function useStudentGuardians(studentId: string, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ['students', studentId, 'guardians'],
+    queryFn: async () => {
+      return await apiClient.get<GuardiansResponse>(`/students/${studentId}/guardians/`);
+    },
+    enabled: !!studentId && options.enabled !== false,
+  });
+}
+
+/**
+ * Attach guardian request shape
+ */
+export interface AttachGuardianInput {
+  guardian_id?: string;
+  first_name?: string;
+  last_name?: string;
+  mobile_phone?: string;
+  office_phone?: string;
+  email?: string;
+  occupation?: string;
+  relation: string;
+  is_immediate_contact?: boolean;
+}
+
+/**
+ * Attach guardian response
+ */
+export interface AttachGuardianResponse {
+  success: boolean;
+  message: string;
+  guardian_id?: string;
+  credentials_sent?: boolean;
+}
+
+/**
+ * Attach a guardian to student
+ */
+export function useAttachGuardian(studentId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: AttachGuardianInput) => {
+      return await apiClient.post<AttachGuardianResponse>(
+        `/students/${studentId}/guardians/`,
+        data
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students', studentId, 'guardians'] });
+    },
+  });
+}
+
+/**
+ * Generate a student report
+ */
+export function useGenerateReport(studentId: string, reportType: 'academic' | 'attendance' | 'fees' | 'profile') {
+  return useMutation({
+    mutationFn: async () => {
+      return await apiClient.get(`/students/${studentId}/generate-report/?type=${reportType}`);
+    },
+  });
+}

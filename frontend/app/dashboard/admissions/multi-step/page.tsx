@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Box, Button, Alert, CircularProgress, Typography, Paper } from '@mui/material';
+import { Button, Alert, CircularProgress, Typography, Paper } from '@mui/material';
 import { ChevronLeft as BackIcon } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useStartApplication } from '@/features/multi-step-admission';

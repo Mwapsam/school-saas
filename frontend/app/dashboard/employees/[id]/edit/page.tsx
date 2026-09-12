@@ -52,7 +52,7 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
   if (employeeError || !employee) {
     return (
       <Page>
-        <ErrorState error={employeeError} onRetry={() => refetch()} />
+        <ErrorState error={employeeError || undefined} onRetry={() => refetch()} />
       </Page>
     );
   }

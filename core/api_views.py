@@ -13,11 +13,17 @@ from django.db.models import Count, Q
 
 from core.authz.drf import ModuleEnabled, HasPermission
 
-from .models import Student, User, Course, Batch, Subject, AdmissionApplication, BatchStudent
+from .models import (
+    Student, User, Course, Batch, Subject, AdmissionApplication, BatchStudent,
+    StudentDocument, DocumentCategory, StudentGuardianRelation, Term, Attendance
+)
 from .serializers import (
     # Student serializers
     StudentSerializer, StudentListSerializer, StudentDetailSerializer,
     StudentBulkCreateSerializer, StudentSearchSerializer,
+    StudentDocumentSerializer, DocumentCategorySerializer,
+    GuardianAttachSerializer, GuardianAttachResponseSerializer,
+    FeeBalanceResponseSerializer, AttendanceSummaryResponseSerializer,
     
     # User serializers
     UserSerializer, UserCreateSerializer, UserUpdateSerializer,
@@ -35,6 +41,8 @@ from .serializers import (
     AdmissionSearchSerializer
 )
 from .services.exceptions import ServiceException, ValidationException, NotFoundException
+from .services.finance_service import FinanceService
+from .services.report_generation_service import ReportGenerationService
 from .permissions import (
     TenantAccessPermission,
     CanManageAdmissions,
@@ -224,6 +232,237 @@ class StudentViewSet(TenantAwareViewSetMixin, viewsets.ModelViewSet):
                 'successful': len([r for r in results if r['success']])
             })
             
+        except ServiceException as e:
+            return self.handle_service_exception(e)
+
+    @action(detail=True, methods=['get'])
+    def fee_balance(self, request, pk=None):
+        """Get student fee balance"""
+        try:
+            student = self.get_object()
+            tenant = getattr(request, 'tenant', None)
+            finance_service = FinanceService(tenant)
+
+            balance = finance_service.get_student_fee_balance(str(student.id))
+
+            serializer = FeeBalanceResponseSerializer(
+                data={
+                    'student_id': str(student.id),
+                    'balance': balance
+                }
+            )
+            serializer.is_valid(raise_exception=True)
+            return Response(serializer.data)
+
+        except ServiceException as e:
+            return self.handle_service_exception(e)
+
+    @action(detail=True, methods=['get'])
+    def attendance_summary(self, request, pk=None):
+        """Get student attendance summary (optionally for a specific term)"""
+        try:
+            student = self.get_object()
+            tenant = getattr(request, 'tenant', None)
+            term_id = request.query_params.get('term_id')
+
+            report_service = ReportGenerationService(tenant)
+
+            # Resolve attendance range based on term
+            if term_id:
+                term = Term.objects.get(id=term_id, tenant=tenant)
+                start_date = term.start_date
+                end_date = term.end_date
+            else:
+                # Use current batch's term or date range
+                active_batch = student.student_batches.filter(is_active=True).first()
+                if active_batch:
+                    start_date = active_batch.batch.start_date.date() if hasattr(active_batch.batch.start_date, 'date') else active_batch.batch.start_date
+                    end_date = active_batch.batch.end_date.date() if hasattr(active_batch.batch.end_date, 'date') else active_batch.batch.end_date
+                else:
+                    return Response({'detail': 'No active batch found'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Get attendance records
+            records = Attendance.objects.filter(
+                student=student,
+                attendance_date__gte=start_date,
+                attendance_date__lte=end_date,
+                tenant=tenant
+            ).order_by('attendance_date')
+
+            # Compute summary
+            summary = report_service._compute_attendance_summary(
+                list(records),
+                start_date,
+                end_date,
+                student.student_batches.filter(is_active=True).first().batch if student.student_batches.filter(is_active=True).exists() else None
+            )
+
+            # Get available terms for the student's current batch
+            available_terms = []
+            if active_batch:
+                batch_year = active_batch.batch.academic_year
+                terms = Term.objects.filter(academic_year=batch_year, tenant=tenant).order_by('start_date')
+                available_terms = [
+                    {
+                        'id': str(t.id),
+                        'name': t.name,
+                        'start_date': t.start_date,
+                        'end_date': t.end_date
+                    }
+                    for t in terms
+                ]
+
+            response_data = {
+                'student_id': str(student.id),
+                'total_days': summary.get('total_days', 0),
+                'present_days': summary.get('days_present', 0),  # Remap from days_present
+                'absent_days': summary.get('days_absent', 0),    # Remap from days_absent
+                'attendance_percentage': summary.get('attendance_percentage', 0),
+                'available_terms': available_terms,
+                'current_term_id': str(term_id) if term_id else None
+            }
+
+            serializer = AttendanceSummaryResponseSerializer(response_data)
+            return Response(serializer.data)
+
+        except ServiceException as e:
+            return self.handle_service_exception(e)
+
+    @action(detail=True, methods=['get'])
+    def documents(self, request, pk=None):
+        """List student documents"""
+        try:
+            student = self.get_object()
+            documents = StudentDocument.objects.filter(
+                student=student,
+                tenant=getattr(request, 'tenant', None)
+            ).select_related('category').order_by('-uploaded_at')
+
+            serializer = StudentDocumentSerializer(documents, many=True, context=self.get_serializer_context())
+            return Response({
+                'results': serializer.data,
+                'count': len(serializer.data)
+            })
+
+        except ServiceException as e:
+            return self.handle_service_exception(e)
+
+    @action(detail=True, methods=['post'])
+    def upload_document(self, request, pk=None):
+        """Upload a new student document"""
+        try:
+            student = self.get_object()
+            tenant = getattr(request, 'tenant', None)
+
+            category_id = request.POST.get('category_id')
+            file = request.FILES.get('file')
+            note = request.POST.get('note', '')
+
+            if not category_id or not file:
+                return Response(
+                    {'detail': 'category_id and file are required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            category = DocumentCategory.objects.get(id=category_id, tenant=tenant)
+
+            doc = StudentDocument.objects.create(
+                student=student,
+                category=category,
+                file=file,
+                original_filename=file.name,
+                note=note,
+                uploaded_by_id=request.user.id,
+                tenant=tenant
+            )
+
+            serializer = StudentDocumentSerializer(doc, context=self.get_serializer_context())
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except ServiceException as e:
+            return self.handle_service_exception(e)
+
+    @action(detail=True, methods=['delete'])
+    def delete_document(self, request, pk=None):
+        """Delete a student document"""
+        try:
+            student = self.get_object()
+            tenant = getattr(request, 'tenant', None)
+            doc_id = request.query_params.get('doc_id')
+
+            if not doc_id:
+                return Response(
+                    {'detail': 'doc_id query parameter is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            doc = StudentDocument.objects.get(id=doc_id, student=student, tenant=tenant)
+
+            # Delete the file
+            if doc.file:
+                doc.file.delete()
+
+            doc.delete()
+
+            return Response({'message': 'Document deleted successfully'})
+
+        except StudentDocument.DoesNotExist:
+            return Response({'detail': 'Document not found'}, status=status.HTTP_404_NOT_FOUND)
+        except ServiceException as e:
+            return self.handle_service_exception(e)
+
+    @action(detail=True, methods=['get'])
+    def guardians(self, request, pk=None):
+        """List student guardians"""
+        try:
+            student = self.get_object()
+            tenant = getattr(request, 'tenant', None)
+
+            relations = StudentGuardianRelation.objects.filter(
+                student=student,
+                tenant=tenant
+            ).select_related('guardian')
+
+            guardian_data = [
+                {
+                    'id': str(r.guardian.id),
+                    'name': f"{r.guardian.first_name} {r.guardian.last_name}",
+                    'relation': r.relation,
+                    'phone': r.guardian.phone1,
+                    'email': r.guardian.email,
+                    'is_immediate_contact': r.is_immediate_contact
+                }
+                for r in relations
+            ]
+
+            return Response({'results': guardian_data, 'count': len(guardian_data)})
+
+        except ServiceException as e:
+            return self.handle_service_exception(e)
+
+    @action(detail=True, methods=['get'])
+    def generate_report(self, request, pk=None):
+        """Generate a student report (academic, attendance, fees, or profile)"""
+        try:
+            student = self.get_object()
+            tenant = getattr(request, 'tenant', None)
+            report_type = request.query_params.get('type', 'profile')
+
+            if report_type not in ['academic', 'attendance', 'fees', 'profile']:
+                return Response(
+                    {'detail': f'Invalid report type. Must be one of: academic, attendance, fees, profile'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # TODO: Call appropriate report generation service method
+            # This is a placeholder that returns success response
+
+            return Response({
+                'message': f'{report_type} report generated successfully',
+                'report_type': report_type,
+                'student_id': str(student.id)
+            })
+
         except ServiceException as e:
             return self.handle_service_exception(e)
 

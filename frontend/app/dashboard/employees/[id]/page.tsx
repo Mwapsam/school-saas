@@ -7,13 +7,14 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
-import { Button, Box, Typography, Grid, Paper, Alert } from '@mui/material';
+import { Button, Grid, Alert } from '@mui/material';
 import { Edit as EditIcon, ChevronLeft as BackIcon } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useEmployee } from '@/features/hr/hooks';
 import { Page } from '@/components/page/Page';
 import { PageHeader } from '@/components/page/PageHeader';
 import { PageContent } from '@/components/page/PageContent';
+import { SectionCard, DetailField } from '@/components/page';
 import { LoadingState } from '@/components/feedback/LoadingState';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { StatusBadge } from '@/components/data/StatusBadge';
@@ -41,7 +42,7 @@ export default function EmployeeDetailPage({ params }: { params: { id: string } 
   if (error || !employee) {
     return (
       <Page>
-        <ErrorState error={error} onRetry={() => refetch()} />
+        <ErrorState error={error || undefined} onRetry={() => refetch()} />
       </Page>
     );
   }
@@ -72,72 +73,30 @@ export default function EmployeeDetailPage({ params }: { params: { id: string } 
       <PageContent>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Personal Information
-              </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 1 }}>
-                <Typography variant="body2" color="textSecondary">
-                  Employee ID:
-                </Typography>
-                <Typography variant="body2">{employee.employee_number}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Email:
-                </Typography>
-                <Typography variant="body2">{employee.email || '-'}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Phone:
-                </Typography>
-                <Typography variant="body2">{employee.mobile_phone || '-'}</Typography>
-              </Box>
-            </Paper>
+            <SectionCard title="Personal Information">
+              <DetailField label="Employee ID" value={employee.employee_number} />
+              <DetailField label="Email" value={employee.email || '-'} truncate />
+              <DetailField label="Phone" value={employee.mobile_phone || '-'} truncate />
+            </SectionCard>
           </Grid>
 
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Employment Information
-              </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 1 }}>
-                <Typography variant="body2" color="textSecondary">
-                  Department:
-                </Typography>
-                <Typography variant="body2">{employee.department_name || '-'}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Position:
-                </Typography>
-                <Typography variant="body2">{employee.position_name || '-'}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Hire Date:
-                </Typography>
-                <Typography variant="body2">{employee.joining_date}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Status:
-                </Typography>
-                <Box>
-                  <StatusBadge status={employee.status ? 'active' : 'inactive'} />
-                </Box>
-
-                <Typography variant="body2" color="textSecondary">
-                  Created:
-                </Typography>
-                <Typography variant="body2">
-                  {new Date(employee.created_at).toLocaleDateString()}
-                </Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Updated:
-                </Typography>
-                <Typography variant="body2">
-                  {new Date(employee.updated_at).toLocaleDateString()}
-                </Typography>
-              </Box>
-            </Paper>
+            <SectionCard title="Employment Information">
+              <DetailField label="Department" value={employee.department_name || '-'} />
+              <DetailField label="Position" value={employee.position_name || '-'} />
+              <DetailField label="Hire Date" value={employee.joining_date} />
+              <DetailField
+                label="Status"
+                value={
+                  <StatusBadge
+                    label={employee.status ? 'Active' : 'Inactive'}
+                    status={employee.status ? 'success' : 'error'}
+                  />
+                }
+              />
+              <DetailField label="Created" value={new Date(employee.created_at).toLocaleDateString()} />
+              <DetailField label="Updated" value={new Date(employee.updated_at).toLocaleDateString()} />
+            </SectionCard>
           </Grid>
         </Grid>
       </PageContent>

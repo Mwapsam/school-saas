@@ -18,7 +18,6 @@ import {
   useApplicationsForAssignment,
   useAvailableBatches,
   useAdmissionStats,
-  useAssignSingle,
   useAssignBulk,
   type ApplicantForAssignment,
 } from '@/features/admission-management';
@@ -106,7 +105,7 @@ export default function ApplicantsPage() {
       flex: 1,
       sortable: false,
       renderCell: (params) => (
-        <StatusBadge status={params.row.status || 'unknown'} />
+        <StatusBadge status={(params.row.status as any) || 'default'} />
       ),
     },
     {

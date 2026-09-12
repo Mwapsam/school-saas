@@ -66,10 +66,10 @@ export function SectionCard({
       variant={variant}
       {...props}
       sx={{
-        borderRadius: radius.lg,
-        p: paddingValue,
-        ...sx,
-      }}
+          borderRadius: `${radius.lg}px`,
+          p: paddingValue,
+          ...sx,
+        }}
     >
       {(title || actions) && (
         <Box

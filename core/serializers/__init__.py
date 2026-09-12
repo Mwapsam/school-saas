@@ -4,7 +4,11 @@ DRF Serializers that leverage services for business logic
 from .base import ServiceSerializerMixin
 from .student_serializers import (
     StudentSerializer, StudentListSerializer, StudentDetailSerializer,
-    StudentBulkCreateSerializer, StudentSearchSerializer, GuardianSerializer
+    StudentBulkCreateSerializer, StudentSearchSerializer, GuardianSerializer,
+    DocumentCategorySerializer, StudentDocumentSerializer,
+    FeeBalanceResponseSerializer, AttendanceSummaryResponseSerializer,
+    GuardianAttachSerializer, GuardianAttachResponseSerializer,
+    TermSummarySerializer
 )
 from .user_serializers import (
     UserSerializer, UserCreateSerializer, UserUpdateSerializer,
@@ -32,11 +36,18 @@ __all__ = [
     'ServiceSerializerMixin',
     # Student serializers
     'StudentSerializer',
-    'StudentListSerializer', 
+    'StudentListSerializer',
     'StudentDetailSerializer',
     'StudentBulkCreateSerializer',
     'StudentSearchSerializer',
     'GuardianSerializer',
+    'DocumentCategorySerializer',
+    'StudentDocumentSerializer',
+    'FeeBalanceResponseSerializer',
+    'AttendanceSummaryResponseSerializer',
+    'GuardianAttachSerializer',
+    'GuardianAttachResponseSerializer',
+    'TermSummarySerializer',
     # User serializers
     'UserSerializer',
     'UserCreateSerializer',

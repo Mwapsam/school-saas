@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button, Box, Typography, Grid, Paper, Alert, Tabs, Tab } from '@mui/material';
+import { Button, Box, Typography, Grid, Alert, Tabs, Tab } from '@mui/material';
 import { ChevronLeft as BackIcon, CallReceived as ConvertIcon } from '@mui/icons-material';
 import { useState } from 'react';
 import { useTenantStore } from '@/lib/tenant/store';
@@ -16,8 +16,10 @@ import { useEnquiry, useUpdateEnquiry, useConvertToApplication, EnquiryForm, typ
 import { Page } from '@/components/page/Page';
 import { PageHeader } from '@/components/page/PageHeader';
 import { PageContent } from '@/components/page/PageContent';
+import { SectionCard, DetailField } from '@/components/page';
 import { LoadingState } from '@/components/feedback/LoadingState';
 import { ErrorState } from '@/components/feedback/ErrorState';
+import { EmptyState } from '@/components/feedback/EmptyState';
 import { ConfirmDialog } from '@/components/feedback/ConfirmDialog';
 import { StatusBadge } from '@/components/data/StatusBadge';
 
@@ -109,30 +111,26 @@ export default function EnquiryDetailPage({ params }: { params: { id: string } }
         <Grid container spacing={3}>
           {/* Overview Panel */}
           <Grid item xs={12} md={3}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Overview
-              </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 1, fontSize: '0.875rem' }}>
-                <Typography variant="body2" color="textSecondary">Name:</Typography>
-                <Typography variant="body2">{`${enquiry.first_name} ${enquiry.last_name}`}</Typography>
-
-                <Typography variant="body2" color="textSecondary">Email:</Typography>
-                <Typography variant="body2">{enquiry.email || '-'}</Typography>
-
-                <Typography variant="body2" color="textSecondary">Phone:</Typography>
-                <Typography variant="body2">{enquiry.phone || '-'}</Typography>
-
-                <Typography variant="body2" color="textSecondary">Course:</Typography>
-                <Typography variant="body2">{enquiry.course?.name || '-'}</Typography>
-
-                <Typography variant="body2" color="textSecondary">Counselor:</Typography>
-                <Typography variant="body2">{enquiry.counselor?.full_name || '-'}</Typography>
-
-                <Typography variant="body2" color="textSecondary">Enquired:</Typography>
-                <Typography variant="body2">{new Date(enquiry.enquired_date).toLocaleDateString()}</Typography>
-              </Box>
-            </Paper>
+            <SectionCard title="Overview">
+              <DetailField
+                label="Name"
+                value={`${enquiry.first_name} ${enquiry.last_name}`}
+                labelWidth="80px"
+              />
+              <DetailField label="Email" value={enquiry.email || '-'} labelWidth="80px" truncate />
+              <DetailField label="Phone" value={enquiry.phone || '-'} labelWidth="80px" truncate />
+              <DetailField label="Course" value={enquiry.course?.name || '-'} labelWidth="80px" />
+              <DetailField
+                label="Counselor"
+                value={enquiry.counselor?.full_name || '-'}
+                labelWidth="80px"
+              />
+              <DetailField
+                label="Enquired"
+                value={new Date(enquiry.enquired_date).toLocaleDateString()}
+                labelWidth="80px"
+              />
+            </SectionCard>
           </Grid>
 
           {/* Main Content */}
@@ -147,7 +145,7 @@ export default function EnquiryDetailPage({ params }: { params: { id: string } }
 
             {/* Details Tab */}
             {tabValue === 0 && (
-              <Paper sx={{ p: 3 }}>
+              <SectionCard>
                 {can('admissions.enquiry.manage') ? (
                   <EnquiryForm
                     initialData={enquiry}
@@ -157,25 +155,18 @@ export default function EnquiryDetailPage({ params }: { params: { id: string } }
                   />
                 ) : (
                   <Box>
-                    <Typography variant="body2" color="textSecondary" gutterBottom>Name:</Typography>
-                    <Typography variant="body1" gutterBottom>{`${enquiry.first_name} ${enquiry.last_name}`}</Typography>
-
-                    <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }} gutterBottom>Email:</Typography>
-                    <Typography variant="body1" gutterBottom>{enquiry.email || '-'}</Typography>
-
-                    <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }} gutterBottom>Phone:</Typography>
-                    <Typography variant="body1" gutterBottom>{enquiry.phone || '-'}</Typography>
-
-                    <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }} gutterBottom>Remarks:</Typography>
-                    <Typography variant="body1">{enquiry.remarks || '-'}</Typography>
+                    <DetailField label="Name" value={`${enquiry.first_name} ${enquiry.last_name}`} />
+                    <DetailField label="Email" value={enquiry.email || '-'} truncate />
+                    <DetailField label="Phone" value={enquiry.phone || '-'} truncate />
+                    <DetailField label="Remarks" value={enquiry.remarks || '-'} />
                   </Box>
                 )}
-              </Paper>
+              </SectionCard>
             )}
 
             {/* History Tab */}
             {tabValue === 1 && (
-              <Paper sx={{ p: 3 }}>
+              <SectionCard>
                 {enquiry.stage_logs && enquiry.stage_logs.length > 0 ? (
                   <Box>
                     {enquiry.stage_logs.map((log) => (
@@ -211,22 +202,28 @@ export default function EnquiryDetailPage({ params }: { params: { id: string } }
                     ))}
                   </Box>
                 ) : (
-                  <Typography variant="body2" color="textSecondary">No stage history</Typography>
+                  <EmptyState message="No stage history" />
                 )}
-              </Paper>
+              </SectionCard>
             )}
 
             {/* Follow-ups Tab */}
             {tabValue === 2 && (
-              <Paper sx={{ p: 3 }}>
+              <SectionCard>
                 {enquiry.follow_ups && enquiry.follow_ups.length > 0 ? (
                   <Box>
                     {enquiry.follow_ups.map((followUp) => (
                       <Box key={followUp.id} sx={{ mb: 2, pb: 2, borderBottom: '1px solid #eee' }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                            <StatusBadge status={followUp.follow_up_type_display.toLowerCase()} />
-                            <StatusBadge status={followUp.status === 'completed' ? 'completed' : 'pending'} />
+                            <StatusBadge
+                              label={followUp.follow_up_type_display}
+                              status={followUp.follow_up_type_display.toLowerCase()}
+                            />
+                            <StatusBadge
+                              label={followUp.status === 'completed' ? 'Completed' : 'Pending'}
+                              status={followUp.status === 'completed' ? 'success' : 'warning'}
+                            />
                           </Box>
                           <Typography variant="caption" color="textSecondary">
                             {new Date(followUp.scheduled_date).toLocaleString()}
@@ -246,9 +243,9 @@ export default function EnquiryDetailPage({ params }: { params: { id: string } }
                     ))}
                   </Box>
                 ) : (
-                  <Typography variant="body2" color="textSecondary">No follow-ups</Typography>
+                  <EmptyState message="No follow-ups" />
                 )}
-              </Paper>
+              </SectionCard>
             )}
           </Grid>
         </Grid>

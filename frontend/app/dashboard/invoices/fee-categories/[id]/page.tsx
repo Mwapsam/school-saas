@@ -7,13 +7,14 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
-import { Button, Box, Typography, Grid, Paper, Alert } from '@mui/material';
+import { Button, Grid, Alert } from '@mui/material';
 import { Edit as EditIcon, ChevronLeft as BackIcon } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useFeeCategory } from '@/features/finance/hooks';
 import { Page } from '@/components/page/Page';
 import { PageHeader } from '@/components/page/PageHeader';
 import { PageContent } from '@/components/page/PageContent';
+import { SectionCard, DetailField } from '@/components/page';
 import { LoadingState } from '@/components/feedback/LoadingState';
 import { ErrorState } from '@/components/feedback/ErrorState';
 
@@ -79,41 +80,13 @@ export default function FeeCategoryDetailPage({ params }: { params: { id: string
       <PageContent>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Fee Category Information
-              </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 1 }}>
-                <Typography variant="body2" color="textSecondary">
-                  Name:
-                </Typography>
-                <Typography variant="body2">{feeCategory.name}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Description:
-                </Typography>
-                <Typography variant="body2">{feeCategory.description || '-'}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Academic Year:
-                </Typography>
-                <Typography variant="body2">{feeCategory.academic_year_label || '-'}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Created:
-                </Typography>
-                <Typography variant="body2">
-                  {new Date(feeCategory.created_at).toLocaleDateString()}
-                </Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Updated:
-                </Typography>
-                <Typography variant="body2">
-                  {new Date(feeCategory.updated_at).toLocaleDateString()}
-                </Typography>
-              </Box>
-            </Paper>
+            <SectionCard title="Fee Category Information">
+              <DetailField label="Name" value={feeCategory.name} />
+              <DetailField label="Description" value={feeCategory.description || '-'} />
+              <DetailField label="Academic Year" value={feeCategory.academic_year_label || '-'} />
+              <DetailField label="Created" value={new Date(feeCategory.created_at).toLocaleDateString()} />
+              <DetailField label="Updated" value={new Date(feeCategory.updated_at).toLocaleDateString()} />
+            </SectionCard>
           </Grid>
         </Grid>
       </PageContent>

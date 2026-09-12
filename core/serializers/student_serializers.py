@@ -5,7 +5,7 @@ from rest_framework import serializers
 from datetime import date
 
 from django.db import models
-from core.models import Student, Guardian, Country, StudentCategory
+from core.models import Student, Guardian, Country, StudentCategory, StudentDocument, DocumentCategory
 from core.services.student_service import StudentService
 from .base import TenantAwareSerializer, ReadOnlyServiceSerializer
 
@@ -291,16 +291,16 @@ class StudentSearchSerializer(serializers.Serializer):
     active_only = serializers.BooleanField(default=True)
     limit = serializers.IntegerField(default=20, min_value=1, max_value=100)
     batch_id = serializers.UUIDField(required=False, allow_null=True)
-    
+
     def search(self):
         """Perform search using StudentService"""
         tenant = self.context.get('tenant')
         if not tenant:
             raise serializers.ValidationError("Tenant context required")
-        
+
         service = StudentService(tenant)
         validated_data = self.validated_data
-        
+
         if validated_data.get('batch_id'):
             # Search within specific batch
             students = service.get_students_by_batch(
@@ -321,5 +321,116 @@ class StudentSearchSerializer(serializers.Serializer):
                 validated_data['active_only'],
                 validated_data['limit']
             )
-        
+
         return students
+
+
+class DocumentCategorySerializer(TenantAwareSerializer):
+    """Serializer for document categories"""
+    class Meta:
+        model = DocumentCategory
+        fields = ['id', 'name', 'code', 'description', 'is_required', 'display_order', 'is_active']
+        read_only_fields = ['id']
+
+
+class StudentDocumentSerializer(TenantAwareSerializer):
+    """Serializer for student documents"""
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    file_url = serializers.SerializerMethodField()
+    file_size_mb = serializers.SerializerMethodField()
+
+    class Meta:
+        model = StudentDocument
+        fields = ['id', 'category', 'category_name', 'original_filename', 'note',
+                 'uploaded_by_id', 'uploaded_at', 'file_url', 'file_size_mb']
+        read_only_fields = ['id', 'uploaded_at', 'file_url', 'file_size_mb']
+
+    def get_file_url(self, obj):
+        """Get file URL"""
+        if hasattr(obj, 'file') and obj.file:
+            return obj.file.url
+        return None
+
+    def get_file_size_mb(self, obj):
+        """Get file size in MB"""
+        if hasattr(obj, 'file') and obj.file:
+            try:
+                return round(obj.file.size / (1024 * 1024), 2)
+            except:
+                return None
+        return None
+
+
+class FeeBalanceResponseSerializer(serializers.Serializer):
+    """Response serializer for fee balance endpoint"""
+    student_id = serializers.CharField()
+    balance = serializers.DecimalField(max_digits=12, decimal_places=2)
+    currency = serializers.CharField(required=False)
+    as_of_date = serializers.DateField(required=False)
+
+
+class TermSummarySerializer(serializers.Serializer):
+    """Serializer for term summary in attendance response"""
+    id = serializers.CharField()
+    name = serializers.CharField()
+    start_date = serializers.DateField()
+    end_date = serializers.DateField()
+
+
+class AttendanceSummaryResponseSerializer(serializers.Serializer):
+    """Response serializer for attendance summary endpoint"""
+    student_id = serializers.CharField()
+    total_days = serializers.IntegerField()
+    present_days = serializers.FloatField()
+    absent_days = serializers.FloatField()
+    attendance_percentage = serializers.FloatField()
+    available_terms = TermSummarySerializer(many=True, required=False)
+    current_term_id = serializers.CharField(required=False)
+
+
+class GuardianAttachSerializer(serializers.Serializer):
+    """Serializer for attaching a guardian to a student"""
+    # Mode 1: Link existing guardian
+    guardian_id = serializers.CharField(required=False, allow_blank=True)
+
+    # Mode 2: Create new guardian
+    first_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_blank=True)
+    mobile_phone = serializers.CharField(required=False, allow_blank=True)
+    office_phone = serializers.CharField(required=False, allow_blank=True)
+    email = serializers.CharField(required=False, allow_blank=True)
+    occupation = serializers.CharField(required=False, allow_blank=True)
+
+    # Common fields for both modes
+    relation = serializers.CharField()
+    is_immediate_contact = serializers.BooleanField(default=False)
+
+    def validate(self, data):
+        """Ensure at least one mode is complete"""
+        has_guardian_id = data.get('guardian_id')
+        has_create_fields = any([
+            data.get('first_name'),
+            data.get('last_name'),
+            data.get('mobile_phone'),
+            data.get('email')
+        ])
+
+        if not has_guardian_id and not has_create_fields:
+            raise serializers.ValidationError(
+                "Either guardian_id or guardian creation fields (first_name, last_name, mobile_phone) are required"
+            )
+
+        if has_guardian_id and has_create_fields:
+            raise serializers.ValidationError(
+                "Cannot provide both guardian_id and guardian creation fields"
+            )
+
+        return data
+
+
+class GuardianAttachResponseSerializer(serializers.Serializer):
+    """Response serializer for guardian attach operation"""
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+    guardian_id = serializers.CharField(required=False)
+    credentials_sent = serializers.BooleanField(required=False)

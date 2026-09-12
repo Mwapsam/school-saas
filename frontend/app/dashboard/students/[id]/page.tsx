@@ -1,32 +1,118 @@
-/**
- * Student detail page.
- *
- * Reference implementation using design system:
- * - Page wrapper for consistent layout
- * - PageHeader for title and back button
- * - ErrorState, LoadingState for states
- */
-
 'use client';
 
 export const dynamic = 'force-dynamic';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Box, Button, Grid, Paper, Alert, Typography } from '@mui/material';
-import { Edit as EditIcon, ArrowBack as BackIcon } from '@mui/icons-material';
+import {
+  Button,
+  Grid,
+  Alert,
+  Tabs,
+  Tab,
+  Box,
+  Avatar,
+  Typography,
+  Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Checkbox,
+  FormControlLabel,
+  Card,
+  CardContent,
+  Divider,
+  List,
+  ListItem,
+  ListItemText,
+  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+} from '@mui/material';
+import {
+  Edit as EditIcon,
+  ArrowBack as BackIcon,
+  PersonAdd as PersonAddIcon,
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
-import { useStudent } from '@/features/students/hooks';
+import {
+  useStudent,
+  useStudentFeeBalance,
+  useStudentAttendanceSummary,
+  useStudentDocuments,
+  useDeleteDocument,
+  useStudentGuardians,
+  useAttachGuardian,
+} from '@/features/students/hooks';
 import { Page } from '@/components/page/Page';
 import { PageHeader } from '@/components/page/PageHeader';
 import { PageContent } from '@/components/page/PageContent';
+import { SectionCard, DetailField } from '@/components/page';
+import { StatusBadge } from '@/components/data/StatusBadge';
 import { LoadingState } from '@/components/feedback/LoadingState';
 import { ErrorState } from '@/components/feedback/ErrorState';
 
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`tabpanel-${index}`}
+      aria-labelledby={`tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
+    </div>
+  );
+}
+
 export default function StudentDetailPage({ params }: { params: { id: string } }) {
-  const router = useRouter();
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
   const { data: student, isLoading, error } = useStudent(params.id);
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState(0);
+
+  // Attach guardian dialog
+  const [attachDialogOpen, setAttachDialogOpen] = useState(false);
+  const [guardianMode, setGuardianMode] = useState<'existing' | 'new'>('existing');
+  const [guardianForm, setGuardianForm] = useState({
+    guardian_id: '',
+    first_name: '',
+    last_name: '',
+    mobile_phone: '',
+    email: '',
+    occupation: '',
+    relation: '',
+    is_immediate_contact: false,
+  });
+
+  // Additional data
+  const { data: feeBalance } = useStudentFeeBalance(params.id);
+  const { data: attendanceSummary } = useStudentAttendanceSummary(params.id);
+  const { data: documents } = useStudentDocuments(params.id);
+  const { data: guardians } = useStudentGuardians(params.id);
+  const attachGuardianMutation = useAttachGuardian(params.id);
+  const deleteDocumentMutation = useDeleteDocument(params.id);
 
   if (!bootstrap) {
     return <Page><LoadingState message="Loading configuration..." /></Page>;
@@ -58,11 +144,59 @@ export default function StudentDetailPage({ params }: { params: { id: string } }
     );
   }
 
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
+  };
+
+  const handleAttachGuardian = async () => {
+    try {
+      const payload =
+        guardianMode === 'existing'
+          ? {
+              guardian_id: guardianForm.guardian_id,
+              relation: guardianForm.relation,
+              is_immediate_contact: guardianForm.is_immediate_contact,
+            }
+          : {
+              first_name: guardianForm.first_name,
+              last_name: guardianForm.last_name,
+              mobile_phone: guardianForm.mobile_phone,
+              email: guardianForm.email,
+              occupation: guardianForm.occupation,
+              relation: guardianForm.relation,
+              is_immediate_contact: guardianForm.is_immediate_contact,
+            };
+
+      await attachGuardianMutation.mutateAsync(payload as any);
+      setAttachDialogOpen(false);
+      setGuardianForm({
+        guardian_id: '',
+        first_name: '',
+        last_name: '',
+        mobile_phone: '',
+        email: '',
+        occupation: '',
+        relation: '',
+        is_immediate_contact: false,
+      });
+    } catch (err) {
+      console.error('Failed to attach guardian:', err);
+    }
+  };
+
+  // Get active batch
+  const activeBatch = student.batches?.find((b) => b.is_active);
+
+  // Get full name with middle name
+  const fullNameWithMiddle = [student.first_name, student.middle_name, student.last_name]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <Page>
       <PageHeader
-        title={student.full_name}
-        description="Student enrollment and personal information"
+        title={fullNameWithMiddle}
+        description={`Admission No: ${student.admission_no}`}
         actions={
           can('students.update') && (
             <Link href={`/dashboard/students/${student.id}/edit`} passHref legacyBehavior>
@@ -82,167 +216,381 @@ export default function StudentDetailPage({ params }: { params: { id: string } }
       />
 
       <PageContent>
+        {/* Inactive alert */}
+        {!student.is_active && (
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            This student is inactive. {student.status_description && `Reason: ${student.status_description}`}
+          </Alert>
+        )}
 
-        {/* Details */}
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Personal Information
-              </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 1 }}>
-                <Typography variant="body2" color="textSecondary">
-                  Admission #:
-                </Typography>
-                <Typography variant="body2">{student.admission_no}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Admission Date:
-                </Typography>
-                <Typography variant="body2">{student.admission_date}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Date of Birth:
-                </Typography>
-                <Typography variant="body2">{student.date_of_birth}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Age:
-                </Typography>
-                <Typography variant="body2">{student.age ?? '-'}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Gender:
-                </Typography>
-                <Typography variant="body2">
-                  {student.gender.charAt(0).toUpperCase() + student.gender.slice(1)}
-                </Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Email:
-                </Typography>
-                <Typography variant="body2">{student.email || '-'}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Phone 1:
-                </Typography>
-                <Typography variant="body2">{student.phone1 || '-'}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Phone 2:
-                </Typography>
-                <Typography variant="body2">{student.phone2 || '-'}</Typography>
+          {/* LEFT COLUMN */}
+          <Grid item xs={12} md={4}>
+            {/* Basic Information */}
+            <SectionCard title="Basic Information">
+              <Box sx={{ textAlign: 'center', mb: 2 }}>
+                <Avatar
+                  sx={{ width: 80, height: 80, mx: 'auto', mb: 1, bgcolor: 'primary.main' }}
+                >
+                  {fullNameWithMiddle.charAt(0).toUpperCase()}
+                </Avatar>
+                <Typography variant="h6">{fullNameWithMiddle}</Typography>
               </Box>
-            </Paper>
+              <Divider sx={{ my: 2 }} />
+              <DetailField label="Admission #" value={student.admission_no} />
+              <DetailField label="Admission Date" value={student.admission_date} />
+              <DetailField label="Date of Birth" value={student.date_of_birth} />
+              <DetailField label="Age" value={student.age ?? '-'} />
+              <DetailField
+                label="Gender"
+                value={student.gender.charAt(0).toUpperCase() + student.gender.slice(1)}
+              />
+              {student.blood_group && <DetailField label="Blood Group" value={student.blood_group} />}
+            </SectionCard>
+
+            {/* Contact Information */}
+            <SectionCard title="Contact Information" sx={{ mt: 3 }}>
+              {student.email ? (
+                <DetailField label="Email" value={student.email} truncate />
+              ) : (
+                <DetailField label="Email" value="-" />
+              )}
+              {student.phone1 ? (
+                <DetailField label="Phone 1" value={student.phone1} />
+              ) : (
+                <DetailField label="Phone 1" value="-" />
+              )}
+              {student.phone2 ? (
+                <DetailField label="Phone 2" value={student.phone2} />
+              ) : (
+                <DetailField label="Phone 2" value="-" />
+              )}
+            </SectionCard>
+
+            {/* Guardians */}
+            <SectionCard title="Guardians" sx={{ mt: 3 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<PersonAddIcon />}
+                onClick={() => setAttachDialogOpen(true)}
+                sx={{ mb: 2 }}
+              >
+                Attach Guardian
+              </Button>
+
+              {guardians?.results && guardians.results.length > 0 ? (
+                <List disablePadding>
+                  {guardians.results.map((guardian) => (
+                    <ListItem key={guardian.id} disablePadding sx={{ mb: 1, pb: 1, borderBottom: '1px solid #eee' }}>
+                      <ListItemText
+                        primary={guardian.name}
+                        secondary={
+                          <>
+                            <Typography variant="caption" display="block">
+                              {guardian.relation}
+                              {guardian.is_immediate_contact && (
+                                <StatusBadge label="Primary" status="info" />
+                              )}
+                            </Typography>
+                            {guardian.phone && (
+                              <Typography variant="caption" display="block">
+                                {guardian.phone}
+                              </Typography>
+                            )}
+                          </>
+                        }
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography variant="body2" color="textSecondary">
+                  No guardians attached
+                </Typography>
+              )}
+            </SectionCard>
           </Grid>
 
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2, mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Address
-              </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 1 }}>
-                <Typography variant="body2" color="textSecondary">
-                  Address:
-                </Typography>
-                <Typography variant="body2">
-                  {[student.address_line1, student.address_line2].filter(Boolean).join(', ') || '-'}
-                </Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  City / State:
-                </Typography>
-                <Typography variant="body2">
-                  {[student.city, student.state].filter(Boolean).join(', ') || '-'}
-                </Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Pin Code:
-                </Typography>
-                <Typography variant="body2">{student.pin_code || '-'}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Country:
-                </Typography>
-                <Typography variant="body2">{student.country_name || '-'}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Nationality:
-                </Typography>
-                <Typography variant="body2">{student.nationality_name || '-'}</Typography>
-              </Box>
-            </Paper>
-
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Academic Information
-              </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 1 }}>
-                <Typography variant="body2" color="textSecondary">
-                  Batches:
-                </Typography>
-                <Typography variant="body2">
-                  {student.batches.length > 0
-                    ? student.batches.map((b) => b.name).join(', ')
-                    : '-'}
-                </Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Status:
-                </Typography>
-                <Box
-                  sx={{
-                    display: 'inline-block',
-                    px: 1,
-                    py: 0.5,
-                    backgroundColor: student.is_active ? '#e8f5e9' : '#ffebee',
-                    color: student.is_active ? '#2e7d32' : '#c62828',
-                    borderRadius: 1,
-                    fontSize: '0.85rem',
-                    fontWeight: 500,
-                    width: 'fit-content',
-                  }}
-                >
-                  {student.is_active ? 'Active' : 'Inactive'}
-                </Box>
-
-                <Typography variant="body2" color="textSecondary">
-                  Created:
-                </Typography>
-                <Typography variant="body2">
-                  {new Date(student.created_at).toLocaleDateString()}
-                </Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Updated:
-                </Typography>
-                <Typography variant="body2">
-                  {new Date(student.updated_at).toLocaleDateString()}
-                </Typography>
-              </Box>
-            </Paper>
-
-            {student.guardians.length > 0 && (
-              <Paper sx={{ p: 2, mt: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Guardians
-                </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 1 }}>
-                  {student.guardians.map((g) => (
-                    <Box key={g.id} sx={{ display: 'contents' }}>
-                      <Typography variant="body2" color="textSecondary">
-                        {g.relationship}:
-                      </Typography>
-                      <Typography variant="body2">
-                        {g.name} {g.phone ? `(${g.phone})` : ''}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-              </Paper>
+          {/* RIGHT COLUMN */}
+          <Grid item xs={12} md={8}>
+            {/* Current Enrollment */}
+            {activeBatch && (
+              <SectionCard title="Current Enrollment">
+                <DetailField label="Batch" value={activeBatch.name} />
+                <DetailField label="Roll Number" value={activeBatch.roll_number || '-'} />
+                <DetailField label="Status" value={<StatusBadge label="Active" status="success" />} />
+              </SectionCard>
             )}
+
+            {/* Tabbed Card */}
+            <Card sx={{ mt: 3 }}>
+              <Tabs
+                value={activeTab}
+                onChange={handleTabChange}
+                aria-label="student detail tabs"
+                sx={{ borderBottom: 1, borderColor: 'divider', pl: 2 }}
+              >
+                <Tab label="Attendance" id="tab-0" aria-controls="tabpanel-0" />
+                <Tab label="Fees" id="tab-1" aria-controls="tabpanel-1" />
+                <Tab label="Address" id="tab-2" aria-controls="tabpanel-2" />
+                <Tab label="Reports" id="tab-3" aria-controls="tabpanel-3" />
+                <Tab label="Documents" id="tab-4" aria-controls="tabpanel-4" />
+              </Tabs>
+
+              <CardContent>
+                {/* Attendance Tab */}
+                <TabPanel value={activeTab} index={0}>
+                  {attendanceSummary ? (
+                    <Box>
+                      <Grid container spacing={2} sx={{ mb: 3 }}>
+                        <Grid item xs={6} sm={3}>
+                          <Paper sx={{ p: 2, textAlign: 'center' }}>
+                            <Typography variant="h6">{attendanceSummary.total_days}</Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              Total Days
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <Paper sx={{ p: 2, textAlign: 'center' }}>
+                            <Typography variant="h6">{attendanceSummary.present_days}</Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              Present
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <Paper sx={{ p: 2, textAlign: 'center' }}>
+                            <Typography variant="h6">{attendanceSummary.absent_days}</Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              Absent
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <Paper sx={{ p: 2, textAlign: 'center' }}>
+                            <Typography variant="h6">{attendanceSummary.attendance_percentage}%</Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              Percentage
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                      </Grid>
+
+                      {attendanceSummary.available_terms && attendanceSummary.available_terms.length > 0 && (
+                        <FormControl fullWidth sx={{ mt: 2 }}>
+                          <InputLabel>Select Term</InputLabel>
+                          <Select label="Select Term" value="">
+                            {attendanceSummary.available_terms.map((term) => (
+                              <MenuItem key={term.id} value={term.id}>
+                                {term.name}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      )}
+                    </Box>
+                  ) : (
+                    <Typography color="textSecondary">Loading attendance...</Typography>
+                  )}
+                </TabPanel>
+
+                {/* Fees Tab */}
+                <TabPanel value={activeTab} index={1}>
+                  {feeBalance ? (
+                    <Box>
+                      {feeBalance.balance > 0 && (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                          Outstanding Balance: {feeBalance.balance}
+                        </Alert>
+                      )}
+                      {feeBalance.balance === 0 && (
+                        <Alert severity="success" sx={{ mb: 2 }}>
+                          No outstanding fees
+                        </Alert>
+                      )}
+                      {feeBalance.balance < 0 && (
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                          Credit Balance: {Math.abs(feeBalance.balance)}
+                        </Alert>
+                      )}
+                    </Box>
+                  ) : (
+                    <Typography color="textSecondary">Loading fee information...</Typography>
+                  )}
+                </TabPanel>
+
+                {/* Address Tab */}
+                <TabPanel value={activeTab} index={2}>
+                  {student.address_line1 || student.city || student.state ? (
+                    <Box>
+                      <DetailField
+                        label="Address"
+                        value={[student.address_line1, student.address_line2]
+                          .filter(Boolean)
+                          .join(', ') || '-'}
+                      />
+                      <DetailField
+                        label="City / State"
+                        value={[student.city, student.state].filter(Boolean).join(', ') || '-'}
+                      />
+                      <DetailField label="Pin Code" value={student.pin_code || '-'} />
+                      <DetailField label="Country" value={student.country_name || '-'} />
+                    </Box>
+                  ) : (
+                    <Typography color="textSecondary">No address information available</Typography>
+                  )}
+                </TabPanel>
+
+                {/* Reports Tab */}
+                <TabPanel value={activeTab} index={3}>
+                  <Typography variant="body2" color="textSecondary">
+                    Report generation features coming soon
+                  </Typography>
+                </TabPanel>
+
+                {/* Documents Tab */}
+                <TabPanel value={activeTab} index={4}>
+                  {documents?.results && documents.results.length > 0 ? (
+                    <TableContainer>
+                      <Table>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Category</TableCell>
+                            <TableCell>Filename</TableCell>
+                            <TableCell>Uploaded</TableCell>
+                            <TableCell align="right">Actions</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {documents.results.map((doc) => (
+                            <TableRow key={doc.id}>
+                              <TableCell>{doc.category_name}</TableCell>
+                              <TableCell>{doc.original_filename}</TableCell>
+                              <TableCell>{new Date(doc.uploaded_at).toLocaleDateString()}</TableCell>
+                              <TableCell align="right">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => deleteDocumentMutation.mutate(doc.id)}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  ) : (
+                    <Typography color="textSecondary">No documents uploaded</Typography>
+                  )}
+                </TabPanel>
+              </CardContent>
+            </Card>
           </Grid>
         </Grid>
+
+        {/* Attach Guardian Dialog */}
+        <Dialog open={attachDialogOpen} onClose={() => setAttachDialogOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Attach Guardian</DialogTitle>
+          <DialogContent>
+            <Box sx={{ display: 'flex', gap: 2, my: 2 }}>
+              <Button
+                variant={guardianMode === 'existing' ? 'contained' : 'outlined'}
+                onClick={() => setGuardianMode('existing')}
+              >
+                Link Existing
+              </Button>
+              <Button
+                variant={guardianMode === 'new' ? 'contained' : 'outlined'}
+                onClick={() => setGuardianMode('new')}
+              >
+                Create New
+              </Button>
+            </Box>
+
+            {guardianMode === 'existing' ? (
+              <TextField
+                fullWidth
+                label="Guardian ID"
+                value={guardianForm.guardian_id}
+                onChange={(e) => setGuardianForm({ ...guardianForm, guardian_id: e.target.value })}
+                margin="normal"
+              />
+            ) : (
+              <>
+                <TextField
+                  fullWidth
+                  label="First Name"
+                  value={guardianForm.first_name}
+                  onChange={(e) => setGuardianForm({ ...guardianForm, first_name: e.target.value })}
+                  margin="normal"
+                />
+                <TextField
+                  fullWidth
+                  label="Last Name"
+                  value={guardianForm.last_name}
+                  onChange={(e) => setGuardianForm({ ...guardianForm, last_name: e.target.value })}
+                  margin="normal"
+                />
+                <TextField
+                  fullWidth
+                  label="Mobile Phone"
+                  value={guardianForm.mobile_phone}
+                  onChange={(e) => setGuardianForm({ ...guardianForm, mobile_phone: e.target.value })}
+                  margin="normal"
+                />
+                <TextField
+                  fullWidth
+                  label="Email"
+                  type="email"
+                  value={guardianForm.email}
+                  onChange={(e) => setGuardianForm({ ...guardianForm, email: e.target.value })}
+                  margin="normal"
+                />
+                <TextField
+                  fullWidth
+                  label="Occupation"
+                  value={guardianForm.occupation}
+                  onChange={(e) => setGuardianForm({ ...guardianForm, occupation: e.target.value })}
+                  margin="normal"
+                />
+              </>
+            )}
+
+            <TextField
+              fullWidth
+              label="Relationship"
+              value={guardianForm.relation}
+              onChange={(e) => setGuardianForm({ ...guardianForm, relation: e.target.value })}
+              margin="normal"
+            />
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={guardianForm.is_immediate_contact}
+                  onChange={(e) =>
+                    setGuardianForm({ ...guardianForm, is_immediate_contact: e.target.checked })
+                  }
+                />
+              }
+              label="Set as primary contact"
+              sx={{ mt: 2 }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setAttachDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleAttachGuardian}
+              variant="contained"
+              disabled={attachGuardianMutation.isPending}
+            >
+              Attach
+            </Button>
+          </DialogActions>
+        </Dialog>
       </PageContent>
     </Page>
   );

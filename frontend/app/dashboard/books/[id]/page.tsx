@@ -7,13 +7,15 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
-import { Button, Box, Typography, Grid, Paper, Alert } from '@mui/material';
+import { Button, Grid, Alert } from '@mui/material';
 import { ChevronLeft as BackIcon } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useBook } from '@/features/library/hooks';
 import { Page } from '@/components/page/Page';
 import { PageHeader } from '@/components/page/PageHeader';
 import { PageContent } from '@/components/page/PageContent';
+import { SectionCard, DetailField } from '@/components/page';
+import { StatusBadge } from '@/components/data/StatusBadge';
 import { LoadingState } from '@/components/feedback/LoadingState';
 import { ErrorState } from '@/components/feedback/ErrorState';
 
@@ -48,7 +50,7 @@ export default function LibraryBookDetailPage({ params }: { params: { id: string
   if (error || !book) {
     return (
       <Page>
-        <ErrorState error={error} onRetry={() => refetch()} />
+        <ErrorState error={error || undefined} onRetry={() => refetch()} />
       </Page>
     );
   }
@@ -70,49 +72,24 @@ export default function LibraryBookDetailPage({ params }: { params: { id: string
       <PageContent>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Book Information
-              </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 1 }}>
-                <Typography variant="body2" color="textSecondary">
-                  Title:
-                </Typography>
-                <Typography variant="body2">{book.title}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Author:
-                </Typography>
-                <Typography variant="body2">{book.author}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  ISBN:
-                </Typography>
-                <Typography variant="body2">{book.isbn}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Category:
-                </Typography>
-                <Typography variant="body2">{book.category_name || '-'}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Total Copies:
-                </Typography>
-                <Typography variant="body2">{book.total_copies}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Available Copies:
-                </Typography>
-                <Typography variant="body2">{book.available_copies}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Created:
-                </Typography>
-                <Typography variant="body2">
-                  {new Date(book.created_at).toLocaleDateString()}
-                </Typography>
-              </Box>
-            </Paper>
+            <SectionCard title="Book Information">
+              <DetailField label="Title" value={book.title} />
+              <DetailField label="Author" value={book.author} truncate />
+              <DetailField label="ISBN" value={book.isbn} />
+              <DetailField label="Category" value={book.category_name || '-'} />
+              <DetailField label="Total Copies" value={book.total_copies} />
+              <DetailField
+                label="Available Copies"
+                value={
+                  book.available_copies === 0 ? (
+                    <StatusBadge label="Out of Stock" status="error" />
+                  ) : (
+                    `${book.available_copies} / ${book.total_copies}`
+                  )
+                }
+              />
+              <DetailField label="Created" value={new Date(book.created_at).toLocaleDateString()} />
+            </SectionCard>
           </Grid>
         </Grid>
       </PageContent>

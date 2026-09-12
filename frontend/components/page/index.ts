@@ -2,3 +2,4 @@ export { Page } from './Page';
 export { PageHeader } from './PageHeader';
 export { PageContent } from './PageContent';
 export { SectionCard } from './SectionCard';
+export { DetailField } from './DetailField';

@@ -8,19 +8,22 @@ export const dynamic = 'force-dynamic';
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button, Grid, Paper, Table, TableHead, TableBody, TableRow, TableCell, Typography, Box, Alert } from '@mui/material';
+import { Button, Grid, Table, TableHead, TableBody, TableRow, TableCell, Typography, Box, Alert, TableContainer, useTheme } from '@mui/material';
 import { ChevronLeft as BackIcon, PictureAsPdf as PdfIcon } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useInvoice, getInvoicePdfUrl } from '@/features/finance/hooks';
 import { Page } from '@/components/page/Page';
 import { PageHeader } from '@/components/page/PageHeader';
 import { PageContent } from '@/components/page/PageContent';
+import { SectionCard, DetailField } from '@/components/page';
 import { LoadingState } from '@/components/feedback/LoadingState';
 import { ErrorState } from '@/components/feedback/ErrorState';
+import { EmptyState } from '@/components/feedback/EmptyState';
 import { StatusBadge } from '@/components/data/StatusBadge';
 
 export default function InvoiceDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
+  const theme = useTheme();
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
   const { data: invoice, isLoading, error, refetch } = useInvoice(params.id);
 
@@ -77,111 +80,70 @@ export default function InvoiceDetailPage({ params }: { params: { id: string } }
       <PageContent>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Invoice Details
-              </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 1 }}>
-                <Typography variant="body2" color="textSecondary">
-                  Invoice #:
-                </Typography>
-                <Typography variant="body2">{invoice.invoice_number}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Guardian:
-                </Typography>
-                <Typography variant="body2">{invoice.guardian_name}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Academic Year:
-                </Typography>
-                <Typography variant="body2">{invoice.academic_year_label}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Due Date:
-                </Typography>
-                <Typography variant="body2">{invoice.due_date || '—'}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Status:
-                </Typography>
-                <Box>
-                  <StatusBadge status={invoice.status} />
-                </Box>
-              </Box>
-            </Paper>
+            <SectionCard title="Invoice Details">
+              <DetailField label="Invoice #" value={invoice.invoice_number} />
+              <DetailField label="Guardian" value={invoice.guardian_name} truncate />
+              <DetailField label="Academic Year" value={invoice.academic_year_label} />
+              <DetailField label="Due Date" value={invoice.due_date || '—'} />
+              <DetailField
+                label="Status"
+                value={
+                  <StatusBadge label={invoice.status} status={invoice.status} />
+                }
+              />
+            </SectionCard>
           </Grid>
 
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Amounts
-              </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 1 }}>
-                <Typography variant="body2" color="textSecondary">
-                  Subtotal:
-                </Typography>
-                <Typography variant="body2">${Number(invoice.subtotal).toFixed(2)}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Amount Paid:
-                </Typography>
-                <Typography variant="body2">${Number(invoice.amount_paid).toFixed(2)}</Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Balance Due:
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: invoice.balance_due > 0 ? '#c62828' : '#2e7d32' }}>
-                  ${Number(invoice.balance_due).toFixed(2)}
-                </Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Generated:
-                </Typography>
-                <Typography variant="body2">
-                  {new Date(invoice.generated_at).toLocaleDateString()}
-                </Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Last Updated:
-                </Typography>
-                <Typography variant="body2">
-                  {new Date(invoice.last_updated_at).toLocaleDateString()}
-                </Typography>
-              </Box>
-            </Paper>
+            <SectionCard title="Amounts">
+              <DetailField label="Subtotal" value={`$${Number(invoice.subtotal).toFixed(2)}`} />
+              <DetailField label="Amount Paid" value={`$${Number(invoice.amount_paid).toFixed(2)}`} />
+              <DetailField
+                label="Balance Due"
+                value={
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 600,
+                      color: invoice.balance_due > 0 ? theme.palette.error.main : theme.palette.success.main,
+                    }}
+                  >
+                    ${Number(invoice.balance_due).toFixed(2)}
+                  </Typography>
+                }
+              />
+              <DetailField label="Generated" value={new Date(invoice.generated_at).toLocaleDateString()} />
+              <DetailField label="Last Updated" value={new Date(invoice.last_updated_at).toLocaleDateString()} />
+            </SectionCard>
           </Grid>
 
           <Grid item xs={12}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Billed Items
-              </Typography>
+            <SectionCard title="Billed Items">
               {invoice.lines.length === 0 ? (
-                <Typography variant="body2" color="textSecondary">
-                  No line items on this invoice.
-                </Typography>
+                <EmptyState message="No line items on this invoice." />
               ) : (
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Student</TableCell>
-                      <TableCell>Description</TableCell>
-                      <TableCell align="right">Amount</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {invoice.lines.map((line) => (
-                      <TableRow key={line.id}>
-                        <TableCell>{line.student_name}</TableCell>
-                        <TableCell>{line.description}</TableCell>
-                        <TableCell align="right">${Number(line.amount).toFixed(2)}</TableCell>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Student</TableCell>
+                        <TableCell>Description</TableCell>
+                        <TableCell align="right">Amount</TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHead>
+                    <TableBody>
+                      {invoice.lines.map((line) => (
+                        <TableRow key={line.id}>
+                          <TableCell>{line.student_name}</TableCell>
+                          <TableCell>{line.description}</TableCell>
+                          <TableCell align="right">${Number(line.amount).toFixed(2)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               )}
-            </Paper>
+            </SectionCard>
           </Grid>
         </Grid>
       </PageContent>
