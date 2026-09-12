@@ -60,8 +60,10 @@ export const NAV_MODULES: NavModule[] = [
       key: 'admissions',
       label: 'Admissions',
       sections: [
+        { label: 'New Application', href: '/dashboard/admissions/multi-step', capability: 'admissions.application.manage' },
+        { label: 'Applicants', href: '/dashboard/admissions/applicants', capability: 'admissions.application.manage' },
         { label: 'Applications', href: '/dashboard/admissions', capability: 'admissions.application.view' },
-        { label: 'Inquiries', href: '/dashboard/inquiries', capability: 'admissions.application.view' },
+        { label: 'Inquiries', href: '/dashboard/inquiries', capability: 'admissions.enquiry.view' },
       ],
     },
     {

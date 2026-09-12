@@ -100,6 +100,11 @@ from .view_modules.enquiry_views import (
     ApplicantEnquiryViewSet,
 )
 
+from .api.batch_assignment import (
+    BatchAssignmentViewSet,
+    AdmissionDiagnosticsViewSet,
+)
+
 # Create router for ViewSets
 router = DefaultRouter()
 
@@ -143,6 +148,8 @@ router.register(r'employee-exits', EmployeeExitViewSet, basename='employee-exit'
 
 # Admissions domain endpoints
 router.register(r'admission-applications', AdmissionApplicationViewSet, basename='admission-application')
+router.register(r'admission-batch-assignment', BatchAssignmentViewSet, basename='batch-assignment')
+router.register(r'admission-diagnostics', AdmissionDiagnosticsViewSet, basename='admission-diagnostics')
 
 # Hostel domain endpoints
 router.register(r'hostel-rooms', HostelRoomViewSet, basename='hostel-room')

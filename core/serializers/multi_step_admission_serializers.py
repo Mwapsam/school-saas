@@ -13,11 +13,11 @@ class AdmissionStep1Serializer(TenantAwareSerializer):
     """
     Step 1: Academic Year Selection, Class Selection, Terms and Conditions
     """
-    
+
     class Meta:
         model = ExtendedAdmissionApplication
         fields = [
-            'id', 'academic_year', 'course_applied', 'terms_agreement',
+            'id', 'academic_year', 'course_applied', 'terms_agreement', 'preferred_start_date',
             'application_number', 'current_step', 'status'
         ]
         read_only_fields = ['id', 'application_number', 'current_step', 'status']
@@ -80,11 +80,11 @@ class AdmissionStep3Serializer(TenantAwareSerializer):
     """
     Step 3: Student Communication Details
     """
-    
+
     class Meta:
         model = ExtendedAdmissionApplication
         fields = [
-            'id', 'address_line1', 'address_line2', 'city', 'country',
+            'id', 'address', 'address_line1', 'address_line2', 'city', 'country',
             'phone', 'mobile', 'email', 'current_step', 'status'
         ]
         read_only_fields = ['id', 'current_step', 'status']
@@ -185,7 +185,7 @@ class AdmissionStep5Serializer(TenantAwareSerializer):
     """
     Step 5: Previous School, Health Information, Background Information, Documents, Declaration
     """
-    
+
     class Meta:
         model = ExtendedAdmissionApplication
         fields = [
@@ -193,7 +193,7 @@ class AdmissionStep5Serializer(TenantAwareSerializer):
             'previous_school_email', 'expected_start_date', 'has_medical_problems',
             'recent_hospitalization', 'has_allergies', 'medical_details',
             'religious_observances', 'background_information', 'declaration_agreement',
-            'declaration_date', 'declaration_signature_name', 'current_step', 'status'
+            'declaration_date', 'declaration_signature_name', 'fee_acknowledgment', 'current_step', 'status'
         ]
         read_only_fields = ['id', 'current_step', 'status']
     
@@ -248,19 +248,22 @@ class ExtendedAdmissionApplicationSerializer(TenantAwareSerializer):
     is_step3_complete = serializers.ReadOnlyField()
     is_step4_complete = serializers.ReadOnlyField()
     is_step5_complete = serializers.ReadOnlyField()
+    is_step6_complete = serializers.ReadOnlyField()
+    is_step7_complete = serializers.ReadOnlyField()
     is_complete = serializers.ReadOnlyField()
     can_submit = serializers.ReadOnlyField()
     next_step = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = ExtendedAdmissionApplication
         fields = '__all__'
         read_only_fields = [
             'id', 'application_number', 'application_date', 'reviewed_by', 'reviewed_at',
             'full_name', 'is_step1_complete', 'is_step2_complete', 'is_step3_complete',
-            'is_step4_complete', 'is_step5_complete', 'is_complete', 'can_submit', 'next_step'
+            'is_step4_complete', 'is_step5_complete', 'is_step6_complete', 'is_step7_complete',
+            'is_complete', 'can_submit', 'next_step'
         ]
-    
+
     def get_next_step(self, obj):
         """Get next incomplete step"""
         return obj.get_next_step()
@@ -320,6 +323,8 @@ class AdmissionProgressSerializer(serializers.Serializer):
     step3_complete = serializers.BooleanField(read_only=True)
     step4_complete = serializers.BooleanField(read_only=True)
     step5_complete = serializers.BooleanField(read_only=True)
+    step6_complete = serializers.BooleanField(read_only=True)
+    step7_complete = serializers.BooleanField(read_only=True)
     is_complete = serializers.BooleanField(read_only=True)
     can_submit = serializers.BooleanField(read_only=True)
     next_step = serializers.IntegerField(read_only=True, allow_null=True)

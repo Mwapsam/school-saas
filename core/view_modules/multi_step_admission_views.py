@@ -278,6 +278,8 @@ class MultiStepAdmissionViewSet(TenantAwareViewSetMixin, viewsets.ModelViewSet):
             'step3_complete': application.is_step3_complete,
             'step4_complete': application.is_step4_complete,
             'step5_complete': application.is_step5_complete,
+            'step6_complete': application.is_step6_complete,
+            'step7_complete': application.is_step7_complete,
             'is_complete': application.is_complete,
             'can_submit': application.can_submit(),
             'next_step': application.get_next_step(),
