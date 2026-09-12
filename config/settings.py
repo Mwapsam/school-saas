@@ -371,13 +371,6 @@ else:
 
     logging.warning("File logging is disabled due to permissions or directory issues.")
 
-if DEBUG or IS_STAGING:
-    LOGGING["loggers"]["django.db.backends"] = {
-        "handlers": ["console"],
-        "level": "DEBUG",
-        "propagate": False,
-    }
-
 
 # Key for core.db_fields.EncryptedTextField (QuickBooks client secret + OAuth
 # tokens at rest). Falls back to SECRET_KEY when unset; set a dedicated, stable

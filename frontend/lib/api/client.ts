@@ -24,9 +24,8 @@ interface ApiResponse<T> {
 class ApiClient {
   private instance: AxiosInstance;
 
-  constructor(baseURL: string = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1') {
+  constructor() {
     this.instance = axios.create({
-      baseURL,
       withCredentials: true, // Send httpOnly cookies
     });
 
@@ -55,7 +54,9 @@ class ApiClient {
 
   async get<T>(url: string, params?: Record<string, any>): Promise<T> {
     try {
-      const response = await this.instance.get<T>(url, { params });
+      // Route through BFF proxy: /api/proxy?path=/api/v1{url}
+      const fullUrl = `/api/proxy?path=/api/v1${url}`;
+      const response = await this.instance.get<T>(fullUrl, { params });
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -64,7 +65,8 @@ class ApiClient {
 
   async post<T>(url: string, data?: Record<string, any>): Promise<T> {
     try {
-      const response = await this.instance.post<T>(url, data);
+      const fullUrl = `/api/proxy?path=/api/v1${url}`;
+      const response = await this.instance.post<T>(fullUrl, data);
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -73,7 +75,8 @@ class ApiClient {
 
   async patch<T>(url: string, data?: Record<string, any>): Promise<T> {
     try {
-      const response = await this.instance.patch<T>(url, data);
+      const fullUrl = `/api/proxy?path=/api/v1${url}`;
+      const response = await this.instance.patch<T>(fullUrl, data);
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -82,7 +85,8 @@ class ApiClient {
 
   async put<T>(url: string, data?: Record<string, any>): Promise<T> {
     try {
-      const response = await this.instance.put<T>(url, data);
+      const fullUrl = `/api/proxy?path=/api/v1${url}`;
+      const response = await this.instance.put<T>(fullUrl, data);
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -91,7 +95,8 @@ class ApiClient {
 
   async delete<T>(url: string): Promise<T> {
     try {
-      const response = await this.instance.delete<T>(url);
+      const fullUrl = `/api/proxy?path=/api/v1${url}`;
+      const response = await this.instance.delete<T>(fullUrl);
       return response.data;
     } catch (error) {
       throw this.handleError(error);
