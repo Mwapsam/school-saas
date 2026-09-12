@@ -1,7 +1,8 @@
 'use client';
 
-import { Box, Button, Stack } from '@mui/material';
+import { Box, Button } from '@mui/material';
 import { spacing } from '@/design-system/tokens';
+import { LoadingButton } from '@/design-system/components/LoadingButton';
 
 interface FormActionsProps {
   onCancel?: () => void;
@@ -60,13 +61,14 @@ export function FormActions({
       )}
 
       {/* Submit button */}
-      <Button
+      <LoadingButton
         type="submit"
         variant="contained"
-        disabled={isSubmitting || !isDirty}
+        disabled={!isDirty}
+        loading={isSubmitting}
       >
         {submitLabel}
-      </Button>
+      </LoadingButton>
     </Box>
   );
 }

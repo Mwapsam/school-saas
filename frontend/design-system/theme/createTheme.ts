@@ -36,12 +36,10 @@ export function buildTheme(tenant?: TenantColorInput): Theme {
 
   const primaryColor = palette.primary.main;
   const primaryHover = mixColor(primaryColor, -0.12);
-  const primaryActive = mixColor(primaryColor, -0.24);
   const primaryDisabled = mixColor(primaryColor, 0.55);
 
   const secondaryColor = palette.secondary.main;
   const secondaryHover = mixColor(secondaryColor, -0.12);
-  const secondaryActive = mixColor(secondaryColor, -0.24);
 
   const themeOptions: ThemeOptions = {
     palette,
@@ -63,10 +61,15 @@ export function buildTheme(tenant?: TenantColorInput): Theme {
             fontSize: 14,
             fontWeight: 600,
             borderRadius: radius.md,
-            transition: `all 120ms ${muiTransitions.easing.easeInOut}`,
+            transition: `background-color 120ms ${muiTransitions.easing.easeInOut}, border-color 120ms ${muiTransitions.easing.easeInOut}, box-shadow 120ms ${muiTransitions.easing.easeInOut}, color 120ms ${muiTransitions.easing.easeInOut}, transform 120ms ${muiTransitions.easing.easeInOut}`,
             '&:focus-visible': {
               outline: `2px solid ${primaryColor}`,
               outlineOffset: '2px',
+            },
+            '&:active': {
+              '@media (prefers-reduced-motion: no-preference)': {
+                transform: 'scale(0.98)',
+              },
             },
           },
           containedPrimary: {
@@ -74,10 +77,7 @@ export function buildTheme(tenant?: TenantColorInput): Theme {
             color: palette.primary.contrastText,
             '&:hover': {
               backgroundColor: primaryHover,
-              boxShadow: muiElevations[1],
-            },
-            '&:active': {
-              backgroundColor: primaryActive,
+              boxShadow: muiElevations[4],
             },
             '&:disabled': {
               backgroundColor: primaryDisabled,
@@ -89,10 +89,7 @@ export function buildTheme(tenant?: TenantColorInput): Theme {
             color: palette.secondary.contrastText,
             '&:hover': {
               backgroundColor: secondaryHover,
-              boxShadow: muiElevations[1],
-            },
-            '&:active': {
-              backgroundColor: secondaryActive,
+              boxShadow: muiElevations[4],
             },
           },
           outlinedPrimary: {
@@ -115,6 +112,12 @@ export function buildTheme(tenant?: TenantColorInput): Theme {
             color: primaryColor,
             '&:hover': {
               backgroundColor: alpha(primaryColor, 0.06),
+            },
+          },
+          textSecondary: {
+            color: colors.text.secondary,
+            '&:hover': {
+              backgroundColor: colors.gray[100],
             },
           },
         },
@@ -168,11 +171,26 @@ export function buildTheme(tenant?: TenantColorInput): Theme {
           root: {
             borderRadius: radius.lg,
             backgroundColor: colors.background.surface,
+            border: `1px solid ${colors.border.default}`,
+            boxShadow: 'none',
           },
           elevation1: { boxShadow: muiElevations[1] },
           elevation2: { boxShadow: muiElevations[2] },
           elevation3: { boxShadow: muiElevations[3] },
+          elevation4: { boxShadow: muiElevations[4] },
+          elevation8: { boxShadow: muiElevations[8] },
         },
+        variants: [
+          {
+            props: { variant: 'interactive' },
+            style: {
+              transition: `box-shadow 120ms ${muiTransitions.easing.easeInOut}`,
+              '&:hover, &:focus-visible': {
+                boxShadow: muiElevations[4],
+              },
+            },
+          },
+        ],
       },
 
       MuiDialog: {

@@ -1,8 +1,9 @@
 'use client';
 
 import { forwardRef } from 'react';
-import { Box, Button, Typography, FormHelperText, FormControl, FormLabel } from '@mui/material';
+import { Box, Typography, FormHelperText, FormControl, FormLabel } from '@mui/material';
 import { CloudUpload as UploadIcon } from '@mui/icons-material';
+import { motion } from '@/design-system/tokens';
 
 interface FileUploadFieldProps {
   label: string;
@@ -48,7 +49,7 @@ export const FileUploadField = forwardRef<HTMLInputElement, FileUploadFieldProps
             textAlign: 'center',
             cursor: disabled ? 'not-allowed' : 'pointer',
             backgroundColor: disabled ? 'action.disabledBackground' : 'transparent',
-            transition: 'all 200ms',
+            transition: `all ${motion.slow}ms ${motion.easing}`,
             '&:hover': disabled ? {} : {
               borderColor: 'primary.main',
               backgroundColor: 'action.hover',

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { DataGrid, type GridColDef, type GridSortModel } from '@mui/x-data-grid';
-import { Box, TextField, Alert, Button, InputAdornment } from '@mui/material';
+import { DataGrid, type GridColDef, type GridSortModel, type GridColumnVisibilityModel } from '@mui/x-data-grid';
+import { Box, TextField, Alert, Button, InputAdornment, useMediaQuery, useTheme } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { colors } from '@/design-system/tokens';
 
@@ -30,6 +30,9 @@ export interface DataTableProps<T extends { id: string }> {
 
   checkboxSelection?: boolean;
   onSelectionChange?: (selectedIds: (string | number)[]) => void;
+
+  /** Column field names to hide on mobile (sm and below) */
+  hideOnMobile?: string[];
 }
 
 /**
@@ -56,10 +59,22 @@ export function DataTable<T extends { id: string }>({
   height = 520,
   checkboxSelection = false,
   onSelectionChange,
+  hideOnMobile = [],
 }: DataTableProps<T>) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   // Debounce search input so we don't refetch on every keystroke.
   const [localSearch, setLocalSearch] = useState(search);
   const [selectedRows, setSelectedRows] = useState<(string | number)[]>([]);
+
+  // Build column visibility model based on breakpoint
+  const columnVisibilityModel: GridColumnVisibilityModel = {};
+  if (isMobile) {
+    hideOnMobile.forEach((field) => {
+      columnVisibilityModel[field] = false;
+    });
+  }
 
   useEffect(() => setLocalSearch(search), [search]);
 
@@ -129,6 +144,7 @@ export function DataTable<T extends { id: string }>({
             setSelectedRows(newSelection);
             onSelectionChange?.(newSelection);
           }}
+          columnVisibilityModel={columnVisibilityModel}
           localeText={{ noRowsLabel: emptyMessage }}
           sx={{
             border: 'none',

@@ -7,10 +7,10 @@ import {
   DialogContentText,
   DialogActions,
   Button,
-  Box,
 } from '@mui/material';
 import { AlertCircle } from 'lucide-react';
 import { colors } from '@/design-system/tokens';
+import { LoadingButton } from '@/design-system/components/LoadingButton';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -107,9 +107,8 @@ export function ConfirmDialog({
           {cancelLabel}
         </Button>
 
-        <Button
+        <LoadingButton
           onClick={onConfirm}
-          disabled={loading}
           loading={loading}
           variant={destructive ? 'contained' : 'contained'}
           sx={
@@ -125,7 +124,7 @@ export function ConfirmDialog({
           }
         >
           {confirmLabel}
-        </Button>
+        </LoadingButton>
       </DialogActions>
     </Dialog>
   );

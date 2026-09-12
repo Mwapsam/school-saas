@@ -7,7 +7,7 @@ import { fetchBootstrap } from '@/lib/tenant/bootstrap';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { Breadcrumbs } from './Breadcrumbs';
-import { colors, spacing } from '@/design-system/tokens';
+import { colors, spacing, motion } from '@/design-system/tokens';
 import { SIDEBAR_WIDTHS } from './useSidebarWidth';
 
 // Responsive width configuration
@@ -118,7 +118,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           zIndex: (theme) => theme.zIndex.appBar,
           ml: { xs: 0, md: `${sidebarWidth}px` },
           width: { xs: '100%', md: `calc(100% - ${sidebarWidth}px)` },
-          transition: 'margin-left 220ms cubic-bezier(0.4, 0, 0.2, 1), width 220ms cubic-bezier(0.4, 0, 0.2, 1)',
+          transition: `margin-left ${motion.slow}ms ${motion.easing}, width ${motion.slow}ms ${motion.easing}`,
           '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
         }}
       >
@@ -132,7 +132,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           sx={{
             width: { md: sidebarWidth },
             flexShrink: { md: 0 },
-            transition: 'width 220ms cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: `width ${motion.slow}ms ${motion.easing}`,
             '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
           }}
         >
@@ -170,7 +170,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               height: '100vh',
               top: 0,
               left: 0,
-              transition: 'width 220ms cubic-bezier(0.4, 0, 0.2, 1)',
+              transition: `width ${motion.slow}ms ${motion.easing}`,
               overflowX: 'hidden',
               '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
             },

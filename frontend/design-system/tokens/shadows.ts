@@ -8,8 +8,11 @@
 export const shadows = {
   none: 'none',
 
-  // Subtle shadow: for hover states, subtle depth
+  // Subtle shadow: for minimal depth cues
   subtle: '0px 1px 2px rgba(0, 0, 0, 0.05)',
+
+  // Raised shadow: for hover states, interactive surfaces, cards on hover (intermediate step)
+  raised: '0px 3px 8px rgba(0, 0, 0, 0.07)',
 
   // Floating shadow: for dialogs, menus, floating elements
   floating: '0px 10px 25px rgba(0, 0, 0, 0.1)',
@@ -23,17 +26,19 @@ export const muiElevations = {
   // Level 0: no elevation
   0: shadows.none,
 
-  // Level 1-2: subtle elevation (hover states)
+  // Level 1-3: subtle elevation
   1: shadows.subtle,
   2: shadows.subtle,
+  3: shadows.subtle,
 
-  // Level 3-24: floating elevation (cards, dialogs, menus)
-  3: shadows.floating,
-  4: shadows.floating,
-  5: shadows.floating,
-  6: shadows.floating,
-  7: shadows.floating,
-  8: shadows.floating,
+  // Level 4-8: raised elevation (hover states, interactive surfaces)
+  4: shadows.raised,
+  5: shadows.raised,
+  6: shadows.raised,
+  7: shadows.raised,
+  8: shadows.raised,
+
+  // Level 9-24: floating elevation (cards, dialogs, menus)
   9: shadows.floating,
   10: shadows.floating,
   11: shadows.floating,

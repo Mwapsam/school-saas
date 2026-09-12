@@ -47,7 +47,7 @@ import {
   ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
-import { colors, spacing } from '@/design-system/tokens';
+import { colors, motion } from '@/design-system/tokens';
 
 export interface NavSection {
   label: string;
@@ -249,7 +249,7 @@ export function Sidebar({
         flexDirection: 'column',
         backgroundColor: colors.background.surface,
         borderRight: `1px solid ${colors.border.light}`,
-        transition: 'width 220ms cubic-bezier(0.4, 0, 0.2, 1), min-width 220ms cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: `width ${motion.slow}ms ${motion.easing}, min-width ${motion.slow}ms ${motion.easing}`,
         overflow: 'hidden',
         '@media (prefers-reduced-motion: reduce)': {
           transition: 'none',
@@ -278,7 +278,7 @@ export function Sidebar({
             opacity: collapsed ? 0 : 1,
             width: collapsed ? 0 : 'auto',
             overflow: 'hidden',
-            transition: 'opacity 180ms ease, width 220ms ease',
+            transition: `opacity ${motion.normal}ms ${motion.easing}, width ${motion.slow}ms ${motion.easing}`,
             '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
           }}
         >
@@ -583,7 +583,7 @@ export function Sidebar({
                       fontSize: 20,
                       color: colors.text.secondary,
                       transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                      transition: 'transform 180ms ease',
+                      transition: `transform ${motion.normal}ms ${motion.easing}`,
                       '@media (prefers-reduced-motion: reduce)': {
                         transition: 'none',
                       },
@@ -639,7 +639,7 @@ export function Sidebar({
                             backgroundColor: isActive
                               ? (theme) => alpha(theme.palette.primary.main, 0.08)
                               : 'transparent',
-                            transition: 'background-color 140ms ease, border-color 140ms ease',
+                            transition: `background-color ${motion.fast}ms ${motion.easing}, border-color ${motion.fast}ms ${motion.easing}`,
                             '@media (prefers-reduced-motion: reduce)': {
                               transition: 'none',
                             },
