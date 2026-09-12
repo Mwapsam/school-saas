@@ -51,6 +51,7 @@ export function Step4Form({ applicationId, initialData, onSubmit, isLoading, err
             error={!!errors.guardian1_first_name}
             helperText={errors.guardian1_first_name?.message}
             disabled={isLoading}
+            required
           />
         </Grid>
 
@@ -62,6 +63,7 @@ export function Step4Form({ applicationId, initialData, onSubmit, isLoading, err
             error={!!errors.guardian1_last_name}
             helperText={errors.guardian1_last_name?.message}
             disabled={isLoading}
+            required
           />
         </Grid>
 
@@ -73,6 +75,7 @@ export function Step4Form({ applicationId, initialData, onSubmit, isLoading, err
             error={!!errors.guardian1_relation}
             helperText={errors.guardian1_relation?.message}
             disabled={isLoading}
+            required
           />
         </Grid>
 
@@ -120,6 +123,7 @@ export function Step4Form({ applicationId, initialData, onSubmit, isLoading, err
             error={!!errors.guardian1_mobile}
             helperText={errors.guardian1_mobile?.message}
             disabled={isLoading}
+            required
           />
         </Grid>
 
@@ -271,7 +275,7 @@ export function Step4Form({ applicationId, initialData, onSubmit, isLoading, err
           <Button
             type="submit"
             variant="contained"
-            disabled={isLoading}
+            disabled={isLoading || !!errors.guardian1_first_name || !!errors.guardian1_last_name || !!errors.guardian1_relation || !!errors.guardian1_mobile}
             startIcon={isLoading && <CircularProgress size={20} />}
           >
             {isLoading ? 'Saving...' : 'Continue to Step 5'}

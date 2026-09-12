@@ -56,21 +56,23 @@ export function EnquiryForm({ initialData, onSubmit, isLoading, error }: Enquiry
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="First Name"
+            label="First Name *"
             {...register('first_name')}
             error={!!errors.first_name}
             helperText={errors.first_name?.message}
             disabled={isLoading}
+            required
           />
         </Grid>
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Last Name"
+            label="Last Name *"
             {...register('last_name')}
             error={!!errors.last_name}
             helperText={errors.last_name?.message}
             disabled={isLoading}
+            required
           />
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -281,7 +283,7 @@ export function EnquiryForm({ initialData, onSubmit, isLoading, error }: Enquiry
           <Button
             type="submit"
             variant="contained"
-            disabled={isLoading}
+            disabled={isLoading || !!errors.first_name || !!errors.last_name}
             startIcon={isLoading && <CircularProgress size={20} />}
           >
             {isLoading ? 'Saving...' : 'Save Enquiry'}

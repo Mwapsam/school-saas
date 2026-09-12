@@ -209,7 +209,7 @@ export function Step5Form({ applicationId, initialData, onSubmit, isLoading, err
                 disabled={isLoading}
               />
             }
-            label="I agree to the declaration and terms"
+            label="I agree to the declaration and terms *"
           />
           {errors.declaration_agreement && (
             <Alert severity="error" sx={{ mt: 1 }}>{errors.declaration_agreement.message}</Alert>
@@ -224,7 +224,7 @@ export function Step5Form({ applicationId, initialData, onSubmit, isLoading, err
                 disabled={isLoading}
               />
             }
-            label="I acknowledge the admission fee payment requirement"
+            label="I acknowledge the admission fee payment requirement *"
           />
           {errors.fee_acknowledgment && (
             <Alert severity="error" sx={{ mt: 1 }}>{errors.fee_acknowledgment.message}</Alert>
