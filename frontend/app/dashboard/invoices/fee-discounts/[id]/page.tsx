@@ -1,85 +1,82 @@
 /**
- * Fee discount detail view page.
+ * Fee discount detail view page using design system components.
  */
 
 'use client';
 
 export const dynamic = 'force-dynamic';
 
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Container, Box, Typography, Button, Grid, Paper, CircularProgress, Alert } from '@mui/material';
-import { Edit as EditIcon, ArrowBack as BackIcon } from '@mui/icons-material';
+import { Button, Box, Typography, Grid, Paper, Alert } from '@mui/material';
+import { Edit as EditIcon, ChevronLeft as BackIcon } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useFeeDiscount } from '@/features/finance/hooks';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
+import { LoadingState } from '@/components/feedback/LoadingState';
+import { ErrorState } from '@/components/feedback/ErrorState';
+import { StatusBadge } from '@/components/data/StatusBadge';
 
 export default function FeeDiscountDetailPage({ params }: { params: { id: string } }) {
-  const router = useRouter();
-  const { can, isModuleEnabled } = useTenantStore();
-  const { data: feeDiscount, isLoading, error } = useFeeDiscount(params.id);
+  const { can, isModuleEnabled, bootstrap } = useTenantStore();
+  const { data: feeDiscount, isLoading, error, refetch } = useFeeDiscount(params.id);
+
+  if (!bootstrap) {
+    return (
+      <Page>
+        <LoadingState />
+      </Page>
+    );
+  }
 
   if (!isModuleEnabled('finance') || !can('finance.discounts.view')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            You do not have permission to view this fee discount.
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">You do not have permission to view this fee discount.</Alert>
+      </Page>
     );
   }
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Box>
-      </Container>
+      <Page>
+        <LoadingState />
+      </Page>
     );
   }
 
   if (error || !feeDiscount) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            Failed to load fee discount: {error?.message || 'Fee discount not found'}
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <ErrorState error={error} onRetry={() => refetch()} />
+      </Page>
     );
   }
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
-        {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button
-              startIcon={<BackIcon />}
-              onClick={() => router.back()}
-              variant="text"
-            >
-              Back
+    <Page>
+      <PageHeader
+        title={feeDiscount.name}
+        breadcrumbs={
+          <Link href="/dashboard/invoices/fee-discounts" passHref legacyBehavior>
+            <Button startIcon={<BackIcon />} variant="text">
+              Back to Discounts
             </Button>
-            <Typography variant="h4" component="h1">
-              {feeDiscount.name}
-            </Typography>
-          </Box>
-
-          {can('finance.discounts.manage') && (
+          </Link>
+        }
+        actions={
+          can('finance.discounts.manage') && (
             <Link href={`/dashboard/invoices/fee-discounts/${feeDiscount.id}/edit`} passHref legacyBehavior>
               <Button component="a" variant="contained" startIcon={<EditIcon />}>
                 Edit
               </Button>
             </Link>
-          )}
-        </Box>
+          )
+        }
+      />
 
-        {/* Details */}
+      <PageContent>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2 }}>
@@ -112,21 +109,7 @@ export default function FeeDiscountDetailPage({ params }: { params: { id: string
                 <Typography variant="body2" color="textSecondary">
                   Status:
                 </Typography>
-                <Box
-                  sx={{
-                    display: 'inline-block',
-                    px: 1,
-                    py: 0.5,
-                    backgroundColor: feeDiscount.is_active ? '#e8f5e9' : '#ffebee',
-                    color: feeDiscount.is_active ? '#2e7d32' : '#c62828',
-                    borderRadius: 1,
-                    fontSize: '0.85rem',
-                    fontWeight: 500,
-                    width: 'fit-content',
-                  }}
-                >
-                  {feeDiscount.is_active ? 'Active' : 'Inactive'}
-                </Box>
+                <StatusBadge status={feeDiscount.is_active ? 'active' : 'inactive'} />
 
                 <Typography variant="body2" color="textSecondary">
                   Created:
@@ -145,7 +128,7 @@ export default function FeeDiscountDetailPage({ params }: { params: { id: string
             </Paper>
           </Grid>
         </Grid>
-      </Box>
-    </Container>
+      </PageContent>
+    </Page>
   );
 }

@@ -1,5 +1,6 @@
 /**
  * Applicants management page — batch assignment, status management, diagnostics.
+ * Uses design system components.
  */
 
 'use client';
@@ -8,8 +9,8 @@ export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Container, Box, Typography, Button, Alert, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, CircularProgress, Grid, Paper, MenuItem } from '@mui/material';
-import { Add as AddIcon, Check as CheckIcon, Assignment as AssignIcon } from '@mui/icons-material';
+import { Box, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField, CircularProgress, Grid, Paper, MenuItem, Typography } from '@mui/material';
+import { Assignment as AssignIcon } from '@mui/icons-material';
 import type { GridColDef } from '@mui/x-data-grid';
 import { useTenantStore } from '@/lib/tenant/store';
 import {
@@ -22,6 +23,10 @@ import {
 } from '@/features/admission-management';
 import { useServerTable } from '@/hooks/useServerTable';
 import { DataTable } from '@/components/data-table/DataTable';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
+import { StatusBadge } from '@/components/data/StatusBadge';
 
 export default function ApplicantsPage() {
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
@@ -43,13 +48,9 @@ export default function ApplicantsPage() {
 
   if (!bootstrap || !isModuleEnabled('admissions') || !can('admissions.application.manage')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            You do not have permission to manage applicants.
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">You do not have permission to manage applicants.</Alert>
+      </Page>
     );
   }
 
@@ -81,7 +82,7 @@ export default function ApplicantsPage() {
       flex: 1,
       renderCell: (params) => (
         <Link href={`/dashboard/admissions/multi-step/${params.row.id}`} passHref legacyBehavior>
-          <Typography component="a" sx={{ cursor: 'pointer', color: 'primary.main', textDecoration: 'none' }}>
+          <Typography component="a" sx={{ cursor: 'pointer', color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
             {params.row.application_number}
           </Typography>
         </Link>
@@ -102,12 +103,9 @@ export default function ApplicantsPage() {
       field: 'status',
       headerName: 'Status',
       flex: 1,
+      sortable: false,
       renderCell: (params) => (
-        <Chip
-          label={params.row.status_display}
-          size="small"
-          color={params.row.status === 'approved' ? 'warning' : 'success'}
-        />
+        <StatusBadge status={params.row.status || 'unknown'} />
       ),
     },
     {
@@ -125,13 +123,12 @@ export default function ApplicantsPage() {
   ];
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4" component="h1">
-            Applicants
-          </Typography>
-          {selectedRows.length > 0 && (
+    <Page>
+      <PageHeader
+        title="Applicants"
+        description="Manage applications and batch assignments"
+        actions={
+          selectedRows.length > 0 && (
             <Button
               variant="contained"
               color="success"
@@ -140,9 +137,11 @@ export default function ApplicantsPage() {
             >
               Assign ({selectedRows.length})
             </Button>
-          )}
-        </Box>
+          )
+        }
+      />
 
+      <PageContent>
         {/* Stats Cards */}
         {stats && (
           <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -204,7 +203,7 @@ export default function ApplicantsPage() {
           checkboxSelection
           onSelectionChange={(newSelection) => setSelectedRows(newSelection as string[])}
         />
-      </Box>
+      </PageContent>
 
       {/* Bulk Assignment Dialog */}
       <Dialog open={bulkAssignOpen} onClose={() => setBulkAssignOpen(false)} maxWidth="sm" fullWidth>
@@ -240,6 +239,6 @@ export default function ApplicantsPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+    </Page>
   );
 }

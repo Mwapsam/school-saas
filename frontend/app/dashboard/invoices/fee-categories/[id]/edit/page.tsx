@@ -1,5 +1,5 @@
 /**
- * Edit fee category page.
+ * Edit fee category page using design system components.
  */
 
 'use client';
@@ -7,60 +7,53 @@
 export const dynamic = 'force-dynamic';
 
 import { useRouter } from 'next/navigation';
-import { Container, Box, Typography, Alert, CircularProgress } from '@mui/material';
+import Link from 'next/link';
+import { Button, Alert } from '@mui/material';
+import { ChevronLeft as BackIcon } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useFeeCategory, useUpdateFeeCategory } from '@/features/finance/hooks';
 import { FeeCategoryForm } from '@/features/finance/components/FeeCategoryForm';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
+import { LoadingState } from '@/components/feedback/LoadingState';
+import { ErrorState } from '@/components/feedback/ErrorState';
 
 export default function EditFeeCategoryPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { can, isModuleEnabled } = useTenantStore();
-  const { data: feeCategory, isLoading: categoryLoading, error: categoryError } = useFeeCategory(params.id);
+  const { data: feeCategory, isLoading: categoryLoading, error: categoryError, refetch } = useFeeCategory(params.id);
   const { mutateAsync: updateFeeCategory, error: updateError } = useUpdateFeeCategory(params.id);
 
   if (!isModuleEnabled('finance')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="info">
-            The Finance module is not enabled.
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="info">The Finance module is not enabled.</Alert>
+      </Page>
     );
   }
 
   if (!can('finance.fees.manage')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            You do not have permission to edit fee categories.
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">You do not have permission to edit fee categories.</Alert>
+      </Page>
     );
   }
 
   if (categoryLoading) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Box>
-      </Container>
+      <Page>
+        <LoadingState />
+      </Page>
     );
   }
 
   if (categoryError || !feeCategory) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            Failed to load fee category: {categoryError?.message || 'Not found'}
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <ErrorState error={categoryError} onRetry={() => refetch()} />
+      </Page>
     );
   }
 
@@ -75,21 +68,32 @@ export default function EditFeeCategoryPage({ params }: { params: { id: string }
   };
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ py: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Edit Fee Category: {feeCategory.name}
-        </Typography>
+    <Page>
+      <PageHeader
+        title={`Edit Fee Category: ${feeCategory.name}`}
+        breadcrumbs={
+          <Link href={`/dashboard/invoices/fee-categories/${feeCategory.id}`} passHref legacyBehavior>
+            <Button startIcon={<BackIcon />} variant="text">
+              Back to Category
+            </Button>
+          </Link>
+        }
+      />
 
-        <Box sx={{ mt: 3 }}>
-          <FeeCategoryForm
-            feeCategory={feeCategory}
-            error={updateError?.message}
-            onSubmit={handleSubmit}
-            onCancel={() => router.back()}
-          />
-        </Box>
-      </Box>
-    </Container>
+      <PageContent>
+        {updateError && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {(updateError as any)?.message || 'Failed to update fee category'}
+          </Alert>
+        )}
+
+        <FeeCategoryForm
+          feeCategory={feeCategory}
+          error={(updateError as any)?.message}
+          onSubmit={handleSubmit}
+          onCancel={() => router.back()}
+        />
+      </PageContent>
+    </Page>
   );
 }

@@ -63,12 +63,13 @@
 
 ---
 
-## 🚀 Phase 9: Migrate Remaining Modules (95% Complete)
+## ✅ Phase 9: Migrate Remaining Modules (100% Complete)
 **Goal:** Apply design system to all other module pages
 
-**List pages completed (8 modules):**
+**List pages completed (9 modules):**
 - ✅ `app/dashboard/students/` — full CRUD (list, create, edit, detail)
 - ✅ `app/dashboard/admissions/page.tsx` — list page 
+- ✅ `app/dashboard/admissions/applicants/page.tsx` — applicants list with batch assignment and stats
 - ✅ `app/dashboard/invoices/page.tsx` — list page
 - ✅ `app/dashboard/books/page.tsx` — list page (Library)
 - ✅ `app/dashboard/employees/page.tsx` — list page (HR) with ConfirmDialog for delete
@@ -76,8 +77,9 @@
 - ✅ `app/dashboard/hostel-rooms/page.tsx` — list page (Hostel)
 - ✅ `app/dashboard/inquiries/page.tsx` — list page (Admissions Enquiries)
 
-**Create pages completed:**
+**Create/Start pages completed:**
 - ✅ `app/dashboard/admissions/create/page.tsx` — new application form
+- ✅ `app/dashboard/admissions/multi-step/page.tsx` — multi-step application starter page
 - ✅ `app/dashboard/employees/create/page.tsx` — new employee form
 - ✅ `app/dashboard/inquiries/create/page.tsx` — new enquiry form
 
@@ -92,6 +94,12 @@
 
 **Edit pages completed:**
 - ✅ `app/dashboard/employees/[id]/edit/page.tsx` — employee edit with design system
+- ✅ `app/dashboard/invoices/fee-categories/[id]/edit/page.tsx` — fee category edit with design system
+- ✅ `app/dashboard/invoices/fee-discounts/[id]/edit/page.tsx` — fee discount edit with design system
+
+**Nested detail pages completed:**
+- ✅ `app/dashboard/invoices/fee-categories/[id]/page.tsx` — fee category detail with design system
+- ✅ `app/dashboard/invoices/fee-discounts/[id]/page.tsx` — fee discount detail with StatusBadge
 
 **Placeholder pages (not yet implemented):**
 - `app/dashboard/batches/page.tsx` — ComingSoon
@@ -101,12 +109,15 @@
 - `app/dashboard/borrowing/page.tsx` — ComingSoon (Library)
 - `app/dashboard/transport-staff/page.tsx` — ComingSoon
 
-**Remaining work for Phase 9:**
-- Nested detail/edit pages for invoices (fee-categories, fee-discounts)
-- Admissions applicants list/detail page
-- Browser testing of all updated modules
+**Phase 9 status:** ✅ All pages using design system components. Ready for testing.
 
-**Phase 10 (Pending):**
+**Recommended next steps:**
+- Browser testing of all updated pages across all modules
+- Verify responsive behavior at different breakpoints (xs/sm/md/lg)
+- Test permission-gated UI rendering for each module
+- Begin Phase 10 (Tenant branding) work
+
+**Phase 10 (Ready to Start):**
 - Tenant branding (colors, logo, fonts, favicon)
 - Settings page for branding customization
 

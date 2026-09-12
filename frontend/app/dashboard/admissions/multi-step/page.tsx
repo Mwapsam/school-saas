@@ -1,5 +1,5 @@
 /**
- * Multi-step admission application new application starter page.
+ * Multi-step admission application new application starter page using design system.
  */
 
 'use client';
@@ -7,10 +7,15 @@
 export const dynamic = 'force-dynamic';
 
 import { useRouter } from 'next/navigation';
-import { Container, Box, Typography, Button, Alert, CircularProgress } from '@mui/material';
-import { ArrowBack as BackIcon } from '@mui/icons-material';
+import Link from 'next/link';
+import { Box, Button, Alert, CircularProgress, Typography, Paper } from '@mui/material';
+import { ChevronLeft as BackIcon } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useStartApplication } from '@/features/multi-step-admission';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
+import { LoadingState } from '@/components/feedback/LoadingState';
 
 export default function StartMultiStepAdmissionPage() {
   const router = useRouter();
@@ -19,23 +24,17 @@ export default function StartMultiStepAdmissionPage() {
 
   if (!bootstrap) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Typography>Loading configuration...</Typography>
-        </Box>
-      </Container>
+      <Page>
+        <LoadingState />
+      </Page>
     );
   }
 
   if (!isModuleEnabled('admissions') || !can('admissions.application.manage')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            You do not have permission to create applications.
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">You do not have permission to create applications.</Alert>
+      </Page>
     );
   }
 
@@ -49,24 +48,25 @@ export default function StartMultiStepAdmissionPage() {
   };
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ py: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <Button startIcon={<BackIcon />} onClick={() => router.back()} variant="text">
-            Back
-          </Button>
-          <Typography variant="h4" component="h1">
-            New Application
-          </Typography>
-        </Box>
+    <Page>
+      <PageHeader
+        title="New Application"
+        breadcrumbs={
+          <Link href="/dashboard/admissions" passHref legacyBehavior>
+            <Button startIcon={<BackIcon />} variant="text">
+              Back to Admissions
+            </Button>
+          </Link>
+        }
+      />
 
-        <Box sx={{ mt: 4, p: 3, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+      <PageContent>
+        <Paper sx={{ p: 3, maxWidth: 600 }}>
           <Typography variant="h6" gutterBottom>
             Multi-Step Admission Application
           </Typography>
           <Typography variant="body1" color="textSecondary" paragraph>
-            This is a comprehensive multi-step application form that will guide you through the admission process.
-            You can save your progress and come back to complete it later.
+            This is a comprehensive multi-step application form that will guide you through the admission process. You can save your progress and come back to complete it later.
           </Typography>
 
           <Typography variant="h6" sx={{ mt: 3 }} gutterBottom>
@@ -98,8 +98,8 @@ export default function StartMultiStepAdmissionPage() {
               {startMutation.error.message || 'Failed to start application'}
             </Alert>
           )}
-        </Box>
-      </Box>
-    </Container>
+        </Paper>
+      </PageContent>
+    </Page>
   );
 }

@@ -1,85 +1,82 @@
 /**
- * Fee category detail view page.
+ * Fee category detail view page using design system components.
  */
 
 'use client';
 
 export const dynamic = 'force-dynamic';
 
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Container, Box, Typography, Button, Grid, Paper, CircularProgress, Alert } from '@mui/material';
-import { Edit as EditIcon, ArrowBack as BackIcon } from '@mui/icons-material';
+import { Button, Box, Typography, Grid, Paper, Alert } from '@mui/material';
+import { Edit as EditIcon, ChevronLeft as BackIcon } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useFeeCategory } from '@/features/finance/hooks';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
+import { LoadingState } from '@/components/feedback/LoadingState';
+import { ErrorState } from '@/components/feedback/ErrorState';
 
 export default function FeeCategoryDetailPage({ params }: { params: { id: string } }) {
-  const router = useRouter();
-  const { can, isModuleEnabled } = useTenantStore();
-  const { data: feeCategory, isLoading, error } = useFeeCategory(params.id);
+  const { can, isModuleEnabled, bootstrap } = useTenantStore();
+  const { data: feeCategory, isLoading, error, refetch } = useFeeCategory(params.id);
+
+  if (!bootstrap) {
+    return (
+      <Page>
+        <LoadingState />
+      </Page>
+    );
+  }
 
   if (!isModuleEnabled('finance') || !can('finance.fees.view')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            You do not have permission to view this fee category.
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">You do not have permission to view this fee category.</Alert>
+      </Page>
     );
   }
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Box>
-      </Container>
+      <Page>
+        <LoadingState />
+      </Page>
     );
   }
 
   if (error || !feeCategory) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            Failed to load fee category: {error?.message || 'Fee category not found'}
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <ErrorState error={error} onRetry={() => refetch()} />
+      </Page>
     );
   }
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
-        {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button
-              startIcon={<BackIcon />}
-              onClick={() => router.back()}
-              variant="text"
-            >
-              Back
+    <Page>
+      <PageHeader
+        title={feeCategory.name}
+        description={feeCategory.description || undefined}
+        breadcrumbs={
+          <Link href="/dashboard/invoices/fee-categories" passHref legacyBehavior>
+            <Button startIcon={<BackIcon />} variant="text">
+              Back to Categories
             </Button>
-            <Typography variant="h4" component="h1">
-              {feeCategory.name}
-            </Typography>
-          </Box>
-
-          {can('finance.fees.manage') && (
+          </Link>
+        }
+        actions={
+          can('finance.fees.manage') && (
             <Link href={`/dashboard/invoices/fee-categories/${feeCategory.id}/edit`} passHref legacyBehavior>
               <Button component="a" variant="contained" startIcon={<EditIcon />}>
                 Edit
               </Button>
             </Link>
-          )}
-        </Box>
+          )
+        }
+      />
 
-        {/* Details */}
+      <PageContent>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2 }}>
@@ -119,7 +116,7 @@ export default function FeeCategoryDetailPage({ params }: { params: { id: string
             </Paper>
           </Grid>
         </Grid>
-      </Box>
-    </Container>
+      </PageContent>
+    </Page>
   );
 }
