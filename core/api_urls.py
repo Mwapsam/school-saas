@@ -172,13 +172,11 @@ urlpatterns = [
     path('grading/scales/', get_available_grading_scales, name='available-grading-scales'),
 
     # DRF authentication endpoints
-    path('auth/', include('rest_framework.urls')),
+    path('v1/auth/', include('rest_framework.urls')),
 
     # JWT token endpoints
-    path('token/', include([
-        path('', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-        path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    ])),
+    path('v1/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('v1/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
 
 # Add API root view for better discoverability
