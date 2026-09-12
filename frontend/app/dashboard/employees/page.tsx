@@ -153,14 +153,14 @@ export default function EmployeesPage() {
               <ConfirmDialog
                 open={deleteConfirmOpen}
                 title="Delete Employee"
-                message={`Are you sure you want to delete ${employeeToDelete.name}? This action cannot be undone.`}
+                description={`Are you sure you want to delete ${employeeToDelete.name}? This action cannot be undone.`}
                 onConfirm={handleConfirmDelete}
                 onCancel={() => {
                   setDeleteConfirmOpen(false);
                   setEmployeeToDelete(null);
                 }}
-                isDestructive
-                isLoading={deleteEmployee.isPending}
+                destructive
+                loading={deleteEmployee.isPending}
               />
             )}
           </>

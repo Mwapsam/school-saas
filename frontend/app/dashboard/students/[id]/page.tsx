@@ -3,7 +3,6 @@
 export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Button,
@@ -12,9 +11,7 @@ import {
   Tabs,
   Tab,
   Box,
-  Avatar,
   Typography,
-  Paper,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -22,12 +19,6 @@ import {
   TextField,
   Checkbox,
   FormControlLabel,
-  Card,
-  CardContent,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
   IconButton,
   Table,
   TableBody,
@@ -39,12 +30,21 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Stack,
+  ToggleButton,
+  ToggleButtonGroup,
+  Chip,
+  Paper,
+  Tooltip,
 } from '@mui/material';
 import {
   Edit as EditIcon,
   ArrowBack as BackIcon,
   PersonAdd as PersonAddIcon,
   Delete as DeleteIcon,
+  Phone as PhoneIcon,
+  Email as EmailIcon,
+  Description as DocumentIcon,
 } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
 import {
@@ -61,8 +61,12 @@ import { PageHeader } from '@/components/page/PageHeader';
 import { PageContent } from '@/components/page/PageContent';
 import { SectionCard, DetailField } from '@/components/page';
 import { StatusBadge } from '@/components/data/StatusBadge';
+import { LoadingButton } from '@/design-system/components/LoadingButton';
+import { MetricTile } from '@/design-system/components/MetricTile';
 import { LoadingState } from '@/components/feedback/LoadingState';
 import { ErrorState } from '@/components/feedback/ErrorState';
+import { ConfirmDialog } from '@/components/feedback/ConfirmDialog';
+import { alpha } from '@mui/material/styles';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -70,18 +74,39 @@ interface TabPanelProps {
   value: number;
 }
 
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
+function TabPanel({ children, value, index, ...other }: TabPanelProps) {
   return (
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`tabpanel-${index}`}
-      aria-labelledby={`tab-${index}`}
+      id={`student-tabpanel-${index}`}
+      aria-labelledby={`student-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
+      {value === index && <Box sx={{ pt: 2.5 }}>{children}</Box>}
     </div>
+  );
+}
+
+function EmptyState({ message, icon }: { message: string; icon?: React.ReactNode }) {
+  return (
+    <Box
+      sx={{
+        py: 5,
+        px: 2,
+        textAlign: 'center',
+        color: 'text.secondary',
+      }}
+    >
+      {icon && (
+        <Box sx={{ mb: 1.5, opacity: 0.45, display: 'flex', justifyContent: 'center' }}>
+          {icon}
+        </Box>
+      )}
+      <Typography variant="body2" color="text.secondary">
+        {message}
+      </Typography>
+    </Box>
   );
 }
 
@@ -89,10 +114,8 @@ export default function StudentDetailPage({ params }: { params: { id: string } }
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
   const { data: student, isLoading, error } = useStudent(params.id);
 
-  // Tab state
   const [activeTab, setActiveTab] = useState(0);
 
-  // Attach guardian dialog
   const [attachDialogOpen, setAttachDialogOpen] = useState(false);
   const [guardianMode, setGuardianMode] = useState<'existing' | 'new'>('existing');
   const [guardianForm, setGuardianForm] = useState({
@@ -106,7 +129,8 @@ export default function StudentDetailPage({ params }: { params: { id: string } }
     is_immediate_contact: false,
   });
 
-  // Additional data
+  const [deleteDocumentId, setDeleteDocumentId] = useState<string | null>(null);
+
   const { data: feeBalance } = useStudentFeeBalance(params.id);
   const { data: attendanceSummary } = useStudentAttendanceSummary(params.id);
   const { data: documents } = useStudentDocuments(params.id);
@@ -115,21 +139,27 @@ export default function StudentDetailPage({ params }: { params: { id: string } }
   const deleteDocumentMutation = useDeleteDocument(params.id);
 
   if (!bootstrap) {
-    return <Page><LoadingState message="Loading configuration..." /></Page>;
+    return (
+      <Page>
+        <LoadingState message="Loading configuration..." />
+      </Page>
+    );
   }
 
   if (!isModuleEnabled('academics') || !can('students.view')) {
     return (
       <Page>
-        <Alert severity="error">
-          You do not have permission to view this student.
-        </Alert>
+        <Alert severity="error">You do not have permission to view this student.</Alert>
       </Page>
     );
   }
 
   if (isLoading) {
-    return <Page><LoadingState message="Loading student..." /></Page>;
+    return (
+      <Page>
+        <LoadingState message="Loading student..." />
+      </Page>
+    );
   }
 
   if (error || !student) {
@@ -146,6 +176,20 @@ export default function StudentDetailPage({ params }: { params: { id: string } }
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
+  };
+
+  const resetGuardianForm = () => {
+    setGuardianForm({
+      guardian_id: '',
+      first_name: '',
+      last_name: '',
+      mobile_phone: '',
+      email: '',
+      occupation: '',
+      relation: '',
+      is_immediate_contact: false,
+    });
+    setGuardianMode('existing');
   };
 
   const handleAttachGuardian = async () => {
@@ -169,28 +213,23 @@ export default function StudentDetailPage({ params }: { params: { id: string } }
 
       await attachGuardianMutation.mutateAsync(payload as any);
       setAttachDialogOpen(false);
-      setGuardianForm({
-        guardian_id: '',
-        first_name: '',
-        last_name: '',
-        mobile_phone: '',
-        email: '',
-        occupation: '',
-        relation: '',
-        is_immediate_contact: false,
-      });
+      resetGuardianForm();
     } catch (err) {
       console.error('Failed to attach guardian:', err);
     }
   };
 
-  // Get active batch
   const activeBatch = student.batches?.find((b) => b.is_active);
 
-  // Get full name with middle name
   const fullNameWithMiddle = [student.first_name, student.middle_name, student.last_name]
     .filter(Boolean)
     .join(' ');
+
+  const genderLabel =
+    student.gender?.charAt(0).toUpperCase() + student.gender?.slice(1).toLowerCase() || '—';
+
+
+  const canUpdate = can('students.update');
 
   return (
     <Page>
@@ -198,284 +237,458 @@ export default function StudentDetailPage({ params }: { params: { id: string } }
         title={fullNameWithMiddle}
         description={`Admission No: ${student.admission_no}`}
         actions={
-          can('students.update') && (
-            <Link href={`/dashboard/students/${student.id}/edit`} passHref legacyBehavior>
-              <Button component="a" variant="contained" startIcon={<EditIcon />}>
-                Edit
-              </Button>
-            </Link>
-          )
-        }
-        breadcrumbs={
-          <Link href="/dashboard/students" passHref legacyBehavior>
-            <Button startIcon={<BackIcon />} variant="text">
-              Back to Students
-            </Button>
-          </Link>
-        }
-      />
+    <Stack direction="row" spacing={1.5} alignItems="center">
+      <Button
+        component={Link}
+        href="/dashboard/students"
+        startIcon={<BackIcon />}
+        variant="outlined"
+        color="inherit"
+      >
+        Back to Students
+      </Button>
+      {canUpdate && (
+        <Button
+          component={Link}
+          href={`/dashboard/students/${student.id}/edit`}
+          variant="contained"
+          startIcon={<EditIcon />}
+        >
+          Edit Student
+        </Button>
+      )}
+    </Stack>
+  }
+/>
 
       <PageContent>
-        {/* Inactive alert */}
         {!student.is_active && (
-          <Alert severity="warning" sx={{ mb: 3 }}>
-            This student is inactive. {student.status_description && `Reason: ${student.status_description}`}
+          <Alert severity="warning" sx={{ mb: 3 }} variant="outlined">
+            This student is inactive
+            {student.status_description ? `. Reason: ${student.status_description}` : '.'}
           </Alert>
         )}
 
         <Grid container spacing={3}>
-          {/* LEFT COLUMN */}
+          {/* ── LEFT ─────────────────────────────────────────────── */}
           <Grid item xs={12} md={4}>
-            {/* Basic Information */}
-            <SectionCard title="Basic Information">
-              <Box sx={{ textAlign: 'center', mb: 2 }}>
-                <Avatar
-                  sx={{ width: 80, height: 80, mx: 'auto', mb: 1, bgcolor: 'primary.main' }}
-                >
-                  {fullNameWithMiddle.charAt(0).toUpperCase()}
-                </Avatar>
-                <Typography variant="h6">{fullNameWithMiddle}</Typography>
-              </Box>
-              <Divider sx={{ my: 2 }} />
-              <DetailField label="Admission #" value={student.admission_no} />
-              <DetailField label="Admission Date" value={student.admission_date} />
-              <DetailField label="Date of Birth" value={student.date_of_birth} />
-              <DetailField label="Age" value={student.age ?? '-'} />
-              <DetailField
-                label="Gender"
-                value={student.gender.charAt(0).toUpperCase() + student.gender.slice(1)}
-              />
-              {student.blood_group && <DetailField label="Blood Group" value={student.blood_group} />}
-            </SectionCard>
+            <Stack spacing={2.5}>
+              {/* Profile */}
+              <SectionCard>
+                <Stack spacing={0.25}>
+                  <DetailField label="Admission #" value={student.admission_no} />
+                  <DetailField label="Admission Date" value={student.admission_date || '—'} />
+                  <DetailField label="Date of Birth" value={student.date_of_birth || '—'} />
+                  <DetailField label="Age" value={student.age ?? '—'} />
+                  <DetailField label="Gender" value={genderLabel} />
+                  {student.blood_group && (
+                    <DetailField label="Blood Group" value={student.blood_group} />
+                  )}
+                </Stack>
+              </SectionCard>
 
-            {/* Contact Information */}
-            <SectionCard title="Contact Information" sx={{ mt: 3 }}>
-              {student.email ? (
-                <DetailField label="Email" value={student.email} truncate />
-              ) : (
-                <DetailField label="Email" value="-" />
-              )}
-              {student.phone1 ? (
-                <DetailField label="Phone 1" value={student.phone1} />
-              ) : (
-                <DetailField label="Phone 1" value="-" />
-              )}
-              {student.phone2 ? (
-                <DetailField label="Phone 2" value={student.phone2} />
-              ) : (
-                <DetailField label="Phone 2" value="-" />
-              )}
-            </SectionCard>
+              {/* Contact */}
+              <SectionCard title="Contact">
+                <Stack spacing={1.5}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Email
+                    </Typography>
+                    {student.email ? (
+                      <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mt: 0.25 }}>
+                        <EmailIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                        <Typography
+                          component="a"
+                          href={`mailto:${student.email}`}
+                          variant="body2"
+                          sx={{
+                            color: 'primary.main',
+                            textDecoration: 'none',
+                            wordBreak: 'break-all',
+                            '&:hover': { textDecoration: 'underline' },
+                          }}
+                        >
+                          {student.email}
+                        </Typography>
+                      </Stack>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        —
+                      </Typography>
+                    )}
+                  </Box>
 
-            {/* Guardians */}
-            <SectionCard title="Guardians" sx={{ mt: 3 }}>
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={<PersonAddIcon />}
-                onClick={() => setAttachDialogOpen(true)}
-                sx={{ mb: 2 }}
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Phone
+                    </Typography>
+                    <Stack spacing={0.5} sx={{ mt: 0.25 }}>
+                      {student.phone1 ? (
+                        <Stack direction="row" alignItems="center" spacing={0.75}>
+                          <PhoneIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                          <Typography
+                            component="a"
+                            href={`tel:${student.phone1}`}
+                            variant="body2"
+                            sx={{
+                              color: 'text.primary',
+                              textDecoration: 'none',
+                              '&:hover': { color: 'primary.main' },
+                            }}
+                          >
+                            {student.phone1}
+                          </Typography>
+                        </Stack>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          —
+                        </Typography>
+                      )}
+                      {student.phone2 && (
+                        <Stack direction="row" alignItems="center" spacing={0.75}>
+                          <PhoneIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                          <Typography
+                            component="a"
+                            href={`tel:${student.phone2}`}
+                            variant="body2"
+                            sx={{
+                              color: 'text.primary',
+                              textDecoration: 'none',
+                              '&:hover': { color: 'primary.main' },
+                            }}
+                          >
+                            {student.phone2}
+                          </Typography>
+                        </Stack>
+                      )}
+                    </Stack>
+                  </Box>
+                </Stack>
+              </SectionCard>
+
+              {/* Guardians */}
+              <SectionCard
+                title="Guardians"
+                actions={
+                  <Button
+                    size="small"
+                    startIcon={<PersonAddIcon />}
+                    onClick={() => setAttachDialogOpen(true)}
+                  >
+                    Attach
+                  </Button>
+                }
               >
-                Attach Guardian
-              </Button>
-
-              {guardians?.results && guardians.results.length > 0 ? (
-                <List disablePadding>
-                  {guardians.results.map((guardian) => (
-                    <ListItem key={guardian.id} disablePadding sx={{ mb: 1, pb: 1, borderBottom: '1px solid #eee' }}>
-                      <ListItemText
-                        primary={guardian.name}
-                        secondary={
-                          <>
-                            <Typography variant="caption" display="block">
-                              {guardian.relation}
-                              {guardian.is_immediate_contact && (
-                                <StatusBadge label="Primary" status="info" />
-                              )}
+                {guardians?.results && guardians.results.length > 0 ? (
+                  <Stack spacing={1.25} sx={{ mt: 0.5 }}>
+                    {guardians.results.map((guardian) => (
+                      <Paper
+                        key={guardian.id}
+                        variant="outlined"
+                        sx={{
+                          p: 1.5,
+                          borderRadius: 2,
+                          bgcolor: (theme) =>
+                            guardian.is_immediate_contact
+                              ? alpha(theme.palette.info.main, 0.04)
+                              : 'transparent',
+                        }}
+                      >
+                        <Stack
+                          direction="row"
+                          alignItems="flex-start"
+                          justifyContent="space-between"
+                          spacing={1}
+                        >
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }} noWrap>
+                              {guardian.name}
                             </Typography>
-                            {guardian.phone && (
-                              <Typography variant="caption" display="block">
-                                {guardian.phone}
+                            <Stack
+                              direction="row"
+                              alignItems="center"
+                              spacing={1}
+                              sx={{ mt: 0.35 }}
+                              flexWrap="wrap"
+                              useFlexGap
+                            >
+                              <Typography variant="caption" color="text.secondary">
+                                {guardian.relation || 'Guardian'}
                               </Typography>
+                              {guardian.is_immediate_contact && (
+                                <Chip
+                                  label="Primary"
+                                  size="small"
+                                  color="info"
+                                  variant="outlined"
+                                  sx={{ height: 20, fontSize: '0.7rem' }}
+                                />
+                              )}
+                            </Stack>
+                            {guardian.phone && (
+                              <Stack
+                                direction="row"
+                                alignItems="center"
+                                spacing={0.5}
+                                sx={{ mt: 0.75 }}
+                              >
+                                <PhoneIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                                <Typography
+                                  component="a"
+                                  href={`tel:${guardian.phone}`}
+                                  variant="caption"
+                                  sx={{
+                                    color: 'text.primary',
+                                    textDecoration: 'none',
+                                    '&:hover': { color: 'primary.main' },
+                                  }}
+                                >
+                                  {guardian.phone}
+                                </Typography>
+                              </Stack>
                             )}
-                          </>
-                        }
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              ) : (
-                <Typography variant="body2" color="textSecondary">
-                  No guardians attached
-                </Typography>
-              )}
-            </SectionCard>
+                          </Box>
+                        </Stack>
+                      </Paper>
+                    ))}
+                  </Stack>
+                ) : (
+                  <EmptyState message="No guardians attached yet" />
+                )}
+              </SectionCard>
+            </Stack>
           </Grid>
 
-          {/* RIGHT COLUMN */}
+          {/* ── RIGHT ────────────────────────────────────────────── */}
           <Grid item xs={12} md={8}>
-            {/* Current Enrollment */}
-            {activeBatch && (
-              <SectionCard title="Current Enrollment">
-                <DetailField label="Batch" value={activeBatch.name} />
-                <DetailField label="Roll Number" value={activeBatch.roll_number || '-'} />
-                <DetailField label="Status" value={<StatusBadge label="Active" status="success" />} />
-              </SectionCard>
-            )}
+            <Stack spacing={2.5}>
+              {/* Enrollment banner */}
+              {activeBatch && (
+                <SectionCard>
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    alignItems={{ sm: 'center' }}
+                    justifyContent="space-between"
+                    spacing={2}
+                  >
+                    <Box>
+                      <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: 0.8 }}>
+                        Current Enrollment
+                      </Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 650, mt: 0.25 }}>
+                        {activeBatch.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+                        Roll No: {activeBatch.roll_number || '—'}
+                      </Typography>
+                    </Box>
+                    <StatusBadge label="Active" status="success" />
+                  </Stack>
+                </SectionCard>
+              )}
 
-            {/* Tabbed Card */}
-            <Card sx={{ mt: 3 }}>
-              <Tabs
-                value={activeTab}
-                onChange={handleTabChange}
-                aria-label="student detail tabs"
-                sx={{ borderBottom: 1, borderColor: 'divider', pl: 2 }}
-              >
-                <Tab label="Attendance" id="tab-0" aria-controls="tabpanel-0" />
-                <Tab label="Fees" id="tab-1" aria-controls="tabpanel-1" />
-                <Tab label="Address" id="tab-2" aria-controls="tabpanel-2" />
-                <Tab label="Reports" id="tab-3" aria-controls="tabpanel-3" />
-                <Tab label="Documents" id="tab-4" aria-controls="tabpanel-4" />
-              </Tabs>
+              {/* Tabbed content */}
+              <SectionCard sx={{ overflow: 'hidden' }}>
+                <Tabs
+                  value={activeTab}
+                  onChange={handleTabChange}
+                  aria-label="Student details"
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  sx={{
+                    borderBottom: 1,
+                    borderColor: 'divider',
+                    minHeight: 48,
+                    '& .MuiTab-root': {
+                      minHeight: 48,
+                      textTransform: 'none',
+                      fontWeight: 550,
+                      fontSize: '0.9rem',
+                    },
+                  }}
+                >
+                  <Tab label="Attendance" id="student-tab-0" aria-controls="student-tabpanel-0" />
+                  <Tab label="Fees" id="student-tab-1" aria-controls="student-tabpanel-1" />
+                  <Tab label="Address" id="student-tab-2" aria-controls="student-tabpanel-2" />
+                  <Tab label="Reports" id="student-tab-3" aria-controls="student-tabpanel-3" />
+                  <Tab label="Documents" id="student-tab-4" aria-controls="student-tabpanel-4" />
+                </Tabs>
 
-              <CardContent>
-                {/* Attendance Tab */}
+                {/* Attendance */}
                 <TabPanel value={activeTab} index={0}>
                   {attendanceSummary ? (
                     <Box>
-                      <Grid container spacing={2} sx={{ mb: 3 }}>
+                      <Grid container spacing={2} sx={{ mb: 1 }}>
                         <Grid item xs={6} sm={3}>
-                          <Paper sx={{ p: 2, textAlign: 'center' }}>
-                            <Typography variant="h6">{attendanceSummary.total_days}</Typography>
-                            <Typography variant="caption" color="textSecondary">
-                              Total Days
-                            </Typography>
-                          </Paper>
+                          <MetricTile value={attendanceSummary.total_days} label="Total Days" />
                         </Grid>
                         <Grid item xs={6} sm={3}>
-                          <Paper sx={{ p: 2, textAlign: 'center' }}>
-                            <Typography variant="h6">{attendanceSummary.present_days}</Typography>
-                            <Typography variant="caption" color="textSecondary">
-                              Present
-                            </Typography>
-                          </Paper>
+                          <MetricTile value={attendanceSummary.present_days} label="Present" />
                         </Grid>
                         <Grid item xs={6} sm={3}>
-                          <Paper sx={{ p: 2, textAlign: 'center' }}>
-                            <Typography variant="h6">{attendanceSummary.absent_days}</Typography>
-                            <Typography variant="caption" color="textSecondary">
-                              Absent
-                            </Typography>
-                          </Paper>
+                          <MetricTile value={attendanceSummary.absent_days} label="Absent" />
                         </Grid>
                         <Grid item xs={6} sm={3}>
-                          <Paper sx={{ p: 2, textAlign: 'center' }}>
-                            <Typography variant="h6">{attendanceSummary.attendance_percentage}%</Typography>
-                            <Typography variant="caption" color="textSecondary">
-                              Percentage
-                            </Typography>
-                          </Paper>
+                          <MetricTile
+                            value={`${attendanceSummary.attendance_percentage}%`}
+                            label="Percentage"
+                          />
                         </Grid>
                       </Grid>
 
-                      {attendanceSummary.available_terms && attendanceSummary.available_terms.length > 0 && (
-                        <FormControl fullWidth sx={{ mt: 2 }}>
-                          <InputLabel>Select Term</InputLabel>
-                          <Select label="Select Term" value="">
-                            {attendanceSummary.available_terms.map((term) => (
-                              <MenuItem key={term.id} value={term.id}>
-                                {term.name}
+                      {attendanceSummary.available_terms &&
+                        attendanceSummary.available_terms.length > 0 && (
+                          <FormControl fullWidth size="small" sx={{ mt: 2.5, maxWidth: 320 }}>
+                            <InputLabel id="term-select-label">Filter by term</InputLabel>
+                            <Select
+                              labelId="term-select-label"
+                              label="Filter by term"
+                              value=""
+                              displayEmpty
+                            >
+                              <MenuItem value="">
+                                <em>All terms</em>
                               </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      )}
+                              {attendanceSummary.available_terms.map((term) => (
+                                <MenuItem key={term.id} value={term.id}>
+                                  {term.name}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        )}
                     </Box>
                   ) : (
-                    <Typography color="textSecondary">Loading attendance...</Typography>
+                    <EmptyState message="Loading attendance summary…" />
                   )}
                 </TabPanel>
 
-                {/* Fees Tab */}
+                {/* Fees */}
                 <TabPanel value={activeTab} index={1}>
                   {feeBalance ? (
                     <Box>
                       {feeBalance.balance > 0 && (
-                        <Alert severity="error" sx={{ mb: 2 }}>
-                          Outstanding Balance: {feeBalance.balance}
+                        <Alert severity="error" variant="outlined" sx={{ mb: 2 }}>
+                          Outstanding balance of{' '}
+                          <strong>{feeBalance.balance}</strong>
                         </Alert>
                       )}
                       {feeBalance.balance === 0 && (
-                        <Alert severity="success" sx={{ mb: 2 }}>
+                        <Alert severity="success" variant="outlined" sx={{ mb: 2 }}>
                           No outstanding fees
                         </Alert>
                       )}
                       {feeBalance.balance < 0 && (
-                        <Alert severity="info" sx={{ mb: 2 }}>
-                          Credit Balance: {Math.abs(feeBalance.balance)}
+                        <Alert severity="info" variant="outlined" sx={{ mb: 2 }}>
+                          Credit balance of{' '}
+                          <strong>{Math.abs(feeBalance.balance)}</strong>
                         </Alert>
                       )}
+
+                      <Paper
+                        variant="outlined"
+                        sx={{
+                          p: 2.5,
+                          borderRadius: 2,
+                          display: 'flex',
+                          alignItems: 'baseline',
+                          gap: 1,
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Current balance
+                        </Typography>
+                        <Typography
+                          variant="h5"
+                          sx={{
+                            fontWeight: 700,
+                            color:
+                              feeBalance.balance > 0
+                                ? 'error.main'
+                                : feeBalance.balance < 0
+                                  ? 'info.main'
+                                  : 'success.main',
+                          }}
+                        >
+                          {feeBalance.balance}
+                        </Typography>
+                      </Paper>
                     </Box>
                   ) : (
-                    <Typography color="textSecondary">Loading fee information...</Typography>
+                    <EmptyState message="Loading fee information…" />
                   )}
                 </TabPanel>
 
-                {/* Address Tab */}
+                {/* Address */}
                 <TabPanel value={activeTab} index={2}>
                   {student.address_line1 || student.city || student.state ? (
-                    <Box>
+                    <Stack spacing={0.25}>
                       <DetailField
                         label="Address"
-                        value={[student.address_line1, student.address_line2]
-                          .filter(Boolean)
-                          .join(', ') || '-'}
+                        value={
+                          [student.address_line1, student.address_line2]
+                            .filter(Boolean)
+                            .join(', ') || '—'
+                        }
                       />
                       <DetailField
                         label="City / State"
-                        value={[student.city, student.state].filter(Boolean).join(', ') || '-'}
+                        value={[student.city, student.state].filter(Boolean).join(', ') || '—'}
                       />
-                      <DetailField label="Pin Code" value={student.pin_code || '-'} />
-                      <DetailField label="Country" value={student.country_name || '-'} />
-                    </Box>
+                      <DetailField label="Pin Code" value={student.pin_code || '—'} />
+                      <DetailField label="Country" value={student.country_name || '—'} />
+                    </Stack>
                   ) : (
-                    <Typography color="textSecondary">No address information available</Typography>
+                    <EmptyState message="No address information available" />
                   )}
                 </TabPanel>
 
-                {/* Reports Tab */}
+                {/* Reports */}
                 <TabPanel value={activeTab} index={3}>
-                  <Typography variant="body2" color="textSecondary">
-                    Report generation features coming soon
-                  </Typography>
+                  <EmptyState
+                    message="Report generation is coming soon"
+                    icon={<DocumentIcon sx={{ fontSize: 40 }} />}
+                  />
                 </TabPanel>
 
-                {/* Documents Tab */}
+                {/* Documents */}
                 <TabPanel value={activeTab} index={4}>
                   {documents?.results && documents.results.length > 0 ? (
                     <TableContainer>
-                      <Table>
+                      <Table size="small">
                         <TableHead>
                           <TableRow>
-                            <TableCell>Category</TableCell>
-                            <TableCell>Filename</TableCell>
-                            <TableCell>Uploaded</TableCell>
-                            <TableCell align="right">Actions</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Filename</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Uploaded</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600 }}>
+                              Actions
+                            </TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
                           {documents.results.map((doc) => (
-                            <TableRow key={doc.id}>
+                            <TableRow key={doc.id} hover>
                               <TableCell>{doc.category_name}</TableCell>
-                              <TableCell>{doc.original_filename}</TableCell>
-                              <TableCell>{new Date(doc.uploaded_at).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <Typography variant="body2" noWrap sx={{ maxWidth: 220 }}>
+                                  {doc.original_filename}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                {new Date(doc.uploaded_at).toLocaleDateString()}
+                              </TableCell>
                               <TableCell align="right">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => deleteDocumentMutation.mutate(doc.id)}
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
+                                <Tooltip title="Delete document">
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() => setDeleteDocumentId(doc.id)}
+                                    aria-label={`Delete ${doc.original_filename}`}
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -483,114 +696,178 @@ export default function StudentDetailPage({ params }: { params: { id: string } }
                       </Table>
                     </TableContainer>
                   ) : (
-                    <Typography color="textSecondary">No documents uploaded</Typography>
+                    <EmptyState
+                      message="No documents uploaded yet"
+                      icon={<DocumentIcon sx={{ fontSize: 40 }} />}
+                    />
                   )}
                 </TabPanel>
-              </CardContent>
-            </Card>
+              </SectionCard>
+            </Stack>
           </Grid>
         </Grid>
 
         {/* Attach Guardian Dialog */}
-        <Dialog open={attachDialogOpen} onClose={() => setAttachDialogOpen(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Attach Guardian</DialogTitle>
+        <Dialog
+          open={attachDialogOpen}
+          onClose={() => {
+            if (!attachGuardianMutation.isPending) {
+              setAttachDialogOpen(false);
+              resetGuardianForm();
+            }
+          }}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{ sx: { borderRadius: 2 } }}
+        >
+          <DialogTitle sx={{ pb: 1 }}>Attach Guardian</DialogTitle>
           <DialogContent>
-            <Box sx={{ display: 'flex', gap: 2, my: 2 }}>
-              <Button
-                variant={guardianMode === 'existing' ? 'contained' : 'outlined'}
-                onClick={() => setGuardianMode('existing')}
-              >
-                Link Existing
-              </Button>
-              <Button
-                variant={guardianMode === 'new' ? 'contained' : 'outlined'}
-                onClick={() => setGuardianMode('new')}
-              >
-                Create New
-              </Button>
-            </Box>
+            <ToggleButtonGroup
+              value={guardianMode}
+              exclusive
+              onChange={(_e, newMode) => {
+                if (newMode !== null) setGuardianMode(newMode);
+              }}
+              fullWidth
+              size="small"
+              sx={{ mb: 2.5, mt: 0.5 }}
+            >
+              <ToggleButton value="existing">Link existing</ToggleButton>
+              <ToggleButton value="new">Create new</ToggleButton>
+            </ToggleButtonGroup>
 
-            {guardianMode === 'existing' ? (
+            <Stack spacing={2}>
+              {guardianMode === 'existing' ? (
+                <TextField
+                  fullWidth
+                  label="Guardian ID"
+                  placeholder="Enter guardian ID"
+                  value={guardianForm.guardian_id}
+                  onChange={(e) =>
+                    setGuardianForm({ ...guardianForm, guardian_id: e.target.value })
+                  }
+                  helperText="Paste the ID of an existing guardian record"
+                  size="small"
+                />
+              ) : (
+                <>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                    <TextField
+                      fullWidth
+                      label="First name"
+                      value={guardianForm.first_name}
+                      onChange={(e) =>
+                        setGuardianForm({ ...guardianForm, first_name: e.target.value })
+                      }
+                      size="small"
+                      required
+                    />
+                    <TextField
+                      fullWidth
+                      label="Last name"
+                      value={guardianForm.last_name}
+                      onChange={(e) =>
+                        setGuardianForm({ ...guardianForm, last_name: e.target.value })
+                      }
+                      size="small"
+                      required
+                    />
+                  </Stack>
+                  <TextField
+                    fullWidth
+                    label="Mobile phone"
+                    value={guardianForm.mobile_phone}
+                    onChange={(e) =>
+                      setGuardianForm({ ...guardianForm, mobile_phone: e.target.value })
+                    }
+                    size="small"
+                  />
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    type="email"
+                    value={guardianForm.email}
+                    onChange={(e) =>
+                      setGuardianForm({ ...guardianForm, email: e.target.value })
+                    }
+                    size="small"
+                  />
+                  <TextField
+                    fullWidth
+                    label="Occupation"
+                    value={guardianForm.occupation}
+                    onChange={(e) =>
+                      setGuardianForm({ ...guardianForm, occupation: e.target.value })
+                    }
+                    size="small"
+                  />
+                </>
+              )}
+
               <TextField
                 fullWidth
-                label="Guardian ID"
-                value={guardianForm.guardian_id}
-                onChange={(e) => setGuardianForm({ ...guardianForm, guardian_id: e.target.value })}
-                margin="normal"
+                label="Relationship"
+                placeholder="e.g. Father, Mother, Guardian"
+                value={guardianForm.relation}
+                onChange={(e) =>
+                  setGuardianForm({ ...guardianForm, relation: e.target.value })
+                }
+                size="small"
               />
-            ) : (
-              <>
-                <TextField
-                  fullWidth
-                  label="First Name"
-                  value={guardianForm.first_name}
-                  onChange={(e) => setGuardianForm({ ...guardianForm, first_name: e.target.value })}
-                  margin="normal"
-                />
-                <TextField
-                  fullWidth
-                  label="Last Name"
-                  value={guardianForm.last_name}
-                  onChange={(e) => setGuardianForm({ ...guardianForm, last_name: e.target.value })}
-                  margin="normal"
-                />
-                <TextField
-                  fullWidth
-                  label="Mobile Phone"
-                  value={guardianForm.mobile_phone}
-                  onChange={(e) => setGuardianForm({ ...guardianForm, mobile_phone: e.target.value })}
-                  margin="normal"
-                />
-                <TextField
-                  fullWidth
-                  label="Email"
-                  type="email"
-                  value={guardianForm.email}
-                  onChange={(e) => setGuardianForm({ ...guardianForm, email: e.target.value })}
-                  margin="normal"
-                />
-                <TextField
-                  fullWidth
-                  label="Occupation"
-                  value={guardianForm.occupation}
-                  onChange={(e) => setGuardianForm({ ...guardianForm, occupation: e.target.value })}
-                  margin="normal"
-                />
-              </>
-            )}
 
-            <TextField
-              fullWidth
-              label="Relationship"
-              value={guardianForm.relation}
-              onChange={(e) => setGuardianForm({ ...guardianForm, relation: e.target.value })}
-              margin="normal"
-            />
-
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={guardianForm.is_immediate_contact}
-                  onChange={(e) =>
-                    setGuardianForm({ ...guardianForm, is_immediate_contact: e.target.checked })
-                  }
-                />
-              }
-              label="Set as primary contact"
-              sx={{ mt: 2 }}
-            />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={guardianForm.is_immediate_contact}
+                    onChange={(e) =>
+                      setGuardianForm({
+                        ...guardianForm,
+                        is_immediate_contact: e.target.checked,
+                      })
+                    }
+                  />
+                }
+                label="Set as primary contact"
+              />
+            </Stack>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setAttachDialogOpen(false)}>Cancel</Button>
+          <DialogActions sx={{ px: 3, pb: 2.5 }}>
             <Button
-              onClick={handleAttachGuardian}
-              variant="contained"
+              onClick={() => {
+                setAttachDialogOpen(false);
+                resetGuardianForm();
+              }}
               disabled={attachGuardianMutation.isPending}
             >
-              Attach
+              Cancel
             </Button>
+            <LoadingButton
+              onClick={handleAttachGuardian}
+              variant="contained"
+              loading={attachGuardianMutation.isPending}
+            >
+              Attach Guardian
+            </LoadingButton>
           </DialogActions>
         </Dialog>
+
+        {/* Document delete confirmation */}
+        <ConfirmDialog
+          open={deleteDocumentId !== null}
+          title="Delete document?"
+          description="This action cannot be undone. The document will be permanently removed."
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          destructive
+          loading={deleteDocumentMutation.isPending}
+          onConfirm={async () => {
+            if (deleteDocumentId) {
+              await deleteDocumentMutation.mutateAsync(deleteDocumentId);
+              setDeleteDocumentId(null);
+            }
+          }}
+          onCancel={() => setDeleteDocumentId(null)}
+        />
       </PageContent>
     </Page>
   );

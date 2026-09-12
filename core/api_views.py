@@ -428,7 +428,7 @@ class StudentViewSet(TenantAwareViewSetMixin, viewsets.ModelViewSet):
                     'id': str(r.guardian.id),
                     'name': f"{r.guardian.first_name} {r.guardian.last_name}",
                     'relation': r.relation,
-                    'phone': r.guardian.phone1,
+                    'phone': r.guardian.mobile_phone,
                     'email': r.guardian.email,
                     'is_immediate_contact': r.is_immediate_contact
                 }
