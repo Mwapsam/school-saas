@@ -49,6 +49,7 @@ export function Step2Form({ applicationId, initialData, onSubmit, isLoading, err
             error={!!errors.first_name}
             helperText={errors.first_name?.message}
             disabled={isLoading}
+            required
           />
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -67,6 +68,7 @@ export function Step2Form({ applicationId, initialData, onSubmit, isLoading, err
             error={!!errors.last_name}
             helperText={errors.last_name?.message}
             disabled={isLoading}
+            required
           />
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -79,6 +81,7 @@ export function Step2Form({ applicationId, initialData, onSubmit, isLoading, err
             helperText={errors.date_of_birth?.message}
             InputLabelProps={{ shrink: true }}
             disabled={isLoading}
+            required
           />
         </Grid>
 
@@ -91,6 +94,7 @@ export function Step2Form({ applicationId, initialData, onSubmit, isLoading, err
             error={!!errors.gender}
             helperText={errors.gender?.message}
             disabled={isLoading}
+            required
           >
             <MenuItem value="male">Male</MenuItem>
             <MenuItem value="female">Female</MenuItem>
@@ -106,6 +110,7 @@ export function Step2Form({ applicationId, initialData, onSubmit, isLoading, err
             error={!!errors.nationality}
             helperText={errors.nationality?.message}
             disabled={isLoading}
+            required
           />
         </Grid>
 
@@ -183,7 +188,7 @@ export function Step2Form({ applicationId, initialData, onSubmit, isLoading, err
           <Button
             type="submit"
             variant="contained"
-            disabled={isLoading}
+            disabled={isLoading || !!errors.first_name || !!errors.last_name || !!errors.date_of_birth || !!errors.gender || !!errors.nationality}
             startIcon={isLoading && <CircularProgress size={20} />}
           >
             {isLoading ? 'Saving...' : 'Continue to Step 3'}

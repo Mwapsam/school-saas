@@ -8178,7 +8178,7 @@ class ApplicantEnquiry(TenantAwareModel):
 
     # Basic info
     enquiry_number = models.CharField(max_length=50, unique=True, blank=True)
-    enquired_date = models.DateField(default=timezone.now)
+    enquired_date = models.DateField(default=lambda: timezone.now().date())
 
     # Student Information
     first_name = models.CharField(max_length=100)

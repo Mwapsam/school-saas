@@ -60,6 +60,7 @@ export function Step3Form({ applicationId, initialData, onSubmit, isLoading, err
             error={!!errors.address_line1}
             helperText={errors.address_line1?.message}
             disabled={isLoading}
+            required
           />
         </Grid>
 
@@ -80,6 +81,7 @@ export function Step3Form({ applicationId, initialData, onSubmit, isLoading, err
             error={!!errors.city}
             helperText={errors.city?.message}
             disabled={isLoading}
+            required
           />
         </Grid>
 
@@ -92,6 +94,7 @@ export function Step3Form({ applicationId, initialData, onSubmit, isLoading, err
             error={!!errors.country}
             helperText={errors.country?.message}
             disabled={isLoading}
+            required
           >
             {countriesData?.results.map((country) => (
               <MenuItem key={country.id} value={country.id}>
@@ -135,7 +138,7 @@ export function Step3Form({ applicationId, initialData, onSubmit, isLoading, err
           <Button
             type="submit"
             variant="contained"
-            disabled={isLoading}
+            disabled={isLoading || !!errors.address_line1 || !!errors.city || !!errors.country}
             startIcon={isLoading && <CircularProgress size={20} />}
           >
             {isLoading ? 'Saving...' : 'Continue to Step 4'}

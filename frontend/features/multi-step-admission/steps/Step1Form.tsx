@@ -56,11 +56,12 @@ export function Step1Form({ applicationId, initialData, onSubmit, isLoading, err
           <TextField
             fullWidth
             select
-            label="Academic Year"
+            label="Academic Year *"
             {...register('academic_year')}
             error={!!errors.academic_year}
             helperText={errors.academic_year?.message}
             disabled={isLoading}
+            required
           >
             {academicYearsData?.results.map((year) => (
               <MenuItem key={year.id} value={year.id}>
@@ -74,11 +75,12 @@ export function Step1Form({ applicationId, initialData, onSubmit, isLoading, err
           <TextField
             fullWidth
             select
-            label="Course Applied"
+            label="Course Applied *"
             {...register('course_applied')}
             error={!!errors.course_applied}
             helperText={errors.course_applied?.message}
             disabled={isLoading}
+            required
           >
             {coursesData?.results.map((course) => (
               <MenuItem key={course.id} value={course.id}>
@@ -120,7 +122,7 @@ export function Step1Form({ applicationId, initialData, onSubmit, isLoading, err
           <Button
             type="submit"
             variant="contained"
-            disabled={isLoading || !termsAgreed}
+            disabled={isLoading || !termsAgreed || !!errors.academic_year || !!errors.course_applied}
             startIcon={isLoading && <CircularProgress size={20} />}
           >
             {isLoading ? 'Saving...' : 'Continue to Step 2'}
