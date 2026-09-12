@@ -1,78 +1,73 @@
 /**
- * Transport route detail view page (read-only, Phase 1).
+ * Transport route detail page using design system components.
  */
 
 'use client';
 
 export const dynamic = 'force-dynamic';
 
-import { useRouter } from 'next/navigation';
-import { Container, Box, Typography, Button, Grid, Paper, CircularProgress, Alert } from '@mui/material';
-import { ArrowBack as BackIcon } from '@mui/icons-material';
+import Link from 'next/link';
+import { Button, Box, Typography, Grid, Paper, Alert } from '@mui/material';
+import { ChevronLeft as BackIcon } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useTransportRoute } from '@/features/transport/hooks';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
+import { LoadingState } from '@/components/feedback/LoadingState';
+import { ErrorState } from '@/components/feedback/ErrorState';
 
 export default function TransportRouteDetailPage({ params }: { params: { id: string } }) {
-  const router = useRouter();
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
-  const { data: route, isLoading, error } = useTransportRoute(params.id);
+  const { data: route, isLoading, error, refetch } = useTransportRoute(params.id);
 
   if (!bootstrap) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Typography>Loading configuration...</Typography>
-        </Box>
-      </Container>
+      <Page>
+        <LoadingState />
+      </Page>
     );
   }
 
   if (!isModuleEnabled('transport') || !can('transport.routes.view')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            You do not have permission to view this route.
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">You do not have permission to view this route.</Alert>
+      </Page>
     );
   }
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Box>
-      </Container>
+      <Page>
+        <LoadingState />
+      </Page>
     );
   }
 
   if (error || !route) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            Failed to load route: {error?.message || 'Route not found'}
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <ErrorState error={error} onRetry={() => refetch()} />
+      </Page>
     );
   }
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <Button startIcon={<BackIcon />} onClick={() => router.back()} variant="text">
-            Back
-          </Button>
-          <Typography variant="h4" component="h1">
-            {route.route_name}
-          </Typography>
-        </Box>
+    <Page>
+      <PageHeader
+        title={route.route_name}
+        description={`Route Code: ${route.code}`}
+        breadcrumbs={
+          <Link href="/dashboard/routes" passHref legacyBehavior>
+            <Button startIcon={<BackIcon />} variant="text">
+              Back to Routes
+            </Button>
+          </Link>
+        }
+      />
 
+      <PageContent>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2 }}>
@@ -115,7 +110,7 @@ export default function TransportRouteDetailPage({ params }: { params: { id: str
             </Paper>
           </Grid>
         </Grid>
-      </Box>
-    </Container>
+      </PageContent>
+    </Page>
   );
 }

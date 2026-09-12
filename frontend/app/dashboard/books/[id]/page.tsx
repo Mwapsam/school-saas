@@ -1,78 +1,73 @@
 /**
- * Library book detail view page (read-only, Phase 1).
+ * Library book detail page using design system components.
  */
 
 'use client';
 
 export const dynamic = 'force-dynamic';
 
-import { useRouter } from 'next/navigation';
-import { Container, Box, Typography, Button, Grid, Paper, CircularProgress, Alert } from '@mui/material';
-import { ArrowBack as BackIcon } from '@mui/icons-material';
+import Link from 'next/link';
+import { Button, Box, Typography, Grid, Paper, Alert } from '@mui/material';
+import { ChevronLeft as BackIcon } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useBook } from '@/features/library/hooks';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
+import { LoadingState } from '@/components/feedback/LoadingState';
+import { ErrorState } from '@/components/feedback/ErrorState';
 
 export default function LibraryBookDetailPage({ params }: { params: { id: string } }) {
-  const router = useRouter();
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
-  const { data: book, isLoading, error } = useBook(params.id);
+  const { data: book, isLoading, error, refetch } = useBook(params.id);
 
   if (!bootstrap) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Typography>Loading configuration...</Typography>
-        </Box>
-      </Container>
+      <Page>
+        <LoadingState />
+      </Page>
     );
   }
 
   if (!isModuleEnabled('library') || !can('library.view')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            You do not have permission to view this book.
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">You do not have permission to view this book.</Alert>
+      </Page>
     );
   }
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Box>
-      </Container>
+      <Page>
+        <LoadingState />
+      </Page>
     );
   }
 
   if (error || !book) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            Failed to load book: {error?.message || 'Book not found'}
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <ErrorState error={error} onRetry={() => refetch()} />
+      </Page>
     );
   }
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <Button startIcon={<BackIcon />} onClick={() => router.back()} variant="text">
-            Back
-          </Button>
-          <Typography variant="h4" component="h1">
-            {book.title}
-          </Typography>
-        </Box>
+    <Page>
+      <PageHeader
+        title={book.title}
+        description={`by ${book.author}`}
+        breadcrumbs={
+          <Link href="/dashboard/books" passHref legacyBehavior>
+            <Button startIcon={<BackIcon />} variant="text">
+              Back to Books
+            </Button>
+          </Link>
+        }
+      />
 
+      <PageContent>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2 }}>
@@ -120,7 +115,7 @@ export default function LibraryBookDetailPage({ params }: { params: { id: string
             </Paper>
           </Grid>
         </Grid>
-      </Box>
-    </Container>
+      </PageContent>
+    </Page>
   );
 }

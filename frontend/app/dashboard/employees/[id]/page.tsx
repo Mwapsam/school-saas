@@ -1,79 +1,75 @@
 /**
- * Employee detail view page.
+ * Employee detail page using design system components.
  */
 
 'use client';
 
 export const dynamic = 'force-dynamic';
 
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Container, Box, Typography, Button, Grid, Paper, CircularProgress, Alert } from '@mui/material';
-import { Edit as EditIcon, ArrowBack as BackIcon } from '@mui/icons-material';
+import { Button, Box, Typography, Grid, Paper, Alert } from '@mui/material';
+import { Edit as EditIcon, ChevronLeft as BackIcon } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useEmployee } from '@/features/hr/hooks';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
+import { LoadingState } from '@/components/feedback/LoadingState';
+import { ErrorState } from '@/components/feedback/ErrorState';
+import { StatusBadge } from '@/components/data/StatusBadge';
 
 export default function EmployeeDetailPage({ params }: { params: { id: string } }) {
-  const router = useRouter();
   const { can, isModuleEnabled } = useTenantStore();
-  const { data: employee, isLoading, error } = useEmployee(params.id);
+  const { data: employee, isLoading, error, refetch } = useEmployee(params.id);
 
   if (!isModuleEnabled('hr') || !can('employees.view')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">You do not have permission to view this employee.</Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">You do not have permission to view this employee.</Alert>
+      </Page>
     );
   }
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Box>
-      </Container>
+      <Page>
+        <LoadingState />
+      </Page>
     );
   }
 
   if (error || !employee) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            Failed to load employee: {(error as any)?.message || 'Employee not found'}
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <ErrorState error={error} onRetry={() => refetch()} />
+      </Page>
     );
   }
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
-        {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button startIcon={<BackIcon />} onClick={() => router.back()} variant="text">
-              Back
+    <Page>
+      <PageHeader
+        title={employee.full_name}
+        description={`${employee.position_name || 'Position'} • ${employee.department_name || 'Department'}`}
+        breadcrumbs={
+          <Link href="/dashboard/employees" passHref legacyBehavior>
+            <Button startIcon={<BackIcon />} variant="text">
+              Back to Employees
             </Button>
-            <Typography variant="h4" component="h1">
-              {employee.full_name}
-            </Typography>
-          </Box>
-
-          {can('employees.update') && (
+          </Link>
+        }
+        actions={
+          can('employees.update') && (
             <Link href={`/dashboard/employees/${employee.id}/edit`} passHref legacyBehavior>
               <Button component="a" variant="contained" startIcon={<EditIcon />}>
                 Edit
               </Button>
             </Link>
-          )}
-        </Box>
+          )
+        }
+      />
 
-        {/* Details */}
+      <PageContent>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2 }}>
@@ -123,20 +119,8 @@ export default function EmployeeDetailPage({ params }: { params: { id: string } 
                 <Typography variant="body2" color="textSecondary">
                   Status:
                 </Typography>
-                <Box
-                  sx={{
-                    display: 'inline-block',
-                    px: 1,
-                    py: 0.5,
-                    backgroundColor: employee.status ? '#e8f5e9' : '#ffebee',
-                    color: employee.status ? '#2e7d32' : '#c62828',
-                    borderRadius: 1,
-                    fontSize: '0.85rem',
-                    fontWeight: 500,
-                    width: 'fit-content',
-                  }}
-                >
-                  {employee.status ? 'Active' : 'Inactive'}
+                <Box>
+                  <StatusBadge status={employee.status ? 'active' : 'inactive'} />
                 </Box>
 
                 <Typography variant="body2" color="textSecondary">
@@ -156,7 +140,7 @@ export default function EmployeeDetailPage({ params }: { params: { id: string } 
             </Paper>
           </Grid>
         </Grid>
-      </Box>
-    </Container>
+      </PageContent>
+    </Page>
   );
 }

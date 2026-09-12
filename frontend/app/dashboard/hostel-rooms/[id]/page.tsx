@@ -1,78 +1,73 @@
 /**
- * Hostel room detail view page (read-only, Phase 1).
+ * Hostel room detail page using design system components.
  */
 
 'use client';
 
 export const dynamic = 'force-dynamic';
 
-import { useRouter } from 'next/navigation';
-import { Container, Box, Typography, Button, Grid, Paper, CircularProgress, Alert } from '@mui/material';
-import { ArrowBack as BackIcon } from '@mui/icons-material';
+import Link from 'next/link';
+import { Button, Box, Typography, Grid, Paper, Alert } from '@mui/material';
+import { ChevronLeft as BackIcon } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useHostelRoom } from '@/features/hostel/hooks';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
+import { LoadingState } from '@/components/feedback/LoadingState';
+import { ErrorState } from '@/components/feedback/ErrorState';
 
 export default function HostelRoomDetailPage({ params }: { params: { id: string } }) {
-  const router = useRouter();
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
-  const { data: room, isLoading, error } = useHostelRoom(params.id);
+  const { data: room, isLoading, error, refetch } = useHostelRoom(params.id);
 
   if (!bootstrap) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Typography>Loading configuration...</Typography>
-        </Box>
-      </Container>
+      <Page>
+        <LoadingState />
+      </Page>
     );
   }
 
   if (!isModuleEnabled('hostel') || !can('hostel.rooms.view')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            You do not have permission to view this hostel room.
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">You do not have permission to view this hostel room.</Alert>
+      </Page>
     );
   }
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Box>
-      </Container>
+      <Page>
+        <LoadingState />
+      </Page>
     );
   }
 
   if (error || !room) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            Failed to load room: {error?.message || 'Room not found'}
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <ErrorState error={error} onRetry={() => refetch()} />
+      </Page>
     );
   }
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <Button startIcon={<BackIcon />} onClick={() => router.back()} variant="text">
-            Back
-          </Button>
-          <Typography variant="h4" component="h1">
-            Room {room.room_number}
-          </Typography>
-        </Box>
+    <Page>
+      <PageHeader
+        title={`Room ${room.room_number}`}
+        description={`${room.room_type} • Capacity: ${room.capacity}`}
+        breadcrumbs={
+          <Link href="/dashboard/hostel-rooms" passHref legacyBehavior>
+            <Button startIcon={<BackIcon />} variant="text">
+              Back to Rooms
+            </Button>
+          </Link>
+        }
+      />
 
+      <PageContent>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2 }}>
@@ -110,7 +105,7 @@ export default function HostelRoomDetailPage({ params }: { params: { id: string 
             </Paper>
           </Grid>
         </Grid>
-      </Box>
-    </Container>
+      </PageContent>
+    </Page>
   );
 }

@@ -63,7 +63,7 @@
 
 ---
 
-## 🚀 Phase 9: Migrate Remaining Modules (70% Complete)
+## 🚀 Phase 9: Migrate Remaining Modules (95% Complete)
 **Goal:** Apply design system to all other module pages
 
 **List pages completed (8 modules):**
@@ -81,6 +81,18 @@
 - ✅ `app/dashboard/employees/create/page.tsx` — new employee form
 - ✅ `app/dashboard/inquiries/create/page.tsx` — new enquiry form
 
+**Detail pages completed:**
+- ✅ `app/dashboard/invoices/[id]/page.tsx` — invoice detail with StatusBadge
+- ✅ `app/dashboard/books/[id]/page.tsx` — book detail with design system
+- ✅ `app/dashboard/employees/[id]/page.tsx` — employee detail with StatusBadge
+- ✅ `app/dashboard/inquiries/[id]/page.tsx` — enquiry detail with tabs and ConfirmDialog
+- ✅ `app/dashboard/routes/[id]/page.tsx` — route detail with design system
+- ✅ `app/dashboard/hostel-rooms/[id]/page.tsx` — room detail with design system
+- ✅ `app/dashboard/admissions/multi-step/[id]/page.tsx` — multi-step admission wizard
+
+**Edit pages completed:**
+- ✅ `app/dashboard/employees/[id]/edit/page.tsx` — employee edit with design system
+
 **Placeholder pages (not yet implemented):**
 - `app/dashboard/batches/page.tsx` — ComingSoon
 - `app/dashboard/courses/page.tsx` — ComingSoon
@@ -90,8 +102,9 @@
 - `app/dashboard/transport-staff/page.tsx` — ComingSoon
 
 **Remaining work for Phase 9:**
-- Detail/Edit pages for all migrated modules (Admissions, Invoices, Books, Employees, Routes, Hostel)
-- Complex pages (Admissions applicants management, multi-step forms, batch assignments)
+- Nested detail/edit pages for invoices (fee-categories, fee-discounts)
+- Admissions applicants list/detail page
+- Browser testing of all updated modules
 
 **Phase 10 (Pending):**
 - Tenant branding (colors, logo, fonts, favicon)

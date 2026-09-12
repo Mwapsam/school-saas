@@ -1,39 +1,44 @@
 /**
- * Multi-step admission application wizard page.
+ * Multi-step admission application wizard page using design system.
  */
 
 'use client';
 
 export const dynamic = 'force-dynamic';
 
+import { Alert } from '@mui/material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { AdmissionWizard } from '@/features/multi-step-admission';
-import { Container, Box, Alert } from '@mui/material';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
+import { LoadingState } from '@/components/feedback/LoadingState';
 
 export default function MultiStepAdmissionPage({ params }: { params: { id: string } }) {
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
 
   if (!bootstrap) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="info">Loading...</Alert>
-        </Box>
-      </Container>
+      <Page>
+        <LoadingState />
+      </Page>
     );
   }
 
   if (!isModuleEnabled('admissions') || !can('admissions.application.manage')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            You do not have permission to access this application.
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">You do not have permission to access this application.</Alert>
+      </Page>
     );
   }
 
-  return <AdmissionWizard applicationId={params.id} />;
+  return (
+    <Page>
+      <PageHeader title="Admission Application" description="Complete the multi-step application form" />
+      <PageContent>
+        <AdmissionWizard applicationId={params.id} />
+      </PageContent>
+    </Page>
+  );
 }

@@ -12,7 +12,7 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
-import { Button, Alert, Chip } from '@mui/material';
+import { Button, Alert, Typography } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import type { GridColDef } from '@mui/x-data-grid';
 import { useTenantStore } from '@/lib/tenant/store';
@@ -22,6 +22,7 @@ import { DataTable } from '@/components/data-table/DataTable';
 import { Page } from '@/components/page/Page';
 import { PageHeader } from '@/components/page/PageHeader';
 import { PageContent } from '@/components/page/PageContent';
+import { StatusBadge } from '@/components/data/StatusBadge';
 
 export default function InquiriesPage() {
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
@@ -59,11 +60,7 @@ export default function InquiriesPage() {
       flex: 1,
       sortable: false,
       renderCell: (params) => (
-        <Chip
-          label={params.row.stage_name}
-          size="small"
-          sx={{ backgroundColor: params.row.stage_color || '#007bff', color: 'white' }}
-        />
+        <StatusBadge status={params.row.stage_name || 'unknown'} />
       ),
     },
     {

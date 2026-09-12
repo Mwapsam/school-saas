@@ -1,5 +1,5 @@
 /**
- * Applicant enquiry detail page (view/edit + stage history + follow-ups).
+ * Applicant enquiry detail page using design system components.
  */
 
 'use client';
@@ -7,61 +7,58 @@
 export const dynamic = 'force-dynamic';
 
 import { useRouter } from 'next/navigation';
-import { Container, Box, Typography, Button, Grid, Paper, CircularProgress, Alert, Chip, Tabs, Tab } from '@mui/material';
-import { ArrowBack as BackIcon, CallReceived as ConvertIcon } from '@mui/icons-material';
+import Link from 'next/link';
+import { Button, Box, Typography, Grid, Paper, Alert, Tabs, Tab } from '@mui/material';
+import { ChevronLeft as BackIcon, CallReceived as ConvertIcon } from '@mui/icons-material';
 import { useState } from 'react';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useEnquiry, useUpdateEnquiry, useConvertToApplication, EnquiryForm, type EnquiryUpdateData } from '@/features/enquiries';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
+import { LoadingState } from '@/components/feedback/LoadingState';
+import { ErrorState } from '@/components/feedback/ErrorState';
+import { ConfirmDialog } from '@/components/feedback/ConfirmDialog';
+import { StatusBadge } from '@/components/data/StatusBadge';
 
 export default function EnquiryDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
-  const { data: enquiry, isLoading, error } = useEnquiry(params.id);
+  const { data: enquiry, isLoading, error, refetch } = useEnquiry(params.id);
   const updateMutation = useUpdateEnquiry(params.id);
   const convertMutation = useConvertToApplication(params.id);
   const [tabValue, setTabValue] = useState(0);
+  const [showConvertDialog, setShowConvertDialog] = useState(false);
 
   if (!bootstrap) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Typography>Loading configuration...</Typography>
-        </Box>
-      </Container>
+      <Page>
+        <LoadingState />
+      </Page>
     );
   }
 
   if (!isModuleEnabled('admissions') || !can('admissions.enquiry.view')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            You do not have permission to view this enquiry.
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">You do not have permission to view this enquiry.</Alert>
+      </Page>
     );
   }
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Box>
-      </Container>
+      <Page>
+        <LoadingState />
+      </Page>
     );
   }
 
   if (error || !enquiry) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            Failed to load enquiry: {error?.message || 'Enquiry not found'}
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <ErrorState error={error} onRetry={() => refetch()} />
+      </Page>
     );
   }
 
@@ -74,9 +71,6 @@ export default function EnquiryDetailPage({ params }: { params: { id: string } }
   };
 
   const handleConvert = async () => {
-    if (!confirm('Convert this enquiry to an admission application?')) {
-      return;
-    }
     try {
       await convertMutation.mutateAsync();
       router.push('/dashboard/admissions');
@@ -86,36 +80,32 @@ export default function EnquiryDetailPage({ params }: { params: { id: string } }
   };
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button startIcon={<BackIcon />} onClick={() => router.back()} variant="text">
-              Back
+    <Page>
+      <PageHeader
+        title={enquiry.enquiry_number}
+        description={enquiry.stage ? `Stage: ${enquiry.stage.name}` : undefined}
+        breadcrumbs={
+          <Link href="/dashboard/inquiries" passHref legacyBehavior>
+            <Button startIcon={<BackIcon />} variant="text">
+              Back to Enquiries
             </Button>
-            <Typography variant="h4" component="h1">
-              {enquiry.enquiry_number}
-            </Typography>
-            {enquiry.stage && (
-              <Chip
-                label={enquiry.stage.name}
-                size="small"
-                sx={{ backgroundColor: enquiry.stage.color || '#007bff', color: 'white' }}
-              />
-            )}
-          </Box>
-          {can('admissions.enquiry.manage') && (
+          </Link>
+        }
+        actions={
+          can('admissions.enquiry.manage') && (
             <Button
               variant="outlined"
               startIcon={<ConvertIcon />}
-              onClick={handleConvert}
+              onClick={() => setShowConvertDialog(true)}
               disabled={convertMutation.isPending}
             >
               Convert to Application
             </Button>
-          )}
-        </Box>
+          )
+        }
+      />
 
+      <PageContent>
         <Grid container spacing={3}>
           {/* Overview Panel */}
           <Grid item xs={12} md={3}>
@@ -235,13 +225,8 @@ export default function EnquiryDetailPage({ params }: { params: { id: string } }
                       <Box key={followUp.id} sx={{ mb: 2, pb: 2, borderBottom: '1px solid #eee' }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                            <Chip label={followUp.follow_up_type_display} size="small" />
-                            <Chip
-                              label={followUp.status_display}
-                              size="small"
-                              color={followUp.status === 'completed' ? 'success' : 'default'}
-                              variant="outlined"
-                            />
+                            <StatusBadge status={followUp.follow_up_type_display.toLowerCase()} />
+                            <StatusBadge status={followUp.status === 'completed' ? 'completed' : 'pending'} />
                           </Box>
                           <Typography variant="caption" color="textSecondary">
                             {new Date(followUp.scheduled_date).toLocaleString()}
@@ -267,7 +252,18 @@ export default function EnquiryDetailPage({ params }: { params: { id: string } }
             )}
           </Grid>
         </Grid>
-      </Box>
-    </Container>
+      </PageContent>
+
+      {/* Convert to Application Dialog */}
+      <ConfirmDialog
+        open={showConvertDialog}
+        title="Convert to Application"
+        message="Are you sure you want to convert this enquiry to an admission application?"
+        confirmLabel="Convert"
+        onConfirm={handleConvert}
+        onCancel={() => setShowConvertDialog(false)}
+        isLoading={convertMutation.isPending}
+      />
+    </Page>
   );
 }

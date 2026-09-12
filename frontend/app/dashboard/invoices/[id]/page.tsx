@@ -1,9 +1,5 @@
 /**
- * Invoice detail page.
- *
- * Shows the guardian's consolidated invoice for an academic year: totals,
- * status, and every child's billed line item. Entirely read-only — there is
- * no edit or mark-paid action (see features/finance/hooks.ts).
+ * Invoice detail page using design system components.
  */
 
 'use client';
@@ -11,82 +7,60 @@
 export const dynamic = 'force-dynamic';
 
 import { useRouter } from 'next/navigation';
-import {
-  Container,
-  Box,
-  Typography,
-  Button,
-  Grid,
-  Paper,
-  CircularProgress,
-  Alert,
-  Chip,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-} from '@mui/material';
-import { ArrowBack as BackIcon, PictureAsPdf as PdfIcon } from '@mui/icons-material';
+import Link from 'next/link';
+import { Button, Grid, Paper, Table, TableHead, TableBody, TableRow, TableCell, Typography, Box, Alert } from '@mui/material';
+import { ChevronLeft as BackIcon, PictureAsPdf as PdfIcon } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useInvoice, getInvoicePdfUrl } from '@/features/finance/hooks';
-
-const statusColors = {
-  open: 'info',
-  paid: 'success',
-  void: 'default',
-} as const;
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
+import { LoadingState } from '@/components/feedback/LoadingState';
+import { ErrorState } from '@/components/feedback/ErrorState';
+import { StatusBadge } from '@/components/data/StatusBadge';
 
 export default function InvoiceDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { can, isModuleEnabled, bootstrap } = useTenantStore();
-  const { data: invoice, isLoading, error } = useInvoice(params.id);
+  const { data: invoice, isLoading, error, refetch } = useInvoice(params.id);
 
   if (!bootstrap || !isModuleEnabled('finance') || !can('finance.invoices.view')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            You do not have permission to view invoices.
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">You do not have permission to view invoices.</Alert>
+      </Page>
     );
   }
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Box>
-      </Container>
+      <Page>
+        <LoadingState />
+      </Page>
     );
   }
 
   if (error || !invoice) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            Failed to load invoice: {error?.message || 'Not found'}
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <ErrorState error={error} onRetry={() => refetch()} />
+      </Page>
     );
   }
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button startIcon={<BackIcon />} onClick={() => router.back()} variant="text" />
-            <Typography variant="h4" component="h1">
-              {invoice.invoice_number}
-            </Typography>
-          </Box>
-
+    <Page>
+      <PageHeader
+        title={invoice.invoice_number}
+        description={`Guardian: ${invoice.guardian_name}`}
+        breadcrumbs={
+          <Link href="/dashboard/invoices" passHref legacyBehavior>
+            <Button startIcon={<BackIcon />} variant="text">
+              Back to Invoices
+            </Button>
+          </Link>
+        }
+        actions={
           <Button
             component="a"
             href={getInvoicePdfUrl(invoice.id)}
@@ -97,8 +71,10 @@ export default function InvoiceDetailPage({ params }: { params: { id: string } }
           >
             Download PDF
           </Button>
-        </Box>
+        }
+      />
 
+      <PageContent>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2 }}>
@@ -130,7 +106,7 @@ export default function InvoiceDetailPage({ params }: { params: { id: string } }
                   Status:
                 </Typography>
                 <Box>
-                  <Chip label={invoice.status} color={statusColors[invoice.status]} size="small" />
+                  <StatusBadge status={invoice.status} />
                 </Box>
               </Box>
             </Paper>
@@ -208,7 +184,7 @@ export default function InvoiceDetailPage({ params }: { params: { id: string } }
             </Paper>
           </Grid>
         </Grid>
-      </Box>
-    </Container>
+      </PageContent>
+    </Page>
   );
 }

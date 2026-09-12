@@ -1,5 +1,5 @@
 /**
- * Edit employee page.
+ * Edit employee page using design system components.
  */
 
 'use client';
@@ -7,56 +7,53 @@
 export const dynamic = 'force-dynamic';
 
 import { useRouter } from 'next/navigation';
-import { Container, Box, Typography, Alert, CircularProgress } from '@mui/material';
+import Link from 'next/link';
+import { Button, Alert } from '@mui/material';
+import { ChevronLeft as BackIcon } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useEmployee, useUpdateEmployee } from '@/features/hr/hooks';
 import { EmployeeForm } from '@/features/hr/components/EmployeeForm';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
+import { LoadingState } from '@/components/feedback/LoadingState';
+import { ErrorState } from '@/components/feedback/ErrorState';
 
 export default function EditEmployeePage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { can, isModuleEnabled } = useTenantStore();
-  const { data: employee, isLoading: employeeLoading, error: employeeError } = useEmployee(params.id);
+  const { data: employee, isLoading: employeeLoading, error: employeeError, refetch } = useEmployee(params.id);
   const { mutateAsync: updateEmployee, error: updateError } = useUpdateEmployee(params.id);
 
   if (!isModuleEnabled('hr')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="info">The HR module is not enabled.</Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="info">The HR module is not enabled.</Alert>
+      </Page>
     );
   }
 
   if (!can('employees.update')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">You do not have permission to edit employees.</Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">You do not have permission to edit employees.</Alert>
+      </Page>
     );
   }
 
   if (employeeLoading) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Box>
-      </Container>
+      <Page>
+        <LoadingState />
+      </Page>
     );
   }
 
   if (employeeError || !employee) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            Failed to load employee: {(employeeError as any)?.message || 'Not found'}
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <ErrorState error={employeeError} onRetry={() => refetch()} />
+      </Page>
     );
   }
 
@@ -71,21 +68,32 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
   };
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ py: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Edit Employee: {employee.full_name}
-        </Typography>
+    <Page>
+      <PageHeader
+        title={`Edit Employee: ${employee.full_name}`}
+        breadcrumbs={
+          <Link href={`/dashboard/employees/${employee.id}`} passHref legacyBehavior>
+            <Button startIcon={<BackIcon />} variant="text">
+              Back to Employee
+            </Button>
+          </Link>
+        }
+      />
 
-        <Box sx={{ mt: 3 }}>
-          <EmployeeForm
-            employee={employee}
-            error={(updateError as any)?.message}
-            onSubmit={handleSubmit}
-            onCancel={() => router.back()}
-          />
-        </Box>
-      </Box>
-    </Container>
+      <PageContent>
+        {updateError && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {(updateError as any)?.message || 'Failed to update employee'}
+          </Alert>
+        )}
+
+        <EmployeeForm
+          employee={employee}
+          error={(updateError as any)?.message}
+          onSubmit={handleSubmit}
+          onCancel={() => router.back()}
+        />
+      </PageContent>
+    </Page>
   );
 }
