@@ -2,7 +2,7 @@
  * React Query hooks for Finance CRUD.
  *
  * Covers:
- * - Invoices (list, fetch, create, update, delete, mark_paid, send, pdf)
+ * - Invoices (list, fetch — read-only; see hooks.ts InvoiceViewSet note below)
  * - Fees (student fees, balance queries)
  * - Transactions (record payments/refunds)
  */
@@ -10,28 +10,38 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 
+/**
+ * FamilyInvoice is a guardian-level consolidated invoice for an academic
+ * year — it aggregates every child's fee charges into one invoice. It is
+ * entirely system-generated (InvoiceService upserts it whenever a charge
+ * exists and recomputes totals/status after every charge or payment), so
+ * the backend ViewSet is read-only: there is no create/update/delete or
+ * mark-paid action to call.
+ */
 export interface Invoice {
   id: string;
-  student_id: string;
-  student_name: string;
   invoice_number: string;
-  amount: number;
-  due_date: string;
-  status: 'draft' | 'sent' | 'paid' | 'overdue';
-  is_paid: boolean;
-  paid_date?: string;
-  notes?: string;
-  line_items?: InvoiceLineItem[];
-  total_amount?: number;
-  created_at: string;
-  updated_at: string;
+  guardian: string;
+  guardian_name: string;
+  academic_year: string;
+  academic_year_label: string;
+  status: 'open' | 'paid' | 'void';
+  subtotal: number;
+  total_amount: number;
+  amount_paid: number;
+  balance_due: number;
+  due_date: string | null;
+  generated_at: string;
+  last_updated_at: string;
+  lines: InvoiceLine[];
 }
 
-export interface InvoiceLineItem {
+export interface InvoiceLine {
   id: string;
+  student: string;
+  student_name: string;
   description: string;
   amount: number;
-  quantity?: number;
 }
 
 export interface StudentFee {
@@ -63,7 +73,7 @@ export interface InvoiceListParams {
   page_size?: number;
   search?: string;
   status?: string;
-  student?: string;
+  guardian?: string;
   ordering?: string;
 }
 
@@ -74,22 +84,9 @@ export interface InvoiceListResponse {
   results: Invoice[];
 }
 
-export interface CreateInvoiceInput {
-  student_id: string;
-  invoice_number: string;
-  amount: number;
-  due_date: string;
-  notes?: string;
-}
-
-export interface UpdateInvoiceInput {
-  amount?: number;
-  due_date?: string;
-  status?: string;
-  notes?: string;
-}
-
-// Invoices
+// Invoices — read-only (list + detail). FamilyInvoice has no legitimate
+// manual create/update/delete/mark-paid action; see the Invoice interface
+// doc comment above.
 export function useInvoiceList(params: InvoiceListParams = {}, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['invoices', params],
@@ -100,7 +97,7 @@ export function useInvoiceList(params: InvoiceListParams = {}, options: { enable
       if (params.page_size) queryString.append('page_size', params.page_size.toString());
       if (params.search) queryString.append('search', params.search);
       if (params.status) queryString.append('status', params.status);
-      if (params.student) queryString.append('student', params.student);
+      if (params.guardian) queryString.append('guardian', params.guardian);
       if (params.ordering) queryString.append('ordering', params.ordering);
 
       const path = `/invoices/${queryString.toString() ? '?' + queryString.toString() : ''}`;
@@ -119,66 +116,11 @@ export function useInvoice(id: string) {
   });
 }
 
-export function useCreateInvoice() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (data: CreateInvoiceInput) => {
-      return await apiClient.post<Invoice>('/invoices/', data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['student-fees'] });
-    },
-  });
-}
-
-export function useUpdateInvoice(id: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (data: UpdateInvoiceInput) => {
-      return await apiClient.patch<Invoice>(`/invoices/${id}/`, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['invoices', id] });
-      queryClient.invalidateQueries({ queryKey: ['student-fees'] });
-    },
-  });
-}
-
-/**
- * Delete invoice. Call `.mutate(id)` / `.mutateAsync(id)` with the target id —
- * this hook itself must be called once at component top level (Rules of Hooks).
- */
-export function useDeleteInvoice() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      return await apiClient.delete(`/invoices/${id}/`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['student-fees'] });
-    },
-  });
-}
-
-export function useMarkInvoicePaid(id: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async () => {
-      return await apiClient.post<Invoice>(`/invoices/${id}/mark_paid/`, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['invoices', id] });
-      queryClient.invalidateQueries({ queryKey: ['student-fees'] });
-    },
-  });
+/** Same-origin PDF download URL for an invoice, routed through the BFF proxy
+ * path convention used elsewhere in this feature (see
+ * getStudentLedgerCsvExportUrl) — links directly to the DRF `pdf` action. */
+export function getInvoicePdfUrl(id: string): string {
+  return `/api/proxy/invoices/${id}/pdf/`;
 }
 
 // Student Fees

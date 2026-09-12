@@ -35,7 +35,7 @@ export default function LeaveRequestsPage() {
 
   const columns: GridColDef<LeaveRequest>[] = [
     { field: 'employee_name', headerName: 'Employee', flex: 1.2 },
-    { field: 'leave_type', headerName: 'Type', flex: 0.8 },
+    { field: 'leave_type_name', headerName: 'Type', flex: 0.8 },
     { field: 'start_date', headerName: 'Start Date', flex: 1 },
     { field: 'end_date', headerName: 'End Date', flex: 1 },
     { field: 'status', headerName: 'Status', flex: 0.8 },

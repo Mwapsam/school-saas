@@ -60,6 +60,7 @@ from .api.hr import (
     EmployeeDocumentViewSet,
     EmployeeContractViewSet,
     LeaveTypeViewSet,
+    LeaveRequestViewSet,
     AttendanceViewSet,
     PerformanceReviewViewSet,
     TrainingRecordViewSet,
@@ -127,6 +128,7 @@ router.register(r'employee-qualifications', EmployeeQualificationViewSet, basena
 router.register(r'employee-documents', EmployeeDocumentViewSet, basename='employee-document')
 router.register(r'employee-contracts', EmployeeContractViewSet, basename='employee-contract')
 router.register(r'leave-types', LeaveTypeViewSet, basename='leave-type')
+router.register(r'leave-requests', LeaveRequestViewSet, basename='leave-request')
 router.register(r'attendance', AttendanceViewSet, basename='attendance')
 router.register(r'performance-reviews', PerformanceReviewViewSet, basename='performance-review')
 router.register(r'training-records', TrainingRecordViewSet, basename='training-record')

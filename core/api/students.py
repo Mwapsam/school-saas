@@ -1,15 +1,19 @@
 """
-Students domain API — reference implementation for DRF porting pattern.
+Students domain API — UNUSED / BROKEN reference sketch, do not wire up as-is.
 
-This module demonstrates:
-1. Using existing service classes (business logic reuse)
-2. Serializer definition for request/response
-3. ViewSet with proper permission enforcement (ModuleEnabled + capability checks)
-4. drf-spectacular decorators for OpenAPI schema
+Found 2026-09-12: nothing imports this module (core/api_urls.py registers the
+real, working Student/Course/Batch/Subject ViewSets from core/api_views.py
+instead). This file's serializers reference model fields that don't exist on
+the real Student model (`admission_number`, a plain `full_name`, direct
+`batch`/`course` FKs) — the actual model has `admission_no`, computed
+first/last name, and a many-to-many batch relation via BatchStudent. Using
+this ViewSet as registered would raise a DRF AssertionError on first request.
 
-Pattern to apply to all other domains (finance, hr, hostel, etc.).
-
-URLs are registered in core/api_urls.py via the router and included under /api/v1/
+The permission-enforcement PATTERN here (ModuleEnabled + HasPermission +
+drf-spectacular decorators) is still the right one to copy for new domains —
+core/api_views.py's StudentViewSet now uses that same pattern with correct
+field mappings. Fix this file's serializers to match the real model before
+ever registering it, or delete it.
 """
 
 from rest_framework import viewsets, status

@@ -17,12 +17,21 @@ export interface Employee {
 
 export interface LeaveRequest {
   id: string;
-  employee_id: string;
+  employee: string;
   employee_name: string;
-  leave_type: string;
+  leave_type: string | null;
+  leave_type_name: string | null;
   start_date: string;
   end_date: string;
+  reason: string;
   status: 'pending' | 'approved' | 'rejected';
+  is_approved: boolean;
+  approved_by: string | null;
+  manager_remark: string | null;
+  supervisor_status: 'pending' | 'approved' | 'rejected';
+  supervisor_remark: string | null;
+  hr_status: 'pending' | 'approved' | 'rejected';
+  hr_remark: string | null;
   created_at: string;
   updated_at: string;
 }

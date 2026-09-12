@@ -16,9 +16,12 @@ from datetime import date, timedelta
 
 from core.models import (
     Employee, EmployeeContract, EmployeeQualification, EmployeeDocument,
-    LeaveType, Attendance, PerformanceReview, TrainingRecord, EmployeeExit
+    LeaveType, Attendance, PerformanceReview, TrainingRecord, EmployeeExit,
+    EmployeeLeave,
 )
 from core.authz.drf import ModuleEnabled, HasPermission
+from core.services.leave_attendance_service import LeaveService
+from core.services.exceptions import ValidationException, NotFoundException, BusinessLogicException
 
 
 # ───────────────────────────────────────────────────────────────────────────
@@ -63,6 +66,29 @@ class LeaveTypeSerializer(serializers.ModelSerializer):
         model = LeaveType
         fields = ['id', 'name', 'description', 'is_active', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class LeaveRequestSerializer(serializers.ModelSerializer):
+    """Serializer for EmployeeLeave — employee leave requests & approvals."""
+    employee_name = serializers.CharField(source='employee.full_name', read_only=True)
+    leave_type_name = serializers.CharField(source='leave_type.name', read_only=True, default=None)
+
+    class Meta:
+        model = EmployeeLeave
+        fields = [
+            'id', 'employee', 'employee_name', 'leave_type', 'leave_type_name',
+            'start_date', 'end_date', 'reason', 'status', 'is_approved',
+            'approved_by', 'manager_remark',
+            'supervisor_status', 'supervisor_remark',
+            'hr_status', 'hr_remark',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = [
+            'id', 'status', 'is_approved', 'approved_by', 'manager_remark',
+            'supervisor_status', 'supervisor_remark',
+            'hr_status', 'hr_remark',
+            'created_at', 'updated_at',
+        ]
 
 
 class AttendanceSerializer(serializers.ModelSerializer):
@@ -216,6 +242,93 @@ class LeaveTypeViewSet(viewsets.ModelViewSet):
     search_fields = ['name']
     ordering_fields = ['name', 'created_at']
     ordering = ['name']
+
+
+class LeaveRequestViewSet(viewsets.ModelViewSet):
+    """
+    Leave request management — employee leave requests and approvals.
+
+    Covers:
+    - List/create/retrieve leave requests
+    - Filter by employee, leave type, or status
+    - Approve/reject leave via dedicated actions (delegates to LeaveService)
+
+    Update/delete of a submitted request are intentionally not exposed here —
+    once submitted, a leave request is either approved or rejected via the
+    workflow actions below, matching the legacy template views' behaviour.
+    """
+    queryset = EmployeeLeave.objects.all()
+    serializer_class = LeaveRequestSerializer
+    http_method_names = ['get', 'post', 'head', 'options']
+    permission_classes = [
+        IsAuthenticated,
+        ModuleEnabled,
+        HasPermission(read="hr.leave.view", write="hr.leave.manage"),
+    ]
+    module = "hr"
+    filterset_fields = ['employee', 'leave_type', 'status']
+    search_fields = ['employee__first_name', 'employee__last_name', 'reason']
+    ordering_fields = ['start_date', 'end_date', 'created_at']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        return super().get_queryset().select_related('employee', 'leave_type', 'approved_by')
+
+    def perform_create(self, serializer):
+        data = serializer.validated_data
+        try:
+            leave = LeaveService(self.request.tenant).request_leave(
+                employee_id=str(data['employee'].id),
+                leave_type_id=str(data['leave_type'].id) if data.get('leave_type') else None,
+                start_date=data['start_date'],
+                end_date=data['end_date'],
+                reason=data.get('reason', ''),
+                user=self.request.user,
+            )
+        except (ValidationException, NotFoundException, BusinessLogicException) as e:
+            raise serializers.ValidationError(str(getattr(e, 'message', e)))
+        serializer.instance = leave
+
+    def _acting_employee(self):
+        return Employee.objects.filter(tenant=self.request.tenant, user=self.request.user).first()
+
+    @extend_schema(
+        description="Approve a leave request",
+        request=None,
+        responses={200: LeaveRequestSerializer},
+    )
+    @action(
+        detail=True, methods=['post'],
+        permission_classes=[IsAuthenticated, ModuleEnabled, HasPermission(read="hr.leave.view", write="hr.leave.approve")],
+    )
+    def approve(self, request, pk=None):
+        """Approve a leave request."""
+        try:
+            leave = LeaveService(request.tenant).approve_leave(
+                pk, self._acting_employee(), remark=request.data.get('remark'),
+            )
+        except NotFoundException as e:
+            return Response({'error': str(e.message)}, status=404)
+        return Response(LeaveRequestSerializer(leave).data)
+
+    @extend_schema(
+        description="Reject a leave request",
+        request=None,
+        responses={200: LeaveRequestSerializer},
+    )
+    @action(
+        detail=True, methods=['post'],
+        permission_classes=[IsAuthenticated, ModuleEnabled, HasPermission(read="hr.leave.view", write="hr.leave.approve")],
+    )
+    def reject(self, request, pk=None):
+        """Reject a leave request."""
+        try:
+            leave = LeaveService(request.tenant).reject_leave(
+                pk, self._acting_employee(), remark=request.data.get('remark'),
+            )
+        except NotFoundException as e:
+            return Response({'error': str(e.message)}, status=404)
+        return Response(LeaveRequestSerializer(leave).data)
 
 
 class AttendanceViewSet(viewsets.ModelViewSet):

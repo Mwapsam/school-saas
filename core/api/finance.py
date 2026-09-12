@@ -20,10 +20,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.http import HttpResponse
 from drf_spectacular.utils import extend_schema, OpenApiParameter
-from decimal import Decimal
 
 from core.models import (
-    FamilyInvoice, FinanceFee, FeeCategory, FinanceTransaction,
+    FamilyInvoice, FamilyInvoiceLine, FinanceFee, FeeCategory, FinanceTransaction,
     FeeDiscount, FineSlab, FinanceTransactionCategory, Student
 )
 from core.authz.drf import ModuleEnabled, HasPermission
@@ -36,11 +35,19 @@ from core.view_modules.finance_year_context import resolve_selected_year
 # ───────────────────────────────────────────────────────────────────────────
 
 class FeeCategorySerializer(serializers.ModelSerializer):
-    """Serializer for FeeCategory — charge types (tuition, activity fee, etc.)."""
+    """Serializer for FeeCategory — charge types (tuition, activity fee, etc.).
+
+    Note: the model has no ``is_active`` field — categories are soft-deleted
+    via ``is_deleted`` instead, which is an internal bookkeeping flag (kept
+    out of this writable serializer; ``FeeCategoryViewSet.get_queryset``
+    filters ``is_deleted=False`` so deleted categories never surface here).
+    """
+    academic_year_label = serializers.CharField(source='academic_year.__str__', read_only=True, default=None)
+
     class Meta:
         model = FeeCategory
         fields = [
-            'id', 'name', 'description', 'is_active',
+            'id', 'name', 'description', 'academic_year', 'academic_year_label',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
@@ -54,7 +61,7 @@ class FeeDiscountSerializer(serializers.ModelSerializer):
         model = FeeDiscount
         fields = [
             'id', 'fee_category', 'fee_category_name', 'name',
-            'discount_type', 'discount_value', 'is_active',
+            'discount_type', 'discount_mode', 'discount_value', 'is_active',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
@@ -65,18 +72,18 @@ class FineSlabSerializer(serializers.ModelSerializer):
     class Meta:
         model = FineSlab
         fields = [
-            'id', 'name', 'fine_type', 'fine_value', 'applicable_after_days',
+            'id', 'fine_name', 'fine_mode', 'fine_value', 'days_after_due',
             'is_active', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class FinanceTransactionCategorySerializer(serializers.ModelSerializer):
-    """Serializer for FinanceTransactionCategory — transaction types (income, expense, etc.)."""
+    """Serializer for FinanceTransactionCategory — transaction types (income vs expense)."""
     class Meta:
         model = FinanceTransactionCategory
         fields = [
-            'id', 'name', 'category_type', 'description', 'is_active',
+            'id', 'name', 'prefix', 'description', 'is_income',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
@@ -85,13 +92,16 @@ class FinanceTransactionCategorySerializer(serializers.ModelSerializer):
 class FinanceTransactionSerializer(serializers.ModelSerializer):
     """Serializer for FinanceTransaction — cash flow transactions."""
     category_name = serializers.CharField(source='category.name', read_only=True)
+    student_name = serializers.CharField(source='student.full_name', read_only=True, default=None)
+    employee_name = serializers.CharField(source='employee.full_name', read_only=True, default=None)
 
     class Meta:
         model = FinanceTransaction
         fields = [
-            'id', 'date', 'category', 'category_name', 'description',
-            'amount', 'transaction_type', 'reference_number', 'notes',
-            'created_at', 'updated_at'
+            'id', 'title', 'transaction_date', 'category', 'category_name',
+            'student', 'student_name', 'employee', 'employee_name',
+            'academic_year', 'description', 'amount', 'payment_method',
+            'reference_number', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
@@ -102,7 +112,13 @@ class FinanceTransactionSerializer(serializers.ModelSerializer):
 
 
 class StudentFeeSerializer(serializers.ModelSerializer):
-    """Serializer for FinanceFee — fee assigned to a student."""
+    """Serializer for FinanceFee — fee assigned to a student.
+
+    ``transaction_date`` here is when the fee charge was recorded/generated,
+    not a due date — the model has no separate due-date field. ``is_paid``
+    replaces the non-existent ``is_active`` (a fee doesn't become "inactive",
+    it becomes paid).
+    """
     student_name = serializers.CharField(source='student.full_name', read_only=True)
     fee_category_name = serializers.CharField(source='fee_category.name', read_only=True)
 
@@ -110,55 +126,46 @@ class StudentFeeSerializer(serializers.ModelSerializer):
         model = FinanceFee
         fields = [
             'id', 'student', 'student_name', 'fee_category', 'fee_category_name',
-            'amount', 'due_date', 'is_active', 'created_at', 'updated_at'
+            'academic_year', 'balance', 'transaction_date', 'is_paid',
+            'tax_amount', 'discount_amount', 'invoice_number',
+            'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
-class InvoiceLineItemSerializer(serializers.Serializer):
-    """Nested serializer for invoice line items (fees, discounts, fines)."""
-    type = serializers.CharField()  # 'fee', 'discount', 'fine'
-    description = serializers.CharField()
-    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+class InvoiceLineSerializer(serializers.ModelSerializer):
+    """Nested read-only serializer for FamilyInvoiceLine — one per child's
+    charge on the guardian's consolidated invoice."""
+    student_name = serializers.CharField(source='student.full_name', read_only=True)
+
+    class Meta:
+        model = FamilyInvoiceLine
+        fields = ['id', 'student', 'student_name', 'description', 'amount']
+        read_only_fields = fields
 
 
 class InvoiceSerializer(serializers.ModelSerializer):
-    """Serializer for FamilyInvoice — billing invoice sent to families."""
-    student_name = serializers.CharField(source='student.full_name', read_only=True)
-    # Line items are computed from related FinanceFee + discounts + fines
-    line_items = serializers.SerializerMethodField()
-    total_amount = serializers.SerializerMethodField()
+    """Serializer for FamilyInvoice — the guardian's consolidated invoice for
+    an academic year (aggregates every child's charges into one invoice).
+
+    Entirely read-only: status, totals and due_date are derived by
+    ``InvoiceService.recompute_totals`` whenever a charge or payment changes
+    (see core/services/invoice_service.py) — there is no legitimate manual
+    create/edit/mark-paid path.
+    """
+    guardian_name = serializers.CharField(source='guardian.full_name', read_only=True)
+    academic_year_label = serializers.CharField(source='academic_year.__str__', read_only=True)
+    lines = InvoiceLineSerializer(many=True, read_only=True)
 
     class Meta:
         model = FamilyInvoice
         fields = [
-            'id', 'invoice_number', 'student', 'student_name', 'due_date',
-            'invoice_date', 'status', 'notes', 'line_items', 'total_amount',
-            'created_at', 'updated_at'
+            'id', 'invoice_number', 'guardian', 'guardian_name',
+            'academic_year', 'academic_year_label', 'status',
+            'subtotal', 'total_amount', 'amount_paid', 'balance_due',
+            'due_date', 'generated_at', 'last_updated_at', 'lines',
         ]
-        read_only_fields = ['id', 'invoice_number', 'created_at', 'updated_at']
-
-    def get_line_items(self, obj):
-        """Compute line items from fees, discounts, fines."""
-        # This is a simplified version — in production, fetch actual fee ledger
-        items = []
-        if hasattr(obj.student, 'fees'):
-            for fee in obj.student.fees.filter(is_active=True):
-                items.append({
-                    'type': 'fee',
-                    'description': fee.fee_category.name,
-                    'amount': str(fee.amount)
-                })
-        return items
-
-    def get_total_amount(self, obj):
-        """Compute total from line items."""
-        # Simplified — in production, sum from actual ledger
-        total = Decimal('0.00')
-        if hasattr(obj.student, 'fees'):
-            for fee in obj.student.fees.filter(is_active=True):
-                total += fee.amount
-        return str(total)
+        read_only_fields = fields
 
 
 # ───────────────────────────────────────────────────────────────────────────
@@ -181,10 +188,13 @@ class FeeCategoryViewSet(viewsets.ModelViewSet):
         HasPermission(read="finance.fees.view", write="finance.fees.manage"),
     ]
     module = "finance"
-    filterset_fields = ['is_active']
+    filterset_fields = ['academic_year']
     search_fields = ['name']
     ordering_fields = ['name', 'created_at']
     ordering = ['name']
+
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
 
 
 class FeeDiscountViewSet(viewsets.ModelViewSet):
@@ -228,10 +238,10 @@ class FineSlabViewSet(viewsets.ModelViewSet):
         HasPermission(read="finance.fines.view", write="finance.fines.manage"),
     ]
     module = "finance"
-    filterset_fields = ['fine_type', 'is_active']
-    search_fields = ['name']
-    ordering_fields = ['name', 'applicable_after_days']
-    ordering = ['applicable_after_days']
+    filterset_fields = ['fine_mode', 'is_active']
+    search_fields = ['fine_name']
+    ordering_fields = ['fine_name', 'days_after_due']
+    ordering = ['days_after_due']
 
 
 class FinanceTransactionCategoryViewSet(viewsets.ModelViewSet):
@@ -250,7 +260,7 @@ class FinanceTransactionCategoryViewSet(viewsets.ModelViewSet):
         HasPermission(read="finance.transactions.view", write="finance.transactions.manage"),
     ]
     module = "finance"
-    filterset_fields = ['category_type', 'is_active']
+    filterset_fields = ['is_income']
     search_fields = ['name']
     ordering_fields = ['name', 'created_at']
     ordering = ['name']
@@ -273,19 +283,19 @@ class FinanceTransactionViewSet(viewsets.ModelViewSet):
         HasPermission(read="finance.transactions.view", write="finance.transactions.manage"),
     ]
     module = "finance"
-    filterset_fields = ['category', 'transaction_type', 'date']
-    search_fields = ['description', 'reference_number']
-    ordering_fields = ['date', 'amount', 'created_at']
-    ordering = ['-date']
+    filterset_fields = ['category', 'payment_method', 'student', 'employee', 'transaction_date']
+    search_fields = ['title', 'description', 'reference_number']
+    ordering_fields = ['transaction_date', 'amount', 'created_at']
+    ordering = ['-transaction_date']
 
     def get_queryset(self):
-        return super().get_queryset().select_related('category')
+        return super().get_queryset().select_related('category', 'student', 'employee')
 
     @extend_schema(
-        description="List all finance transactions (paginated, filterable by category/date)",
+        description="List all finance transactions (paginated, filterable by category/payment method/date)",
         parameters=[
             OpenApiParameter(name='category', description='Filter by transaction category'),
-            OpenApiParameter(name='transaction_type', enum=['income', 'expense', 'transfer']),
+            OpenApiParameter(name='payment_method', enum=['cash', 'card', 'bank_transfer', 'mobile_money', 'cheque', 'online', 'other']),
             OpenApiParameter(name='date_from', description='Filter transactions on or after date (YYYY-MM-DD)'),
             OpenApiParameter(name='date_to', description='Filter transactions on or before date (YYYY-MM-DD)'),
         ],
@@ -311,10 +321,10 @@ class StudentFeeViewSet(viewsets.ModelViewSet):
         HasPermission(read="finance.student-fees.view", write="finance.student-fees.manage"),
     ]
     module = "finance"
-    filterset_fields = ['student', 'fee_category', 'is_active']
-    search_fields = ['student__full_name']
-    ordering_fields = ['student', 'due_date', 'amount']
-    ordering = ['due_date']
+    filterset_fields = ['student', 'fee_category', 'is_paid']
+    search_fields = ['student__first_name', 'student__last_name', 'invoice_number']
+    ordering_fields = ['student', 'transaction_date', 'balance']
+    ordering = ['transaction_date']
 
     def get_queryset(self):
         return super().get_queryset().select_related('student', 'fee_category')
@@ -343,9 +353,9 @@ class StudentFeeViewSet(viewsets.ModelViewSet):
         except Student.DoesNotExist:
             return Response({'error': 'Student not found'}, status=404)
 
-        # Compute balance from FinanceFee
-        fees = FinanceFee.objects.filter(student=student, is_active=True, tenant=request.tenant)
-        total_due = sum(f.amount for f in fees)
+        # Compute balance from FinanceFee (unpaid charges)
+        fees = FinanceFee.objects.filter(student=student, is_paid=False, tenant=request.tenant)
+        total_due = sum(f.balance for f in fees)
 
         return Response({
             'student_id': str(student.id),
@@ -355,82 +365,75 @@ class StudentFeeViewSet(viewsets.ModelViewSet):
         })
 
 
-class InvoiceViewSet(viewsets.ModelViewSet):
+class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Invoice management — billing invoices sent to families.
+    Invoice viewing — guardian-level consolidated billing invoices.
 
     Covers:
-    - List/create/update invoices
-    - Filter by student, status, date
-    - Mark invoices as paid
-    - Generate invoice PDF
+    - List/retrieve invoices (read-only)
+    - Filter by guardian, status
+    - Download invoice PDF
+
+    FamilyInvoice is entirely system-generated: ``InvoiceService`` upserts a
+    guardian's invoice (and its per-child lines) whenever a fee charge
+    exists, and recomputes subtotal/amount_paid/balance_due/status/due_date
+    from those lines after every upsert and payment (see
+    core/services/invoice_service.py). There is no legitimate manual
+    create/update/delete or "mark paid" action — status and totals are
+    always derived, never hand-set.
     """
     queryset = FamilyInvoice.objects.all()
     serializer_class = InvoiceSerializer
     permission_classes = [
         IsAuthenticated,
         ModuleEnabled,
-        HasPermission(read="finance.invoices.view", write="finance.invoices.manage"),
+        HasPermission(read="finance.invoices.view", write="finance.invoices.view"),
     ]
     module = "finance"
-    filterset_fields = ['student', 'status', 'invoice_date']
-    search_fields = ['invoice_number', 'student__full_name']
-    ordering_fields = ['invoice_date', 'due_date', 'status']
-    ordering = ['-invoice_date']
+    filterset_fields = ['guardian', 'status']
+    search_fields = ['invoice_number', 'guardian__first_name', 'guardian__last_name']
+    ordering_fields = ['due_date', 'generated_at', 'status']
+    ordering = ['-generated_at']
 
     def get_queryset(self):
-        return super().get_queryset().select_related('student')
+        return (
+            super().get_queryset()
+            .select_related('guardian', 'academic_year')
+            .prefetch_related('lines__student')
+        )
 
     @extend_schema(
-        description="List all invoices (paginated, filterable by status/student/date)",
+        description="List all invoices (paginated, filterable by guardian/status)",
         parameters=[
-            OpenApiParameter(name='status', enum=['draft', 'sent', 'paid', 'overdue']),
-            OpenApiParameter(name='student', description='Filter by student ID'),
+            OpenApiParameter(name='status', enum=['open', 'paid', 'void']),
+            OpenApiParameter(name='guardian', description='Filter by guardian ID'),
         ],
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @action(detail=True, methods=['post'])
-    @extend_schema(
-        description="Mark an invoice as paid",
-        request=None,
-        responses={200: InvoiceSerializer},
-    )
-    def mark_paid(self, request, pk=None):
-        """Mark an invoice as paid."""
-        invoice = self.get_object()
-        invoice.status = 'paid'
-        invoice.save()
-        return Response(InvoiceSerializer(invoice).data)
-
-    @action(detail=True, methods=['post'])
-    @extend_schema(
-        description="Send invoice to family via email",
-        request=None,
-        responses={200: {'type': 'object', 'properties': {'sent': {'type': 'boolean'}}}},
-    )
-    def send(self, request, pk=None):
-        """Send invoice to family (mark as sent)."""
-        invoice = self.get_object()
-        invoice.status = 'sent'
-        invoice.save()
-        # In production: trigger email send task
-        return Response({'sent': True})
-
     @action(detail=True, methods=['get'])
     @extend_schema(
-        description="Download invoice as PDF",
+        description="Download the invoice as a PDF (same layout as the staff/portal views)",
         responses={'application/pdf': None},
     )
     def pdf(self, request, pk=None):
-        """Download invoice PDF."""
+        """Render the invoice PDF using the shared context builder/template
+        also used by the legacy staff view (``InvoicePDFView``) and the
+        parent-portal view, so all three stay visually identical."""
+        from django.template.loader import render_to_string
+        from weasyprint import HTML
+        from weasyprint.text.fonts import FontConfiguration
+        from core.services.invoice_service import build_invoice_pdf_context
+
         invoice = self.get_object()
-        # In production: generate/retrieve signed URL to PDF file
-        return Response({
-            'pdf_url': f'/media/invoices/{invoice.id}.pdf',
-            'invoice_number': invoice.invoice_number,
-        })
+        html_content = render_to_string('core/finance/invoice_pdf.html', build_invoice_pdf_context(invoice))
+        font_config = FontConfiguration()
+        pdf_bytes = HTML(string=html_content).write_pdf(font_config=font_config)
+
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="invoice_{invoice.invoice_number}.pdf"'
+        return response
 
 
 # ───────────────────────────────────────────────────────────────────────────

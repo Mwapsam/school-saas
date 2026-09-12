@@ -11,6 +11,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from django.db.models import Count, Q
 
+from core.authz.drf import ModuleEnabled, HasPermission
+
 from .models import Student, User, Course, Batch, Subject, AdmissionApplication, BatchStudent
 from .serializers import (
     # Student serializers
@@ -35,7 +37,6 @@ from .serializers import (
 from .services.exceptions import ServiceException, ValidationException, NotFoundException
 from .permissions import (
     TenantAccessPermission,
-    CanManageStudents,
     CanManageAdmissions,
 )
 
@@ -84,9 +85,17 @@ class StudentViewSet(TenantAwareViewSetMixin, viewsets.ModelViewSet):
     Provides full CRUD operations for students
     """
     serializer_class = StudentSerializer
-    # CanManageStudents permits reads for any tenant user but restricts writes
-    # (create/update/delete and custom write actions) to admins/teachers.
-    permission_classes = [IsAuthenticated, TenantAccessPermission, CanManageStudents]
+    # Superseded 2026-09-12: CanManageStudents (is_admin/is_teacher flags) replaced
+    # by the RBAC capability system used across every other domain. is_root users
+    # bypass this entirely (see core.authz.access._compute), so no separate
+    # migration was needed for the platform's only existing admin account.
+    permission_classes = [
+        IsAuthenticated,
+        TenantAccessPermission,
+        ModuleEnabled,
+        HasPermission(read="students.view", write="students.manage"),
+    ]
+    module = "academics"
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['gender', 'is_active', 'admission_date']
@@ -303,7 +312,13 @@ class CourseViewSet(TenantAwareViewSetMixin, viewsets.ModelViewSet):
     ViewSet for course management operations
     """
     serializer_class = CourseSerializer
-    permission_classes = [IsAuthenticated, TenantAccessPermission]
+    permission_classes = [
+        IsAuthenticated,
+        TenantAccessPermission,
+        ModuleEnabled,
+        HasPermission(read="academics.courses.view", write="academics.courses.manage"),
+    ]
+    module = "academics"
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['course_name', 'code', 'section_name']
@@ -339,7 +354,13 @@ class BatchViewSet(TenantAwareViewSetMixin, viewsets.ModelViewSet):
     ViewSet for batch management operations
     """
     serializer_class = BatchSerializer
-    permission_classes = [IsAuthenticated, TenantAccessPermission]
+    permission_classes = [
+        IsAuthenticated,
+        TenantAccessPermission,
+        ModuleEnabled,
+        HasPermission(read="academics.batches.view", write="academics.batches.manage"),
+    ]
+    module = "academics"
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['is_active', 'course']
@@ -404,7 +425,13 @@ class SubjectViewSet(TenantAwareViewSetMixin, viewsets.ModelViewSet):
     ViewSet for subject management operations
     """
     serializer_class = SubjectSerializer
-    permission_classes = [IsAuthenticated, TenantAccessPermission]
+    permission_classes = [
+        IsAuthenticated,
+        TenantAccessPermission,
+        ModuleEnabled,
+        HasPermission(read="academics.subjects.view", write="academics.subjects.manage"),
+    ]
+    module = "academics"
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['batch', 'no_exams']

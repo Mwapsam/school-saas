@@ -19,7 +19,7 @@ import { Container, Box, Typography, Button, Alert, Chip, IconButton } from '@mu
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as ViewIcon } from '@mui/icons-material';
 import type { GridColDef } from '@mui/x-data-grid';
 import { useTenantStore } from '@/lib/tenant/store';
-import { useStudentList, useDeleteStudent, Student } from '@/features/students/hooks';
+import { useStudentList, useDeleteStudent, StudentListItem } from '@/features/students/hooks';
 import { useServerTable } from '@/hooks/useServerTable';
 import { DataTable } from '@/components/data-table/DataTable';
 
@@ -68,16 +68,23 @@ export default function StudentsPage() {
     );
   }
 
-  const columns: GridColDef<Student>[] = [
-    { field: 'admission_number', headerName: 'Admission #', flex: 1, minWidth: 120 },
+  const columns: GridColDef<StudentListItem>[] = [
+    { field: 'admission_no', headerName: 'Admission #', flex: 1, minWidth: 120 },
     { field: 'full_name', headerName: 'Name', flex: 1.5, minWidth: 160 },
-    { field: 'date_of_birth', headerName: 'DOB', flex: 1, minWidth: 120 },
     {
-      field: 'email',
-      headerName: 'Email',
-      flex: 1.5,
-      minWidth: 160,
-      valueGetter: (params) => params.row.email || '-',
+      field: 'gender',
+      headerName: 'Gender',
+      flex: 0.75,
+      minWidth: 100,
+      valueGetter: (params) =>
+        params.row.gender ? params.row.gender.charAt(0).toUpperCase() + params.row.gender.slice(1) : '-',
+    },
+    {
+      field: 'age',
+      headerName: 'Age',
+      flex: 0.5,
+      minWidth: 80,
+      valueGetter: (params) => (params.row.age ?? '-'),
     },
     {
       field: 'batch_name',
@@ -159,7 +166,7 @@ export default function StudentsPage() {
         </Box>
 
         {/* Table */}
-        <DataTable<Student>
+        <DataTable<StudentListItem>
           rows={data?.results || []}
           columns={columns}
           rowCount={data?.count || 0}
