@@ -2,11 +2,15 @@
  * Students list page.
  *
  * Displays:
- * - Table of all students
- * - Search and filter controls
- * - Pagination
+ * - Table of all students with search, filter, pagination
  * - Create button
+ * - Edit/View/Delete actions
  * - Module/capability checks
+ *
+ * Demonstrates the new design system usage:
+ * - Page wrapper for consistent layout
+ * - PageHeader for title + description + actions
+ * - ConfirmDialog for destructive actions
  */
 
 'use client';
@@ -15,13 +19,19 @@ export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Container, Box, Typography, Button, Alert, Chip, IconButton } from '@mui/material';
+import { useState } from 'react';
+import { Box, Button, Alert, IconButton } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as ViewIcon } from '@mui/icons-material';
 import type { GridColDef } from '@mui/x-data-grid';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useStudentList, useDeleteStudent, StudentListItem } from '@/features/students/hooks';
 import { useServerTable } from '@/hooks/useServerTable';
 import { DataTable } from '@/components/data-table/DataTable';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
+import { ConfirmDialog } from '@/components/feedback/ConfirmDialog';
+import { StatusBadge } from '@/components/data/StatusBadge';
 
 export default function StudentsPage() {
   const router = useRouter();
@@ -31,40 +41,45 @@ export default function StudentsPage() {
   const { data, isLoading, error, refetch } = useStudentList(table.queryParams);
   const deleteStudent = useDeleteStudent();
 
+  // Confirm dialog state
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const canEdit = can('students.update');
   const canDelete = can('students.delete');
 
-  const handleDeleteStudent = async (id: string, name: string) => {
-    if (!window.confirm(`Delete ${name}?`)) return;
+  const handleDeleteStudent = async () => {
+    if (!confirmDelete) return;
+
+    setIsDeleting(true);
     try {
-      await deleteStudent.mutateAsync(id);
+      await deleteStudent.mutateAsync(confirmDelete.id);
+      setConfirmDelete(null);
       router.refresh();
     } catch (err) {
       console.error('Delete failed:', err);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   if (!isModuleEnabled('academics')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="info">
-            The Academics module is not enabled for your school. Contact your administrator to enable it.
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="info">
+          The Academics module is not enabled for your school. Contact your administrator to enable it.
+        </Alert>
+      </Page>
     );
   }
 
   if (!can('students.view')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            You do not have permission to view students.
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">
+          You do not have permission to view students.
+        </Alert>
+      </Page>
     );
   }
 
@@ -100,10 +115,9 @@ export default function StudentsPage() {
       minWidth: 100,
       sortable: false,
       renderCell: (params) => (
-        <Chip
+        <StatusBadge
+          status={params.row.is_active ? 'success' : 'error'}
           label={params.row.is_active ? 'Active' : 'Inactive'}
-          color={params.row.is_active ? 'success' : 'error'}
-          size="small"
         />
       ),
     },
@@ -134,7 +148,7 @@ export default function StudentsPage() {
             <IconButton
               size="small"
               title="Delete"
-              onClick={() => handleDeleteStudent(params.row.id, params.row.full_name)}
+              onClick={() => setConfirmDelete({ id: params.row.id, name: params.row.full_name })}
             >
               <DeleteIcon fontSize="small" color="error" />
             </IconButton>
@@ -145,45 +159,58 @@ export default function StudentsPage() {
   ];
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
-        {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4" component="h1">
-            Students
-          </Typography>
-          {can('students.create') && (
-            <Link href="/dashboard/students/create" passHref legacyBehavior>
-              <Button
-                component="a"
-                variant="contained"
-                startIcon={<AddIcon />}
-              >
-                New Student
-              </Button>
-            </Link>
-          )}
-        </Box>
-
-        {/* Table */}
-        <DataTable<StudentListItem>
-          rows={data?.results || []}
-          columns={columns}
-          rowCount={data?.count || 0}
-          loading={isLoading}
-          error={error as Error | null}
-          onRetry={() => refetch()}
-          paginationModel={table.paginationModel}
-          onPaginationModelChange={table.onPaginationModelChange}
-          onSortModelChange={(model) =>
-            table.onSortModelChange(model.map((m) => ({ field: m.field, sort: m.sort ?? null })))
+    <>
+      <Page>
+        <PageHeader
+          title="Students"
+          description="Manage students enrolled at your school."
+          actions={
+            can('students.create') && (
+              <Link href="/dashboard/students/create" passHref legacyBehavior>
+                <Button
+                  component="a"
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                >
+                  New Student
+                </Button>
+              </Link>
+            )
           }
-          search={table.search}
-          onSearchChange={table.onSearchChange}
-          searchPlaceholder="Search by name or admission number"
-          emptyMessage="No students found"
         />
-      </Box>
-    </Container>
+
+        <PageContent>
+          <DataTable<StudentListItem>
+            rows={data?.results || []}
+            columns={columns}
+            rowCount={data?.count || 0}
+            loading={isLoading}
+            error={error as Error | null}
+            onRetry={() => refetch()}
+            paginationModel={table.paginationModel}
+            onPaginationModelChange={table.onPaginationModelChange}
+            onSortModelChange={(model) =>
+              table.onSortModelChange(model.map((m) => ({ field: m.field, sort: m.sort ?? null })))
+            }
+            search={table.search}
+            onSearchChange={table.onSearchChange}
+            searchPlaceholder="Search by name or admission number"
+            emptyMessage="No students found"
+          />
+        </PageContent>
+      </Page>
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        open={Boolean(confirmDelete)}
+        title="Delete student?"
+        description={`Are you sure you want to delete ${confirmDelete?.name}? This action cannot be undone.`}
+        confirmLabel="Delete"
+        destructive
+        loading={isDeleting}
+        onConfirm={handleDeleteStudent}
+        onCancel={() => setConfirmDelete(null)}
+      />
+    </>
   );
 }

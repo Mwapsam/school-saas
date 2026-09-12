@@ -114,24 +114,28 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   }
 
   return (
-    <Box sx={{ width: '100%' }}>
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
       {enabledModules.map((module, idx) => (
-        <Box key={module.key}>
+        <Box key={module.key} sx={{ flex: '0 0 auto' }}>
+          {/* Module section heading */}
           <Typography
-            variant="subtitle2"
+            variant="caption"
             sx={{
+              display: 'block',
               px: 2,
               py: 1.5,
-              fontWeight: 600,
-              color: '#666',
+              fontWeight: 700,
+              color: 'text.secondary',
               textTransform: 'uppercase',
-              fontSize: '0.75rem',
-              letterSpacing: 0.5,
+              fontSize: '0.7rem',
+              letterSpacing: 1,
             }}
           >
             {module.label}
           </Typography>
-          <List sx={{ py: 0 }}>
+
+          {/* Navigation items */}
+          <List sx={{ py: 0, px: 0 }}>
             {module.sections
               .filter((s) => can(s.capability))
               .map((section) => {
@@ -145,21 +149,37 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
                         selected={isActive}
                         onClick={onNavigate}
                         sx={{
-                          pl: 4,
+                          pl: 2,
+                          pr: 2,
                           py: 1,
+                          mx: 1,
+                          mb: 0.5,
+                          borderRadius: 1,
+                          color: 'text.primary',
+                          transition: 'all 120ms ease-in-out',
+
                           '&:hover': {
-                            backgroundColor: '#f5f5f5',
+                            backgroundColor: 'action.hover',
+                            color: 'text.primary',
                           },
+
                           '&.Mui-selected': {
                             backgroundColor: 'primary.main',
                             color: 'primary.contrastText',
-                            '&:hover': { backgroundColor: 'primary.dark' },
+                            fontWeight: 600,
+
+                            '&:hover': {
+                              backgroundColor: 'primary.dark',
+                            },
                           },
                         }}
                       >
                         <ListItemText
                           primary={section.label}
-                          primaryTypographyProps={{ variant: 'body2' }}
+                          primaryTypographyProps={{
+                            variant: 'body2',
+                            sx: { fontWeight: isActive ? 600 : 500 },
+                          }}
                         />
                       </ListItemButton>
                     </Link>
@@ -167,6 +187,8 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
                 );
               })}
           </List>
+
+          {/* Divider between modules */}
           {idx < enabledModules.length - 1 && <Divider sx={{ my: 1 }} />}
         </Box>
       ))}

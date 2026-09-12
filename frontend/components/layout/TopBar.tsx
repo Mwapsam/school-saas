@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, type MouseEvent } from 'react';
+import Image from 'next/image';
 import {
   AppBar,
   Toolbar,
@@ -13,10 +14,13 @@ import {
   Box,
   Divider,
   ListItemIcon,
+  Stack,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { useTenantStore } from '@/lib/tenant/store';
+import { spacing, colors } from '@/design-system/tokens';
 
 export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const router = useRouter();
@@ -42,41 +46,90 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   return (
     <AppBar
       position="fixed"
-      color="inherit"
-      elevation={1}
-      sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+      sx={{
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+        backgroundColor: colors.background.surface,
+        color: colors.text.primary,
+        borderBottom: `1px solid ${colors.border.default}`,
+        boxShadow: `0px 1px 3px ${colors.border.light}`,
+      }}
     >
-      <Toolbar>
+      <Toolbar sx={{ gap: spacing.component, minHeight: 64 }}>
+        {/* Mobile menu button */}
         <IconButton
           edge="start"
           onClick={onMenuClick}
-          sx={{ mr: 2, display: { md: 'none' } }}
+          sx={{ display: { md: 'none' } }}
           aria-label="open navigation"
         >
           <MenuIcon />
         </IconButton>
 
-        <Typography variant="h6" noWrap sx={{ flexGrow: 1, fontWeight: 600 }}>
-          {bootstrap?.tenant.name || 'School Management Platform'}
-        </Typography>
+        {/* Logo and tenant name */}
+        <Stack direction="row" alignItems="center" spacing={spacing.element} sx={{ flexGrow: 1 }}>
+          {bootstrap?.tenant.logo_url && (
+            <Box sx={{ display: 'flex', alignItems: 'center', height: 40 }}>
+              <Image
+                src={bootstrap.tenant.logo_url}
+                alt={bootstrap.tenant.name}
+                height={40}
+                width="auto"
+                style={{ maxWidth: 120, objectFit: 'contain' }}
+              />
+            </Box>
+          )}
+          <Typography variant="h6" noWrap sx={{ fontWeight: 600, display: { xs: 'none', sm: 'block' } }}>
+            {bootstrap?.tenant.name || 'School Management Platform'}
+          </Typography>
+        </Stack>
 
+        {/* User menu */}
         {bootstrap && (
-          <Box>
-            <IconButton onClick={handleMenuOpen} size="small" aria-label="account menu">
-              <Avatar sx={{ width: 32, height: 32, fontSize: 14 }}>{initials}</Avatar>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: spacing.element }}>
+            <IconButton
+              onClick={handleMenuOpen}
+              size="small"
+              aria-label="account menu"
+              sx={{ ml: 'auto' }}
+            >
+              <Avatar
+                sx={{
+                  width: 36,
+                  height: 36,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  backgroundColor: colors.action.primary,
+                  color: colors.text.inverse,
+                }}
+              >
+                {initials}
+              </Avatar>
             </IconButton>
-            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleMenuClose}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
               <MenuItem disabled sx={{ opacity: '1 !important' }}>
                 <Box>
-                  <Typography variant="body2" fontWeight={600}>
+                  <Typography variant="body2" fontWeight={600} sx={{ color: colors.text.primary }}>
                     {bootstrap.user.full_name}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" sx={{ color: colors.text.secondary }}>
                     {bootstrap.user.email}
                   </Typography>
                 </Box>
               </MenuItem>
               <Divider />
+              <MenuItem onClick={() => { handleMenuClose(); router.push('/dashboard/settings/branding'); }}>
+                <ListItemIcon>
+                  <SettingsIcon fontSize="small" />
+                </ListItemIcon>
+                Settings
+              </MenuItem>
               <MenuItem onClick={handleLogout}>
                 <ListItemIcon>
                   <LogoutIcon fontSize="small" />
