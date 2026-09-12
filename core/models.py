@@ -15,6 +15,7 @@ from decimal import Decimal
 
 from core.db_fields import EncryptedTextField
 from core.modules import MODULES
+from core.authz.registry import PERMISSIONS
 
 logger = logging.getLogger(__name__)
 
@@ -8487,7 +8488,10 @@ class RolePermission(TenantAwareModel):
     role = models.ForeignKey(
         Role, on_delete=models.CASCADE, related_name="permissions"
     )
-    codename = models.CharField(max_length=100)
+    codename = models.CharField(
+        max_length=100,
+        choices=[(code, f"{code} — {label}") for code, label in PERMISSIONS.items()],
+    )
 
     class Meta:
         constraints = [

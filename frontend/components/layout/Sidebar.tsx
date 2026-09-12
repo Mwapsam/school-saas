@@ -30,8 +30,8 @@ export const NAV_MODULES: NavModule[] = [
       label: 'Academics',
       sections: [
         { label: 'Students', href: '/dashboard/students', capability: 'students.view' },
-        { label: 'Batches', href: '/dashboard/batches', capability: 'batches.view' },
-        { label: 'Courses', href: '/dashboard/courses', capability: 'courses.view' },
+        { label: 'Batches', href: '/dashboard/batches', capability: 'academics.batches.view' },
+        { label: 'Courses', href: '/dashboard/courses', capability: 'academics.courses.view' },
       ],
     },
     {
@@ -39,10 +39,12 @@ export const NAV_MODULES: NavModule[] = [
       label: 'Finance',
       sections: [
         { label: 'Invoices', href: '/dashboard/invoices', capability: 'finance.invoices.view' },
-        { label: 'Fees', href: '/dashboard/fees', capability: 'finance.fees.view' },
+        { label: 'Fees', href: '/dashboard/invoices/fees', capability: 'finance.fees.view' },
         { label: 'Fee Categories', href: '/dashboard/invoices/fee-categories', capability: 'finance.fees.view' },
         { label: 'Fee Discounts', href: '/dashboard/invoices/fee-discounts', capability: 'finance.discounts.view' },
-        { label: 'Transactions', href: '/dashboard/transactions', capability: 'finance.transactions.view' },
+        { label: 'Transactions', href: '/dashboard/invoices/transactions', capability: 'finance.transactions.view' },
+        { label: 'Day Book', href: '/dashboard/invoices/day-book', capability: 'finance.transactions.view' },
+        { label: 'Student Ledger', href: '/dashboard/invoices/student-ledger', capability: 'finance.transactions.view' },
       ],
     },
     {
@@ -50,33 +52,33 @@ export const NAV_MODULES: NavModule[] = [
       label: 'HR',
       sections: [
         { label: 'Employees', href: '/dashboard/employees', capability: 'hr.employees.view' },
-        { label: 'Leave', href: '/dashboard/leave-requests', capability: 'hr.leave.view' },
-        { label: 'Attendance', href: '/dashboard/attendance', capability: 'hr.attendance.view' },
+        { label: 'Leave', href: '/dashboard/employees/leave', capability: 'hr.leave.view' },
+        { label: 'Attendance', href: '/dashboard/employees/attendance', capability: 'hr.attendance.view' },
       ],
     },
     {
       key: 'admissions',
       label: 'Admissions',
       sections: [
-        { label: 'Applications', href: '/dashboard/admissions', capability: 'admissions.view' },
-        { label: 'Inquiries', href: '/dashboard/inquiries', capability: 'admissions.view' },
+        { label: 'Applications', href: '/dashboard/admissions', capability: 'admissions.application.view' },
+        { label: 'Inquiries', href: '/dashboard/inquiries', capability: 'admissions.application.view' },
       ],
     },
     {
       key: 'hostel',
       label: 'Hostel',
       sections: [
-        { label: 'Rooms', href: '/dashboard/hostel-rooms', capability: 'hostel.view' },
-        { label: 'Assignments', href: '/dashboard/hostel-assignments', capability: 'hostel.view' },
+        { label: 'Rooms', href: '/dashboard/hostel-rooms', capability: 'hostel.rooms.view' },
+        { label: 'Assignments', href: '/dashboard/hostel-assignments', capability: 'hostel.rooms.view' },
       ],
     },
     {
       key: 'transport',
       label: 'Transport',
       sections: [
-        { label: 'Routes', href: '/dashboard/routes', capability: 'transport.view' },
-        { label: 'Vehicles', href: '/dashboard/vehicles', capability: 'transport.view' },
-        { label: 'Staff', href: '/dashboard/transport-staff', capability: 'transport.view' },
+        { label: 'Routes', href: '/dashboard/routes', capability: 'transport.routes.view' },
+        { label: 'Vehicles', href: '/dashboard/vehicles', capability: 'transport.routes.view' },
+        { label: 'Staff', href: '/dashboard/transport-staff', capability: 'transport.staff.view' },
       ],
     },
     {

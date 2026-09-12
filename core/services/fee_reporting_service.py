@@ -7,11 +7,15 @@ FeeTransaction ledger. A small CSV helper turns any row list into export text.
 import csv
 import io
 import itertools
+import logging
 from datetime import date, timedelta
 from decimal import Decimal
 from typing import Dict, Any, List, Optional
 
-from django.db.models import Sum, Q
+logger = logging.getLogger(__name__)
+
+from django.core.exceptions import ValidationError
+from django.db.models import Sum, Q, Case, When, Value, DecimalField
 from django.db.models.functions import TruncMonth, TruncDate
 
 from core.models import (
@@ -644,6 +648,208 @@ class FeeReportingService:
             'total_out': sum((d['total_out'] for d in days), Decimal('0.00')),
             'closing_balance': days[-1]['closing_balance'] if days else Decimal('0.00'),
         }
+
+    # ------------------------------------------------------------------ #
+    # Particular-wise Student Transaction Report (per-student reconciliation)
+    # ------------------------------------------------------------------ #
+    def filtered_students_for_ledger_report(self, student_status='active', class_filter='all',
+                                              batch_filter='all', academic_year: AcademicYear = None):
+        """Students matching the report's status/class/batch filters, ordered
+        by name. Mirrors the legacy view's ``_get_filtered_students``: a
+        ``class_filter`` (course id) takes precedence over ``batch_filter``
+        when both are supplied."""
+        students_query = Student.objects.filter(tenant=self.tenant)
+
+        if student_status == 'active':
+            students_query = students_query.filter(is_deleted=False)
+
+        if class_filter != 'all':
+            try:
+                course_batches_query = Batch.objects.filter(tenant=self.tenant, course_id=class_filter)
+                if academic_year:
+                    course_batches_query = course_batches_query.filter(academic_year=academic_year)
+                course_batches = course_batches_query.values_list('id', flat=True)
+                student_ids = BatchStudent.objects.filter(
+                    tenant=self.tenant, batch_id__in=course_batches
+                ).values_list('student_id', flat=True)
+                students_query = students_query.filter(id__in=student_ids)
+            except (ValueError, ValidationError) as e:
+                logger.debug("Invalid class_filter %r: %s", class_filter, e)
+
+        elif batch_filter != 'all':
+            try:
+                batch_query = Batch.objects.filter(tenant=self.tenant, id=batch_filter)
+                if academic_year:
+                    batch_query = batch_query.filter(academic_year=academic_year)
+                student_ids = BatchStudent.objects.filter(
+                    tenant=self.tenant, batch_id__in=batch_query.values_list('id', flat=True)
+                ).values_list('student_id', flat=True)
+                students_query = students_query.filter(id__in=student_ids)
+            except (ValueError, ValidationError) as e:
+                logger.debug("Invalid batch_filter %r: %s", batch_filter, e)
+
+        return students_query.order_by('first_name', 'last_name')
+
+    def _ledger_aggregates(self, academic_year: AcademicYear, student_ids, fee_account,
+                            from_date_obj=None, to_date_obj=None) -> Dict[str, Dict[str, Decimal]]:
+        """One grouped query: student_id -> dict of charged/paid/credited totals, split PTA vs not."""
+        if not student_ids:
+            return {}
+
+        decimal_field = DecimalField(max_digits=15, decimal_places=2)
+
+        ledger = FeeTransaction.objects.filter(
+            tenant=self.tenant, academic_year=academic_year, student_id__in=student_ids,
+        )
+        if fee_account != 'all':
+            try:
+                ledger = ledger.filter(fee_category_id=fee_account)
+            except (ValueError, ValidationError) as e:
+                logger.debug("Invalid fee_account filter %r: %s", fee_account, e)
+        if from_date_obj:
+            ledger = ledger.filter(transaction_date__date__gte=from_date_obj)
+        if to_date_obj:
+            ledger = ledger.filter(transaction_date__date__lte=to_date_obj)
+
+        pta_q = Q(fee_category__name__icontains='PTA')
+
+        def total_case(extra_q=None, types=None, single_type=None):
+            condition = Q(transaction_type=single_type) if single_type else Q(transaction_type__in=types)
+            if extra_q is not None:
+                condition &= extra_q
+            return Sum(Case(When(condition, then='amount'), default=Value(0), output_field=decimal_field))
+
+        rows = ledger.values('student_id').annotate(
+            charged=total_case(types=_DEBIT_TYPES),
+            paid=total_case(single_type='payment'),
+            credited=total_case(types=_CREDIT_TYPES),
+            pta_charged=total_case(extra_q=pta_q, types=_DEBIT_TYPES),
+            pta_paid=total_case(extra_q=pta_q, single_type='payment'),
+            pta_credited=total_case(extra_q=pta_q, types=_CREDIT_TYPES),
+        )
+
+        zero = Decimal('0.00')
+        result = {}
+        for row in rows:
+            result[row['student_id']] = {
+                'charged': row['charged'] or zero,
+                'paid': row['paid'] or zero,
+                'credited': row['credited'] or zero,
+                'pta_charged': row['pta_charged'] or zero,
+                'pta_paid': row['pta_paid'] or zero,
+                'pta_credited': row['pta_credited'] or zero,
+            }
+        return result
+
+    def student_ledger_rows(self, academic_year: AcademicYear, students, fee_account='all',
+                             from_date_obj=None, to_date_obj=None) -> List[Dict[str, Any]]:
+        """Per-student expected/paid/balance, split into PTA vs tuition, for the
+        given queryset/list of students. Identical math to the legacy
+        ``ParticularWiseStudentTransactionReportView._build_rows``."""
+        students = list(students)
+        student_ids = [s.id for s in students]
+
+        aggregates = self._ledger_aggregates(academic_year, student_ids, fee_account, from_date_obj, to_date_obj)
+
+        batch_names = {}
+        for bs in BatchStudent.objects.filter(tenant=self.tenant, student_id__in=student_ids).select_related('batch'):
+            batch_names.setdefault(bs.student_id, bs.batch.name)
+
+        zero = Decimal('0.00')
+        rows = []
+        for student in students:
+            agg = aggregates.get(student.id, {
+                'charged': zero, 'paid': zero, 'credited': zero,
+                'pta_charged': zero, 'pta_paid': zero, 'pta_credited': zero,
+            })
+            tuition_charged = agg['charged'] - agg['pta_charged']
+            tuition_paid = agg['paid'] - agg['pta_paid']
+            tuition_credited = agg['credited'] - agg['pta_credited']
+
+            rows.append({
+                'student_id': str(student.id),
+                'student_name': f"{student.first_name} {student.last_name}".strip(),
+                'batch_name': batch_names.get(student.id, "Not Assigned"),
+                'expected_amount': agg['charged'],
+                'paid_amount': agg['paid'],
+                'balance_amount': agg['charged'] - agg['credited'],
+                'pta_expected': agg['pta_charged'],
+                'pta_paid': agg['pta_paid'],
+                'pta_balance': agg['pta_charged'] - agg['pta_credited'],
+                'tuition_expected': tuition_charged,
+                'tuition_paid': tuition_paid,
+                'tuition_balance': tuition_charged - tuition_credited,
+            })
+        return rows
+
+    @staticmethod
+    def student_ledger_grand_totals(rows: List[Dict[str, Any]]) -> Dict[str, Decimal]:
+        zero = Decimal('0.00')
+        totals = {
+            'grand_expected': zero, 'grand_paid': zero, 'grand_balance': zero,
+            'grand_pta_expected': zero, 'grand_pta_paid': zero, 'grand_pta_balance': zero,
+            'grand_tuition_expected': zero, 'grand_tuition_paid': zero, 'grand_tuition_balance': zero,
+        }
+        for row in rows:
+            totals['grand_expected'] += row['expected_amount']
+            totals['grand_paid'] += row['paid_amount']
+            totals['grand_balance'] += row['balance_amount']
+            totals['grand_pta_expected'] += row['pta_expected']
+            totals['grand_pta_paid'] += row['pta_paid']
+            totals['grand_pta_balance'] += row['pta_balance']
+            totals['grand_tuition_expected'] += row['tuition_expected']
+            totals['grand_tuition_paid'] += row['tuition_paid']
+            totals['grand_tuition_balance'] += row['tuition_balance']
+        return totals
+
+    def student_ledger_report(self, academic_year: AcademicYear, student_status='active',
+                               class_filter='all', batch_filter='all', fee_account='all',
+                               from_date_obj=None, to_date_obj=None) -> Dict[str, Any]:
+        """Full particular-wise student transaction report: filtered students,
+        per-student rows and grand totals, in one call."""
+        students = self.filtered_students_for_ledger_report(
+            student_status=student_status, class_filter=class_filter,
+            batch_filter=batch_filter, academic_year=academic_year,
+        )
+        rows = self.student_ledger_rows(academic_year, students, fee_account, from_date_obj, to_date_obj)
+        grand_totals = self.student_ledger_grand_totals(rows)
+        return {'rows': rows, 'grand_totals': grand_totals}
+
+    @staticmethod
+    def student_ledger_csv(rows: List[Dict[str, Any]], grand_totals: Dict[str, Decimal],
+                            with_expected: bool) -> str:
+        """Renders the student ledger report to CSV text, identical columns to
+        the legacy view's ``_render_csv``."""
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        header = ['Sl No.', 'Student Name', 'Batch Name(s)', 'Expected Amount', 'Paid Amount', 'Balance Amount']
+        if with_expected:
+            header += [
+                'PTA Expected', 'PTA Paid', 'PTA Balance',
+                'Tuition Expected', 'Tuition Paid', 'Tuition Balance',
+            ]
+        writer.writerow(header)
+
+        for i, row in enumerate(rows, 1):
+            line = [
+                i, row['student_name'], row['batch_name'],
+                row['expected_amount'], row['paid_amount'], row['balance_amount'],
+            ]
+            if with_expected:
+                line += [
+                    row['pta_expected'], row['pta_paid'], row['pta_balance'],
+                    row['tuition_expected'], row['tuition_paid'], row['tuition_balance'],
+                ]
+            writer.writerow(line)
+
+        total_line = ['', 'Grand Total', '', grand_totals['grand_expected'], grand_totals['grand_paid'], grand_totals['grand_balance']]
+        if with_expected:
+            total_line += [
+                grand_totals['grand_pta_expected'], grand_totals['grand_pta_paid'], grand_totals['grand_pta_balance'],
+                grand_totals['grand_tuition_expected'], grand_totals['grand_tuition_paid'], grand_totals['grand_tuition_balance'],
+            ]
+        writer.writerow(total_line)
+        return buf.getvalue()
 
     # ------------------------------------------------------------------ #
     # CSV export helper

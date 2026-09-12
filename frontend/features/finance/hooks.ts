@@ -453,3 +453,159 @@ export function useTransactionList(params: InvoiceListParams = {}) {
     },
   });
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// Reports — Day Book
+// ───────────────────────────────────────────────────────────────────────────
+
+export interface DayBookModeTotals {
+  in: number;
+  out: number;
+}
+
+export interface DayBookDayRow {
+  date: string;
+  opening_balance: number;
+  total_in: number;
+  total_out: number;
+  closing_balance: number;
+  by_mode: Record<string, DayBookModeTotals>;
+}
+
+export interface DayBookReport {
+  date_from: string;
+  date_to: string;
+  days: DayBookDayRow[];
+  total_in: number;
+  total_out: number;
+  closing_balance: number;
+}
+
+export function useDayBookReport(fromDate: string, toDate: string, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ['day-book', fromDate, toDate],
+    enabled: options.enabled,
+    queryFn: async () => {
+      const queryString = new URLSearchParams();
+      if (fromDate) queryString.append('from_date', fromDate);
+      if (toDate) queryString.append('to_date', toDate);
+      const path = `/finance/day-book/${queryString.toString() ? '?' + queryString.toString() : ''}`;
+      return await apiClient.get<DayBookReport>(path);
+    },
+  });
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Reports — Particular-wise Student Transaction Report (student ledger)
+// ───────────────────────────────────────────────────────────────────────────
+
+export interface StudentLedgerRow {
+  student_id: string;
+  student_name: string;
+  batch_name: string;
+  expected_amount: number;
+  paid_amount: number;
+  balance_amount: number;
+  pta_expected: number;
+  pta_paid: number;
+  pta_balance: number;
+  tuition_expected: number;
+  tuition_paid: number;
+  tuition_balance: number;
+}
+
+export interface StudentLedgerGrandTotals {
+  grand_expected: number;
+  grand_paid: number;
+  grand_balance: number;
+  grand_pta_expected: number;
+  grand_pta_paid: number;
+  grand_pta_balance: number;
+  grand_tuition_expected: number;
+  grand_tuition_paid: number;
+  grand_tuition_balance: number;
+}
+
+export interface StudentLedgerReport {
+  academic_year: string;
+  academic_year_name: string;
+  rows: StudentLedgerRow[];
+  grand_totals: StudentLedgerGrandTotals;
+}
+
+export interface StudentLedgerReportParams {
+  academic_year?: string;
+  student_status?: 'active' | 'all';
+  class?: string;
+  batch?: string;
+  fee_account?: string;
+  from_date?: string;
+  to_date?: string;
+  with_expected?: boolean;
+}
+
+function buildStudentLedgerQueryString(params: StudentLedgerReportParams): string {
+  const queryString = new URLSearchParams();
+  if (params.academic_year) queryString.append('academic_year', params.academic_year);
+  if (params.student_status) queryString.append('student_status', params.student_status);
+  if (params.class) queryString.append('class', params.class);
+  if (params.batch) queryString.append('batch', params.batch);
+  if (params.fee_account) queryString.append('fee_account', params.fee_account);
+  if (params.from_date) queryString.append('from_date', params.from_date);
+  if (params.to_date) queryString.append('to_date', params.to_date);
+  if (params.with_expected) queryString.append('with_expected', 'true');
+  return queryString.toString();
+}
+
+export function useStudentLedgerReport(params: StudentLedgerReportParams = {}, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ['student-ledger', params],
+    enabled: options.enabled,
+    queryFn: async () => {
+      const qs = buildStudentLedgerQueryString(params);
+      const path = `/finance/student-ledger/${qs ? '?' + qs : ''}`;
+      return await apiClient.get<StudentLedgerReport>(path);
+    },
+  });
+}
+
+/** Builds the same-origin CSV export URL for the student ledger report,
+ * routed through a dedicated Next.js route handler (not the shared BFF
+ * proxy, which always returns JSON) so the browser gets a real CSV download. */
+export function getStudentLedgerCsvExportUrl(params: StudentLedgerReportParams = {}): string {
+  const qs = buildStudentLedgerQueryString(params);
+  return `/api/finance/student-ledger-export${qs ? '?' + qs : ''}`;
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Lightweight course/batch option lists (for report filters)
+// ───────────────────────────────────────────────────────────────────────────
+
+export interface CourseOption {
+  id: string;
+  course_name: string;
+}
+
+export interface BatchOption {
+  id: string;
+  name: string;
+  course?: string;
+}
+
+export function useCourseOptions() {
+  return useQuery({
+    queryKey: ['course-options'],
+    queryFn: async () => {
+      return await apiClient.get<{ results: CourseOption[] }>('/courses/?page_size=200');
+    },
+  });
+}
+
+export function useBatchOptions() {
+  return useQuery({
+    queryKey: ['batch-options'],
+    queryFn: async () => {
+      return await apiClient.get<{ results: BatchOption[] }>('/batches/?page_size=200');
+    },
+  });
+}

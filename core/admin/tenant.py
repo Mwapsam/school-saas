@@ -1,7 +1,11 @@
+from django import forms
 from django.contrib import admin, messages
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
-from core.models import School, User, Domain, SchoolSignature, SchoolModule
+from core.models import (
+    School, User, Domain, SchoolSignature, SchoolModule,
+    Role, RolePermission, UserRoleAssignment,
+)
 from core.modules import MODULES
 
 class DomainInline(TabularInline):
@@ -133,7 +137,7 @@ class UserAdmin(ModelAdmin):
     fieldsets = (
         ("Account", {"classes": ["tab"], "fields": ("username", "password")}),
         ("Personal info", {"classes": ["tab"], "fields": ("first_name", "last_name", "email")}),
-        ("Permissions", {"classes": ["tab"], "fields": ("is_active", "is_admin", "password_change_required")}),
+        ("Permissions", {"classes": ["tab"], "fields": ("is_active", "is_admin", "is_root", "password_change_required")}),
         ("Tenants", {"classes": ["tab"], "fields": ("tenants",)}),
         ("Important dates", {"classes": ["tab"], "fields": ("last_login", "created_at", "updated_at")}),
     )
@@ -155,3 +159,92 @@ class UserAdmin(ModelAdmin):
         if obj is None:
             kwargs.setdefault("form", self.add_form)
         return super().get_form(request, obj, **kwargs)
+
+
+class RolePermissionInline(TabularInline):
+    """Inline editor for the permission codenames granted to a Role.
+
+    `codename` is a dropdown sourced from core.authz.registry.PERMISSIONS —
+    the same registry that actually enforces access (core.authz.access), so
+    an operator can't grant a typo'd or non-existent codename.
+    """
+    model = RolePermission
+    extra = 0
+    fields = ("codename",)
+
+
+@admin.register(Role)
+class RoleAdmin(ModelAdmin):
+    """Permission role administration.
+
+    A Role is a named bag of permission codenames (see RolePermissionInline);
+    assigning a Role to a user (via UserRoleAssignment) is what actually
+    grants that user access to gated API endpoints — module enablement
+    (SchoolModule) only controls whether a feature area exists for the
+    school at all, it does not grant any user access to it.
+    """
+    list_display = ("name", "slug", "is_system", "is_active")
+    list_filter = ("is_system", "is_active")
+    search_fields = ("name", "slug", "description")
+    prepopulated_fields = {"slug": ("name",)}
+    inlines = [RolePermissionInline]
+    fieldsets = (
+        ("Role", {
+            "fields": ("name", "slug", "description", "is_active"),
+        }),
+        ("System", {
+            "fields": ("is_system",),
+            "description": "System roles are seeded per tenant and cannot be deleted, "
+                           "but their permissions can still be edited.",
+        }),
+    )
+
+
+class UserRoleAssignmentForm(forms.ModelForm):
+    """UserRoleAssignment.user_id is a bare UUID (no DB FK - User lives in the
+    shared/public schema, this row lives in a tenant schema). This form swaps
+    it for a proper user-picker in the admin UI, storing the picked user's id
+    back into user_id on save.
+    """
+    user = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        label="User",
+        help_text="The staff login to grant this role to.",
+    )
+
+    class Meta:
+        model = UserRoleAssignment
+        fields = ("user", "role", "is_active")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.user_id:
+            try:
+                self.fields["user"].initial = User.objects.get(pk=self.instance.user_id)
+            except User.DoesNotExist:
+                pass
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.user_id = self.cleaned_data["user"].id
+        if commit:
+            instance.save()
+        return instance
+
+
+@admin.register(UserRoleAssignment)
+class UserRoleAssignmentAdmin(ModelAdmin):
+    """Grants a Role to a user within this tenant — this is what actually
+    gives a logged-in user access to permission-gated API endpoints.
+    """
+    form = UserRoleAssignmentForm
+    list_display = ("get_username", "role", "is_active", "created_at")
+    list_filter = ("is_active", "role")
+    autocomplete_fields = ("role",)
+
+    @admin.display(description="User")
+    def get_username(self, obj):
+        try:
+            return User.objects.get(pk=obj.user_id).username
+        except User.DoesNotExist:
+            return str(obj.user_id)

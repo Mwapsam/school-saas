@@ -4,10 +4,17 @@ codenames exist in the system.
 A codename is ``"<module>.<resource>.<action>"``. The role editor UI renders
 checkboxes grouped by module, in the order declared here.
 
-Enforcement status: the ``hr.*`` codenames are wired into real view/API gates
-(see :mod:`core.authz.mixins`). The other modules are declared so roles can be
-composed ahead of their gates being migrated off the legacy ``is_admin`` check;
-until a given view is migrated, ``is_admin`` remains the effective gate there.
+Enforcement status: the ``hr.*`` codenames declared first are wired into
+the legacy view/API gates (see :mod:`core.authz.mixins`). The DRF ViewSets
+under ``core/api/*.py`` (finance, hr, admissions, hostel, transport, library,
+academics, students) check a second, separately-named set of codenames via
+``core.authz.drf.HasPermission`` — those are declared in the
+"DRF API layer" section below. The two sets evolved independently and use
+different naming conventions in places (e.g. ``hr.employee.view`` singular
+here vs. ``hr.employees.view`` plural checked by ``core/api/hr.py``) — both
+are kept because renaming either risks breaking whichever call sites already
+reference it; new work should use the DRF API layer's codenames since that's
+what every ``core/api/*.py`` ViewSet actually enforces today.
 """
 from __future__ import annotations
 
@@ -18,8 +25,12 @@ MODULES: "OrderedDict[str, str]" = OrderedDict([
     ("hr", "Human Resources"),
     ("finance", "Finance"),
     ("academic", "Academic"),
+    ("academics", "Academics (API)"),
     ("transport", "Transport"),
     ("admissions", "Admissions"),
+    ("hostel", "Hostel"),
+    ("library", "Library"),
+    ("students", "Students"),
     ("reports", "Reports"),
     ("settings", "Settings & Administration"),
 ])
@@ -78,6 +89,80 @@ PERMISSIONS: "OrderedDict[str, str]" = OrderedDict([
     ("settings.users.manage", "Manage user logins & portal access"),
     ("settings.roles.manage", "Manage roles & permissions"),
     ("settings.school.manage", "Manage school configuration"),
+
+    # =========================================================================
+    # DRF API layer — codenames actually checked by core/api/*.py ViewSets via
+    # core.authz.drf.HasPermission(read=..., write=...). These were missing
+    # from this registry entirely until 2026-09-12, which meant no role could
+    # ever grant access to them (silently filtered out by ALL_CODENAMES) and
+    # only is_root users could use these endpoints. See module docstring.
+    # =========================================================================
+
+    # --- Students (API) ------------------------------------------------
+    ("students.view", "View students"),
+    ("students.manage", "Create, edit & deactivate students"),
+
+    # --- Academics (API) -------------------------------------------------
+    ("academics.batches.view", "View batches"),
+    ("academics.batches.manage", "Create & edit batches"),
+    ("academics.courses.view", "View courses"),
+    ("academics.courses.manage", "Create & edit courses"),
+    ("academics.subjects.view", "View subjects"),
+    ("academics.subjects.manage", "Create & edit subjects"),
+
+    # --- Finance (API) ---------------------------------------------------
+    ("finance.invoices.view", "View invoices"),
+    ("finance.transactions.view", "View finance transactions"),
+    ("finance.transactions.manage", "Record & edit finance transactions"),
+    ("finance.student-fees.view", "View student fee balances"),
+    ("finance.student-fees.manage", "Manage student fee assignments"),
+    ("finance.discounts.view", "View fee discounts"),
+    ("finance.discounts.manage", "Create & edit fee discounts"),
+    ("finance.fines.view", "View fee fine slabs"),
+    ("finance.fines.manage", "Create & edit fee fine slabs"),
+
+    # --- HR (API) ----------------------------------------------------------
+    ("hr.employees.view", "View employees"),
+    ("hr.employees.manage", "Create, edit & deactivate employees"),
+    ("hr.qualifications.view", "View employee qualifications"),
+    ("hr.qualifications.manage", "Manage employee qualifications"),
+    ("hr.documents.view", "View employee documents"),
+    ("hr.documents.manage", "Manage employee documents"),
+    ("hr.contracts.view", "View employee contracts"),
+    ("hr.contracts.manage", "Manage employee contracts"),
+    ("hr.leave-types.view", "View leave types"),
+    ("hr.leave-types.manage", "Manage leave types"),
+    ("hr.attendance.view", "View staff attendance"),
+    ("hr.reviews.view", "View performance reviews"),
+    ("hr.reviews.manage", "Conduct & record performance reviews"),
+
+    # --- Admissions (API) --------------------------------------------------
+    ("admissions.application.view", "View admission applications (API)"),
+    ("admissions.application.manage", "Process admission applications (API)"),
+
+    # --- Hostel (API) --------------------------------------------------
+    ("hostel.rooms.view", "View hostel rooms"),
+    ("hostel.rooms.manage", "Manage hostel rooms"),
+    ("hostel.fees.view", "View hostel fees"),
+    ("hostel.fees.manage", "Manage hostel fees"),
+
+    # --- Transport (API) -----------------------------------------------
+    ("transport.routes.view", "View transport routes"),
+    ("transport.routes.manage", "Manage transport routes"),
+    ("transport.stops.view", "View route stops"),
+    ("transport.stops.manage", "Manage route stops"),
+    ("transport.staff.view", "View transport staff"),
+    ("transport.staff.manage", "Manage transport staff"),
+    ("transport.fees.view", "View transport fees"),
+    ("transport.fees.manage", "Manage transport fees"),
+
+    # --- Library (API) -------------------------------------------------
+    ("library.view", "View library book catalog"),
+    ("library.manage", "Manage library book catalog"),
+    ("library.config.view", "View library configuration"),
+    ("library.config.manage", "Manage library configuration"),
+    ("library.staff.view", "View library staff"),
+    ("library.staff.manage", "Manage library staff"),
 ])
 
 ALL_CODENAMES = frozenset(PERMISSIONS)

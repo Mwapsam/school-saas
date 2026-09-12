@@ -50,6 +50,8 @@ from .api.finance import (
     FinanceTransactionViewSet,
     StudentFeeViewSet,
     InvoiceViewSet,
+    DayBookView,
+    StudentLedgerReportView,
 )
 
 from .api.hr import (
@@ -162,6 +164,8 @@ urlpatterns = [
     # Report endpoints (non-ViewSet based)
     path('v1/reports/academic/', AcademicReportsAPIView.as_view(), name='academic-reports'),
     path('v1/reports/admission/', AdmissionReportsAPIView.as_view(), name='admission-reports'),
+    path('v1/finance/day-book/', DayBookView.as_view(), name='finance-day-book'),
+    path('v1/finance/student-ledger/', StudentLedgerReportView.as_view(), name='finance-student-ledger'),
     
     # Public endpoints (no authentication required)
     path('public/admission/apply/', PublicAdmissionApplicationCreateView.as_view(), name='public-admission-apply'),

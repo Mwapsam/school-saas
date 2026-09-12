@@ -24,7 +24,7 @@ export default function AdmissionsPage() {
     search: table.queryParams.search,
   });
 
-  if (!bootstrap || !isModuleEnabled('admissions') || !can('admissions.view')) {
+  if (!bootstrap || !isModuleEnabled('admissions') || !can('admissions.application.view')) {
     return (
       <Container maxWidth="lg">
         <Box sx={{ py: 4 }}>

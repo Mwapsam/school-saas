@@ -22,7 +22,7 @@ export default function HostelRoomsPage() {
     search: table.queryParams.search,
   });
 
-  if (!bootstrap || !isModuleEnabled('hostel') || !can('hostel.view')) {
+  if (!bootstrap || !isModuleEnabled('hostel') || !can('hostel.rooms.view')) {
     return (
       <Container maxWidth="lg">
         <Box sx={{ py: 4 }}>

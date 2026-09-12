@@ -22,7 +22,7 @@ export default function RoutesPage() {
     search: table.queryParams.search,
   });
 
-  if (!bootstrap || !isModuleEnabled('transport') || !can('transport.view')) {
+  if (!bootstrap || !isModuleEnabled('transport') || !can('transport.routes.view')) {
     return (
       <Container maxWidth="lg">
         <Box sx={{ py: 4 }}>
