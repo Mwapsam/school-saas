@@ -81,10 +81,10 @@ class EnquiryStageLogNoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = EnquiryStageLogNote
         fields = [
-            'id', 'notes', 'follow_up_date', 'created_by', 'created_by_name',
+            'id', 'stage_log', 'notes', 'follow_up_date', 'created_by', 'created_by_name',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['created_at', 'updated_at']
+        read_only_fields = ['stage_log', 'created_at', 'updated_at']
 
 
 class EnquiryStageLogSerializer(serializers.ModelSerializer):
@@ -96,10 +96,10 @@ class EnquiryStageLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = EnquiryStageLog
         fields = [
-            'id', 'stage', 'stage_name', 'changed_by', 'changed_by_name',
+            'id', 'enquiry', 'stage', 'stage_name', 'changed_by', 'changed_by_name',
             'notes', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['created_at', 'updated_at']
+        read_only_fields = ['enquiry', 'created_at', 'updated_at']
 
 
 class EnquiryFollowUpSerializer(serializers.ModelSerializer):
@@ -111,11 +111,11 @@ class EnquiryFollowUpSerializer(serializers.ModelSerializer):
     class Meta:
         model = EnquiryFollowUp
         fields = [
-            'id', 'follow_up_type', 'follow_up_type_display', 'scheduled_date',
+            'id', 'enquiry', 'follow_up_type', 'follow_up_type_display', 'scheduled_date',
             'status', 'status_display', 'assigned_to', 'assigned_to_name',
             'notes', 'completion_notes', 'completed_at', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['created_at', 'updated_at']
+        read_only_fields = ['enquiry', 'created_at', 'updated_at']
 
     def validate_scheduled_date(self):
         scheduled_date = self.validated_data.get('scheduled_date')
