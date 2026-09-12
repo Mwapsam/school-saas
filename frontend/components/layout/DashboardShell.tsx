@@ -9,7 +9,8 @@ import { TopBar } from './TopBar';
 import { Breadcrumbs } from './Breadcrumbs';
 import { colors, spacing } from '@/design-system/tokens';
 
-const DRAWER_WIDTH = 260;
+const EXPANDED_WIDTH = 280;
+const COLLAPSED_WIDTH = 72;
 
 /**
  * Main application shell.
@@ -17,11 +18,15 @@ const DRAWER_WIDTH = 260;
  * Provides the layout structure: TopBar + Sidebar + content area.
  * Handles responsive design (permanent sidebar on desktop, temporary drawer on mobile).
  * Loads bootstrap data (tenant config, user info, capabilities) on mount.
+ * Supports collapsible desktop sidebar with smooth width transitions.
  */
 export function DashboardShell({ children }: { children: ReactNode }) {
   const { bootstrap, setBootstrap, setLoading, loading } = useTenantStore();
   const [error, setError] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  const desktopWidth = collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH;
 
   useEffect(() => {
     if (bootstrap) return;
@@ -47,7 +52,6 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     };
   }, [bootstrap, setBootstrap, setLoading]);
 
-  // Loading state
   if (loading) {
     return (
       <Box
@@ -64,7 +68,6 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     );
   }
 
-  // Error state
   if (error || !bootstrap) {
     return (
       <Container maxWidth="sm">
@@ -75,15 +78,33 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     );
   }
 
-  const drawerContent = <Sidebar onNavigate={() => setMobileOpen(false)} />;
+  // Mobile always gets the full expanded sidebar
+  const mobileDrawerContent = (
+    <Sidebar onNavigate={() => setMobileOpen(false)} collapsed={false} />
+  );
+
+  // Desktop uses the controlled collapsed state
+  const desktopDrawerContent = (
+    <Sidebar
+      onNavigate={() => setMobileOpen(false)}
+      collapsed={collapsed}
+      onCollapsedChange={setCollapsed}
+    />
+  );
 
   return (
     <Box sx={{ display: 'flex', height: '100vh' }}>
-      {/* Top navigation bar */}
       <TopBar onMenuClick={() => setMobileOpen((open) => !open)} />
 
-      {/* Sidebar navigation */}
-      <Box component="nav" sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}>
+      <Box
+        component="nav"
+        sx={{
+          width: { md: desktopWidth },
+          flexShrink: { md: 0 },
+          transition: 'width 220ms cubic-bezier(0.4, 0, 0.2, 1)',
+          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+        }}
+      >
         {/* Mobile: temporary overlay drawer */}
         <Drawer
           variant="temporary"
@@ -94,57 +115,61 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             display: { xs: 'block', md: 'none' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
-              width: DRAWER_WIDTH,
+              width: EXPANDED_WIDTH,
               backgroundColor: colors.background.surface,
               borderRight: `1px solid ${colors.border.default}`,
             },
           }}
         >
           <Toolbar />
-          {drawerContent}
+          {mobileDrawerContent}
         </Drawer>
 
-        {/* Desktop: permanent drawer */}
+        {/* Desktop: permanent drawer with dynamic width */}
         <Drawer
           variant="permanent"
           sx={{
             display: { xs: 'none', md: 'block' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
-              width: DRAWER_WIDTH,
+              width: desktopWidth,
               backgroundColor: colors.background.surface,
               borderRight: `1px solid ${colors.border.default}`,
               position: 'fixed',
               height: '100vh',
               top: 0,
               left: 0,
+              transition: 'width 220ms cubic-bezier(0.4, 0, 0.2, 1)',
+              overflowX: 'hidden',
+              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
             },
           }}
           open
         >
           <Toolbar />
-          {drawerContent}
+          {desktopDrawerContent}
         </Drawer>
       </Box>
 
-      {/* Main content area */}
+      {/* Main content — follows sidebar width */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          width: { md: `calc(100% - ${desktopWidth}px)` },
           minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: colors.background.default,
           overflowY: 'auto',
-          ml: { xs: 0, md: `${DRAWER_WIDTH}px` },
+          ml: { xs: 0, md: `${desktopWidth}px` },
+          transition:
+            'margin-left 220ms cubic-bezier(0.4, 0, 0.2, 1), width 220ms cubic-bezier(0.4, 0, 0.2, 1)',
+          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
         }}
       >
-        {/* Fixed top bar spacing */}
         <Toolbar sx={{ minHeight: 64 }} />
 
-        {/* Page content */}
         <Box
           sx={{
             flex: 1,

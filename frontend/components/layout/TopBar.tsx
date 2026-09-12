@@ -98,8 +98,16 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
                   height: 36,
                   fontSize: 14,
                   fontWeight: 600,
-                  backgroundColor: colors.action.primary,
-                  color: colors.text.inverse,
+                  // Was colors.action.primary — that token no longer exists now that
+                  // primary is tenant-derived (buildPaletteConfig). Reading it from
+                  // the live theme means the avatar automatically picks up each
+                  // school's actual brand color instead of a fixed default blue.
+                  backgroundColor: (theme) => theme.palette.primary.main,
+                  // contrastText is the WCAG-luminance-checked pick from
+                  // buildPaletteConfig, so this stays readable even if a tenant's
+                  // brand color is light (colors.text.inverse was always white,
+                  // which would fail on a pale brand color).
+                  color: (theme) => theme.palette.primary.contrastText,
                 }}
               >
                 {initials}

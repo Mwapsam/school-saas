@@ -8,61 +8,54 @@
  * - Palette mapping
  *
  * This is the heart of the design system — all visual consistency flows from here.
+ *
+ * IMPORTANT: this file does not compute its own light/dark/hover/disabled
+ * shades. All of that comes from `buildPaletteConfig()` in tokens/colors —
+ * one function that turns a raw brand hex into a full, contrast-safe
+ * palette. Every component override below reads from that same resolved
+ * palette, so a tenant's actual color shows up consistently in every state
+ * (hover, active, disabled, chips) instead of only the resting/default state.
  */
 
-import { createTheme as createMuiTheme, type Theme, ThemeOptions } from '@mui/material/styles';
-import { colors, paletteConfig } from '../tokens/colors';
+import { createTheme as createMuiTheme, alpha, type Theme, type ThemeOptions } from '@mui/material/styles';
+import { colors, buildPaletteConfig, mixColor, type TenantColorInput } from '../tokens/colors';
 import { fontFamily, muiTypographyVariants } from '../tokens/typography';
-import { muiSpacing } from '../tokens/spacing';
 import { muiShape } from '../tokens/radius';
 import { muiTransitions } from '../tokens/motion';
 import { muiElevations } from '../tokens/shadows';
-import { spacing, radius } from '../tokens';
-
-interface TenantBrandingOverrides {
-  primaryColor?: string;  // hex color
-  secondaryColor?: string; // hex color
-}
+import { radius } from '../tokens';
 
 /**
  * Build the MUI theme with component overrides, palette, and typography.
+ * `tenant` uses the same field names as `TenantBranding` from bootstrap.ts
+ * (`primary_color` / `secondary_color`) — pass `bootstrap.tenant` directly,
+ * no remapping needed.
  */
-export function buildTheme(branding?: TenantBrandingOverrides): Theme {
-  const primaryColor = branding?.primaryColor || colors.action.primary;
-  const secondaryColor = branding?.secondaryColor || colors.status.info;
+export function buildTheme(tenant?: TenantColorInput): Theme {
+  const palette = buildPaletteConfig(tenant);
+
+  const primaryColor = palette.primary.main;
+  const primaryHover = mixColor(primaryColor, -0.12);
+  const primaryActive = mixColor(primaryColor, -0.24);
+  const primaryDisabled = mixColor(primaryColor, 0.55);
+
+  const secondaryColor = palette.secondary.main;
+  const secondaryHover = mixColor(secondaryColor, -0.12);
+  const secondaryActive = mixColor(secondaryColor, -0.24);
 
   const themeOptions: ThemeOptions = {
-    // Palette
-    palette: {
-      ...paletteConfig,
-      primary: {
-        ...paletteConfig.primary,
-        main: primaryColor,
-      },
-      secondary: {
-        ...paletteConfig.secondary,
-        main: secondaryColor,
-      },
-    },
+    palette,
 
-    // Typography
     typography: {
       fontFamily: fontFamily.primary,
       ...muiTypographyVariants,
     },
 
-    // Shape
     shape: muiShape,
-
-    // Spacing
     spacing: 4, // 4px base unit
-
-    // Transitions
     transitions: muiTransitions,
 
-    // Component overrides — the secret sauce
     components: {
-      // Button
       MuiButton: {
         styleOverrides: {
           root: {
@@ -78,36 +71,36 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
           },
           containedPrimary: {
             backgroundColor: primaryColor,
-            color: colors.text.inverse,
+            color: palette.primary.contrastText,
             '&:hover': {
-              backgroundColor: colors.action.primaryHover,
+              backgroundColor: primaryHover,
               boxShadow: muiElevations[1],
             },
             '&:active': {
-              backgroundColor: colors.action.primaryActive,
+              backgroundColor: primaryActive,
             },
             '&:disabled': {
-              backgroundColor: colors.action.primaryDisabled,
+              backgroundColor: primaryDisabled,
               color: colors.text.disabled,
             },
           },
           containedSecondary: {
-            backgroundColor: colors.action.secondary,
-            color: colors.text.primary,
+            backgroundColor: secondaryColor,
+            color: palette.secondary.contrastText,
             '&:hover': {
-              backgroundColor: colors.action.secondaryHover,
+              backgroundColor: secondaryHover,
               boxShadow: muiElevations[1],
             },
             '&:active': {
-              backgroundColor: colors.action.secondaryActive,
+              backgroundColor: secondaryActive,
             },
           },
           outlinedPrimary: {
             borderColor: primaryColor,
             color: primaryColor,
             '&:hover': {
-              borderColor: colors.action.primaryHover,
-              backgroundColor: `${primaryColor}08`,
+              borderColor: primaryHover,
+              backgroundColor: alpha(primaryColor, 0.06),
             },
           },
           outlinedSecondary: {
@@ -121,7 +114,7 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
           textPrimary: {
             color: primaryColor,
             '&:hover': {
-              backgroundColor: `${primaryColor}08`,
+              backgroundColor: alpha(primaryColor, 0.06),
             },
           },
         },
@@ -130,7 +123,6 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
         },
       },
 
-      // Text field
       MuiTextField: {
         styleOverrides: {
           root: {
@@ -152,7 +144,6 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
         },
       },
 
-      // Select
       MuiSelect: {
         styleOverrides: {
           root: {
@@ -161,7 +152,6 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
         },
       },
 
-      // Card
       MuiCard: {
         styleOverrides: {
           root: {
@@ -173,26 +163,18 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
         },
       },
 
-      // Paper
       MuiPaper: {
         styleOverrides: {
           root: {
             borderRadius: radius.lg,
             backgroundColor: colors.background.surface,
           },
-          elevation1: {
-            boxShadow: muiElevations[1],
-          },
-          elevation2: {
-            boxShadow: muiElevations[2],
-          },
-          elevation3: {
-            boxShadow: muiElevations[3],
-          },
+          elevation1: { boxShadow: muiElevations[1] },
+          elevation2: { boxShadow: muiElevations[2] },
+          elevation3: { boxShadow: muiElevations[3] },
         },
       },
 
-      // Dialog
       MuiDialog: {
         styleOverrides: {
           paper: {
@@ -202,7 +184,6 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
         },
       },
 
-      // Chip
       MuiChip: {
         styleOverrides: {
           root: {
@@ -210,8 +191,10 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
             fontSize: 12,
           },
           filledPrimary: {
-            backgroundColor: `${primaryColor}20`,
-            color: primaryColor,
+            backgroundColor: alpha(primaryColor, 0.14),
+            color: mixColor(primaryColor, -0.15), // slightly darker than the raw brand
+                                                    // color so chip text stays readable
+                                                    // even on a light tenant brand color
           },
           outlinedPrimary: {
             borderColor: primaryColor,
@@ -220,7 +203,6 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
         },
       },
 
-      // Badge
       MuiBadge: {
         styleOverrides: {
           badge: {
@@ -231,7 +213,6 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
         },
       },
 
-      // AppBar
       MuiAppBar: {
         styleOverrides: {
           root: {
@@ -243,7 +224,6 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
         },
       },
 
-      // Drawer
       MuiDrawer: {
         styleOverrides: {
           paper: {
@@ -253,7 +233,6 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
         },
       },
 
-      // Tab
       MuiTab: {
         styleOverrides: {
           root: {
@@ -268,7 +247,6 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
         },
       },
 
-      // Menu
       MuiMenu: {
         styleOverrides: {
           paper: {
@@ -278,7 +256,6 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
         },
       },
 
-      // Checkbox
       MuiCheckbox: {
         styleOverrides: {
           root: {
@@ -290,7 +267,6 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
         },
       },
 
-      // Radio
       MuiRadio: {
         styleOverrides: {
           root: {
@@ -301,7 +277,6 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
         },
       },
 
-      // Switch
       MuiSwitch: {
         styleOverrides: {
           root: {
@@ -315,7 +290,6 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
         },
       },
 
-      // Divider
       MuiDivider: {
         styleOverrides: {
           root: {
@@ -324,7 +298,6 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
         },
       },
 
-      // Table
       MuiTable: {
         styleOverrides: {
           root: {
@@ -356,7 +329,6 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
         },
       },
 
-      // Alert
       MuiAlert: {
         styleOverrides: {
           standardSuccess: {
@@ -378,7 +350,6 @@ export function buildTheme(branding?: TenantBrandingOverrides): Theme {
         },
       },
 
-      // Snackbar
       MuiSnackbarContent: {
         styleOverrides: {
           root: {
