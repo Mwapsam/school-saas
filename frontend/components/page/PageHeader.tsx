@@ -44,21 +44,22 @@ export function PageHeader({
 
       {/* Title and actions row */}
       <Stack
-        direction="row"
+        direction={{ xs: 'column', sm: 'row' }}
         justifyContent="space-between"
-        alignItems="flex-start"
-        spacing={spacing.component}
+        alignItems={{ xs: 'flex-start', sm: 'center' }}
+        gap={2}
         sx={{ mb: description ? spacing.element : 0 }}
       >
-        <Box>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography
             variant="h1"
             component="h1"
             sx={{
               fontSize: typography.h1.fontSize,
-              lineHeight: typography.h1.lineHeight / typography.h1.fontSize,
+              lineHeight: typography.h1.lineHeight,
               fontWeight: typography.h1.fontWeight,
               mb: 0,
+              overflowWrap: 'anywhere',
             }}
           >
             {title}
@@ -67,9 +68,9 @@ export function PageHeader({
 
         {/* Actions - typically buttons */}
         {actions && (
-          <Box sx={{ display: 'flex', gap: spacing.element }}>
+          <Stack direction="row" gap={1} flexWrap="wrap" sx={{ width: { xs: '100%', sm: 'auto' } }}>
             {actions}
-          </Box>
+          </Stack>
         )}
       </Stack>
 

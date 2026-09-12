@@ -26,8 +26,8 @@ export function Page({ children, ...props }: PageProps) {
     <Container maxWidth="lg" {...props}>
       <Box
         sx={{
-          py: spacing.pageVertical,
-          px: spacing.pageHorizontal,
+          px: { xs: 2, sm: 3, md: spacing.pageHorizontal },
+          py: { xs: 2, sm: 3, md: 4 },
         }}
       >
         {children}

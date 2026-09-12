@@ -32,14 +32,14 @@ import {
 } from './schemas';
 
 const STEP_LABELS = [
-  'Terms & Conditions',
-  'Academic Details',
-  'Personal Information',
+  'Terms',
+  'Academic',
+  'Personal',
   'Guardian 1',
-  'Guardian 2 & Emergency',
-  'Address & Additional Info',
+  'Guardian 2',
+  'Address',
   'Documents',
-  'Declaration & Submission',
+  'Declaration',
 ];
 
 interface AdmissionWizardProps {
@@ -178,17 +178,16 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
         <Stepper
           activeStep={activeStep}
           sx={{
-            overflow: 'auto',
             py: 2,
             '& .MuiStepLabel-label': {
-              fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
-              textAlign: 'center',
-              whiteSpace: 'normal',
-              wordBreak: 'break-word',
+              fontSize: { xs: '0.65rem', sm: '0.8rem', md: '0.9rem' },
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             },
             '& .MuiStep-root': {
-              minWidth: { xs: '60px', sm: '80px', md: '100px' },
               flex: '1 1 auto',
+              minWidth: 0,
             },
           }}
         >

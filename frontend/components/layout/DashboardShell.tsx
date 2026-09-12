@@ -126,7 +126,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       </Box>
 
       {/* Flex container for sidebar + content */}
-      <Box sx={{ display: 'flex', flex: 1, pt: { xs: 0, md: 8 }, overflow: 'hidden' }}>
+      <Box sx={{ display: 'flex', flex: 1, pt: 8, overflow: 'hidden', minWidth: 0 }}>
         <Box
           component="nav"
           sx={{
@@ -146,7 +146,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             display: { xs: 'block', md: 'none' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
-              width: { xs: SIDEBAR_WIDTHS.mobile.expanded || 260, sm: SIDEBAR_WIDTHS.tablet.expanded },
+              width: { xs: 'min(85vw, 280px)', sm: SIDEBAR_WIDTHS.tablet.expanded },
               backgroundColor: colors.background.surface,
               borderRight: `1px solid ${colors.border.default}`,
             },
@@ -199,7 +199,6 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               flex: 1,
               overflow: 'auto',
               py: spacing.pageVertical,
-              px: spacing.pageHorizontal,
             }}
           >
             <Container maxWidth="lg">

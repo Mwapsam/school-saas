@@ -107,7 +107,7 @@ export function DataTable<T extends { id: string }>({
         {toolbarActions && <Box sx={{ ml: 'auto' }}>{toolbarActions}</Box>}
       </Box>
 
-      <Box sx={{ width: '100%', height, bgcolor: 'background.paper' }}>
+      <Box sx={{ width: '100%', minWidth: 0, height, bgcolor: 'background.paper', overflowX: 'auto' }}>
         <DataGrid
           rows={rows}
           columns={columns}

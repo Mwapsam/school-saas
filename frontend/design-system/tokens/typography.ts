@@ -27,22 +27,22 @@ export const typography = {
   },
 
   h1: {
-    fontSize: 28,
-    lineHeight: 36,
+    fontSize: { xs: '1.75rem', sm: '2rem', md: '1.75rem' },
+    lineHeight: 1.2,
     fontWeight: 700,
     letterSpacing: -0.5,
   },
 
   h2: {
-    fontSize: 24,
-    lineHeight: 32,
+    fontSize: { xs: '1.5rem', sm: '1.75rem', md: '1.5rem' },
+    lineHeight: 1.33,
     fontWeight: 650,
     letterSpacing: -0.3,
   },
 
   h3: {
-    fontSize: 20,
-    lineHeight: 28,
+    fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.25rem' },
+    lineHeight: 1.4,
     fontWeight: 650,
     letterSpacing: -0.2,
   },
@@ -72,23 +72,24 @@ export const typography = {
 /**
  * MUI Typography variants derived from our scale.
  * Used in theme.typography configuration.
+ * Note: h1, h2, h3 have responsive fontSize objects, not simple numbers.
  */
 export const muiTypographyVariants = {
   h1: {
-    fontSize: typography.h1.fontSize,
-    lineHeight: typography.h1.lineHeight / typography.h1.fontSize,
+    fontSize: '2rem',
+    lineHeight: 1.2,
     fontWeight: typography.h1.fontWeight,
     letterSpacing: typography.h1.letterSpacing,
   },
   h2: {
-    fontSize: typography.h2.fontSize,
-    lineHeight: typography.h2.lineHeight / typography.h2.fontSize,
+    fontSize: '1.75rem',
+    lineHeight: 1.33,
     fontWeight: typography.h2.fontWeight,
     letterSpacing: typography.h2.letterSpacing,
   },
   h3: {
-    fontSize: typography.h3.fontSize,
-    lineHeight: typography.h3.lineHeight / typography.h3.fontSize,
+    fontSize: '1.5rem',
+    lineHeight: 1.4,
     fontWeight: typography.h3.fontWeight,
     letterSpacing: typography.h3.letterSpacing,
   },
