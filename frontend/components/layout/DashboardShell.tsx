@@ -1,16 +1,19 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { Box, Drawer, Toolbar, CircularProgress, Container, Alert } from '@mui/material';
+import { Box, Drawer, Toolbar, CircularProgress, Container, Alert, useMediaQuery, useTheme } from '@mui/material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { fetchBootstrap } from '@/lib/tenant/bootstrap';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { Breadcrumbs } from './Breadcrumbs';
 import { colors, spacing } from '@/design-system/tokens';
+import { SIDEBAR_WIDTHS } from './useSidebarWidth';
 
-const EXPANDED_WIDTH = 280;
-const COLLAPSED_WIDTH = 72;
+// Responsive width configuration
+// Desktop (lg+): 280px expanded, 72px collapsed
+// Tablet (md-lg): 240px expanded, 64px collapsed
+// Mobile (sm-md): drawer overlay only
 
 /**
  * Main application shell.
@@ -26,7 +29,18 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
-  const desktopWidth = collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH;
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('md', 'lg'));
+
+  // Get responsive width based on current breakpoint
+  const getSidebarWidth = () => {
+    if (!isDesktop && !isTablet) return SIDEBAR_WIDTHS.mobile.expanded; // Mobile: 0
+    if (isTablet) return collapsed ? SIDEBAR_WIDTHS.tablet.collapsed : SIDEBAR_WIDTHS.tablet.expanded;
+    return collapsed ? SIDEBAR_WIDTHS.desktop.collapsed : SIDEBAR_WIDTHS.desktop.expanded;
+  };
+
+  const sidebarWidth = getSidebarWidth();
 
   useEffect(() => {
     if (bootstrap) return;
@@ -93,18 +107,35 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh' }}>
-      <TopBar onMenuClick={() => setMobileOpen((open) => !open)} />
-
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      {/* Top bar - responsive to sidebar width on desktop */}
       <Box
-        component="nav"
         sx={{
-          width: { md: desktopWidth },
-          flexShrink: { md: 0 },
-          transition: 'width 220ms cubic-bezier(0.4, 0, 0.2, 1)',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: (theme) => theme.zIndex.appBar,
+          ml: { xs: 0, md: `${sidebarWidth}px` },
+          width: { xs: '100%', md: `calc(100% - ${sidebarWidth}px)` },
+          transition: 'margin-left 220ms cubic-bezier(0.4, 0, 0.2, 1), width 220ms cubic-bezier(0.4, 0, 0.2, 1)',
           '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
         }}
       >
+        <TopBar onMenuClick={() => setMobileOpen((open) => !open)} />
+      </Box>
+
+      {/* Flex container for sidebar + content */}
+      <Box sx={{ display: 'flex', flex: 1, pt: { xs: 0, md: 8 }, overflow: 'hidden' }}>
+        <Box
+          component="nav"
+          sx={{
+            width: { md: sidebarWidth },
+            flexShrink: { md: 0 },
+            transition: 'width 220ms cubic-bezier(0.4, 0, 0.2, 1)',
+            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+          }}
+        >
         {/* Mobile: temporary overlay drawer */}
         <Drawer
           variant="temporary"
@@ -115,7 +146,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             display: { xs: 'block', md: 'none' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
-              width: EXPANDED_WIDTH,
+              width: { xs: SIDEBAR_WIDTHS.mobile.expanded || 260, sm: SIDEBAR_WIDTHS.tablet.expanded },
               backgroundColor: colors.background.surface,
               borderRight: `1px solid ${colors.border.default}`,
             },
@@ -132,7 +163,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             display: { xs: 'none', md: 'block' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
-              width: desktopWidth,
+              width: sidebarWidth,
               backgroundColor: colors.background.surface,
               borderRight: `1px solid ${colors.border.default}`,
               position: 'fixed',
@@ -151,37 +182,31 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         </Drawer>
       </Box>
 
-      {/* Main content — follows sidebar width */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          width: { md: `calc(100% - ${desktopWidth}px)` },
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          backgroundColor: colors.background.default,
-          overflowY: 'auto',
-          ml: { xs: 0, md: `${desktopWidth}px` },
-          transition:
-            'margin-left 220ms cubic-bezier(0.4, 0, 0.2, 1), width 220ms cubic-bezier(0.4, 0, 0.2, 1)',
-          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-        }}
-      >
-        <Toolbar sx={{ minHeight: 64 }} />
-
+        {/* Main content */}
         <Box
+          component="main"
           sx={{
             flex: 1,
-            overflow: 'auto',
-            py: spacing.pageVertical,
-            px: spacing.pageHorizontal,
+            display: 'flex',
+            flexDirection: 'column',
+            backgroundColor: colors.background.default,
+            overflowY: 'auto',
+            overflowX: 'hidden',
           }}
         >
-          <Container maxWidth="lg">
-            <Breadcrumbs />
-            {children}
-          </Container>
+          <Box
+            sx={{
+              flex: 1,
+              overflow: 'auto',
+              py: spacing.pageVertical,
+              px: spacing.pageHorizontal,
+            }}
+          >
+            <Container maxWidth="lg">
+              <Breadcrumbs />
+              {children}
+            </Container>
+          </Box>
         </Box>
       </Box>
     </Box>

@@ -17,7 +17,7 @@ interface PageProps extends Omit<ContainerProps, 'maxWidth'> {
  *   <Page>
  *     <PageHeader title="Students" />
  *     <PageContent>
- *       {/* page content */}
+ *       page content here
  *     </PageContent>
  *   </Page>
  */
