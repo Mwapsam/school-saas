@@ -554,6 +554,11 @@ UNFOLD = {
                         "link": reverse_lazy("admin:core_school_changelist"),
                     },
                     {
+                        "title": _("School Modules"),
+                        "icon": "extension",
+                        "link": reverse_lazy("admin:core_schoolmodule_changelist"),
+                    },
+                    {
                         "title": _("Domains"),
                         "icon": "dns",
                         "link": reverse_lazy("admin:core_domain_changelist"),

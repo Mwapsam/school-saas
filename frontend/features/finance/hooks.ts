@@ -208,6 +208,235 @@ export function useStudentFee(id: string) {
   });
 }
 
+// Fee Categories
+export interface FeeCategory {
+  id: string;
+  name: string;
+  description?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FeeCategoryListParams {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  is_active?: boolean;
+  ordering?: string;
+}
+
+export interface FeeCategoryListResponse {
+  count: number;
+  next?: string;
+  previous?: string;
+  results: FeeCategory[];
+}
+
+export interface CreateFeeCategoryInput {
+  name: string;
+  description?: string;
+  is_active?: boolean;
+}
+
+export interface UpdateFeeCategoryInput {
+  name?: string;
+  description?: string;
+  is_active?: boolean;
+}
+
+export function useFeeCategoryList(params: FeeCategoryListParams = {}, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ['fee-categories', params],
+    enabled: options.enabled,
+    queryFn: async () => {
+      const queryString = new URLSearchParams();
+      if (params.page) queryString.append('page', params.page.toString());
+      if (params.page_size) queryString.append('page_size', params.page_size.toString());
+      if (params.search) queryString.append('search', params.search);
+      if (params.is_active !== undefined) queryString.append('is_active', params.is_active.toString());
+      if (params.ordering) queryString.append('ordering', params.ordering);
+
+      const path = `/fee-categories/${queryString.toString() ? '?' + queryString.toString() : ''}`;
+      return await apiClient.get<FeeCategoryListResponse>(path);
+    },
+  });
+}
+
+export function useFeeCategory(id: string) {
+  return useQuery({
+    queryKey: ['fee-categories', id],
+    queryFn: async () => {
+      return await apiClient.get<FeeCategory>(`/fee-categories/${id}/`);
+    },
+    enabled: !!id,
+  });
+}
+
+export function useCreateFeeCategory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: CreateFeeCategoryInput) => {
+      return await apiClient.post<FeeCategory>('/fee-categories/', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fee-categories'] });
+    },
+  });
+}
+
+export function useUpdateFeeCategory(id: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: UpdateFeeCategoryInput) => {
+      return await apiClient.patch<FeeCategory>(`/fee-categories/${id}/`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fee-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['fee-categories', id] });
+    },
+  });
+}
+
+/**
+ * Delete fee category. Call `.mutate(id)` / `.mutateAsync(id)` with the target id —
+ * this hook itself must be called once at component top level (Rules of Hooks).
+ */
+export function useDeleteFeeCategory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return await apiClient.delete(`/fee-categories/${id}/`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fee-categories'] });
+    },
+  });
+}
+
+// Fee Discounts
+export interface FeeDiscount {
+  id: string;
+  fee_category: string;
+  fee_category_name: string;
+  name: string;
+  discount_type: 'batch' | 'individual';
+  discount_value: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FeeDiscountListParams {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  fee_category?: string;
+  discount_type?: string;
+  is_active?: boolean;
+  ordering?: string;
+}
+
+export interface FeeDiscountListResponse {
+  count: number;
+  next?: string;
+  previous?: string;
+  results: FeeDiscount[];
+}
+
+export interface CreateFeeDiscountInput {
+  fee_category: string;
+  name: string;
+  discount_type: 'batch' | 'individual';
+  discount_value: number;
+  is_active?: boolean;
+}
+
+export interface UpdateFeeDiscountInput {
+  fee_category?: string;
+  name?: string;
+  discount_type?: 'batch' | 'individual';
+  discount_value?: number;
+  is_active?: boolean;
+}
+
+export function useFeeDiscountList(params: FeeDiscountListParams = {}, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ['fee-discounts', params],
+    enabled: options.enabled,
+    queryFn: async () => {
+      const queryString = new URLSearchParams();
+      if (params.page) queryString.append('page', params.page.toString());
+      if (params.page_size) queryString.append('page_size', params.page_size.toString());
+      if (params.search) queryString.append('search', params.search);
+      if (params.fee_category) queryString.append('fee_category', params.fee_category);
+      if (params.discount_type) queryString.append('discount_type', params.discount_type);
+      if (params.is_active !== undefined) queryString.append('is_active', params.is_active.toString());
+      if (params.ordering) queryString.append('ordering', params.ordering);
+
+      const path = `/fee-discounts/${queryString.toString() ? '?' + queryString.toString() : ''}`;
+      return await apiClient.get<FeeDiscountListResponse>(path);
+    },
+  });
+}
+
+export function useFeeDiscount(id: string) {
+  return useQuery({
+    queryKey: ['fee-discounts', id],
+    queryFn: async () => {
+      return await apiClient.get<FeeDiscount>(`/fee-discounts/${id}/`);
+    },
+    enabled: !!id,
+  });
+}
+
+export function useCreateFeeDiscount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: CreateFeeDiscountInput) => {
+      return await apiClient.post<FeeDiscount>('/fee-discounts/', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fee-discounts'] });
+    },
+  });
+}
+
+export function useUpdateFeeDiscount(id: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: UpdateFeeDiscountInput) => {
+      return await apiClient.patch<FeeDiscount>(`/fee-discounts/${id}/`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fee-discounts'] });
+      queryClient.invalidateQueries({ queryKey: ['fee-discounts', id] });
+    },
+  });
+}
+
+/**
+ * Delete fee discount. Call `.mutate(id)` / `.mutateAsync(id)` with the target id —
+ * this hook itself must be called once at component top level (Rules of Hooks).
+ */
+export function useDeleteFeeDiscount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return await apiClient.delete(`/fee-discounts/${id}/`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fee-discounts'] });
+    },
+  });
+}
+
 // Transactions
 export function useTransactionList(params: InvoiceListParams = {}) {
   return useQuery({

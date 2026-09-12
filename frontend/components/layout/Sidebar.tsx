@@ -40,6 +40,8 @@ export const NAV_MODULES: NavModule[] = [
       sections: [
         { label: 'Invoices', href: '/dashboard/invoices', capability: 'finance.invoices.view' },
         { label: 'Fees', href: '/dashboard/fees', capability: 'finance.fees.view' },
+        { label: 'Fee Categories', href: '/dashboard/invoices/fee-categories', capability: 'finance.fees.view' },
+        { label: 'Fee Discounts', href: '/dashboard/invoices/fee-discounts', capability: 'finance.discounts.view' },
         { label: 'Transactions', href: '/dashboard/transactions', capability: 'finance.transactions.view' },
       ],
     },

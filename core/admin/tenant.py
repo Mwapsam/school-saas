@@ -1,11 +1,43 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
-from core.models import School, User, Domain, SchoolSignature
+from core.models import School, User, Domain, SchoolSignature, SchoolModule
+from core.modules import MODULES
 
 class DomainInline(TabularInline):
     model = Domain
     extra = 1
+
+
+class SchoolModuleInline(TabularInline):
+    """Inline editor for SchoolModule records within a School admin page.
+
+    Platform operators can enable/disable modules for a school and configure
+    module-specific settings without leaving the School detail page. The
+    module field is a dropdown constrained to core.modules.MODULES (see
+    SchoolModule.module choices), so operators can add rows for modules that
+    don't exist yet for a school without needing to know exact key spelling.
+    """
+    model = SchoolModule
+    extra = 0
+    fields = ("module", "enabled", "configuration")
+
+
+def _provision_all_modules(schools):
+    """Ensure every school has a SchoolModule row for every registered module key.
+    Missing rows are created enabled by default; existing rows are left untouched.
+    Mirrors `manage.py provision_school_modules`.
+    """
+    created = 0
+    for school in schools:
+        for module_key in MODULES.keys():
+            _, was_created = SchoolModule.objects.get_or_create(
+                school=school, module=module_key, defaults={"enabled": True}
+            )
+            if was_created:
+                created += 1
+    return created
+
 
 @admin.register(School)
 class SchoolAdmin(ModelAdmin):
@@ -13,6 +45,7 @@ class SchoolAdmin(ModelAdmin):
     list_filter = ("is_active",)
     search_fields = ("name", "code", "email")
     search_help_text = "Search by school name, code, or email"
+    actions = ["provision_missing_modules"]
 
     fieldsets = (
         ("Basic Information", {
@@ -26,7 +59,48 @@ class SchoolAdmin(ModelAdmin):
             "classes": ("collapse",),
         }),
     )
-    inlines = [DomainInline]
+    inlines = [DomainInline, SchoolModuleInline]
+
+    @admin.action(description="Provision missing modules (create rows, enabled by default, for all module keys)")
+    def provision_missing_modules(self, request, queryset):
+        created = _provision_all_modules(queryset)
+        if created:
+            self.message_user(
+                request,
+                f"Created {created} missing module row(s), enabled by default. "
+                f"Open each school to toggle modules on/off.",
+                level=messages.SUCCESS,
+            )
+        else:
+            self.message_user(
+                request,
+                "Every selected school already has a row for every module.",
+                level=messages.INFO,
+            )
+
+
+@admin.register(SchoolModule)
+class SchoolModuleAdmin(ModelAdmin):
+    """Module enablement administration.
+
+    Platform operators can enable/disable product features (HR, Finance,
+    Hostel, etc.) for each school, and configure module-specific settings
+    without code changes.
+    """
+    list_display = ("school", "module", "enabled", "updated_at")
+    list_filter = ("enabled", "module")
+    search_fields = ("school__name", "school__code", "module")
+    autocomplete_fields = ("school",)
+    fieldsets = (
+        ("Module Assignment", {
+            "fields": ("school", "module", "enabled"),
+        }),
+        ("Configuration", {
+            "fields": ("configuration",),
+            "description": "Module-specific settings (JSON). Leave empty for defaults.",
+        }),
+    )
+    readonly_fields = ("created_at", "updated_at")
 
 
 @admin.register(SchoolSignature)
