@@ -1,5 +1,10 @@
 /**
  * Create new admission application page.
+ *
+ * Reference implementation using design system:
+ * - Page wrapper for consistent layout
+ * - PageHeader for title and breadcrumbs
+ * - PageContent for form
  */
 
 'use client';
@@ -7,10 +12,15 @@
 export const dynamic = 'force-dynamic';
 
 import { useRouter } from 'next/navigation';
-import { Container, Box, Typography, Alert } from '@mui/material';
+import { Alert, Button } from '@mui/material';
+import { ChevronLeft as BackIcon } from '@mui/icons-material';
+import Link from 'next/link';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useCreateAdmissionApplication } from '@/features/admissions/hooks';
 import { AdmissionForm } from '@/features/admissions/components/AdmissionForm';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
 
 export default function CreateAdmissionPage() {
   const router = useRouter();
@@ -19,21 +29,17 @@ export default function CreateAdmissionPage() {
 
   if (!isModuleEnabled('admissions')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="info">The Admissions module is not enabled.</Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="info">The Admissions module is not enabled.</Alert>
+      </Page>
     );
   }
 
   if (!can('admissions.create')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">You do not have permission to create admission applications.</Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">You do not have permission to create admission applications.</Alert>
+      </Page>
     );
   }
 
@@ -48,20 +54,32 @@ export default function CreateAdmissionPage() {
   };
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ py: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          New Admission Application
-        </Typography>
+    <Page>
+      <PageHeader
+        title="New Admission Application"
+        description="Create a new admission application in the system"
+        breadcrumbs={
+          <Link href="/dashboard/admissions" passHref legacyBehavior>
+            <Button startIcon={<BackIcon />} variant="text">
+              Back to Applications
+            </Button>
+          </Link>
+        }
+      />
 
-        <Box sx={{ mt: 3 }}>
-          <AdmissionForm
-            error={(error as any)?.message}
-            onSubmit={handleSubmit}
-            onCancel={() => router.back()}
-          />
-        </Box>
-      </Box>
-    </Container>
+      <PageContent>
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {(error as any)?.message || 'Failed to create application'}
+          </Alert>
+        )}
+
+        <AdmissionForm
+          error={(error as any)?.message}
+          onSubmit={handleSubmit}
+          onCancel={() => router.back()}
+        />
+      </PageContent>
+    </Page>
   );
 }

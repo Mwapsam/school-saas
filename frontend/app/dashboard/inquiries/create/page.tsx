@@ -1,5 +1,10 @@
 /**
  * Create new applicant enquiry page.
+ *
+ * Reference implementation using design system:
+ * - Page wrapper for consistent layout
+ * - PageHeader for title and breadcrumbs
+ * - PageContent for form
  */
 
 'use client';
@@ -7,10 +12,14 @@
 export const dynamic = 'force-dynamic';
 
 import { useRouter } from 'next/navigation';
-import { Container, Box, Typography, Button, Alert } from '@mui/material';
-import { ArrowBack as BackIcon } from '@mui/icons-material';
+import { Alert, Button } from '@mui/material';
+import { ChevronLeft as BackIcon } from '@mui/icons-material';
+import Link from 'next/link';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useCreateEnquiry, EnquiryForm, type EnquiryFormData } from '@/features/enquiries';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
 
 export default function CreateEnquiryPage() {
   const router = useRouter();
@@ -19,13 +28,11 @@ export default function CreateEnquiryPage() {
 
   if (!bootstrap || !isModuleEnabled('admissions') || !can('admissions.enquiry.manage')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            You do not have permission to create enquiries.
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">
+          You do not have permission to create enquiries.
+        </Alert>
+      </Page>
     );
   }
 
@@ -39,25 +46,32 @@ export default function CreateEnquiryPage() {
   };
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <Button startIcon={<BackIcon />} onClick={() => router.back()} variant="text">
-            Back
-          </Button>
-          <Typography variant="h4" component="h1">
-            New Enquiry
-          </Typography>
-        </Box>
+    <Page>
+      <PageHeader
+        title="New Enquiry"
+        description="Record a new student enquiry"
+        breadcrumbs={
+          <Link href="/dashboard/inquiries" passHref legacyBehavior>
+            <Button startIcon={<BackIcon />} variant="text">
+              Back to Enquiries
+            </Button>
+          </Link>
+        }
+      />
 
-        <Box sx={{ mt: 3 }}>
-          <EnquiryForm
-            onSubmit={handleSubmit}
-            isLoading={createMutation.isPending}
-            error={createMutation.error?.message || null}
-          />
-        </Box>
-      </Box>
-    </Container>
+      <PageContent>
+        {createMutation.error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {createMutation.error.message || 'Failed to create enquiry'}
+          </Alert>
+        )}
+
+        <EnquiryForm
+          onSubmit={handleSubmit}
+          isLoading={createMutation.isPending}
+          error={createMutation.error?.message || null}
+        />
+      </PageContent>
+    </Page>
   );
 }

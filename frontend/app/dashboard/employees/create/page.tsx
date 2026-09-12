@@ -1,5 +1,10 @@
 /**
  * Create new employee page.
+ *
+ * Reference implementation using design system:
+ * - Page wrapper for consistent layout
+ * - PageHeader for title and breadcrumbs
+ * - PageContent for form
  */
 
 'use client';
@@ -7,10 +12,15 @@
 export const dynamic = 'force-dynamic';
 
 import { useRouter } from 'next/navigation';
-import { Container, Box, Typography, Alert } from '@mui/material';
+import { Alert, Button } from '@mui/material';
+import { ChevronLeft as BackIcon } from '@mui/icons-material';
+import Link from 'next/link';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useCreateEmployee } from '@/features/hr/hooks';
 import { EmployeeForm } from '@/features/hr/components/EmployeeForm';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
 
 export default function CreateEmployeePage() {
   const router = useRouter();
@@ -19,21 +29,17 @@ export default function CreateEmployeePage() {
 
   if (!isModuleEnabled('hr')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="info">The HR module is not enabled.</Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="info">The HR module is not enabled.</Alert>
+      </Page>
     );
   }
 
   if (!can('employees.create')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">You do not have permission to create employees.</Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">You do not have permission to create employees.</Alert>
+      </Page>
     );
   }
 
@@ -48,20 +54,32 @@ export default function CreateEmployeePage() {
   };
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ py: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Create New Employee
-        </Typography>
+    <Page>
+      <PageHeader
+        title="Create New Employee"
+        description="Add a new staff member to the system"
+        breadcrumbs={
+          <Link href="/dashboard/employees" passHref legacyBehavior>
+            <Button startIcon={<BackIcon />} variant="text">
+              Back to Employees
+            </Button>
+          </Link>
+        }
+      />
 
-        <Box sx={{ mt: 3 }}>
-          <EmployeeForm
-            error={(error as any)?.message}
-            onSubmit={handleSubmit}
-            onCancel={() => router.back()}
-          />
-        </Box>
-      </Box>
-    </Container>
+      <PageContent>
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {(error as any)?.message || 'Failed to create employee'}
+          </Alert>
+        )}
+
+        <EmployeeForm
+          error={(error as any)?.message}
+          onSubmit={handleSubmit}
+          onCancel={() => router.back()}
+        />
+      </PageContent>
+    </Page>
   );
 }
