@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Box, Button, Grid, Paper, Alert } from '@mui/material';
+import { Box, Button, Grid, Paper, Alert, Typography } from '@mui/material';
 import { Edit as EditIcon, ArrowBack as BackIcon } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useStudent } from '@/features/students/hooks';

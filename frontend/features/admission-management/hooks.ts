@@ -75,10 +75,10 @@ export function useAvailableBatches() {
   return useQuery({
     queryKey: ['available-batches'],
     queryFn: async () => {
-      const response = await apiClient.get<{ results: BatchOption[] }>(
+      const response = await apiClient.get<BatchOption[]>(
         '/admission-batch-assignment/batches/'
       );
-      return response.results;
+      return Array.isArray(response) ? response : response.results || [];
     },
   });
 }
@@ -121,5 +121,44 @@ export function useDiagnostics() {
     queryKey: ['admission-diagnostics'],
     queryFn: async () =>
       await apiClient.get<DiagnosticsResult>('/admission-diagnostics/status/'),
+  });
+}
+
+export function useApproveApplication(applicationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () =>
+      await apiClient.post(`/admission-admin/${applicationId}/approve/`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['applications-for-assignment'] });
+      queryClient.invalidateQueries({ queryKey: ['admission-stats'] });
+    },
+  });
+}
+
+export function useRejectApplication(applicationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { reason: string }) =>
+      await apiClient.post(`/admission-admin/${applicationId}/reject/`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['applications-for-assignment'] });
+      queryClient.invalidateQueries({ queryKey: ['admission-stats'] });
+    },
+  });
+}
+
+export function useBulkStatusUpdate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      application_ids: string[];
+      status: 'under_review' | 'approved' | 'rejected' | 'waitlisted';
+      reason?: string;
+    }) => await apiClient.post('/admission-admin/bulk_status_update/', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['applications-for-assignment'] });
+      queryClient.invalidateQueries({ queryKey: ['admission-stats'] });
+    },
   });
 }

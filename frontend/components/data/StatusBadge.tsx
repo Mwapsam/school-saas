@@ -57,8 +57,8 @@ export function StatusBadge({ status, label, ...props }: StatusBadgeProps) {
       variant="filled"
       size="small"
       sx={{
-        backgroundColor: config.backgroundColor,
-        color: config.color,
+        backgroundColor: config && config.backgroundColor,
+        color: config && config.color,
         fontWeight: 600,
         fontSize: 12,
       }}

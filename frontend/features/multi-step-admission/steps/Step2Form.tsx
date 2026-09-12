@@ -122,7 +122,7 @@ export function Step2Form({ applicationId, initialData, onSubmit, isLoading, err
             {...register('student_category')}
             disabled={isLoading}
           >
-            {categoriesData?.results.map((cat) => (
+            {categoriesData?.map((cat) => (
               <MenuItem key={cat.id} value={cat.id}>{cat.name}</MenuItem>
             ))}
           </TextField>

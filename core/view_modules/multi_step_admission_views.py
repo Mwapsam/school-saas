@@ -1,27 +1,27 @@
 """
-Multi-step admission form API views
+Multi-step admission form API views (8-step Django parity)
 """
 from rest_framework import viewsets, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-
-from core.permissions import IsAdminUser
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from datetime import date, datetime
+from datetime import date
 
 from core.models import (
-    ExtendedAdmissionApplication, AcademicYear, Course, Country, 
-    StudentCategory, AdmissionDocument
+    ExtendedAdmissionApplication, AcademicYear, Course, Country, StudentCategory,
+    AdmissionDocument, AdmissionTerms, AdditionalField
 )
 from core.serializers.multi_step_admission_serializers import (
     AdmissionStep1Serializer, AdmissionStep2Serializer, AdmissionStep3Serializer,
-    AdmissionStep4Serializer, AdmissionStep5Serializer, ExtendedAdmissionApplicationSerializer,
-    AdmissionDocumentSerializer, AdmissionProgressSerializer, AcademicYearSerializer,
-    CourseSerializer, CountrySerializer, StudentCategorySerializer,
-    AdmissionStepAdvanceSerializer, AdmissionSubmissionSerializer, BulkAdmissionStatusSerializer
+    AdmissionStep4Serializer, AdmissionStep5Serializer, AdmissionStep6Serializer,
+    AdmissionStep8Serializer, AdmissionProgressSerializer, AdmissionTermsSerializer,
+    AdditionalFieldLookupSerializer, ExtendedAdmissionApplicationSerializer,
+    AcademicYearSerializer, CourseSerializer, CountrySerializer, StudentCategorySerializer,
+    AdmissionDocumentSerializer, BulkAdmissionStatusSerializer, AdmissionSubmissionSerializer
 )
+from core.permissions import IsAdminUser
 from core.api_views import TenantAwareViewSetMixin, StandardResultsSetPagination
 
 
@@ -63,231 +63,89 @@ class MultiStepAdmissionViewSet(TenantAwareViewSetMixin, viewsets.ModelViewSet):
             serializer = self.get_serializer(application)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
     
+    def _step_action(self, request, pk, step_num, serializer_class, prior_step_required=None):
+        """Generic handler for all step actions (GET/POST)"""
+        application = get_object_or_404(
+            ExtendedAdmissionApplication.objects.filter(tenant=request.tenant),
+            pk=pk
+        )
+
+        # Check if prior step is complete (if required)
+        if prior_step_required and not getattr(application, f'is_step{prior_step_required}_complete'):
+            return Response(
+                {'error': f'Step {prior_step_required} must be completed first'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if request.method == 'GET':
+            serializer = serializer_class(application, context={'request': request})
+            return Response(serializer.data)
+
+        elif request.method == 'POST':
+            serializer = serializer_class(
+                application,
+                data=request.data,
+                context={'request': request},
+                partial=True
+            )
+
+            if serializer.is_valid():
+                with transaction.atomic():
+                    application = serializer.save()
+                    is_step_complete = getattr(application, f'is_step{step_num}_complete')
+                    if is_step_complete:
+                        application.current_step = max(application.current_step, step_num + 1)
+                        application.status = f'step{step_num}_completed'
+                        application.save()
+
+                    return Response(serializer.data, status=status.HTTP_200_OK)
+
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     @action(detail=True, methods=['get', 'post'])
     def step1(self, request, pk=None):
-        """
-        Step 1: Academic Year Selection, Class Selection, Terms and Conditions
-        """
-        application = get_object_or_404(
-            ExtendedAdmissionApplication.objects.filter(tenant=request.tenant),
-            pk=pk
-        )
-        
-        if request.method == 'GET':
-            serializer = AdmissionStep1Serializer(application, context={'request': request})
-            return Response(serializer.data)
-        
-        elif request.method == 'POST':
-            serializer = AdmissionStep1Serializer(
-                application, 
-                data=request.data, 
-                context={'request': request},
-                partial=True
-            )
-            
-            if serializer.is_valid():
-                with transaction.atomic():
-                    application = serializer.save()
-                    if application.is_step1_complete:
-                        application.current_step = max(application.current_step, 2)
-                        application.status = 'step1_completed'
-                        application.save()
-                    
-                    return Response(serializer.data, status=status.HTTP_200_OK)
-            
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+        """Step 1: Terms and Conditions"""
+        return self._step_action(request, pk, 1, AdmissionStep1Serializer)
+
     @action(detail=True, methods=['get', 'post'])
     def step2(self, request, pk=None):
-        """
-        Step 2: Student Personal Details
-        """
-        application = get_object_or_404(
-            ExtendedAdmissionApplication.objects.filter(tenant=request.tenant),
-            pk=pk
-        )
-        
-        # Check if step 1 is complete
-        if not application.is_step1_complete:
-            return Response(
-                {'error': 'Step 1 must be completed first'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        if request.method == 'GET':
-            serializer = AdmissionStep2Serializer(application, context={'request': request})
-            return Response(serializer.data)
-        
-        elif request.method == 'POST':
-            serializer = AdmissionStep2Serializer(
-                application,
-                data=request.data,
-                context={'request': request},
-                partial=True
-            )
-            
-            if serializer.is_valid():
-                with transaction.atomic():
-                    application = serializer.save()
-                    if application.is_step2_complete:
-                        application.current_step = max(application.current_step, 3)
-                        application.status = 'step2_completed'
-                        application.save()
-                    
-                    return Response(serializer.data, status=status.HTTP_200_OK)
-            
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+        """Step 2: Academic Year & Course"""
+        return self._step_action(request, pk, 2, AdmissionStep2Serializer, prior_step_required=1)
+
     @action(detail=True, methods=['get', 'post'])
     def step3(self, request, pk=None):
-        """
-        Step 3: Student Communication Details
-        """
-        application = get_object_or_404(
-            ExtendedAdmissionApplication.objects.filter(tenant=request.tenant),
-            pk=pk
-        )
-        
-        if not application.is_step2_complete:
-            return Response(
-                {'error': 'Step 2 must be completed first'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        if request.method == 'GET':
-            serializer = AdmissionStep3Serializer(application, context={'request': request})
-            return Response(serializer.data)
-        
-        elif request.method == 'POST':
-            serializer = AdmissionStep3Serializer(
-                application,
-                data=request.data,
-                context={'request': request},
-                partial=True
-            )
-            
-            if serializer.is_valid():
-                with transaction.atomic():
-                    application = serializer.save()
-                    if application.is_step3_complete:
-                        application.current_step = max(application.current_step, 4)
-                        application.status = 'step3_completed'
-                        application.save()
-                    
-                    return Response(serializer.data, status=status.HTTP_200_OK)
-            
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+        """Step 3: Student Personal Details & Health"""
+        return self._step_action(request, pk, 3, AdmissionStep3Serializer, prior_step_required=2)
+
     @action(detail=True, methods=['get', 'post'])
     def step4(self, request, pk=None):
-        """
-        Step 4: Guardian Personal Details - Guardian 1 & Guardian 2
-        """
-        application = get_object_or_404(
-            ExtendedAdmissionApplication.objects.filter(tenant=request.tenant),
-            pk=pk
-        )
-        
-        if not application.is_step3_complete:
-            return Response(
-                {'error': 'Step 3 must be completed first'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        if request.method == 'GET':
-            serializer = AdmissionStep4Serializer(application, context={'request': request})
-            return Response(serializer.data)
-        
-        elif request.method == 'POST':
-            serializer = AdmissionStep4Serializer(
-                application,
-                data=request.data,
-                context={'request': request},
-                partial=True
-            )
-            
-            if serializer.is_valid():
-                with transaction.atomic():
-                    application = serializer.save()
-                    if application.is_step4_complete:
-                        application.current_step = max(application.current_step, 5)
-                        application.status = 'step4_completed'
-                        application.save()
-                    
-                    return Response(serializer.data, status=status.HTTP_200_OK)
-            
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+        """Step 4: Guardian 1"""
+        return self._step_action(request, pk, 4, AdmissionStep4Serializer, prior_step_required=3)
+
     @action(detail=True, methods=['get', 'post'])
     def step5(self, request, pk=None):
-        """
-        Step 5: Previous School, Health Information, Background Information, Declaration
-        """
-        application = get_object_or_404(
-            ExtendedAdmissionApplication.objects.filter(tenant=request.tenant),
-            pk=pk
-        )
-        
-        if not application.is_step4_complete:
-            return Response(
-                {'error': 'Step 4 must be completed first'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        if request.method == 'GET':
-            serializer = AdmissionStep5Serializer(application, context={'request': request})
-            return Response(serializer.data)
-        
-        elif request.method == 'POST':
-            serializer = AdmissionStep5Serializer(
-                application,
-                data=request.data,
-                context={'request': request},
-                partial=True
-            )
-            
-            if serializer.is_valid():
-                with transaction.atomic():
-                    application = serializer.save()
-                    application.declaration_date = date.today()
-                    
-                    if application.is_step5_complete:
-                        application.current_step = max(application.current_step, 6)
-                        application.status = 'step5_completed'
-                    
-                    application.save()
-                    return Response(serializer.data, status=status.HTTP_200_OK)
-            
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        """Step 5: Guardian 2 & Emergency Contact"""
+        return self._step_action(request, pk, 5, AdmissionStep5Serializer, prior_step_required=4)
+
+    @action(detail=True, methods=['get', 'post'])
+    def step6(self, request, pk=None):
+        """Step 6: Student Address, Previous School, Additional Information"""
+        return self._step_action(request, pk, 6, AdmissionStep6Serializer, prior_step_required=5)
+
+    @action(detail=True, methods=['get', 'post'])
+    def step8(self, request, pk=None):
+        """Step 8: Declaration & Submission"""
+        return self._step_action(request, pk, 8, AdmissionStep8Serializer, prior_step_required=6)
     
     @action(detail=True, methods=['get'])
     def progress(self, request, pk=None):
-        """
-        Get admission application progress
-        """
+        """Get admission application progress (all 8 steps)"""
         application = get_object_or_404(
             ExtendedAdmissionApplication.objects.filter(tenant=request.tenant),
             pk=pk
         )
-        
-        progress_data = {
-            'current_step': application.current_step,
-            'status': application.status,
-            'step1_complete': application.is_step1_complete,
-            'step2_complete': application.is_step2_complete,
-            'step3_complete': application.is_step3_complete,
-            'step4_complete': application.is_step4_complete,
-            'step5_complete': application.is_step5_complete,
-            'step6_complete': application.is_step6_complete,
-            'step7_complete': application.is_step7_complete,
-            'is_complete': application.is_complete,
-            'can_submit': application.can_submit(),
-            'next_step': application.get_next_step(),
-            'documents_uploaded': application.documents.count(),
-            'required_documents_uploaded': application.documents.filter(is_required=True).count(),
-        }
-        
-        serializer = AdmissionProgressSerializer(progress_data)
+
+        serializer = AdmissionProgressSerializer(application)
         return Response(serializer.data)
     
     @action(detail=True, methods=['post'])
@@ -450,8 +308,31 @@ class AdmissionLookupViewSet(viewsets.ReadOnlyModelViewSet):
             tenant=request.tenant,
             is_deleted=False
         ).order_by('name')
-        
+
         serializer = StudentCategorySerializer(categories, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def terms(self, request):
+        """Get active admission terms and conditions (with fallback to default)"""
+        terms = AdmissionTerms.objects.filter(
+            tenant=request.tenant,
+            is_active=True
+        ).order_by('order')
+
+        serializer = AdmissionTermsSerializer(terms, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def additional_fields(self, request):
+        """Get dynamic additional fields for admission applications"""
+        fields = AdditionalField.objects.filter(
+            tenant=request.tenant,
+            applies_to='admission',
+            is_active=True
+        ).order_by('sort_order', 'name')
+
+        serializer = AdditionalFieldLookupSerializer(fields, many=True)
         return Response(serializer.data)
 
 

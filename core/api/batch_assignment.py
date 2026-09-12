@@ -14,7 +14,7 @@ import logging
 
 from core.models import (
     ExtendedAdmissionApplication, Batch, BatchStudent, Student,
-    Country, StudentCategory
+    Country, StudentCategory, Guardian, StudentGuardianRelation
 )
 from core.serializers.batch_assignment_serializers import (
     BatchAssignmentApplicationSerializer,
@@ -385,7 +385,71 @@ class BatchAssignmentViewSet(TenantAwareViewSetMixin, viewsets.ViewSet):
         )
 
         logger.info(f"Created student {student.admission_number} from {application.application_number}")
+
+        # Create Guardian records from application data
+        self._create_guardians_from_application(student, application, tenant)
+
         return student
+
+    def _create_guardians_from_application(self, student: Student, application: ExtendedAdmissionApplication, tenant) -> None:
+        """
+        Create Guardian records from application guardian data
+        """
+        # Guardian 1 (Primary/Immediate contact)
+        if application.guardian1_first_name and application.guardian1_last_name:
+            guardian1, _ = Guardian.objects.get_or_create(
+                tenant=tenant,
+                first_name=application.guardian1_first_name,
+                last_name=application.guardian1_last_name,
+                defaults={
+                    'relation': application.guardian1_relation or 'Parent',
+                    'email': application.guardian1_email or '',
+                    'mobile_phone': application.guardian1_mobile or '',
+                    'office_phone': application.guardian1_office_phone1 or '',
+                    'office_address_line1': application.guardian1_office_address_line1 or '',
+                    'office_address_line2': '',
+                    'city': application.guardian1_office_city or '',
+                    'occupation': application.guardian1_occupation or '',
+                    'is_active': True,
+                }
+            )
+
+            StudentGuardianRelation.objects.create(
+                tenant=tenant,
+                student=student,
+                guardian=guardian1,
+                relation=application.guardian1_relation or 'Parent',
+                is_immediate_contact=True,
+                school=student.school if hasattr(student, 'school') else tenant,
+            )
+
+        # Guardian 2 (Secondary/Optional)
+        if application.guardian2_first_name and application.guardian2_last_name:
+            guardian2, _ = Guardian.objects.get_or_create(
+                tenant=tenant,
+                first_name=application.guardian2_first_name,
+                last_name=application.guardian2_last_name,
+                defaults={
+                    'relation': application.guardian2_relation or 'Guardian',
+                    'email': application.guardian2_email or '',
+                    'mobile_phone': application.guardian2_mobile or '',
+                    'office_phone': application.guardian2_office_phone1 or '',
+                    'office_address_line1': application.guardian2_office_address_line1 or '',
+                    'office_address_line2': '',
+                    'city': application.guardian2_office_city or '',
+                    'occupation': application.guardian2_occupation or '',
+                    'is_active': True,
+                }
+            )
+
+            StudentGuardianRelation.objects.create(
+                tenant=tenant,
+                student=student,
+                guardian=guardian2,
+                relation=application.guardian2_relation or 'Guardian',
+                is_immediate_contact=False,
+                school=student.school if hasattr(student, 'school') else tenant,
+            )
 
     def _generate_admission_number(self, tenant) -> str:
         """

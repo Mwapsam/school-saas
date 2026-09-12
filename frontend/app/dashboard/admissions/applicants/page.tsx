@@ -11,6 +11,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Box, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField, CircularProgress, Grid, Paper, MenuItem, Typography } from '@mui/material';
 import { Assignment as AssignIcon } from '@mui/icons-material';
+import { ApplicationAdminActions } from '@/features/admission-management';
 import type { GridColDef } from '@mui/x-data-grid';
 import { useTenantStore } from '@/lib/tenant/store';
 import {
@@ -34,6 +35,7 @@ export default function ApplicantsPage() {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
   const [selectedBatchForBulk, setSelectedBatchForBulk] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const { data, error, isLoading, refetch } = useApplicationsForAssignment({
     page: table.queryParams.page,
@@ -106,6 +108,22 @@ export default function ApplicantsPage() {
       sortable: false,
       renderCell: (params) => (
         <StatusBadge status={params.row.status || 'unknown'} />
+      ),
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      flex: 1.5,
+      sortable: false,
+      renderCell: (params) => (
+        <ApplicationAdminActions
+          key={`${params.row.id}-${refreshKey}`}
+          application={params.row}
+          onStatusChange={() => {
+            setRefreshKey((prev) => prev + 1);
+            refetch();
+          }}
+        />
       ),
     },
     {
@@ -215,15 +233,20 @@ export default function ApplicantsPage() {
           <TextField
             select
             fullWidth
-            label="Select Batch"
+            label="Select Batch *"
             value={selectedBatchForBulk}
             onChange={(e) => setSelectedBatchForBulk(e.target.value)}
+            required
           >
-            {batches?.map((batch) => (
-              <MenuItem key={batch.id} value={batch.id}>
-                {batch.name} {batch.section_name && `- ${batch.section_name}`}
-              </MenuItem>
-            ))}
+            {Array.isArray(batches) ? (
+              batches.map((batch) => (
+                <MenuItem key={batch.id} value={batch.id}>
+                  {batch.name} {batch.section_name && `- ${batch.section_name}`}
+                </MenuItem>
+              ))
+            ) : (
+              <MenuItem disabled>No batches available</MenuItem>
+            )}
           </TextField>
         </DialogContent>
         <DialogActions>

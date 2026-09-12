@@ -113,7 +113,7 @@ class StudentViewSet(TenantAwareViewSetMixin, viewsets.ModelViewSet):
             'nationality', 'student_category'
         ).prefetch_related(
             'student_batches__batch__course',
-            'guardians'
+            'guardian_relations__guardian'
         )
     
     def get_serializer_class(self):

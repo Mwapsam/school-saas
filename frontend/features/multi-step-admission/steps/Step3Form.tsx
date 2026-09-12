@@ -96,7 +96,7 @@ export function Step3Form({ applicationId, initialData, onSubmit, isLoading, err
             disabled={isLoading}
             required
           >
-            {countriesData?.results.map((country) => (
+            {countriesData?.map((country) => (
               <MenuItem key={country.id} value={country.id}>
                 {country.name} ({country.code})
               </MenuItem>

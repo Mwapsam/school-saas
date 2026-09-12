@@ -272,31 +272,39 @@ export function useGetRequiredDocuments() {
 export function useGetAcademicYears() {
   return useQuery({
     queryKey: ['academic-years'],
-    queryFn: async () =>
-      await apiClient.get<ListResponse<AcademicYearOption>>('/admission-lookups/academic_years/'),
+    queryFn: async () => {
+      const response = await apiClient.get<AcademicYearOption[]>('/admission-lookups/academic_years/');
+      return Array.isArray(response) ? response : response.results || [];
+    },
   });
 }
 
 export function useGetCourses() {
   return useQuery({
     queryKey: ['courses'],
-    queryFn: async () =>
-      await apiClient.get<ListResponse<CourseOption>>('/admission-lookups/courses/'),
+    queryFn: async () => {
+      const response = await apiClient.get<CourseOption[]>('/admission-lookups/courses/');
+      return Array.isArray(response) ? response : response.results || [];
+    },
   });
 }
 
 export function useGetCountries() {
   return useQuery({
     queryKey: ['countries'],
-    queryFn: async () =>
-      await apiClient.get<ListResponse<CountryOption>>('/admission-lookups/countries/'),
+    queryFn: async () => {
+      const response = await apiClient.get<CountryOption[]>('/admission-lookups/countries/');
+      return Array.isArray(response) ? response : response.results || [];
+    },
   });
 }
 
 export function useGetStudentCategories() {
   return useQuery({
     queryKey: ['student-categories'],
-    queryFn: async () =>
-      await apiClient.get<ListResponse<StudentCategoryOption>>('/admission-lookups/student_categories/'),
+    queryFn: async () => {
+      const response = await apiClient.get<StudentCategoryOption[]>('/admission-lookups/student_categories/');
+      return Array.isArray(response) ? response : response.results || [];
+    },
   });
 }

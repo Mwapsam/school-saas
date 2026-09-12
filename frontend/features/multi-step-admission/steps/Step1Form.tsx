@@ -63,7 +63,7 @@ export function Step1Form({ applicationId, initialData, onSubmit, isLoading, err
             disabled={isLoading}
             required
           >
-            {academicYearsData?.results.map((year) => (
+            {academicYearsData?.map((year) => (
               <MenuItem key={year.id} value={year.id}>
                 {year.name}
               </MenuItem>
@@ -82,7 +82,7 @@ export function Step1Form({ applicationId, initialData, onSubmit, isLoading, err
             disabled={isLoading}
             required
           >
-            {coursesData?.results.map((course) => (
+            {coursesData?.map((course) => (
               <MenuItem key={course.id} value={course.id}>
                 {course.course_name} ({course.code})
               </MenuItem>
