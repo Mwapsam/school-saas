@@ -19,6 +19,7 @@ import {
   Step5Form,
   Step6Form,
   Step7Form,
+  Step8Form,
 } from './steps';
 import {
   type Step1FormData,
@@ -26,16 +27,19 @@ import {
   type Step3FormData,
   type Step4FormData,
   type Step5FormData,
+  type Step6FormData,
+  type Step8FormData,
 } from './schemas';
 
 const STEP_LABELS = [
-  'Academic Year',
-  'Personal Details',
-  'Communication',
-  'Guardians',
-  'Health & Declaration',
+  'Terms & Conditions',
+  'Academic Details',
+  'Personal Information',
+  'Guardian 1',
+  'Guardian 2 & Emergency',
+  'Address & Additional Info',
   'Documents',
-  'Review & Submit',
+  'Declaration & Submission',
 ];
 
 interface AdmissionWizardProps {
@@ -54,6 +58,8 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
   const step3Mutation = useUpdateApplicationStep(applicationId, 3);
   const step4Mutation = useUpdateApplicationStep(applicationId, 4);
   const step5Mutation = useUpdateApplicationStep(applicationId, 5);
+  const step6Mutation = useUpdateApplicationStep(applicationId, 6);
+  const step8Mutation = useUpdateApplicationStep(applicationId, 8);
   const submitMutation = useSubmitApplication(applicationId);
 
   if (isLoadingApp) {
@@ -126,10 +132,21 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
     }
   };
 
-  const handleSubmit = async (data: { confirm_submission: boolean }) => {
+  const handleStep6Submit = async (data: Step6FormData) => {
     setSubmitError(null);
     try {
-      await submitMutation.mutateAsync(data);
+      await step6Mutation.mutateAsync(data);
+      handleNext();
+    } catch (error: any) {
+      setSubmitError(error?.message || 'Failed to save step 6');
+    }
+  };
+
+  const handleStep8Submit = async (data: Step8FormData) => {
+    setSubmitError(null);
+    try {
+      await step8Mutation.mutateAsync(data);
+      await submitMutation.mutateAsync({ confirm_submission: true });
       router.push('/dashboard/admissions');
     } catch (error: any) {
       setSubmitError(error?.message || 'Failed to submit application');
@@ -227,18 +244,30 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
           {activeStep === 5 && (
             <Step6Form
               applicationId={applicationId}
+              initialData={application}
+              onSubmit={handleStep6Submit}
+              isLoading={step6Mutation.isPending}
+              error={step6Mutation.error?.message || null}
               onNext={handleNext}
-              isLoading={false}
             />
           )}
 
           {activeStep === 6 && (
             <Step7Form
               applicationId={applicationId}
+              onNext={handleNext}
+              isLoading={false}
+            />
+          )}
+
+          {activeStep === 7 && (
+            <Step8Form
+              applicationId={applicationId}
               applicationData={application}
-              onSubmit={handleSubmit}
-              isLoading={submitMutation.isPending}
-              error={submitMutation.error?.message || null}
+              initialData={application}
+              onSubmit={handleStep8Submit}
+              isLoading={step8Mutation.isPending || submitMutation.isPending}
+              error={step8Mutation.error?.message || submitMutation.error?.message || null}
             />
           )}
         </Box>

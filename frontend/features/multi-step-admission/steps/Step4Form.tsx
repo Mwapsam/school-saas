@@ -38,9 +38,9 @@ export function Step4Form({ applicationId, initialData, onSubmit, isLoading, err
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Grid container spacing={2}>
-        {/* Guardian 1 */}
+        {/* Guardian 1 Personal Information */}
         <Grid item xs={12}>
-          <Typography variant="h6">Guardian 1 Information *</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Guardian 1 — Personal Information</Typography>
         </Grid>
 
         <Grid item xs={12} sm={6}>
@@ -70,7 +70,7 @@ export function Step4Form({ applicationId, initialData, onSubmit, isLoading, err
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Relation *"
+            label="Relationship to Child *"
             {...register('guardian1_relation')}
             error={!!errors.guardian1_relation}
             helperText={errors.guardian1_relation?.message}
@@ -82,43 +82,7 @@ export function Step4Form({ applicationId, initialData, onSubmit, isLoading, err
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Occupation"
-            {...register('guardian1_occupation')}
-            disabled={isLoading}
-          />
-        </Grid>
-
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="Office Address Line 1"
-            {...register('guardian1_office_address_line1')}
-            disabled={isLoading}
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Office City"
-            {...register('guardian1_office_city')}
-            disabled={isLoading}
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Office Phone 1"
-            {...register('guardian1_office_phone1')}
-            disabled={isLoading}
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Mobile *"
+            label="Mobile Phone *"
             {...register('guardian1_mobile')}
             error={!!errors.guardian1_mobile}
             helperText={errors.guardian1_mobile?.message}
@@ -137,6 +101,52 @@ export function Step4Form({ applicationId, initialData, onSubmit, isLoading, err
             helperText={errors.guardian1_email?.message}
             disabled={isLoading}
           />
+        </Grid>
+
+        {/* Guardian 1 Professional Information */}
+        <Grid item xs={12}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Guardian 1 — Professional Information</Typography>
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Occupation"
+            {...register('guardian1_occupation')}
+            disabled={isLoading}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Office Phone"
+            {...register('guardian1_office_phone1')}
+            disabled={isLoading}
+          />
+        </Grid>
+
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Office Address"
+            {...register('guardian1_office_address_line1')}
+            disabled={isLoading}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="City"
+            {...register('guardian1_city')}
+            disabled={isLoading}
+          />
+        </Grid>
+
+        {/* Guardian 1 Residential Address */}
+        <Grid item xs={12}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Guardian 1 — Residential Address</Typography>
         </Grid>
 
         <Grid item xs={12} sm={6}>
@@ -175,101 +185,6 @@ export function Step4Form({ applicationId, initialData, onSubmit, isLoading, err
           />
         </Grid>
 
-        {/* Guardian 2 */}
-        <Grid item xs={12}>
-          <Typography variant="h6" sx={{ mt: 2 }}>Guardian 2 Information (Optional)</Typography>
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="First Name"
-            {...register('guardian2_first_name')}
-            disabled={isLoading}
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Last Name"
-            {...register('guardian2_last_name')}
-            disabled={isLoading}
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Relation"
-            {...register('guardian2_relation')}
-            disabled={isLoading}
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Mobile"
-            {...register('guardian2_mobile')}
-            disabled={isLoading}
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Email"
-            type="email"
-            {...register('guardian2_email')}
-            error={!!errors.guardian2_email}
-            helperText={errors.guardian2_email?.message}
-            disabled={isLoading}
-          />
-        </Grid>
-
-        {/* Emergency Contact */}
-        <Grid item xs={12}>
-          <Typography variant="h6" sx={{ mt: 2 }}>Emergency Contact (Optional)</Typography>
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Name"
-            {...register('emergency_contact_name')}
-            disabled={isLoading}
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Relation"
-            {...register('emergency_contact_relation')}
-            disabled={isLoading}
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Mobile"
-            {...register('emergency_contact_mobile')}
-            disabled={isLoading}
-          />
-        </Grid>
-
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="Address"
-            multiline
-            rows={2}
-            {...register('emergency_contact_address')}
-            disabled={isLoading}
-          />
-        </Grid>
 
         <Grid item xs={12}>
           <Button

@@ -1,193 +1,127 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
-import { Box, Grid, Button, CircularProgress, Alert, Card, CardContent, Typography, FormControlLabel, Checkbox } from '@mui/material';
-import { FileDownload as DownloadIcon, CheckCircle as SubmitIcon } from '@mui/icons-material';
+import { useState } from 'react';
+import { Box, Grid, Button, CircularProgress, Alert, List, ListItem, ListItemText, Card, CardContent, Typography, LinearProgress } from '@mui/material';
+import { CloudUpload as UploadIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { useGetRequiredDocuments, useGetDocuments, useUploadDocument } from '../hooks';
 
 interface Step7FormProps {
   applicationId: string;
-  applicationData?: any;
-  onSubmit: (data: { confirm_submission: boolean }) => Promise<void>;
+  onNext?: () => void;
   isLoading?: boolean;
-  error?: string | null;
 }
 
-export function Step7Form({ applicationId, applicationData, onSubmit, isLoading, error }: Step7FormProps) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    watch,
-  } = useForm<{ confirm_submission: boolean }>({
-    defaultValues: { confirm_submission: false },
-  });
+export function Step7Form({ applicationId, onNext, isLoading }: Step7FormProps) {
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const { data: requiredDocsData } = useGetRequiredDocuments();
+  const { data: documentsData, refetch } = useGetDocuments(applicationId);
+  const uploadMutation = useUploadDocument(applicationId);
 
-  const confirmSubmission = watch('confirm_submission');
+  const uploadedDocTypes = new Set(documentsData?.results.map((d) => d.document_type) || []);
+  const allDocTypes = new Set(
+    requiredDocsData?.map((d) => d.type) || []
+  );
+  const allUploaded = Array.from(allDocTypes).every((type) => uploadedDocTypes.has(type));
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, docType: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadError(null);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('document_type', docType);
+
+    try {
+      await uploadMutation.mutateAsync(formData);
+      await refetch();
+    } catch (error: any) {
+      setUploadError(error?.message || 'Failed to upload document');
+    }
+  };
 
   return (
-    <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+    <Box>
+      {uploadError && <Alert severity="error" sx={{ mb: 2 }}>{uploadError}</Alert>}
 
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Alert severity="info">
-            Please review your application information below. Once submitted, you cannot edit your application.
-            Contact support if you need to make changes.
-          </Alert>
-        </Grid>
-
-        {/* Application Summary */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Personal Information
-              </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                <strong>Name:</strong> {applicationData?.full_name}
-              </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                <strong>Date of Birth:</strong> {applicationData?.date_of_birth}
-              </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                <strong>Gender:</strong> {applicationData?.gender}
-              </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                <strong>Nationality:</strong> {applicationData?.nationality}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Application Information
-              </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                <strong>Application #:</strong> {applicationData?.application_number}
-              </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                <strong>Academic Year:</strong> {applicationData?.academic_year?.name}
-              </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                <strong>Course Applied:</strong> {applicationData?.course_applied?.course_name}
-              </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                <strong>Status:</strong> {applicationData?.status}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Contact Information
-              </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                <strong>Email:</strong> {applicationData?.email || '-'}
-              </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                <strong>Phone:</strong> {applicationData?.phone || '-'}
-              </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                <strong>Mobile:</strong> {applicationData?.mobile || '-'}
-              </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                <strong>City:</strong> {applicationData?.city || '-'}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Guardian Information
-              </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                <strong>Guardian 1:</strong> {applicationData?.guardian1_first_name} {applicationData?.guardian1_last_name}
-              </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                <strong>Relation:</strong> {applicationData?.guardian1_relation}
-              </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                <strong>Mobile:</strong> {applicationData?.guardian1_mobile}
-              </Typography>
-              {applicationData?.guardian2_first_name && (
-                <Typography variant="body2" color="textSecondary" gutterBottom>
-                  <strong>Guardian 2:</strong> {applicationData?.guardian2_first_name} {applicationData?.guardian2_last_name}
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Completion Checklist */}
+      <Grid container spacing={2}>
         <Grid item xs={12}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Completion Checklist
+                Document Upload Progress
               </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                ✓ Step 1: Academic Year Selection
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                ✓ Step 2: Personal Details
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                ✓ Step 3: Communication Details
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                ✓ Step 4: Guardian Information
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                ✓ Step 5: Health & Declaration
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                ✓ Step 6: Documents Uploaded ({applicationData?.documents?.length || 0})
+              <Box sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2">
+                    {uploadedDocTypes.size} of {allDocTypes.size} documents uploaded
+                  </Typography>
+                </Box>
+                <LinearProgress
+                  variant="determinate"
+                  value={(uploadedDocTypes.size / allDocTypes.size) * 100}
+                />
+              </Box>
+              <Typography variant="caption" color="textSecondary">
+                All documents are optional but recommended
               </Typography>
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Confirmation */}
         <Grid item xs={12}>
-          <Alert severity="warning">
-            By submitting this application, I confirm that all information provided is accurate and complete.
-          </Alert>
-        </Grid>
-
-        <Grid item xs={12}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                {...register('confirm_submission')}
-                disabled={isLoading}
-              />
-            }
-            label="I confirm that all information is accurate and agree to submit this application"
-          />
-          {errors.confirm_submission && (
-            <Alert severity="error" sx={{ mt: 1 }}>{errors.confirm_submission.message}</Alert>
-          )}
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>Available Documents</Typography>
+          <List>
+            {requiredDocsData?.map((doc) => {
+              const uploaded = documentsData?.results.find((d) => d.document_type === doc.type);
+              return (
+                <ListItem
+                  key={doc.type}
+                  secondaryAction={
+                    uploaded ? (
+                      <Typography variant="caption" color="success.main">
+                        ✓ Uploaded
+                      </Typography>
+                    ) : (
+                      <Button
+                        component="label"
+                        size="small"
+                        startIcon={<UploadIcon />}
+                        disabled={uploadMutation.isPending}
+                      >
+                        Upload
+                        <input
+                          hidden
+                          type="file"
+                          onChange={(e) => handleFileUpload(e, doc.type)}
+                          accept=".pdf,.jpg,.jpeg,.png"
+                        />
+                      </Button>
+                    )
+                  }
+                >
+                  <ListItemText
+                    primary={doc.display_name}
+                    secondary={
+                      uploaded
+                        ? `${uploaded.original_filename} (${uploaded.file_size_mb}MB)`
+                        : 'Not uploaded'
+                    }
+                  />
+                </ListItem>
+              );
+            })}
+          </List>
         </Grid>
 
         <Grid item xs={12}>
           <Button
-            type="submit"
             variant="contained"
-            size="large"
-            color="success"
-            disabled={!confirmSubmission || isLoading}
-            startIcon={isLoading ? <CircularProgress size={20} /> : <SubmitIcon />}
+            disabled={isLoading}
+            onClick={onNext}
+            startIcon={isLoading && <CircularProgress size={20} />}
           >
-            {isLoading ? 'Submitting...' : 'Submit Application'}
+            {isLoading ? 'Proceeding...' : 'Continue to Step 8 (Declaration)'}
           </Button>
         </Grid>
       </Grid>

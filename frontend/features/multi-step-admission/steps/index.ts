@@ -5,3 +5,4 @@ export { Step4Form } from './Step4Form';
 export { Step5Form } from './Step5Form';
 export { Step6Form } from './Step6Form';
 export { Step7Form } from './Step7Form';
+export { Step8Form } from './Step8Form';

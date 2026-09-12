@@ -1,176 +1,240 @@
 'use client';
 
-import { useState } from 'react';
-import { Box, Grid, Button, CircularProgress, Alert, List, ListItem, ListItemText, Card, CardContent, Typography, LinearProgress } from '@mui/material';
-import { CloudUpload as UploadIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { useGetRequiredDocuments, useGetDocuments, useUploadDocument } from '../hooks';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Box, Grid, TextField, Button, CircularProgress, Alert, Typography } from '@mui/material';
+import { step6Schema, type Step6FormData } from '../schemas';
+import { useGetAdditionalFields } from '../hooks';
 
 interface Step6FormProps {
   applicationId: string;
-  onNext?: () => void;
+  initialData?: any;
+  onSubmit: (data: Step6FormData) => Promise<void>;
   isLoading?: boolean;
+  error?: string | null;
+  onNext?: () => void;
 }
 
-export function Step6Form({ applicationId, onNext, isLoading }: Step6FormProps) {
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const { data: requiredDocsData } = useGetRequiredDocuments();
-  const { data: documentsData, refetch } = useGetDocuments(applicationId);
-  const uploadMutation = useUploadDocument(applicationId);
+export function Step6Form({ applicationId, initialData, onSubmit, isLoading, error, onNext }: Step6FormProps) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<Step6FormData>({
+    resolver: zodResolver(step6Schema),
+    defaultValues: initialData
+      ? {
+          address_line1: initialData.address_line1 || '',
+          address_line2: initialData.address_line2 || '',
+          city: initialData.city || '',
+          country: initialData.country?.id || '',
+          phone: initialData.phone || '',
+          mobile: initialData.mobile || '',
+          previous_school_name: initialData.previous_school_name || '',
+          previous_school_address: initialData.previous_school_address || '',
+          previous_school_phone: initialData.previous_school_phone || '',
+          previous_school_email: initialData.previous_school_email || '',
+          expected_start_date: initialData.expected_start_date || '',
+          religious_observances: initialData.religious_observances || '',
+          background_information: initialData.background_information || '',
+        }
+      : undefined,
+  });
 
-  const uploadedDocTypes = new Set(documentsData?.results.map((d) => d.document_type) || []);
-  const requiredDocTypes = new Set(
-    requiredDocsData?.filter((d) => d.required).map((d) => d.type) || []
-  );
-  const allRequiredUploaded = Array.from(requiredDocTypes).every((type) => uploadedDocTypes.has(type));
+  const { data: additionalFieldsData } = useGetAdditionalFields();
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, docType: string) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadError(null);
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('document_type', docType);
-
+  const handleFormSubmit = async (data: Step6FormData) => {
     try {
-      await uploadMutation.mutateAsync(formData);
-      await refetch();
-    } catch (error: any) {
-      setUploadError(error?.message || 'Failed to upload document');
+      await onSubmit(data);
+      onNext?.();
+    } catch (err) {
+      console.error('Failed to save step 6:', err);
     }
   };
 
   return (
-    <Box>
-      {uploadError && <Alert severity="error" sx={{ mb: 2 }}>{uploadError}</Alert>}
+    <Box component="form" onSubmit={handleSubmit(handleFormSubmit)} noValidate>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Grid container spacing={2}>
+        {/* Student Address */}
         <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Document Upload Progress
-              </Typography>
-              <Box sx={{ mb: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2">
-                    {uploadedDocTypes.size} of {requiredDocTypes.size} required documents uploaded
-                  </Typography>
-                </Box>
-                <LinearProgress
-                  variant="determinate"
-                  value={(uploadedDocTypes.size / requiredDocTypes.size) * 100}
+          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Student Address</Typography>
+        </Grid>
+
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Address Line 1"
+            {...register('address_line1')}
+            error={!!errors.address_line1}
+            helperText={errors.address_line1?.message}
+            disabled={isLoading}
+          />
+        </Grid>
+
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Address Line 2"
+            {...register('address_line2')}
+            disabled={isLoading}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="City"
+            {...register('city')}
+            error={!!errors.city}
+            helperText={errors.city?.message}
+            disabled={isLoading}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Country"
+            {...register('country')}
+            error={!!errors.country}
+            helperText={errors.country?.message}
+            disabled={isLoading}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Phone"
+            {...register('phone')}
+            disabled={isLoading}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Mobile"
+            {...register('mobile')}
+            disabled={isLoading}
+          />
+        </Grid>
+
+        {/* Previous School */}
+        <Grid item xs={12}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Previous School</Typography>
+        </Grid>
+
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="School Name"
+            {...register('previous_school_name')}
+            disabled={isLoading}
+          />
+        </Grid>
+
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="School Address"
+            multiline
+            rows={2}
+            {...register('previous_school_address')}
+            disabled={isLoading}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="School Phone"
+            {...register('previous_school_phone')}
+            disabled={isLoading}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="School Email"
+            type="email"
+            {...register('previous_school_email')}
+            error={!!errors.previous_school_email}
+            helperText={errors.previous_school_email?.message}
+            disabled={isLoading}
+          />
+        </Grid>
+
+        {/* Additional Information */}
+        <Grid item xs={12}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Additional Information</Typography>
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Expected Start Date"
+            type="date"
+            {...register('expected_start_date')}
+            error={!!errors.expected_start_date}
+            helperText={errors.expected_start_date?.message}
+            InputLabelProps={{ shrink: true }}
+            disabled={isLoading}
+          />
+        </Grid>
+
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Religious Observances"
+            multiline
+            rows={2}
+            {...register('religious_observances')}
+            disabled={isLoading}
+          />
+        </Grid>
+
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Background Information"
+            multiline
+            rows={3}
+            {...register('background_information')}
+            disabled={isLoading}
+          />
+        </Grid>
+
+        {/* Dynamic Additional Fields */}
+        {additionalFieldsData && additionalFieldsData.length > 0 && (
+          <>
+            <Grid item xs={12}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Additional School Information</Typography>
+            </Grid>
+            {additionalFieldsData.map((field) => (
+              <Grid item xs={12} key={field.id}>
+                <TextField
+                  fullWidth
+                  label={field.name}
+                  disabled={isLoading}
+                  required={field.is_mandatory}
                 />
-              </Box>
-              <Typography variant="caption" color="textSecondary">
-                * Required documents must be uploaded to proceed
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12}>
-          <Typography variant="h6">Required Documents *</Typography>
-          <List>
-            {requiredDocsData
-              ?.filter((d) => d.required)
-              .map((doc) => {
-                const uploaded = documentsData?.results.find((d) => d.document_type === doc.type);
-                return (
-                  <ListItem
-                    key={doc.type}
-                    secondaryAction={
-                      uploaded ? (
-                        <Typography variant="caption" color="success.main">
-                          ✓ Uploaded
-                        </Typography>
-                      ) : (
-                        <Button
-                          component="label"
-                          size="small"
-                          startIcon={<UploadIcon />}
-                          disabled={uploadMutation.isPending}
-                        >
-                          Upload
-                          <input
-                            hidden
-                            type="file"
-                            onChange={(e) => handleFileUpload(e, doc.type)}
-                            accept=".pdf,.jpg,.jpeg,.png"
-                          />
-                        </Button>
-                      )
-                    }
-                  >
-                    <ListItemText
-                      primary={doc.display_name}
-                      secondary={
-                        uploaded
-                          ? `${uploaded.original_filename} (${uploaded.file_size_mb}MB)`
-                          : 'Not uploaded'
-                      }
-                    />
-                  </ListItem>
-                );
-              })}
-          </List>
-        </Grid>
-
-        <Grid item xs={12}>
-          <Typography variant="h6">Optional Documents</Typography>
-          <List>
-            {requiredDocsData
-              ?.filter((d) => !d.required)
-              .map((doc) => {
-                const uploaded = documentsData?.results.find((d) => d.document_type === doc.type);
-                return (
-                  <ListItem
-                    key={doc.type}
-                    secondaryAction={
-                      uploaded ? (
-                        <Typography variant="caption" color="success.main">
-                          ✓ Uploaded
-                        </Typography>
-                      ) : (
-                        <Button
-                          component="label"
-                          size="small"
-                          startIcon={<UploadIcon />}
-                          disabled={uploadMutation.isPending}
-                        >
-                          Upload
-                          <input
-                            hidden
-                            type="file"
-                            onChange={(e) => handleFileUpload(e, doc.type)}
-                            accept=".pdf,.jpg,.jpeg,.png"
-                          />
-                        </Button>
-                      )
-                    }
-                  >
-                    <ListItemText
-                      primary={doc.display_name}
-                      secondary={
-                        uploaded
-                          ? `${uploaded.original_filename} (${uploaded.file_size_mb}MB)`
-                          : 'Not uploaded'
-                      }
-                    />
-                  </ListItem>
-                );
-              })}
-          </List>
-        </Grid>
+              </Grid>
+            ))}
+          </>
+        )}
 
         <Grid item xs={12}>
           <Button
+            type="submit"
             variant="contained"
-            disabled={!allRequiredUploaded || isLoading}
-            onClick={onNext}
+            disabled={isLoading}
             startIcon={isLoading && <CircularProgress size={20} />}
           >
-            {isLoading ? 'Proceeding...' : 'Continue to Step 7 (Review & Submit)'}
+            {isLoading ? 'Saving...' : 'Continue to Step 7'}
           </Button>
         </Grid>
       </Grid>
