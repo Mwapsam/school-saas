@@ -1,5 +1,10 @@
 /**
  * Edit student page.
+ *
+ * Reference implementation using design system:
+ * - Page wrapper for consistent layout
+ * - PageHeader for title
+ * - LoadingState, ErrorState for states
  */
 
 'use client';
@@ -7,10 +12,17 @@
 export const dynamic = 'force-dynamic';
 
 import { useRouter } from 'next/navigation';
-import { Container, Box, Typography, Alert, CircularProgress } from '@mui/material';
+import { Alert, Button } from '@mui/material';
+import { ChevronLeft as BackIcon } from '@mui/icons-material';
+import Link from 'next/link';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useStudent, useUpdateStudent } from '@/features/students/hooks';
 import { StudentForm } from '@/features/students/StudentForm';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
+import { LoadingState } from '@/components/feedback/LoadingState';
+import { ErrorState } from '@/components/feedback/ErrorState';
 
 export default function EditStudentPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -19,58 +31,42 @@ export default function EditStudentPage({ params }: { params: { id: string } }) 
   const { mutateAsync: updateStudent, error: updateError } = useUpdateStudent(params.id);
 
   if (!bootstrap) {
-    return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Typography>Loading configuration...</Typography>
-        </Box>
-      </Container>
-    );
+    return <Page><LoadingState message="Loading configuration..." /></Page>;
   }
 
   if (!isModuleEnabled('academics')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="info">
-            The Academics module is not enabled.
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="info">
+          The Academics module is not enabled.
+        </Alert>
+      </Page>
     );
   }
 
   if (!can('students.update')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            You do not have permission to edit students.
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">
+          You do not have permission to edit students.
+        </Alert>
+      </Page>
     );
   }
 
   if (studentLoading) {
-    return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Box>
-      </Container>
-    );
+    return <Page><LoadingState message="Loading student..." /></Page>;
   }
 
   if (studentError || !student) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            Failed to load student: {studentError?.message || 'Not found'}
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <ErrorState
+          title="Failed to load student"
+          error={studentError?.message || 'Student not found'}
+          onRetry={() => window.location.reload()}
+        />
+      </Page>
     );
   }
 
@@ -85,21 +81,33 @@ export default function EditStudentPage({ params }: { params: { id: string } }) 
   };
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ py: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Edit Student: {student.full_name}
-        </Typography>
+    <Page>
+      <PageHeader
+        title={`Edit Student: ${student.full_name}`}
+        description="Update student enrollment and personal information"
+        breadcrumbs={
+          <Link href="/dashboard/students" passHref legacyBehavior>
+            <Button startIcon={<BackIcon />} variant="text">
+              Back to Students
+            </Button>
+          </Link>
+        }
+      />
 
-        <Box sx={{ mt: 3 }}>
-          <StudentForm
-            student={student}
-            error={updateError?.message}
-            onSubmit={handleSubmit}
-            onCancel={() => router.back()}
-          />
-        </Box>
-      </Box>
-    </Container>
+      <PageContent>
+        {updateError && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {updateError.message || 'Failed to update student'}
+          </Alert>
+        )}
+
+        <StudentForm
+          student={student}
+          error={updateError?.message}
+          onSubmit={handleSubmit}
+          onCancel={() => router.back()}
+        />
+      </PageContent>
+    </Page>
   );
 }

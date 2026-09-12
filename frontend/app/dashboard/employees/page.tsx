@@ -1,5 +1,10 @@
 /**
  * Employees list page.
+ *
+ * Uses design system components:
+ * - Page wrapper for consistent layout
+ * - PageHeader for title and actions
+ * - DataTable for employees list
  */
 
 'use client';
@@ -8,7 +13,9 @@ export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Container, Box, Typography, Button, Alert, IconButton } from '@mui/material';
+import { useState } from 'react';
+import { Button, Alert, IconButton } from '@mui/material';
+import { Box } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -20,6 +27,10 @@ import { useTenantStore } from '@/lib/tenant/store';
 import { useEmployeeList, useDeleteEmployee, type Employee } from '@/features/hr/hooks';
 import { useServerTable } from '@/hooks/useServerTable';
 import { DataTable } from '@/components/data-table/DataTable';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
+import { ConfirmDialog } from '@/components/feedback/ConfirmDialog';
 
 export default function EmployeesPage() {
   const router = useRouter();
@@ -28,25 +39,23 @@ export default function EmployeesPage() {
   const { data, error, isLoading, refetch } = useEmployeeList(table.queryParams);
   const deleteEmployee = useDeleteEmployee();
 
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<{ id: string; name: string } | null>(null);
+
   const canEdit = can('hr.employees.update');
   const canDelete = can('hr.employees.delete');
 
-  if (!bootstrap || !isModuleEnabled('hr') || !can('hr.employees.view')) {
-    return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            You do not have permission to view employees.
-          </Alert>
-        </Box>
-      </Container>
-    );
-  }
+  const handleDeleteEmployee = (id: string, name: string) => {
+    setEmployeeToDelete({ id, name });
+    setDeleteConfirmOpen(true);
+  };
 
-  const handleDeleteEmployee = async (id: string, name: string) => {
-    if (!window.confirm(`Delete ${name}?`)) return;
+  const handleConfirmDelete = async () => {
+    if (!employeeToDelete) return;
     try {
-      await deleteEmployee.mutateAsync(id);
+      await deleteEmployee.mutateAsync(employeeToDelete.id);
+      setDeleteConfirmOpen(false);
+      setEmployeeToDelete(null);
       router.refresh();
     } catch (err) {
       console.error('Delete failed:', err);
@@ -102,37 +111,61 @@ export default function EmployeesPage() {
   ];
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4" component="h1">
-            Employees
-          </Typography>
-          {can('hr.employees.create') && (
+    <Page>
+      <PageHeader
+        title="Employees"
+        description="Manage staff and employee information"
+        actions={
+          can('hr.employees.create') && (
             <Link href="/dashboard/employees/create" passHref legacyBehavior>
               <Button component="a" variant="contained" startIcon={<AddIcon />}>
                 New Employee
               </Button>
             </Link>
-          )}
-        </Box>
+          )
+        }
+      />
 
-        <DataTable<Employee>
-          rows={data?.results ?? []}
-          columns={columns}
-          rowCount={data?.count ?? 0}
-          loading={isLoading}
-          error={error as Error | null}
-          onRetry={() => refetch()}
-          paginationModel={table.paginationModel}
-          onPaginationModelChange={table.onPaginationModelChange}
-          onSortModelChange={(model) => table.onSortModelChange(model as Array<{ field: string; sort: 'asc' | 'desc' | null }>)}
-          search={table.search}
-          onSearchChange={table.onSearchChange}
-          searchPlaceholder="Search employees..."
-          emptyMessage="No employees found"
-        />
-      </Box>
-    </Container>
+      <PageContent>
+        {!bootstrap || !isModuleEnabled('hr') || !can('hr.employees.view') ? (
+          <Alert severity="error">
+            You do not have permission to view employees.
+          </Alert>
+        ) : (
+          <>
+            <DataTable<Employee>
+              rows={data?.results ?? []}
+              columns={columns}
+              rowCount={data?.count ?? 0}
+              loading={isLoading}
+              error={error as Error | null}
+              onRetry={() => refetch()}
+              paginationModel={table.paginationModel}
+              onPaginationModelChange={table.onPaginationModelChange}
+              onSortModelChange={(model) => table.onSortModelChange(model as Array<{ field: string; sort: 'asc' | 'desc' | null }>)}
+              search={table.search}
+              onSearchChange={table.onSearchChange}
+              searchPlaceholder="Search employees..."
+              emptyMessage="No employees found"
+            />
+
+            {employeeToDelete && (
+              <ConfirmDialog
+                open={deleteConfirmOpen}
+                title="Delete Employee"
+                message={`Are you sure you want to delete ${employeeToDelete.name}? This action cannot be undone.`}
+                onConfirm={handleConfirmDelete}
+                onCancel={() => {
+                  setDeleteConfirmOpen(false);
+                  setEmployeeToDelete(null);
+                }}
+                isDestructive
+                isLoading={deleteEmployee.isPending}
+              />
+            )}
+          </>
+        )}
+      </PageContent>
+    </Page>
   );
 }

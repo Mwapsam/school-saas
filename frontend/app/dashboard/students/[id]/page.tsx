@@ -1,5 +1,10 @@
 /**
- * Student detail view page.
+ * Student detail page.
+ *
+ * Reference implementation using design system:
+ * - Page wrapper for consistent layout
+ * - PageHeader for title and back button
+ * - ErrorState, LoadingState for states
  */
 
 'use client';
@@ -8,10 +13,15 @@ export const dynamic = 'force-dynamic';
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Container, Box, Typography, Button, Grid, Paper, CircularProgress, Alert } from '@mui/material';
+import { Box, Button, Grid, Paper, Alert } from '@mui/material';
 import { Edit as EditIcon, ArrowBack as BackIcon } from '@mui/icons-material';
 import { useTenantStore } from '@/lib/tenant/store';
 import { useStudent } from '@/features/students/hooks';
+import { Page } from '@/components/page/Page';
+import { PageHeader } from '@/components/page/PageHeader';
+import { PageContent } from '@/components/page/PageContent';
+import { LoadingState } from '@/components/feedback/LoadingState';
+import { ErrorState } from '@/components/feedback/ErrorState';
 
 export default function StudentDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -19,75 +29,59 @@ export default function StudentDetailPage({ params }: { params: { id: string } }
   const { data: student, isLoading, error } = useStudent(params.id);
 
   if (!bootstrap) {
-    return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Typography>Loading configuration...</Typography>
-        </Box>
-      </Container>
-    );
+    return <Page><LoadingState message="Loading configuration..." /></Page>;
   }
 
   if (!isModuleEnabled('academics') || !can('students.view')) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            You do not have permission to view this student.
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <Alert severity="error">
+          You do not have permission to view this student.
+        </Alert>
+      </Page>
     );
   }
 
   if (isLoading) {
-    return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Box>
-      </Container>
-    );
+    return <Page><LoadingState message="Loading student..." /></Page>;
   }
 
   if (error || !student) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error">
-            Failed to load student: {error?.message || 'Student not found'}
-          </Alert>
-        </Box>
-      </Container>
+      <Page>
+        <ErrorState
+          title="Failed to load student"
+          error={error?.message || 'Student not found'}
+          onRetry={() => window.location.reload()}
+        />
+      </Page>
     );
   }
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
-        {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button
-              startIcon={<BackIcon />}
-              onClick={() => router.back()}
-              variant="text"
-            >
-              Back
-            </Button>
-            <Typography variant="h4" component="h1">
-              {student.full_name}
-            </Typography>
-          </Box>
-
-          {can('students.update') && (
+    <Page>
+      <PageHeader
+        title={student.full_name}
+        description="Student enrollment and personal information"
+        actions={
+          can('students.update') && (
             <Link href={`/dashboard/students/${student.id}/edit`} passHref legacyBehavior>
               <Button component="a" variant="contained" startIcon={<EditIcon />}>
                 Edit
               </Button>
             </Link>
-          )}
-        </Box>
+          )
+        }
+        breadcrumbs={
+          <Link href="/dashboard/students" passHref legacyBehavior>
+            <Button startIcon={<BackIcon />} variant="text">
+              Back to Students
+            </Button>
+          </Link>
+        }
+      />
+
+      <PageContent>
 
         {/* Details */}
         <Grid container spacing={3}>
@@ -249,7 +243,7 @@ export default function StudentDetailPage({ params }: { params: { id: string } }
             )}
           </Grid>
         </Grid>
-      </Box>
-    </Container>
+      </PageContent>
+    </Page>
   );
 }
