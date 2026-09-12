@@ -96,6 +96,10 @@ from .view_modules.multi_step_admission_views import (
     AdmissionAdminViewSet
 )
 
+from .view_modules.enquiry_views import (
+    ApplicantEnquiryViewSet,
+)
+
 # Create router for ViewSets
 router = DefaultRouter()
 
@@ -112,6 +116,9 @@ router.register(r'admission-multistep', MultiStepAdmissionViewSet, basename='adm
 router.register(r'admission-documents', AdmissionDocumentViewSet, basename='admission-documents')
 router.register(r'admission-lookups', AdmissionLookupViewSet, basename='admission-lookups')
 router.register(r'admission-admin', AdmissionAdminViewSet, basename='admission-admin')
+
+# Applicant enquiry endpoint (CRM-style pipeline)
+router.register(r'enquiries', ApplicantEnquiryViewSet, basename='enquiry')
 
 # Finance domain endpoints
 router.register(r'fee-categories', FeeCategoryViewSet, basename='fee-category')

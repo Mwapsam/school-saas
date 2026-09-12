@@ -139,6 +139,8 @@ PERMISSIONS: "OrderedDict[str, str]" = OrderedDict([
     # --- Admissions (API) --------------------------------------------------
     ("admissions.application.view", "View admission applications (API)"),
     ("admissions.application.manage", "Process admission applications (API)"),
+    ("admissions.enquiry.view", "View applicant enquiries (API)"),
+    ("admissions.enquiry.manage", "Manage applicant enquiries (API)"),
 
     # --- Hostel (API) --------------------------------------------------
     ("hostel.rooms.view", "View hostel rooms"),
