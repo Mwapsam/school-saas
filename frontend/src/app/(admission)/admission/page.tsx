@@ -1,22 +1,56 @@
+"use client";
+
 import Link from "next/link";
-import { FileText, Search, Mail, MessageCircleQuestion } from "lucide-react";
+import { FileText, Search, Mail, MessageCircleQuestion, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-export const metadata = { title: "Admissions" };
+import { useAdmissionConfig } from "@/hooks/useAdmissionConfig";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function AdmissionLandingPage() {
+  const { data: admissionConfig, isLoading } = useAdmissionConfig();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (!admissionConfig?.enabled) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-center text-amber-900">
+          <AlertCircle className="mx-auto mb-3 h-8 w-8" />
+          <h1 className="mb-2 text-lg font-semibold">Admissions Currently Closed</h1>
+          <p className="text-sm">
+            Thank you for your interest. The admissions process is not currently open.
+            Please contact the school for more information.
+          </p>
+          {admissionConfig?.contactEmail && (
+            <a
+              href={`mailto:${admissionConfig.contactEmail}`}
+              className="mt-3 inline-block text-sm font-medium text-amber-700 underline hover:text-amber-800"
+            >
+              {admissionConfig.contactEmail}
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-10">
       {/* Hero */}
       <div className="rounded-xl bg-primary px-8 py-12 text-center text-primary-foreground">
         <h1 className="mb-3 text-3xl font-bold">Welcome to Our Admissions Portal</h1>
         <p className="mx-auto mb-6 max-w-xl text-sm opacity-90">
-          Apply for a place at Pinewood Preparatory School. Complete our online
-          form and track your application every step of the way.
+          {admissionConfig.heading || "Apply for a place at our school. Complete our online form and track your application every step of the way."}
         </p>
         <Button asChild size="lg" variant="secondary">
-          <Link href="/admission/apply">Start Application</Link>
+          <Link href="/admission/apply">{admissionConfig.ctaText || "Start Application"}</Link>
         </Button>
       </div>
 
@@ -70,41 +104,48 @@ export default function AdmissionLandingPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <Mail className="mb-1 h-6 w-6 text-primary" />
-            <CardTitle className="text-base">Contact Admissions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <p>
-              Questions about the admissions process? Our team is happy to help.
-            </p>
-            <Button asChild variant="outline" className="w-full" size="sm">
-              <a href="mailto:office@pinewoodschoolzambia.com">Email Us</a>
-            </Button>
-          </CardContent>
-        </Card>
+        {admissionConfig?.email && (
+          <Card>
+            <CardHeader>
+              <Mail className="mb-1 h-6 w-6 text-primary" />
+              <CardTitle className="text-base">Contact Admissions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <p>
+                Questions about the admissions process? Our team is happy to help.
+              </p>
+              <Button asChild variant="outline" className="w-full" size="sm">
+                <a href={`mailto:${admissionConfig.email}`}>Email Us</a>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Info */}
-      <div className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div>
-            <p className="font-semibold text-foreground">Address</p>
-            <p>P.O. Box RW 51174, Lusaka, Zambia</p>
-          </div>
-          <div>
-            <p className="font-semibold text-foreground">Telephone</p>
-            <p>0211 291167 / 291461 / 294802</p>
-          </div>
-          <div>
-            <p className="font-semibold text-foreground">Email</p>
-            <a href="mailto:office@pinewoodschoolzambia.com" className="text-primary underline-offset-4 hover:underline">
-              office@pinewoodschoolzambia.com
-            </a>
+      {(admissionConfig?.contactEmail || admissionConfig?.contactPhone) && (
+        <div className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {admissionConfig?.contactPhone && (
+              <div>
+                <p className="font-semibold text-foreground">Telephone</p>
+                <p>{admissionConfig.contactPhone}</p>
+              </div>
+            )}
+            {admissionConfig?.contactEmail && (
+              <div>
+                <p className="font-semibold text-foreground">Email</p>
+                <a
+                  href={`mailto:${admissionConfig.contactEmail}`}
+                  className="text-primary underline-offset-4 hover:underline"
+                >
+                  {admissionConfig.contactEmail}
+                </a>
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -1,12 +1,22 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { AdmissionNav } from "@/components/admission-nav";
+import { useSchoolConfig } from "@/hooks/useSchoolConfig";
 
 export default function AdmissionLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { data: schoolConfig } = useSchoolConfig();
+
+  const schoolName = schoolConfig?.name || "School Portal";
+  const schoolLogo = schoolConfig?.logo_url || "/logo.png";
+  const contactEmail = schoolConfig?.contact_email || "contact@school.example";
+  const contactPhone = schoolConfig?.contact_phone || "";
+
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">
       {/* Public header — relative so the mobile dropdown can anchor to it */}
@@ -18,15 +28,18 @@ export default function AdmissionLayout({
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white/15 p-0.5">
               <Image
-                src="/logo.png"
-                alt="Pinewood Preparatory School"
+                src={schoolLogo}
+                alt={schoolName}
                 width={34}
                 height={34}
                 className="object-contain"
                 priority
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "/logo.png";
+                }}
               />
             </div>
-            <span className="text-sm sm:text-base">Pinewood Preparatory School</span>
+            <span className="text-sm sm:text-base">{schoolName}</span>
           </Link>
           <AdmissionNav />
         </div>
@@ -39,8 +52,14 @@ export default function AdmissionLayout({
 
       {/* Footer */}
       <footer className="border-t bg-background py-4 text-center text-xs text-muted-foreground">
-        &copy; {new Date().getFullYear()} Pinewood Preparatory School &mdash;
-        office@pinewoodschoolzambia.com &mdash; 0211 291167
+        <div className="space-y-1">
+          <div>&copy; {new Date().getFullYear()} {schoolName}</div>
+          <div className="flex flex-wrap items-center justify-center gap-2 text-[11px]">
+            {contactEmail && <a href={`mailto:${contactEmail}`} className="hover:text-foreground">{contactEmail}</a>}
+            {contactEmail && contactPhone && <span>—</span>}
+            {contactPhone && <span>{contactPhone}</span>}
+          </div>
+        </div>
       </footer>
     </div>
   );

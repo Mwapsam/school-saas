@@ -17,8 +17,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useAdmissionConfig } from "@/hooks/useAdmissionConfig";
 
 // ── Step definitions ──────────────────────────────────────────────────────────
 
@@ -208,6 +209,7 @@ async function submitApplication(form: FormState, files: Record<string, File>, s
 
 export default function AdmissionApplyPage() {
   const router = useRouter();
+  const { data: admissionConfig, isLoading: loadingConfig } = useAdmissionConfig();
   const searchParams = React.useMemo(() => new URLSearchParams(typeof window !== "undefined" ? window.location.search : ""), []);
   const schoolId = searchParams.get("school_id") || undefined;
 
@@ -217,6 +219,34 @@ export default function AdmissionApplyPage() {
   const [courses, setCourses] = React.useState<AdmissionCourse[]>([]);
   const [loadingCourses, setLoadingCourses] = React.useState(true);
   const [submitting, setSubmitting] = React.useState(false);
+
+  // Check if admissions are enabled
+  if (loadingConfig) {
+    return (
+      <div className="mx-auto max-w-3xl">
+        <div className="flex items-center justify-center py-20">
+          <Spinner />
+        </div>
+      </div>
+    );
+  }
+
+  if (!admissionConfig?.enabled) {
+    return (
+      <div className="mx-auto max-w-3xl">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-8 text-center text-amber-900">
+          <AlertCircle className="mx-auto mb-3 h-8 w-8" />
+          <h1 className="mb-2 text-lg font-semibold">Admissions Currently Closed</h1>
+          <p className="mb-4 text-sm">
+            Thank you for your interest. The admissions process is not currently open.
+          </p>
+          <Button variant="outline" onClick={() => router.push("/admission")}>
+            Back to Admissions
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   React.useEffect(() => {
     fetchCourses(schoolId)
