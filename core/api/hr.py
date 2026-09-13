@@ -82,7 +82,7 @@ class EmployeeQualificationViewSet(TenantAwareViewSet):
         return super().get_queryset().select_related('employee')
 
 
-class EmployeeDocumentViewSet(viewsets.ModelViewSet):
+class EmployeeDocumentViewSet(TenantAwareViewSet):
     """
     Employee documents — contracts, certifications, etc.
 
@@ -106,7 +106,7 @@ class EmployeeDocumentViewSet(viewsets.ModelViewSet):
         return super().get_queryset().select_related('employee')
 
 
-class EmployeeContractViewSet(viewsets.ModelViewSet):
+class EmployeeContractViewSet(TenantAwareViewSet):
     """
     Employee contracts — employment agreements.
 
@@ -130,7 +130,7 @@ class EmployeeContractViewSet(viewsets.ModelViewSet):
         return super().get_queryset().select_related('employee')
 
 
-class LeaveTypeViewSet(viewsets.ModelViewSet):
+class LeaveTypeViewSet(TenantAwareViewSet):
     """
     Leave type management — define leave categories.
 
@@ -152,7 +152,7 @@ class LeaveTypeViewSet(viewsets.ModelViewSet):
     ordering = ['name']
 
 
-class LeaveRequestViewSet(viewsets.ModelViewSet):
+class LeaveRequestViewSet(TenantAwareViewSet):
     """
     Leave request management — employee leave requests and approvals.
 
@@ -239,7 +239,7 @@ class LeaveRequestViewSet(viewsets.ModelViewSet):
         return Response(LeaveRequestSerializer(leave).data)
 
 
-class AttendanceViewSet(viewsets.ModelViewSet):
+class AttendanceViewSet(TenantAwareViewSet):
     """
     Attendance management — record and track daily attendance.
 
@@ -307,7 +307,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             return Response({'error': str(e)}, status=400)
 
 
-class PerformanceReviewViewSet(viewsets.ModelViewSet):
+class PerformanceReviewViewSet(TenantAwareViewSet):
     """
     Performance review management — track employee evaluations.
 
@@ -332,7 +332,7 @@ class PerformanceReviewViewSet(viewsets.ModelViewSet):
         return super().get_queryset().select_related('employee')
 
 
-class TrainingRecordViewSet(viewsets.ModelViewSet):
+class TrainingRecordViewSet(TenantAwareViewSet):
     """
     Training records — track employee training attendance.
 
@@ -357,7 +357,7 @@ class TrainingRecordViewSet(viewsets.ModelViewSet):
         return super().get_queryset().select_related('employee')
 
 
-class EmployeeExitViewSet(viewsets.ModelViewSet):
+class EmployeeExitViewSet(TenantAwareViewSet):
     """
     Employee exit management — offboarding and exit records.
 
