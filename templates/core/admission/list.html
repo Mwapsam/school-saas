@@ -17,15 +17,15 @@
 {% include 'core/components/toolbar.html' with search_name="query" search_value=request.GET.query search_placeholder="Search by name, application number, or guardian…" filters=admission_status_filters clear_url=admission_list_clear_url %}
 
 <div class="d-flex justify-content-end mb-3">
-    <a href="?export=csv" class="table-export-btn">
+    <a href="?export=csv" class="product-export-btn">
         <i class="fas fa-download me-2"></i>Export as CSV
     </a>
 </div>
 {% endblock %}
 
 {% block layout_table %}
-<div class="pinewood-table-container">
-    <div class="pinewood-table-header">
+<div class="product-table-container">
+    <div class="product-table-header">
         <h5 class="mb-0">Applications</h5>
         {% if applications %}
         <span class="table-info">{{ applications|length }} results</span>
@@ -33,7 +33,7 @@
     </div>
 
     {% if applications %}
-    {% include 'core/components/table_open.html' with columns=table_columns %}
+    {% include 'core/components/table_open.html' with columns=table_columns table_class="product-table" %}
         <tbody>
             {% for application in applications %}
             <tr>

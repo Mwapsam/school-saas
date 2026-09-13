@@ -23,8 +23,8 @@
 
 {% block layout_table %}
 {% if categories %}
-<div class="pinewood-table-container">
-    <div class="pinewood-table-header">
+<div class="product-table-container">
+    <div class="product-table-header">
         <h5 class="mb-0">Categories</h5>
     </div>
     {% include 'core/components/table_open.html' with columns=table_columns %}
@@ -60,7 +60,7 @@
     {% include 'core/components/table_close.html' %}
 </div>
 {% else %}
-<div class="pinewood-table-container">
+<div class="product-table-container">
     {% include 'core/components/empty_state.html' with title="No Fee Groups Found" message=empty_message icon="fa-inbox" %}
     <div class="text-center pb-4">
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCategoryModal">

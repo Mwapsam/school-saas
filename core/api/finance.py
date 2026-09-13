@@ -23,7 +23,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from core.models import (
     FamilyInvoice, FeeCategory, FinanceTransaction,
-    Student
+    Student, FeeDiscount, FineSlab, FinanceTransactionCategory, FinanceFee
 )
 from core.authz.drf import ModuleEnabled, HasPermission
 from core.services.fee_reporting_service import FeeReportingService

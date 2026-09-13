@@ -109,6 +109,59 @@
 .product-table-action { color: var(--product-brand); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline; white-space: nowrap; background: none; border: none; font-family: inherit; }
 .product-table-action:hover { color: var(--product-brand-dark); }
 
+/* ── Table container (convenience wrapper) ─────────────────– */
+.product-table-container {
+  background: var(--product-white);
+  border-radius: var(--product-radius);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+.product-table-container .product-table {
+  margin-bottom: 0;
+  border-radius: 0;
+}
+
+/* ── Table header (container header section) ────────────────– */
+.product-table-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid var(--product-gray-border);
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+.product-table-header h5 {
+  margin: 0;
+  color: #495057;
+  font-weight: 600;
+}
+.product-table-header .table-info {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+/* ── Export button (convenience style for table actions) ────– */
+.product-export-btn {
+  background-color: var(--product-brand);
+  border-color: var(--product-brand);
+  color: var(--product-white);
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--product-radius);
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: 1rem;
+  transition: background-color .15s, border-color .15s;
+}
+.product-export-btn:hover {
+  background-color: var(--product-brand-dark);
+  border-color: var(--product-brand-dark);
+  color: var(--product-white);
+  text-decoration: none;
+}
+
 /* ── Badges ─────────────────────────────────────────────────– */
 .product-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
 .product-badge-active { background: var(--product-brand-light); color: var(--product-brand-dark); border: .5px solid rgba(26,122,60,.3); }

@@ -15,7 +15,8 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from datetime import date, timedelta
 
 from core.models import (
-    Employee, EmployeeLeave,
+    Employee, EmployeeLeave, EmployeeQualification, EmployeeDocument, EmployeeContract,
+    LeaveType, EmployeeAttendance, PerformanceReview, TrainingRecord, EmployeeExit,
 )
 from core.authz.drf import ModuleEnabled, HasPermission
 from core.api.base import TenantAwareViewSet
