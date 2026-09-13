@@ -7,18 +7,18 @@
 {% endblock %}
 
 {% block layout_filters %}
-  <form method="get" class="pw-card mb-3" hx-get="{% url 'core:hr_attendance_records' %}" hx-target="#hr-attendance-records-content" hx-trigger="submit">
+  <form method="get" class="product-card mb-3" hx-get="{% url 'core:hr_attendance_records' %}" hx-target="#hr-attendance-records-content" hx-trigger="submit">
     <div class="row g-2 align-items-end">
       <div class="col-md-2">
-        <label class="pw-form-label" for="start_date">From</label>
-        <input type="date" class="pw-form-control" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+        <label class="product-form-label" for="start_date">From</label>
+        <input type="date" class="product-form-control" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
       </div>
       <div class="col-md-2">
-        <label class="pw-form-label" for="end_date">To</label>
-        <input type="date" class="pw-form-control" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+        <label class="product-form-label" for="end_date">To</label>
+        <input type="date" class="product-form-control" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
       </div>
       <div class="col-md-3">
-        <label class="pw-form-label" for="department">Department</label>
+        <label class="product-form-label" for="department">Department</label>
         <select class="pw-form-select" id="department" name="department">
           <option value="">All departments</option>
           {% for dept in departments %}
@@ -27,7 +27,7 @@
         </select>
       </div>
       <div class="col-md-2">
-        <label class="pw-form-label" for="status">Status</label>
+        <label class="product-form-label" for="status">Status</label>
         <select class="pw-form-select" id="status" name="status">
           <option value="">Any</option>
           {% for value, label in status_choices %}
@@ -36,7 +36,7 @@
         </select>
       </div>
       <div class="col-md-auto">
-        <button type="submit" class="pw-btn pw-btn-primary pw-btn-sm"><i class="fas fa-filter me-1"></i>Filter</button>
+        <button type="submit" class="  product-btn product-btn-primary product-btn-sm"><i class="fas fa-filter me-1"></i>Filter</button>
       </div>
     </div>
   </form>

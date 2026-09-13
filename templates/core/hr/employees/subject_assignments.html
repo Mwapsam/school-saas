@@ -9,7 +9,7 @@
 {% block layout_table %}
   <div class="row g-3">
     <div class="col-md-4">
-      <div class="pw-card">
+      <div class="product-card">
         <h2 class="h6 fw-bold mb-2">Teaching staff</h2>
         <div class="list-group list-group-flush" style="max-height:520px;overflow-y:auto">
           {% for emp in teaching_staff %}
@@ -25,7 +25,7 @@
       </div>
     </div>
     <div class="col-md-8">
-      <div class="pw-card">
+      <div class="product-card">
         {% if selected_id %}
           <form id="subject-assignment-form"
                 hx-get="{% url 'core:employee_subjects_tab' employee_id=selected_id %}"

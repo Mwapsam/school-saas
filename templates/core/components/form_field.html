@@ -23,15 +23,15 @@ Params:
   checked     (optional) — for type="checkbox"
   attrs       (optional) — raw extra attribute string, e.g. 'data-max="10"'
 {% endcomment %}
-<div class="pw-form-group">
+<div class="product-form-group">
   {% if type != 'checkbox' and label %}
-  <label class="pw-form-label" for="{{ name }}">{{ label }}{% if required %} <span style="color:var(--p-danger)">*</span>{% endif %}</label>
+  <label class="product-form-label" for="{{ name }}">{{ label }}{% if required %} <span style="color:var(--p-danger)">*</span>{% endif %}</label>
   {% endif %}
 
   {% if type == 'textarea' %}
-    <textarea class="pw-form-control" id="{{ name }}" name="{{ name }}" rows="{{ rows|default:3 }}" placeholder="{{ placeholder }}" {% if required %}required{% endif %} {% if attrs %}{{ attrs|safe }}{% endif %}>{{ value }}</textarea>
+    <textarea class="product-form-control" id="{{ name }}" name="{{ name }}" rows="{{ rows|default:3 }}" placeholder="{{ placeholder }}" {% if required %}required{% endif %} {% if attrs %}{{ attrs|safe }}{% endif %}>{{ value }}</textarea>
   {% elif type == 'select' %}
-    <select class="pw-form-control" id="{{ name }}" name="{{ name }}" {% if required %}required{% endif %} {% if attrs %}{{ attrs|safe }}{% endif %}>
+    <select class="product-form-control" id="{{ name }}" name="{{ name }}" {% if required %}required{% endif %} {% if attrs %}{{ attrs|safe }}{% endif %}>
       {% for opt in options %}
         <option value="{{ opt.value }}" {% if opt.value|stringformat:'s' == value|stringformat:'s' %}selected{% endif %}>{{ opt.label }}</option>
       {% endfor %}
@@ -39,10 +39,10 @@ Params:
   {% elif type == 'checkbox' %}
     <div class="form-check">
       <input class="form-check-input" type="checkbox" id="{{ name }}" name="{{ name }}" {% if checked %}checked{% endif %} {% if attrs %}{{ attrs|safe }}{% endif %}>
-      <label class="form-check-label pw-form-label" for="{{ name }}" style="margin-bottom:0">{{ label }}</label>
+      <label class="form-check-label product-form-label" for="{{ name }}" style="margin-bottom:0">{{ label }}</label>
     </div>
   {% else %}
-    <input class="pw-form-control" type="{{ type|default:'text' }}" id="{{ name }}" name="{{ name }}" value="{{ value|default_if_none:'' }}" placeholder="{{ placeholder }}" {% if required %}required{% endif %} {% if attrs %}{{ attrs|safe }}{% endif %}>
+    <input class="product-form-control" type="{{ type|default:'text' }}" id="{{ name }}" name="{{ name }}" value="{{ value|default_if_none:'' }}" placeholder="{{ placeholder }}" {% if required %}required{% endif %} {% if attrs %}{{ attrs|safe }}{% endif %}>
   {% endif %}
 
   {% if help_text %}<div class="form-text" style="font-size:11px">{{ help_text }}</div>{% endif %}

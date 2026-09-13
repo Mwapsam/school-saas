@@ -29,12 +29,12 @@
 </div>
 
 {# ── School Logos ── #}
-<div class="pw-card ss-section">
-    <div class="pw-card-header">
-        <span class="pw-card-title">
+<div class="product-card ss-section">
+    <div class="product-card-header">
+        <span class="product-card-title">
             <i class="fas fa-image me-2" style="color:var(--color-brand)" aria-hidden="true"></i>School Logos
         </span>
-        <span class="pw-card-meta">shown on the left and right of report cards</span>
+        <span class="product-card-meta">shown on the left and right of report cards</span>
     </div>
 
     {# Primary logo #}
@@ -114,12 +114,12 @@
 </div>
 
 {# ── Signatures ── #}
-<div class="pw-card ss-section">
-    <div class="pw-card-header">
-        <span class="pw-card-title">
+<div class="product-card ss-section">
+    <div class="product-card-header">
+        <span class="product-card-title">
             <i class="fas fa-signature me-2" style="color:var(--color-brand)" aria-hidden="true"></i>Signatures
         </span>
-        <span class="pw-card-meta">assign one to each report template on the Reports page</span>
+        <span class="product-card-meta">assign one to each report template on the Reports page</span>
     </div>
 
     {% if not signatures %}
@@ -177,19 +177,19 @@
                     <input type="hidden" name="signature_id" value="{{ sig.id }}">
                     <div class="row g-2">
                         <div class="col-md-4">
-                            <input type="text" class="pw-form-control" name="name" value="{{ sig.name }}"
+                            <input type="text" class="product-form-control" name="name" value="{{ sig.name }}"
                                    placeholder="Signatory's name" required>
                         </div>
                         <div class="col-md-4">
-                            <input type="text" class="pw-form-control" name="title" value="{{ sig.title }}"
+                            <input type="text" class="product-form-control" name="title" value="{{ sig.title }}"
                                    placeholder="e.g. Head of Lower Primary">
                         </div>
                         <div class="col-md-4">
-                            <input type="text" class="pw-form-control" name="section_label"
+                            <input type="text" class="product-form-control" name="section_label"
                                    value="{{ sig.section_label|default:'' }}" placeholder="e.g. Lower Primary">
                         </div>
                         <div class="col-md-6">
-                            <input type="file" class="pw-form-control" name="image" accept="image/*"
+                            <input type="file" class="product-form-control" name="image" accept="image/*"
                                    style="padding:5px 8px;font-size:13px">
                         </div>
                         {% if sig.image %}
@@ -218,16 +218,16 @@
             <input type="hidden" name="action" value="add_signature">
             <div class="row g-2">
                 <div class="col-md-4">
-                    <input type="text" class="pw-form-control" name="name" placeholder="Signatory's name" required>
+                    <input type="text" class="product-form-control" name="name" placeholder="Signatory's name" required>
                 </div>
                 <div class="col-md-4">
-                    <input type="text" class="pw-form-control" name="title" placeholder="e.g. Head of Lower Primary">
+                    <input type="text" class="product-form-control" name="title" placeholder="e.g. Head of Lower Primary">
                 </div>
                 <div class="col-md-4">
-                    <input type="text" class="pw-form-control" name="section_label" placeholder="e.g. Lower Primary">
+                    <input type="text" class="product-form-control" name="section_label" placeholder="e.g. Lower Primary">
                 </div>
                 <div class="col-md-6">
-                    <input type="file" class="pw-form-control" name="image" accept="image/*"
+                    <input type="file" class="product-form-control" name="image" accept="image/*"
                            style="padding:5px 8px;font-size:13px">
                 </div>
             </div>
@@ -243,12 +243,12 @@
 </div>
 
 {# ── School Details & Report Branding ── #}
-<div class="pw-card ss-section">
-    <div class="pw-card-header">
-        <span class="pw-card-title">
+<div class="product-card ss-section">
+    <div class="product-card-header">
+        <span class="product-card-title">
             <i class="fas fa-id-card me-2" style="color:var(--color-brand)" aria-hidden="true"></i>School Details &amp; Report Branding
         </span>
-        <span class="pw-card-meta">shown on every generated report</span>
+        <span class="product-card-meta">shown on every generated report</span>
     </div>
 
     <form method="post" action="{% url 'core:school_settings' %}">
@@ -257,44 +257,44 @@
         <div class="row g-3">
             <div class="col-md-6">
                 <label class="form-label">School name</label>
-                <input type="text" class="pw-form-control" name="name"
+                <input type="text" class="product-form-control" name="name"
                        value="{{ school.name|default:'' }}" placeholder="e.g. Pinewood Academy">
             </div>
             <div class="col-md-6">
                 <label class="form-label">Address</label>
-                <input type="text" class="pw-form-control" name="address_line1"
+                <input type="text" class="product-form-control" name="address_line1"
                        value="{{ school.address_line1|default:'' }}" placeholder="Street address">
             </div>
             <div class="col-md-4">
                 <label class="form-label">Phone</label>
-                <input type="text" class="pw-form-control" name="phone"
+                <input type="text" class="product-form-control" name="phone"
                        value="{{ school.phone|default:'' }}" placeholder="+260…">
             </div>
             <div class="col-md-4">
                 <label class="form-label">Email</label>
-                <input type="email" class="pw-form-control" name="email"
+                <input type="email" class="product-form-control" name="email"
                        value="{{ school.email|default:'' }}" placeholder="info@school.edu">
             </div>
             <div class="col-md-4">
                 <label class="form-label">Website</label>
-                <input type="text" class="pw-form-control" name="website"
+                <input type="text" class="product-form-control" name="website"
                        value="{{ school.website|default:'' }}" placeholder="https://…">
             </div>
             <div class="col-md-6">
                 <label class="form-label">Operations Manager Name</label>
-                <input type="text" class="pw-form-control" name="operations_manager_name"
+                <input type="text" class="product-form-control" name="operations_manager_name"
                        value="{{ school.operations_manager_name|default:'' }}" placeholder="e.g. Frederick Jordan">
                 <div class="ss-form-hint">Used as witness on payment agreements</div>
             </div>
             <div class="col-md-6">
                 <label class="form-label">Report title</label>
-                <input type="text" class="pw-form-control" name="report_title"
+                <input type="text" class="product-form-control" name="report_title"
                        value="{{ school.report_title|default:'ASSESSMENT REPORT' }}">
                 <div class="ss-form-hint">Printed as the main heading on report cards</div>
             </div>
             <div class="col-12">
                 <label class="form-label">Footer quote</label>
-                <textarea class="pw-form-control" name="footer_quote"
+                <textarea class="product-form-control" name="footer_quote"
                           rows="2" placeholder="Optional motivational quote for the report footer">{{ school.footer_quote|default:'' }}</textarea>
             </div>
             <div class="col-12">
@@ -313,13 +313,13 @@
             </div>
             <div class="col-md-6">
                 <label class="form-label">Early-bird discount %</label>
-                <input type="number" class="pw-form-control" name="fee_note_early_bird_discount_percent" step="0.01"
+                <input type="number" class="product-form-control" name="fee_note_early_bird_discount_percent" step="0.01"
                        value="{{ school.fee_note_early_bird_discount_percent|default:'0.00' }}" placeholder="e.g. 4.00">
                 <div class="ss-form-hint">Only shown when discount is enabled</div>
             </div>
             <div class="col-12">
                 <label class="form-label">Fee Note Terms & Conditions</label>
-                <textarea class="pw-form-control" name="fee_note_terms" rows="6"
+                <textarea class="product-form-control" name="fee_note_terms" rows="6"
                           placeholder="e.g. instalment schedules, bank account details, payment reminders. Line breaks will be preserved.">{{ school.fee_note_terms|default:'' }}</textarea>
                 <div class="ss-form-hint">This text appears below the fee totals on every fee note PDF</div>
             </div>

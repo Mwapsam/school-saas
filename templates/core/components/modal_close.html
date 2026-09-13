@@ -18,7 +18,7 @@ Params:
         {% for action in footer %}
           {% include 'core/components/button.html' with label=action.label url=action.url variant=action.variant icon=action.icon type=action.type size=action.size disabled=action.disabled attrs=action.attrs %}
         {% empty %}
-          <button type="button" class="pw-btn pw-btn-outline" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="  product-btn product-btn-outline" data-bs-dismiss="modal">Close</button>
         {% endfor %}
       </div>
       {% endif %}

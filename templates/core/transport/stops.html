@@ -9,19 +9,19 @@
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
     {% url 'core:transport' as back_fallback %}
     {% include 'core/components/page_header.html' with title="Transport Stops" description="Pickup and drop-off points used to build routes." icon="fa-map-marker-alt" back_url=back_url|default:back_fallback %}
-    <button type="button" class="pw-btn pw-btn-primary" onclick="transportOpenAdd('stops')"><i class="fas fa-plus me-1"></i>Add Stop</button>
+    <button type="button" class="  product-btn product-btn-primary" onclick="transportOpenAdd('stops')"><i class="fas fa-plus me-1"></i>Add Stop</button>
   </div>
 {% endblock %}
 
 {% block layout_filters %}
-  <form method="get" class="pw-card mb-3" hx-get="{% url 'core:transport_stop_list' %}" hx-target="#transport-stops-content" hx-trigger="submit">
+  <form method="get" class="product-card mb-3" hx-get="{% url 'core:transport_stop_list' %}" hx-target="#transport-stops-content" hx-trigger="submit">
     <div class="row g-2 align-items-end">
       <div class="col-md-6">
-        <label class="pw-form-label" for="search">Search</label>
-        <input class="pw-form-control" type="text" id="search" name="search" placeholder="Name, address or landmark">
+        <label class="product-form-label" for="search">Search</label>
+        <input class="product-form-control" type="text" id="search" name="search" placeholder="Name, address or landmark">
       </div>
       <div class="col-md-auto">
-        <button type="submit" class="pw-btn pw-btn-primary pw-btn-sm">Search</button>
+        <button type="submit" class="  product-btn product-btn-primary product-btn-sm">Search</button>
       </div>
     </div>
   </form>

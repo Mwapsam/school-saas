@@ -18,28 +18,28 @@
 <!-- Page heading + actions -->
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
     <div>
-        <h1 class="pw-page-title">
+        <h1 class="product-page-title">
             {{ batch.name }}
             {% if batch.is_active %}
-                <span class="pw-badge pw-badge-active">Active</span>
+                <span class="product-badge product-badge-active">Active</span>
             {% else %}
-                <span class="pw-badge pw-badge-zero">Closed</span>
+                <span class="product-badge product-badge-zero">Closed</span>
             {% endif %}
         </h1>
-        <p class="pw-page-subtitle">{{ batch.course.course_name }}{% if academic_year %} · {{ academic_year.name }}{% endif %}</p>
+        <p class="product-page-subtitle">{{ batch.course.course_name }}{% if academic_year %} · {{ academic_year.name }}{% endif %}</p>
     </div>
     <div class="d-flex gap-2 flex-wrap align-items-start">
-        <button class="pw-btn pw-btn-outline pw-btn-sm" onclick="openEditBatch('{{ batch.id }}')" title="Batch settings">
+        <button class="  product-btn product-btn-outline product-btn-sm" onclick="openEditBatch('{{ batch.id }}')" title="Batch settings">
             <i class="fas fa-cogs"></i> Settings
         </button>
-        <button class="pw-btn pw-btn-outline pw-btn-sm" onclick="openEditBatch('{{ batch.id }}')" title="Edit batch">
+        <button class="  product-btn product-btn-outline product-btn-sm" onclick="openEditBatch('{{ batch.id }}')" title="Edit batch">
             <i class="fas fa-edit"></i> Edit
         </button>
-        <button class="pw-btn pw-btn-danger pw-btn-sm" onclick="deleteBatch('{{ batch.id }}')" title="Delete batch">
+        <button class="  product-btn product-btn-danger product-btn-sm" onclick="deleteBatch('{{ batch.id }}')" title="Delete batch">
             <i class="fas fa-trash"></i> Delete
         </button>
         <div class="btn-group">
-            <button type="button" class="pw-btn pw-btn-primary pw-btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <button type="button" class="  product-btn product-btn-primary product-btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fas fa-cog"></i> Manage
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
@@ -75,21 +75,21 @@
 {% include 'core/htmx/batch/_overview_card.html' %}
 
 <!-- Tabs card -->
-<div class="pw-card">
-    <div class="nav pw-tabs" id="batchTabs" role="tablist">
-        <button class="nav-link pw-tab active" id="students-tab" data-bs-toggle="tab" data-bs-target="#students" type="button" role="tab">
+<div class="product-card">
+    <div class="nav product-tabs" id="batchTabs" role="tablist">
+        <button class="nav-link product-tab active" id="students-tab" data-bs-toggle="tab" data-bs-target="#students" type="button" role="tab">
             <i class="fas fa-users me-1"></i> Students
         </button>
-        <button class="nav-link pw-tab" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance" type="button" role="tab">
+        <button class="nav-link product-tab" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance" type="button" role="tab">
             <i class="fas fa-calendar-check me-1"></i> Attendance
         </button>
-        <button class="nav-link pw-tab" id="subjects-tab" data-bs-toggle="tab" data-bs-target="#subjects" type="button" role="tab">
+        <button class="nav-link product-tab" id="subjects-tab" data-bs-toggle="tab" data-bs-target="#subjects" type="button" role="tab">
             <i class="fas fa-book me-1"></i> Subjects &amp; Allocation
         </button>
-        <button class="nav-link pw-tab" id="timetables-tab" data-bs-toggle="tab" data-bs-target="#timetables" type="button" role="tab">
+        <button class="nav-link product-tab" id="timetables-tab" data-bs-toggle="tab" data-bs-target="#timetables" type="button" role="tab">
             <i class="fas fa-calendar-alt me-1"></i> Timetable
         </button>
-        <button class="nav-link pw-tab" id="examinations-tab" data-bs-toggle="tab" data-bs-target="#examinations" type="button" role="tab">
+        <button class="nav-link product-tab" id="examinations-tab" data-bs-toggle="tab" data-bs-target="#examinations" type="button" role="tab">
             <i class="fas fa-graduation-cap me-1"></i> Examinations
         </button>
     </div>

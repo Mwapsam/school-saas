@@ -24,11 +24,11 @@
     <!-- Fee Structure Modules Grid -->
     <div class="row g-3">
         <div class="col-md-6">
-            <a href="{% url 'core:fee_categories' %}" class="gb-card {% if fee_categories_count == 0 %}is-empty{% endif %}">
-                <div class="gb-card-icon"><i class="fas fa-tags"></i></div>
-                <div class="gb-card-body">
-                    <p class="gb-card-title">1.1 Fee Groups (Categories)</p>
-                    <p class="gb-card-desc">Term fees, transport, boarding — the top-level groups students are billed under.</p>
+            <a href="{% url 'core:fee_categories' %}" class="product-card-grid {% if fee_categories_count == 0 %}is-empty{% endif %}">
+                <div class="product-card-icon"><i class="fas fa-tags"></i></div>
+                <div class="product-card-body">
+                    <p class="product-card-grid-title">1.1 Fee Groups (Categories)</p>
+                    <p class="product-card-desc">Term fees, transport, boarding — the top-level groups students are billed under.</p>
                     <small class="text-muted">
                         {% if fee_categories_count == 0 %}
                         <i class="fas fa-circle-exclamation text-warning me-1"></i>No fee groups created yet
@@ -37,15 +37,15 @@
                         {% endif %}
                     </small>
                 </div>
-                <i class="fas fa-chevron-right gb-card-arrow"></i>
+                <i class="fas fa-chevron-right product-card-grid-arrow"></i>
             </a>
         </div>
         <div class="col-md-6">
-            <a href="{% url 'core:fee_masters' %}" class="gb-card {% if master_particulars_count == 0 and master_discounts_count == 0 %}is-empty{% endif %}">
-                <div class="gb-card-icon"><i class="fas fa-clone"></i></div>
-                <div class="gb-card-body">
-                    <p class="gb-card-title">1.2 Fee Masters</p>
-                    <p class="gb-card-desc">Reusable templates for particulars and discounts — define once, link to many categories.</p>
+            <a href="{% url 'core:fee_masters' %}" class="product-card-grid {% if master_particulars_count == 0 and master_discounts_count == 0 %}is-empty{% endif %}">
+                <div class="product-card-icon"><i class="fas fa-clone"></i></div>
+                <div class="product-card-body">
+                    <p class="product-card-grid-title">1.2 Fee Masters</p>
+                    <p class="product-card-desc">Reusable templates for particulars and discounts — define once, link to many categories.</p>
                     <small class="text-muted">
                         {% if master_particulars_count == 0 and master_discounts_count == 0 %}
                         <i class="fas fa-circle-exclamation text-warning me-1"></i>No masters created yet
@@ -54,15 +54,15 @@
                         {% endif %}
                     </small>
                 </div>
-                <i class="fas fa-chevron-right gb-card-arrow"></i>
+                <i class="fas fa-chevron-right product-card-grid-arrow"></i>
             </a>
         </div>
         <div class="col-md-6">
-            <a href="{% url 'core:fee_particulars' %}" class="gb-card {% if fee_particulars_count == 0 %}is-empty{% endif %}">
-                <div class="gb-card-icon"><i class="fas fa-list"></i></div>
-                <div class="gb-card-body">
-                    <p class="gb-card-title">1.3 Fee Particulars</p>
-                    <p class="gb-card-desc">Line items inside each group: tuition, levies, library fee — with amounts and due dates.</p>
+            <a href="{% url 'core:fee_particulars' %}" class="product-card-grid {% if fee_particulars_count == 0 %}is-empty{% endif %}">
+                <div class="product-card-icon"><i class="fas fa-list"></i></div>
+                <div class="product-card-body">
+                    <p class="product-card-grid-title">1.3 Fee Particulars</p>
+                    <p class="product-card-desc">Line items inside each group: tuition, levies, library fee — with amounts and due dates.</p>
                     <small class="text-muted">
                         {% if fee_particulars_count == 0 %}
                         <i class="fas fa-circle-exclamation text-warning me-1"></i>No particulars created yet
@@ -71,15 +71,15 @@
                         {% endif %}
                     </small>
                 </div>
-                <i class="fas fa-chevron-right gb-card-arrow"></i>
+                <i class="fas fa-chevron-right product-card-grid-arrow"></i>
             </a>
         </div>
         <div class="col-md-6">
-            <a href="{% url 'core:fine_slabs' %}" class="gb-card {% if fine_slabs_groups_count == 0 %}is-empty{% endif %}">
-                <div class="gb-card-icon"><i class="fas fa-gavel"></i></div>
-                <div class="gb-card-body">
-                    <p class="gb-card-title">1.4 Fine Slabs</p>
-                    <p class="gb-card-desc">Late-payment fines linked to particulars: grace period, slabs, per-day rates.</p>
+            <a href="{% url 'core:fine_slabs' %}" class="product-card-grid {% if fine_slabs_groups_count == 0 %}is-empty{% endif %}">
+                <div class="product-card-icon"><i class="fas fa-gavel"></i></div>
+                <div class="product-card-body">
+                    <p class="product-card-grid-title">1.4 Fine Slabs</p>
+                    <p class="product-card-desc">Late-payment fines linked to particulars: grace period, slabs, per-day rates.</p>
                     <small class="text-muted">
                         {% if fine_slabs_groups_count == 0 %}
                         <i class="fas fa-circle-exclamation text-warning me-1"></i>No fine slabs created yet
@@ -88,15 +88,15 @@
                         {% endif %}
                     </small>
                 </div>
-                <i class="fas fa-chevron-right gb-card-arrow"></i>
+                <i class="fas fa-chevron-right product-card-grid-arrow"></i>
             </a>
         </div>
         <div class="col-md-6">
-            <a href="{% url 'core:fee_masters' %}#rules-content" class="gb-card {% if applicability_rules_count == 0 %}is-empty{% endif %}">
-                <div class="gb-card-icon"><i class="fas fa-filter"></i></div>
-                <div class="gb-card-body">
-                    <p class="gb-card-title">1.5 Applicability Rules</p>
-                    <p class="gb-card-desc">Control which students fees apply to: all students, by batch, by category, or individually.</p>
+            <a href="{% url 'core:fee_masters' %}#rules-content" class="product-card-grid {% if applicability_rules_count == 0 %}is-empty{% endif %}">
+                <div class="product-card-icon"><i class="fas fa-filter"></i></div>
+                <div class="product-card-body">
+                    <p class="product-card-grid-title">1.5 Applicability Rules</p>
+                    <p class="product-card-desc">Control which students fees apply to: all students, by batch, by category, or individually.</p>
                     <small class="text-muted">
                         {% if applicability_rules_count == 0 %}
                         <i class="fas fa-circle-exclamation text-warning me-1"></i>No rules created yet
@@ -105,15 +105,15 @@
                         {% endif %}
                     </small>
                 </div>
-                <i class="fas fa-chevron-right gb-card-arrow"></i>
+                <i class="fas fa-chevron-right product-card-grid-arrow"></i>
             </a>
         </div>
         <div class="col-md-6">
-            <a href="{% url 'core:fee_batch_assignment' %}" class="gb-card {% if batch_assignments_count == 0 %}is-empty{% endif %}">
-                <div class="gb-card-icon"><i class="fas fa-layer-group"></i></div>
-                <div class="gb-card-body">
-                    <p class="gb-card-title">1.6 Assign to Course / Batch</p>
-                    <p class="gb-card-desc">Attach fee groups to batches so collections can generate student obligations.</p>
+            <a href="{% url 'core:fee_batch_assignment' %}" class="product-card-grid {% if batch_assignments_count == 0 %}is-empty{% endif %}">
+                <div class="product-card-icon"><i class="fas fa-layer-group"></i></div>
+                <div class="product-card-body">
+                    <p class="product-card-grid-title">1.6 Assign to Course / Batch</p>
+                    <p class="product-card-desc">Attach fee groups to batches so collections can generate student obligations.</p>
                     <small class="text-muted">
                         {% if batch_assignments_count == 0 %}
                         <i class="fas fa-circle-exclamation text-warning me-1"></i>No assignments created yet
@@ -122,7 +122,7 @@
                         {% endif %}
                     </small>
                 </div>
-                <i class="fas fa-chevron-right gb-card-arrow"></i>
+                <i class="fas fa-chevron-right product-card-grid-arrow"></i>
             </a>
         </div>
     </div>

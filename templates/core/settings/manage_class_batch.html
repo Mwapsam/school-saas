@@ -81,28 +81,28 @@
 
 {# ── Batch management ── #}
 {% if selected_course %}
-<div class="pw-card">
+<div class="product-card">
     {# Tabs #}
     <div class="mcb-tabs" role="tablist">
         <button class="mcb-tab active" id="activeTab" role="tab"
                 aria-selected="true" aria-controls="activeContent"
                 onclick="switchTab('active')">
             Active Batches
-            <span class="pw-badge pw-badge-active ms-1">{{ active_batches.count }}</span>
+            <span class="product-badge product-badge-active ms-1">{{ active_batches.count }}</span>
         </button>
         <button class="mcb-tab" id="inactiveTab" role="tab"
                 aria-selected="false" aria-controls="inactiveContent"
                 onclick="switchTab('inactive')">
             Inactive Batches
-            <span class="pw-badge pw-badge-zero ms-1">{{ inactive_batches.count }}</span>
+            <span class="product-badge product-badge-zero ms-1">{{ inactive_batches.count }}</span>
         </button>
     </div>
 
     {# Active batches #}
     <div id="activeContent" class="mcb-tab-pane active" role="tabpanel" aria-labelledby="activeTab">
         {% if active_batches %}
-        <div class="pw-table-wrap">
-            <table class="pw-table">
+        <div class="product-table-wrap">
+            <table class="product-table">
                 <thead>
                     <tr>
                         <th style="width:56px">#</th>
@@ -142,8 +142,8 @@
     {# Inactive batches #}
     <div id="inactiveContent" class="mcb-tab-pane" role="tabpanel" aria-labelledby="inactiveTab">
         {% if inactive_batches %}
-        <div class="pw-table-wrap">
-            <table class="pw-table">
+        <div class="product-table-wrap">
+            <table class="product-table">
                 <thead>
                     <tr>
                         <th style="width:56px">#</th>
@@ -182,7 +182,7 @@
 </div>
 
 {% else %}
-<div class="pw-card">
+<div class="product-card">
     <div class="mcb-empty">
         <div class="mcb-empty-icon"><i class="fas fa-graduation-cap" aria-hidden="true"></i></div>
         <h5>No Classes Available</h5>
@@ -196,7 +196,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form id="addClassForm" onsubmit="submitAddClass(event)">
-                <div class="modal-header pw-brand">
+                <div class="product-modal-header">
                     <h5 class="modal-title" id="addClassModalTitle">
                         <i class="fas fa-plus me-2" aria-hidden="true"></i>Add New Class
                     </h5>
@@ -206,19 +206,19 @@
                     <div id="addClassErrors" class="alert alert-danger d-none"></div>
                     <div class="mb-3">
                         <label class="form-label">Class / Course Name <span class="text-danger">*</span></label>
-                        <input type="text" class="pw-form-control" name="course_name" placeholder="e.g. Grade 1" required>
+                        <input type="text" class="product-form-control" name="course_name" placeholder="e.g. Grade 1" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Code <span class="text-danger">*</span></label>
-                        <input type="text" class="pw-form-control" name="code" placeholder="e.g. G1" required>
+                        <input type="text" class="product-form-control" name="code" placeholder="e.g. G1" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Section Name</label>
-                        <input type="text" class="pw-form-control" name="section_name" placeholder="Optional">
+                        <input type="text" class="product-form-control" name="section_name" placeholder="Optional">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Grading Type</label>
-                        <select class="pw-form-control" name="grading_type">
+                        <select class="product-form-control" name="grading_type">
                             <option value="">None / set later</option>
                             <option value="percentage">Percentage (0–100)</option>
                             <option value="gpa">GPA (0.0–4.0)</option>
@@ -242,7 +242,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form id="addBatchForm" onsubmit="submitAddBatch(event)">
-                <div class="modal-header pw-brand">
+                <div class="product-modal-header">
                     <h5 class="modal-title" id="addBatchModalTitle">
                         <i class="fas fa-plus me-2" aria-hidden="true"></i>Add New Batch
                     </h5>
@@ -260,7 +260,7 @@
                         </p>
                         <div class="mb-3">
                             <label class="form-label">Batch Name <span class="text-danger">*</span></label>
-                            <input type="text" class="pw-form-control" name="name" placeholder="e.g. Grade 1 – A" required>
+                            <input type="text" class="product-form-control" name="name" placeholder="e.g. Grade 1 – A" required>
                         </div>
                     {% else %}
                         <div class="alert alert-warning mb-0">
@@ -291,7 +291,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form id="editClassForm" onsubmit="submitEditClass(event)">
-                <div class="modal-header pw-brand">
+                <div class="product-modal-header">
                     <h5 class="modal-title" id="editClassModalTitle">
                         <i class="fas fa-pencil-alt me-2" aria-hidden="true"></i>Edit Class
                     </h5>
@@ -301,19 +301,19 @@
                     <div id="editClassErrors" class="alert alert-danger d-none"></div>
                     <div class="mb-3">
                         <label class="form-label">Class / Course Name <span class="text-danger">*</span></label>
-                        <input type="text" class="pw-form-control" name="course_name" value="{{ selected_course.course_name }}" required>
+                        <input type="text" class="product-form-control" name="course_name" value="{{ selected_course.course_name }}" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Code <span class="text-danger">*</span></label>
-                        <input type="text" class="pw-form-control" name="code" value="{{ selected_course.code }}" required>
+                        <input type="text" class="product-form-control" name="code" value="{{ selected_course.code }}" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Section Name</label>
-                        <input type="text" class="pw-form-control" name="section_name" value="{{ selected_course.section_name|default_if_none:'' }}">
+                        <input type="text" class="product-form-control" name="section_name" value="{{ selected_course.section_name|default_if_none:'' }}">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Grading Type</label>
-                        <select class="pw-form-control" name="grading_type">
+                        <select class="product-form-control" name="grading_type">
                             <option value="" {% if not selected_course.grading_type %}selected{% endif %}>None / set later</option>
                             <option value="percentage" {% if selected_course.grading_type == 'percentage' %}selected{% endif %}>Percentage (0–100)</option>
                             <option value="gpa" {% if selected_course.grading_type == 'gpa' %}selected{% endif %}>GPA (0.0–4.0)</option>
@@ -338,7 +338,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form id="editBatchForm" onsubmit="submitEditBatch(event)">
-                <div class="modal-header pw-brand">
+                <div class="product-modal-header">
                     <h5 class="modal-title" id="editBatchModalTitle">
                         <i class="fas fa-pencil-alt me-2" aria-hidden="true"></i>Edit Batch
                     </h5>
@@ -349,11 +349,11 @@
                     <input type="hidden" name="batch_id" id="editBatchId">
                     <div class="mb-3">
                         <label class="form-label">Batch Name <span class="text-danger">*</span></label>
-                        <input type="text" class="pw-form-control" name="name" id="editBatchName" required>
+                        <input type="text" class="product-form-control" name="name" id="editBatchName" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Grading Type</label>
-                        <select class="pw-form-control" name="grading_type" id="editBatchGradingType">
+                        <select class="product-form-control" name="grading_type" id="editBatchGradingType">
                             <option value="">Use class default</option>
                             <option value="percentage">Percentage (0–100)</option>
                             <option value="gpa">GPA (0.0–4.0)</option>

@@ -1,20 +1,20 @@
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <span class="pw-card-title"><i class="fas fa-calendar-check me-2"></i>Attendance Summary</span>
+    <span class="product-card-title"><i class="fas fa-calendar-check me-2"></i>Attendance Summary</span>
     <div class="d-flex align-items-center gap-2">
-        <input type="month" class="pw-form-control" style="width:auto"
+        <input type="month" class="product-form-control" style="width:auto"
                name="month" value="{{ month }}"
                hx-get="{% url 'core:batch_attendance_partial' batch.id %}"
                hx-target="#attendance-tab-body"
                hx-swap="innerHTML"
                hx-trigger="change">
-        <a href="/academic/attendance-management/?batch_id={{ batch.id }}" class="pw-btn pw-btn-primary pw-btn-sm">
+        <a href="/academic/attendance-management/?batch_id={{ batch.id }}" class="  product-btn product-btn-primary product-btn-sm">
             <i class="fas fa-plus"></i> Take Attendance
         </a>
     </div>
 </div>
 
 {% if attendance_error %}
-<div class="pw-alert pw-alert-warning"><i class="fas fa-exclamation-triangle"></i> Could not load attendance: {{ attendance_error }}</div>
+<div class="product-alert product-alert-warning"><i class="fas fa-exclamation-triangle"></i> Could not load attendance: {{ attendance_error }}</div>
 {% elif summary and summary.student_summaries %}
 <div class="pw-stat-grid mb-3">
     <div class="pw-stat-card">
@@ -31,8 +31,8 @@
     </div>
 </div>
 
-<div class="pw-table-wrap">
-    <table class="pw-table">
+<div class="product-table-wrap">
+    <table class="product-table">
         <thead>
             <tr>
                 <th>Student</th>
@@ -50,7 +50,7 @@
                 <td>{{ s.absent_days }}</td>
                 <td>{{ s.partial_days }}</td>
                 <td>
-                    <span class="pw-badge {% if s.attendance_percentage >= 75 %}pw-badge-active{% else %}pw-badge-zero{% endif %}">
+                    <span class="product-badge {% if s.attendance_percentage >= 75 %}product-badge-active{% else %}product-badge-zero{% endif %}">
                         {{ s.attendance_percentage|floatformat:1 }}%
                     </span>
                 </td>
@@ -63,8 +63,8 @@
 <div class="pw-empty">
     <i class="fas fa-calendar-check"></i>
     <h5>No attendance recorded for this month</h5>
-    <p class="pw-card-meta mb-3">Pick another month or start taking attendance.</p>
-    <a href="/academic/attendance-management/?batch_id={{ batch.id }}" class="pw-btn pw-btn-primary pw-btn-sm">
+    <p class="product-card-meta mb-3">Pick another month or start taking attendance.</p>
+    <a href="/academic/attendance-management/?batch_id={{ batch.id }}" class="  product-btn product-btn-primary product-btn-sm">
         <i class="fas fa-plus"></i> Take Attendance
     </a>
 </div>

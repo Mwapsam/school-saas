@@ -1,13 +1,13 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <span class="pw-card-title"><i class="fas fa-graduation-cap me-2"></i>Examinations</span>
-    <a href="/gradebook/management/?batch_id={{ batch.id }}" class="pw-btn pw-btn-primary pw-btn-sm">
+    <span class="product-card-title"><i class="fas fa-graduation-cap me-2"></i>Examinations</span>
+    <a href="/gradebook/management/?batch_id={{ batch.id }}" class="  product-btn product-btn-primary product-btn-sm">
         <i class="fas fa-plus"></i> Manage Exams
     </a>
 </div>
 
 {% if exam_groups %}
-<div class="pw-table-wrap">
-    <table class="pw-table">
+<div class="product-table-wrap">
+    <table class="product-table">
         <thead>
             <tr>
                 <th>Exam Plan</th>
@@ -26,11 +26,11 @@
                 <td>{{ group.exams.count }}</td>
                 <td>
                     {% if group.result_published %}
-                        <span class="pw-badge pw-badge-active">Results published</span>
+                        <span class="product-badge product-badge-active">Results published</span>
                     {% elif group.is_published %}
-                        <span class="pw-badge pw-badge-active">Published</span>
+                        <span class="product-badge product-badge-active">Published</span>
                     {% else %}
-                        <span class="pw-badge pw-badge-zero">Draft</span>
+                        <span class="product-badge product-badge-zero">Draft</span>
                     {% endif %}
                 </td>
             </tr>
@@ -42,8 +42,8 @@
 <div class="pw-empty">
     <i class="fas fa-graduation-cap"></i>
     <h5>No examinations yet</h5>
-    <p class="pw-card-meta mb-3">Create exam plans and schedules for {{ batch.name }}.</p>
-    <a href="/gradebook/management/?batch_id={{ batch.id }}" class="pw-btn pw-btn-primary pw-btn-sm">
+    <p class="product-card-meta mb-3">Create exam plans and schedules for {{ batch.name }}.</p>
+    <a href="/gradebook/management/?batch_id={{ batch.id }}" class="  product-btn product-btn-primary product-btn-sm">
         <i class="fas fa-plus"></i> Create Exam
     </a>
 </div>

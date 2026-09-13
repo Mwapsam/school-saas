@@ -7,16 +7,16 @@
 {% endblock %}
 
 {% block layout_filters %}
-  <form method="get" class="pw-card mb-3">
+  <form method="get" class="product-card mb-3">
     <div class="row g-2 align-items-end">
       <div class="col-md-3">
-        <label class="pw-form-label" for="year">Year</label>
+        <label class="product-form-label" for="year">Year</label>
         <select class="pw-form-select" id="year" name="year">
           {% for y in year_choices %}<option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>{% endfor %}
         </select>
       </div>
       <div class="col-md-4">
-        <label class="pw-form-label" for="department">Department</label>
+        <label class="product-form-label" for="department">Department</label>
         <select class="pw-form-select" id="department" name="department">
           <option value="">All departments</option>
           {% for dept in departments %}
@@ -25,10 +25,10 @@
         </select>
       </div>
       <div class="col-md-auto">
-        <button type="submit" class="pw-btn pw-btn-primary pw-btn-sm"><i class="fas fa-filter me-1"></i>Apply</button>
+        <button type="submit" class="  product-btn product-btn-primary product-btn-sm"><i class="fas fa-filter me-1"></i>Apply</button>
       </div>
       <div class="col-md-auto">
-        <a class="pw-btn pw-btn-outline pw-btn-sm" target="_blank"
+        <a class="  product-btn product-btn-outline product-btn-sm" target="_blank"
            href="{% url 'core:hr_leave_balance_report_pdf' %}?year={{ year }}{% if department_id %}&department={{ department_id }}{% endif %}">
           <i class="fas fa-file-pdf me-1"></i>PDF
         </a>

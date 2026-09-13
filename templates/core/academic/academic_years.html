@@ -17,17 +17,17 @@
 
 {% block layout_table %}
 {# ── Years table ── #}
-<div class="pw-card">
-    <div class="pw-card-header">
-        <span class="pw-card-title">
+<div class="product-card">
+    <div class="product-card-header">
+        <span class="product-card-title">
             <i class="fas fa-list me-1" aria-hidden="true"></i>All Academic Years
         </span>
-        <span class="pw-card-meta">{{ academic_years|length }} year{{ academic_years|length|pluralize }}</span>
+        <span class="product-card-meta">{{ academic_years|length }} year{{ academic_years|length|pluralize }}</span>
     </div>
 
     {% if academic_years %}
-    <div class="pw-table-wrap">
-        <table class="pw-table">
+    <div class="product-table-wrap">
+        <table class="product-table">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -105,7 +105,7 @@
 <div class="modal fade" id="academicYearModal" tabindex="-1" aria-labelledby="academicYearModalLabel">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header pw-brand">
+            <div class="product-modal-header">
                 <h5 class="modal-title" id="academicYearModalLabel">
                     <i class="fas fa-calendar-alt me-2" aria-hidden="true"></i>New Academic Year
                 </h5>
@@ -121,7 +121,7 @@
                         <label for="yearName" class="form-label">
                             Academic Year Name <span class="text-danger">*</span>
                         </label>
-                        <input type="text" class="pw-form-control" id="yearName" name="name"
+                        <input type="text" class="product-form-control" id="yearName" name="name"
                                placeholder='e.g. 2024-2025' required>
                         <div class="ss-form-hint" style="font-size:12px;color:var(--color-muted);margin-top:4px">
                             Use a format like "2024-2025" or "AY 2024-25"
@@ -133,13 +133,13 @@
                             <label for="startDate" class="form-label">
                                 Start Date <span class="text-danger">*</span>
                             </label>
-                            <input type="date" class="pw-form-control" id="startDate" name="start_date" required>
+                            <input type="date" class="product-form-control" id="startDate" name="start_date" required>
                         </div>
                         <div class="col-6">
                             <label for="endDate" class="form-label">
                                 End Date <span class="text-danger">*</span>
                             </label>
-                            <input type="date" class="pw-form-control" id="endDate" name="end_date" required>
+                            <input type="date" class="product-form-control" id="endDate" name="end_date" required>
                         </div>
                     </div>
 
@@ -160,11 +160,11 @@
                     <div class="row g-3">
                         <div class="col-6">
                             <label for="admissionStartDate" class="form-label">Admission Start</label>
-                            <input type="date" class="pw-form-control" id="admissionStartDate" name="admission_start_date">
+                            <input type="date" class="product-form-control" id="admissionStartDate" name="admission_start_date">
                         </div>
                         <div class="col-6">
                             <label for="admissionEndDate" class="form-label">Admission End</label>
-                            <input type="date" class="pw-form-control" id="admissionEndDate" name="admission_end_date">
+                            <input type="date" class="product-form-control" id="admissionEndDate" name="admission_end_date">
                         </div>
                     </div>
 

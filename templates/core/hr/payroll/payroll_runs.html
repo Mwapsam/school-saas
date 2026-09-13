@@ -7,25 +7,25 @@
 {% endblock %}
 
 {% block layout_filters %}
-  <form id="payroll-run-form" class="pw-card mb-3">
+  <form id="payroll-run-form" class="product-card mb-3">
     <div class="row g-2 align-items-end">
       <div class="col-md-4">
-        <label class="pw-form-label" for="payroll_group_id">Payroll group</label>
+        <label class="product-form-label" for="payroll_group_id">Payroll group</label>
         <select class="pw-form-select" id="payroll_group_id" name="payroll_group_id" required>
           <option value="">Select group…</option>
           {% for g in payroll_groups %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}
         </select>
       </div>
       <div class="col-md-3">
-        <label class="pw-form-label" for="period_start">Period start</label>
-        <input type="date" class="pw-form-control" id="period_start" name="period_start" required>
+        <label class="product-form-label" for="period_start">Period start</label>
+        <input type="date" class="product-form-control" id="period_start" name="period_start" required>
       </div>
       <div class="col-md-3">
-        <label class="pw-form-label" for="period_end">Period end</label>
-        <input type="date" class="pw-form-control" id="period_end" name="period_end" required>
+        <label class="product-form-label" for="period_end">Period end</label>
+        <input type="date" class="product-form-control" id="period_end" name="period_end" required>
       </div>
       <div class="col-md-auto">
-        <button type="submit" class="pw-btn pw-btn-primary pw-btn-sm"><i class="fas fa-bolt me-1"></i>Run payroll</button>
+        <button type="submit" class="  product-btn product-btn-primary product-btn-sm"><i class="fas fa-bolt me-1"></i>Run payroll</button>
       </div>
     </div>
     <p class="hr-form-error text-danger small mt-2 mb-0" hidden></p>
@@ -64,7 +64,7 @@
       </tbody>
     </table>
   </div>
-  <a href="{% url 'core:hr_payslip_list' %}" class="pw-btn pw-btn-outline pw-btn-sm mt-3"><i class="fas fa-receipt me-1"></i>Go to Payslips</a>
+  <a href="{% url 'core:hr_payslip_list' %}" class="  product-btn product-btn-outline product-btn-sm mt-3"><i class="fas fa-receipt me-1"></i>Go to Payslips</a>
 {% endblock %}
 
 {% block extra_js %}

@@ -31,9 +31,9 @@
             <td>{{ class_info.batch_count|default:"-" }}</td>
             <td>
                 {% if class_info.active_exams %}
-                <span class="pw-badge pw-badge-active">{{ class_info.active_exams }}</span>
+                <span class="product-badge product-badge-active">{{ class_info.active_exams }}</span>
                 {% else %}
-                <span class="pw-badge pw-badge-zero">0</span>
+                <span class="product-badge product-badge-zero">0</span>
                 {% endif %}
             </td>
             <td>{% if class_info.upcoming_exams %}{{ class_info.upcoming_exams }}{% else %}<span style="color:var(--color-muted)">—</span>{% endif %}</td>
@@ -64,7 +64,7 @@
     {% csrf_token %}
     <div class="mb-3">
         <label for="academicYearSelect" class="form-label fw-semibold">Select Academic Year</label>
-        <select class="pw-form-control" id="academicYearSelect" name="academic_year_id" required>
+        <select class="product-form-control" id="academicYearSelect" name="academic_year_id" required>
             <option value="">Choose academic year…</option>
             {% for year in all_academic_years %}
             <option value="{{ year.id }}"

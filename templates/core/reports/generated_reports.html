@@ -456,7 +456,7 @@ function regenerateReport(examGroupId, batchId) {
         const title  = document.getElementById('regen-result-title');
         const body   = document.getElementById('regen-result-body');
         if (data.success) {
-            header.className = 'modal-header pw-brand';
+            header.className = 'modal-header product-brand';
             title.textContent = 'Reports Regenerated';
             let html = '<div class="list-group">';
             (data.generated_reports || []).forEach(r => {
@@ -468,7 +468,7 @@ function regenerateReport(examGroupId, batchId) {
             html += '</div>';
             body.innerHTML = html;
         } else {
-            header.className = 'modal-header pw-danger';
+            header.className = 'modal-header product-danger';
             title.textContent = 'Generation Failed';
             body.textContent = data.error || 'Unknown error';
         }

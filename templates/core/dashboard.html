@@ -4,220 +4,297 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
 <style>
-.fedena-dashboard {
-    padding: 0;
-    min-height: calc(100vh - 200px);
+/* ===== Pinewood Dashboard ===== */
+:root {
+    --pine-900: #10321f;
+    --pine-700: #1a5f3a;
+    --pine-500: #3c7d55;
+    --pine-100: #e8f0ea;
+    --paper: #faf8f3;
+    --sand: #ece5d6;
+    --card-bg: #ffffff;
+    --line: #e4ded0;
+    --ink: #22281f;
+    --ink-soft: #6b7061;
+    --shadow-card: 0 1px 2px rgba(16, 50, 31, 0.05);
+    --shadow-hover: 0 8px 22px rgba(16, 50, 31, 0.11);
+    --radius: 9px;
+    --transition: 0.18s ease;
 }
 
+.fedena-dashboard {
+    padding: 28px 20px 56px;
+    min-height: calc(100vh - 180px);
+    background: var(--paper);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+}
+
+/* ---------- Page header ---------- */
+.dash-header {
+    max-width: 1180px;
+    margin: 0 auto 26px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 16px;
+}
+
+.dash-header h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.65rem;
+    color: var(--pine-900);
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.dash-header .dash-date {
+    font-size: 0.84rem;
+    color: var(--ink-soft);
+    font-weight: 500;
+}
+
+/* ---------- Newsletter / News Section ---------- */
 .newsletter-section {
-    margin-bottom: 30px;
-    padding: 20px 0;
+    max-width: 1180px;
+    margin: 0 auto 36px;
+}
+
+.newsletter-section .section-label {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--pine-900);
+    margin: 0 0 12px;
+}
+
+.newsletter-section .row {
+    row-gap: 12px;
 }
 
 .newsletter-card {
-    border: none;
-    box-shadow: none;
-    overflow: hidden;
-    width: 313px;
-    height: 66px;
-    padding: 10px 12px;
     display: flex;
     flex-direction: column;
-    justify-content: space-around;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
+    justify-content: space-between;
+    height: 100%;
+    min-height: 90px;
+    padding: 15px 17px;
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--pine-700);
+    border-radius: 6px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color var(--transition), box-shadow var(--transition);
 }
 
-.newsletter-header {
-    background: none;
-    padding: 0;
-    margin: 0;
+.newsletter-card:hover {
+    box-shadow: var(--shadow-card);
+    border-left-color: var(--pine-500);
+}
+
+.newsletter-card:focus-visible {
+    outline: 2px solid var(--pine-500);
+    outline-offset: 2px;
 }
 
 .newsletter-header h6 {
-    font-family: 'Times New Roman', Times, serif;
-    font-size: 0.8rem;
-    font-weight: 700;
-    margin: 0;
-    padding: 0;
-    color: #1a5f3a;
-    line-height: 1.3;
-    text-transform: uppercase;
-}
-
-.newsletter-body {
-    padding: 0;
-    margin: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-}
-
-.newsletter-body p {
-    font-size: 0.68rem;
-    margin: 0;
-    padding: 0;
-    color: #666;
-    flex-shrink: 0;
-}
-
-.newsletter-body .text-end {
-    margin-left: auto;
-    flex-shrink: 0;
-}
-
-.newsletter-body .text-end small {
-    font-size: 0.68rem;
-    color: #999;
-}
-
-.dashboard-modules-grid {
-    padding: 20px;
-    max-width: 1150px;
-    margin: 0 auto;
-}
-
-.dashboard-modules-grid .row {
-    row-gap: 24px;
-}
-
-.dashboard-modules-grid .col-5col,
-.dashboard-modules-grid [class*="col-"] {
-    padding-left: 16px;
-    padding-right: 16px;
-}
-
-/* Custom 5-column layout */
-@media (min-width: 1200px) {
-    .col-5col {
-        flex: 0 0 20%;
-        max-width: 20%;
-    }
-}
-
-/* Fallback for smaller screens */
-@media (min-width: 992px) and (max-width: 1199px) {
-    .col-5col {
-        flex: 0 0 25%;
-        max-width: 25%;
-    }
-}
-
-.dashboard-module {
-    background: transparent;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    height: 200px;
-    border-radius: 12px;
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.module-tooltip {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    margin-top: 4px;
-    background: rgba(153, 153, 153, 0.95);
-    color: #fff;
-    font-size: 12px;
+    font-size: 0.91rem;
     font-weight: 600;
-    line-height: 1.4;
-    padding: 10px 14px;
-    border-radius: 20px;
-    text-align: center;
-    white-space: normal;
-    width: 240px;
-    z-index: 20;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    pointer-events: none;
-}
-
-.dashboard-module:hover {
-    filter: brightness(0.92);
-    background: #fefdfd;
-}
-
-.module-link {
-    text-decoration: none;
-    color: inherit;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    width: 100%;
-    padding: 15px;
-}
-
-.module-icon {
-    width: 180px;
-    height: 280px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 10px;
-    border-radius: 12px;
+    color: var(--ink);
+    margin: 0 0 7px;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
 }
 
+.newsletter-body {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.newsletter-body p {
+    font-size: 0.77rem;
+    color: var(--ink-soft);
+    margin: 0;
+}
+
+.newsletter-body .text-end small {
+    font-size: 0.74rem;
+    color: #a3a08f;
+}
+
+/* ---------- Module groups ---------- */
+.dashboard-modules-grid {
+    max-width: 1180px;
+    margin: 0 auto;
+}
+
+.module-group {
+    margin-bottom: 32px;
+}
+
+.module-group:last-child {
+    margin-bottom: 0;
+}
+
+.module-group-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--pine-500);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin: 0 0 11px 2px;
+}
+
+.module-group .row {
+    row-gap: 11px;
+}
+
+.module-link {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    height: 100%;
+    padding: 14px 15px;
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+    text-decoration: none;
+    color: inherit;
+    transition: transform var(--transition),
+                box-shadow var(--transition),
+                border-color var(--transition);
+    position: relative;
+}
+
+.module-link::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 3px;
+    background: transparent;
+    border-radius: 0 3px 3px 0;
+    transition: background var(--transition);
+}
+
+.module-link:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+    border-color: #cfd8c8;
+}
+
+.module-link:hover::before {
+    background: var(--pine-500);
+}
+
+.module-link:hover .module-icon {
+    background: var(--pine-100);
+}
+
+.module-link:focus-visible {
+    outline: 2px solid var(--pine-500);
+    outline-offset: 2px;
+}
+
+.module-icon {
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--sand);
+    transition: background var(--transition);
+}
+
 .module-icon img {
-    width: 150px;
-    height: 280px;
+    width: 24px;
+    height: 24px;
     object-fit: contain;
 }
 
+.module-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
 .module-title {
-    position: absolute;
-    bottom: 15px;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 600;
-    color: #333;
-    text-align: center;
-    line-height: 1.2;
+    color: var(--ink);
     margin: 0;
-    max-width: 100%;
-    word-wrap: break-word;
+    line-height: 1.25;
 }
 
-@media (max-width: 768px) {
-    .dashboard-module {
-        height: 120px;
-        padding: 15px 10px;
-    }
-    .module-icon img {
-        width: 48px;
-        height: 48px;
-    }
-    .module-title {
-        font-size: 0.8rem;
-    }
+.module-desc {
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 767.98px) {
     .fedena-dashboard {
-        padding: 10px 0;
+        padding: 18px 14px 40px;
     }
-}
 
-@media (max-width: 576px) {
-    .dashboard-module {
-        height: 100px;
-        padding: 10px 8px;
+    .dash-header {
+        margin-bottom: 20px;
+        padding-bottom: 12px;
     }
-    .module-icon img {
-        width: 40px;
-        height: 40px;
+
+    .dash-header h1 {
+        font-size: 1.35rem;
     }
-    .module-title {
-        font-size: 0.75rem;
+
+    .module-group {
+        margin-bottom: 26px;
     }
+
+    .module-link {
+        padding: 12px 12px;
+        gap: 11px;
+    }
+
     .module-icon {
-        margin-bottom: 5px;
+        flex-basis: 38px;
+        width: 38px;
+        height: 38px;
+    }
+
+    .module-icon img {
+        width: 21px;
+        height: 21px;
+    }
+
+    .module-title {
+        font-size: 0.85rem;
+    }
+
+    .module-desc {
+        font-size: 0.72rem;
     }
 }
 </style>
@@ -225,19 +302,26 @@
 
 {% block content %}
 <div class="fedena-dashboard">
+
+    <div class="dash-header">
+        <h1>Dashboard</h1>
+        <span class="dash-date">{% now "l, j F Y" %}</span>
+    </div>
+
     {% if recent_news %}
     <div class="newsletter-section">
+        <p class="section-label">Recent news</p>
         <div class="row">
             {% for article in recent_news %}
-            <div class="col-lg-4 col-md-4 col-sm-6 mb-3">
-                <a href="{% url 'core:news' %}" class="newsletter-card" style="text-decoration: none; color: inherit; display: block; background-image: url('{% static 'img/note-bg.png' %}');">
+            <div class="col-lg-4 col-md-6 col-sm-6">
+                <a href="{% url 'core:news' %}" class="newsletter-card">
                     <div class="newsletter-header">
-                        <h6>{{ article.title|truncatewords:6 }}</h6>
+                        <h6>{{ article.title|truncatewords:8 }}</h6>
                     </div>
                     <div class="newsletter-body">
-                        <p>Posted on {{ article.created_at|date:"d/m/Y" }}</p>
+                        <p>{{ article.created_at|date:"d M Y" }}</p>
                         <div class="text-end">
-                            <small><i class="fas fa-comment"></i> 0 Comments</small>
+                            <small><i class="fas fa-comment"></i> 0</small>
                         </div>
                     </div>
                 </a>
@@ -248,176 +332,200 @@
     {% endif %}
 
     <div class="dashboard-modules-grid">
-        <div class="row justify-content-center">
-            <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
-                <div class="dashboard-module">
+
+        <!-- Academics -->
+        <div class="module-group">
+            <p class="module-group-label">Academics</p>
+            <div class="row">
+                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
                     <a href="{% url 'core:admission_dashboard' %}" class="module-link">
                         <div class="module-icon">
-                            <img src="{% static 'img/button_admission.png' %}" alt="Admission">
+                            <img src="{% static 'img/button_admission.png' %}" alt="">
                         </div>
-                        <h6 class="module-title">Admission</h6>
-                        <span class="module-tooltip">Enter students' admission details into the school records</span>
+                        <div class="module-text">
+                            <h6 class="module-title">Admission</h6>
+                            <span class="module-desc">Enrol new students</span>
+                        </div>
                     </a>
                 </div>
-            </div>
-            <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
-                <div class="dashboard-module">
+                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
                     <a href="{% url 'core:student_list' %}" class="module-link">
                         <div class="module-icon">
-                            <img src="{% static 'img/button_student_details.png' %}" alt="Student details">
+                            <img src="{% static 'img/button_student_details.png' %}" alt="">
                         </div>
-                        <h6 class="module-title">Student details</h6>
-                        <span class="module-tooltip">View and manage student information and records</span>
+                        <div class="module-text">
+                            <h6 class="module-title">Students</h6>
+                            <span class="module-desc">Records and profiles</span>
+                        </div>
                     </a>
                 </div>
-            </div>
-            <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
-                <div class="dashboard-module">
+                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
                     <a href="{% url 'core:gradebook_index' %}" class="module-link">
                         <div class="module-icon">
-                            <img src="{% static 'img/button_examinations.png' %}" alt="Examinations">
+                            <img src="{% static 'img/button_examinations.png' %}" alt="">
                         </div>
-                        <h6 class="module-title">Examinations</h6>
-                        <span class="module-tooltip">Manage exams, grades and report cards</span>
+                        <div class="module-text">
+                            <h6 class="module-title">Examinations</h6>
+                            <span class="module-desc">Grades and report cards</span>
+                        </div>
                     </a>
                 </div>
-            </div>
-            <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
-                <div class="dashboard-module">
-                    <a href="{% url 'core:teacher_list' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_manage_users.png' %}" alt="Manage users">
-                        </div>
-                        <h6 class="module-title">Manage users</h6>
-                        <span class="module-tooltip">Manage system users and their permissions</span>
-                    </a>
-                </div>
-            </div>
-            <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
-                <div class="dashboard-module">
-                    <a href="{% url 'core:news' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_manage_news.png' %}" alt="Manage news">
-                        </div>
-                        <h6 class="module-title">Manage news</h6>
-                        <span class="module-tooltip">Create and publish school news and announcements</span>
-                    </a>
-                </div>
-            </div>
-            <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
-                <div class="dashboard-module">
+                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
                     <a href="{% url 'core:timetable_list' %}" class="module-link">
                         <div class="module-icon">
-                            <img src="{% static 'img/button_timetable.png' %}" alt="Timetable">
+                            <img src="{% static 'img/button_timetable.png' %}" alt="">
                         </div>
-                        <h6 class="module-title">Timetable</h6>
-                        <span class="module-tooltip">View and manage class timetables</span>
+                        <div class="module-text">
+                            <h6 class="module-title">Timetable</h6>
+                            <span class="module-desc">Class schedules</span>
+                        </div>
                     </a>
                 </div>
-            </div>
-            <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
-                <div class="dashboard-module">
+                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
                     <a href="{% url 'core:attendance_dashboard' %}" class="module-link">
                         <div class="module-icon">
-                            <img src="{% static 'img/attendance.png' %}" alt="Attendance">
+                            <img src="{% static 'img/attendance.png' %}" alt="">
                         </div>
-                        <h6 class="module-title">Attendance</h6>
-                        <span class="module-tooltip">Mark and track student attendance</span>
+                        <div class="module-text">
+                            <h6 class="module-title">Attendance</h6>
+                            <span class="module-desc">Mark and track daily</span>
+                        </div>
                     </a>
                 </div>
-            </div>
-            <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
-                <div class="dashboard-module">
-                    <a href="{% url 'core:configuration' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/settings.png' %}" alt="Settings">
-                        </div>
-                        <h6 class="module-title">Settings</h6>
-                        <span class="module-tooltip">Configure school system settings</span>
-                    </a>
-                </div>
-            </div>
-            <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
-                <div class="dashboard-module">
-                    <a href="{% url 'core:hr_dashboard' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_Human.png' %}" alt="Human Resources">
-                        </div>
-                        <h6 class="module-title">Human Resources</h6>
-                        <span class="module-tooltip">Manage staff and employee records</span>
-                    </a>
-                </div>
-            </div>
-            <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
-                <div class="dashboard-module">
-                    <a href="{% url 'core:finance_dashboard' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_finance.png' %}" alt="Finance">
-                        </div>
-                        <h6 class="module-title">Finance</h6>
-                        <span class="module-tooltip">Manage fees, payments and financial records</span>
-                    </a>
-                </div>
-            </div>
-
-            <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
-                <div class="dashboard-module">
-                    <a href="{% url 'core:hostel' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_hostel.png' %}" alt="Hostel">
-                        </div>
-                        <h6 class="module-title">Hostel</h6>
-                        <span class="module-tooltip">Manage hostel allocations and records</span>
-                    </a>
-                </div>
-            </div>
-            <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
-                <div class="dashboard-module">
+                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
                     <a href="{% url 'core:library' %}" class="module-link">
                         <div class="module-icon">
-                            <img src="{% static 'img/button_library.png' %}" alt="Library">
+                            <img src="{% static 'img/button_library.png' %}" alt="">
                         </div>
-                        <h6 class="module-title">Library</h6>
-                        <span class="module-tooltip">Manage library books and lending</span>
-                    </a>
-                </div>
-            </div>
-            <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
-                <div class="dashboard-module">
-                    <a href="{% url 'core:transport' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_transport.png' %}" alt="Transport">
+                        <div class="module-text">
+                            <h6 class="module-title">Library</h6>
+                            <span class="module-desc">Books and lending</span>
                         </div>
-                        <h6 class="module-title">Transport</h6>
-                        <span class="module-tooltip">Manage transport routes and vehicles</span>
-                    </a>
-                </div>
-            </div>
-
-            <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
-                <div class="dashboard-module">
-                    <a href="{% url 'core:student_list' %}?alumni=1" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_student_details.png' %}" alt="Alumni">
-                        </div>
-                        <h6 class="module-title">Alumni</h6>
-                        <span class="module-tooltip">View and manage alumni records</span>
-                    </a>
-                </div>
-            </div>
-            <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
-                <div class="dashboard-module">
-                    <a href="{% url 'core:news' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/blog-icon.png' %}" alt="Blog">
-                        </div>
-                        <h6 class="module-title">Blog</h6>
-                        <span class="module-tooltip">View school blog posts and articles</span>
                     </a>
                 </div>
             </div>
         </div>
+
+        <!-- People -->
+        <div class="module-group">
+            <p class="module-group-label">People</p>
+            <div class="row">
+                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
+                    <a href="{% url 'core:teacher_list' %}" class="module-link">
+                        <div class="module-icon">
+                            <img src="{% static 'img/button_manage_users.png' %}" alt="">
+                        </div>
+                        <div class="module-text">
+                            <h6 class="module-title">Manage users</h6>
+                            <span class="module-desc">Accounts and permissions</span>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
+                    <a href="{% url 'core:hr_dashboard' %}" class="module-link">
+                        <div class="module-icon">
+                            <img src="{% static 'img/button_Human.png' %}" alt="">
+                        </div>
+                        <div class="module-text">
+                            <h6 class="module-title">Human Resources</h6>
+                            <span class="module-desc">Staff records</span>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
+                    <a href="{% url 'core:student_list' %}?alumni=1" class="module-link">
+                        <div class="module-icon">
+                            <img src="{% static 'img/button_student_details.png' %}" alt="">
+                        </div>
+                        <div class="module-text">
+                            <h6 class="module-title">Alumni</h6>
+                            <span class="module-desc">Past student records</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Operations -->
+        <div class="module-group">
+            <p class="module-group-label">Operations</p>
+            <div class="row">
+                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
+                    <a href="{% url 'core:finance_dashboard' %}" class="module-link">
+                        <div class="module-icon">
+                            <img src="{% static 'img/button_finance.png' %}" alt="">
+                        </div>
+                        <div class="module-text">
+                            <h6 class="module-title">Finance</h6>
+                            <span class="module-desc">Fees and payments</span>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
+                    <a href="{% url 'core:hostel' %}" class="module-link">
+                        <div class="module-icon">
+                            <img src="{% static 'img/button_hostel.png' %}" alt="">
+                        </div>
+                        <div class="module-text">
+                            <h6 class="module-title">Hostel</h6>
+                            <span class="module-desc">Room allocations</span>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
+                    <a href="{% url 'core:transport' %}" class="module-link">
+                        <div class="module-icon">
+                            <img src="{% static 'img/button_transport.png' %}" alt="">
+                        </div>
+                        <div class="module-text">
+                            <h6 class="module-title">Transport</h6>
+                            <span class="module-desc">Routes and vehicles</span>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
+                    <a href="{% url 'core:configuration' %}" class="module-link">
+                        <div class="module-icon">
+                            <img src="{% static 'img/settings.png' %}" alt="">
+                        </div>
+                        <div class="module-text">
+                            <h6 class="module-title">Settings</h6>
+                            <span class="module-desc">System configuration</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Community -->
+        <div class="module-group">
+            <p class="module-group-label">Community</p>
+            <div class="row">
+                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
+                    <a href="{% url 'core:news' %}" class="module-link">
+                        <div class="module-icon">
+                            <img src="{% static 'img/button_manage_news.png' %}" alt="">
+                        </div>
+                        <div class="module-text">
+                            <h6 class="module-title">Manage news</h6>
+                            <span class="module-desc">Announcements</span>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
+                    <a href="{% url 'core:news' %}" class="module-link">
+                        <div class="module-icon">
+                            <img src="{% static 'img/blog-icon.png' %}" alt="">
+                        </div>
+                        <div class="module-text">
+                            <h6 class="module-title">Blog</h6>
+                            <span class="module-desc">Posts and articles</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
-
 {% endblock %}

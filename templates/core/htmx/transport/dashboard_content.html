@@ -1,5 +1,5 @@
 {% if warnings %}
-<div class="pw-card mt-4">
+<div class="product-card mt-4">
   <h6 class="mb-3"><i class="fas fa-triangle-exclamation text-warning me-2"></i>Compliance warnings</h6>
   <ul class="list-group list-group-flush">
     {% for w in warnings %}
@@ -11,7 +11,7 @@
   </ul>
 </div>
 {% else %}
-<div class="pw-card mt-4 text-muted">
+<div class="product-card mt-4 text-muted">
   <i class="fas fa-circle-check text-success me-2"></i>No compliance issues — all vehicle documents and driver licences are current.
 </div>
 {% endif %}

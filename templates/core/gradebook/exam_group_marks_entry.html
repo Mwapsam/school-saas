@@ -99,7 +99,7 @@
 <div class="modal fade" id="ratingsModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content" style="border-radius:0">
-            <div class="modal-header pw-brand">
+            <div class="product-modal-header">
                 <div>
                     <h5 class="modal-title mb-0"><i class="fas fa-pen-to-square me-2"></i>Homework &amp; Project Work</h5>
                     <small style="opacity:.85" id="rt-subtitle"></small>
@@ -156,7 +156,7 @@
 {% if batch_switcher|length > 1 %}
 <div class="mb-4" style="max-width:360px">
     <label for="batchSwitcher" class="form-label fw-semibold" style="font-size:0.85rem">Class / Batch</label>
-    <select id="batchSwitcher" class="pw-form-control" onchange="switchBatch(this.value)">
+    <select id="batchSwitcher" class="product-form-control" onchange="switchBatch(this.value)">
         {% for b in batch_switcher %}
             <option value="{{ b.exam_group_id }}"
                     {% if b.is_current %}selected{% endif %}
@@ -170,13 +170,13 @@
 {% endif %}
 
 <!-- Exam Group Info -->
-<div class="pw-card mb-4">
-    <div class="pw-card-header">
-        <span class="pw-card-title">{{ exam_group.name }}</span>
+<div class="product-card mb-4">
+    <div class="product-card-header">
+        <span class="product-card-title">{{ exam_group.name }}</span>
         {% if exam_group.is_published %}
-            <span class="pw-badge pw-badge-active">Active</span>
+            <span class="product-badge product-badge-active">Active</span>
         {% else %}
-            <span class="pw-badge pw-badge-zero">Inactive</span>
+            <span class="product-badge product-badge-zero">Inactive</span>
         {% endif %}
     </div>
     <div style="padding:1rem 1.25rem">
@@ -263,8 +263,8 @@
     </div>
 </div>
 
-<div class="pw-table-wrap" style="margin-bottom:2rem">
-    <table class="pw-table">
+<div class="product-table-wrap" style="margin-bottom:2rem">
+    <table class="product-table">
         <thead>
             <tr>
                 <th>{% if is_activity_exam %}Activity Subject{% else %}Subject{% endif %} ({{ batch_data.exams.count }})</th>
@@ -483,7 +483,7 @@
 <div class="modal fade" id="activitiesModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content" style="border-radius:0">
-            <div class="modal-header pw-brand">
+            <div class="product-modal-header">
                 <div>
                     <h5 class="modal-title mb-0"><i class="fas fa-clipboard-list me-2"></i>Clubs / Sports / Other</h5>
                     <small style="opacity:.85" id="act-subtitle"></small>
@@ -849,7 +849,7 @@ function showErrorModal(message) {
     const header = document.getElementById('result-modal-header');
     const title  = document.getElementById('result-modal-title');
     const body   = document.getElementById('result-modal-body');
-    header.className = 'modal-header pw-danger';
+    header.className = 'modal-header product-danger';
     title.innerHTML  = '<i class="fas fa-times-circle me-2"></i>Generation Failed';
     body.innerHTML   = `<p class="mb-0">${message}</p>`;
     resultsModal.show();

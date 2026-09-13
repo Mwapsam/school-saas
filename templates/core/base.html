@@ -1219,7 +1219,7 @@
             {% if messages %}
                 <div id="messages" class="d-flex flex-column gap-2 mb-3">
                     {% for message in messages %}
-                        <div class="pw-alert pw-alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                        <div class="  product-alert product-alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
                             <i class="fas {% if 'success' in message.tags %}fa-circle-check{% elif 'warning' in message.tags %}fa-triangle-exclamation{% elif 'error' in message.tags or 'danger' in message.tags %}fa-circle-xmark{% else %}fa-circle-info{% endif %}"></i>
                             <span class="flex-grow-1">{{ message }}</span>
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -1564,20 +1564,20 @@
     </div>
 
     <!-- ── Standardized feedback modals (success / confirm / danger) ── -->
-    <div class="pw-modal-backdrop" id="pw-feedback-modal">
-        <div class="pw-modal" role="dialog" aria-modal="true" aria-labelledby="pw-fb-title">
-            <div class="pw-modal-header" id="pw-fb-header">
-                <span class="pw-modal-title" id="pw-fb-title">Notice</span>
-                <button class="pw-modal-close" type="button" data-pw-dismiss aria-label="Close">&times;</button>
+    <div class="product-modal-backdrop" id="pw-feedback-modal">
+        <div class="product-modal" role="dialog" aria-modal="true" aria-labelledby="pw-fb-title">
+            <div class="product-modal-header" id="pw-fb-header">
+                <span class="product-modal-title" id="pw-fb-title">Notice</span>
+                <button class="product-modal-close" type="button" data-pw-dismiss aria-label="Close">&times;</button>
             </div>
-            <div class="pw-modal-body">
-                <div class="pw-modal-icon" id="pw-fb-icon"></div>
-                <p class="pw-modal-heading" id="pw-fb-heading"></p>
-                <p class="pw-modal-message" id="pw-fb-message"></p>
+            <div class="product-modal-body">
+                <div class="product-modal-icon" id="pw-fb-icon"></div>
+                <p class="product-modal-heading" id="pw-fb-heading"></p>
+                <p class="product-modal-message" id="pw-fb-message"></p>
             </div>
-            <div class="pw-modal-footer" id="pw-fb-footer">
-                <button class="pw-btn pw-btn-outline pw-btn-sm" type="button" id="pw-fb-cancel" data-pw-dismiss>Cancel</button>
-                <button class="pw-btn pw-btn-primary pw-btn-sm" type="button" id="pw-fb-ok">OK</button>
+            <div class="product-modal-footer" id="pw-fb-footer">
+                <button class="  product-btn product-btn-outline product-btn-sm" type="button" id="pw-fb-cancel" data-pw-dismiss>Cancel</button>
+                <button class="  product-btn product-btn-primary product-btn-sm" type="button" id="pw-fb-ok">OK</button>
             </div>
         </div>
     </div>

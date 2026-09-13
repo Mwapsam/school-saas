@@ -1,13 +1,13 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <span class="pw-card-title">Class Timetable</span>
-    <button class="pw-btn pw-btn-primary pw-btn-sm" onclick="addSchedule()">
+    <span class="product-card-title">Class Timetable</span>
+    <button class="  product-btn product-btn-primary product-btn-sm" onclick="addSchedule()">
         <i class="fas fa-plus"></i> Add Schedule
     </button>
 </div>
 
 {% if timetable_entries %}
-<div class="pw-table-wrap">
-    <table class="pw-table">
+<div class="product-table-wrap">
+    <table class="product-table">
         <thead>
             <tr>
                 <th>Day</th>
@@ -21,17 +21,17 @@
             {% for entry in timetable_entries %}
             <tr>
                 <td><strong>{{ entry.weekday.name }}</strong></td>
-                <td><span class="pw-card-meta">{{ entry.class_timing.start_time }} - {{ entry.class_timing.end_time }}</span></td>
+                <td><span class="product-card-meta">{{ entry.class_timing.start_time }} - {{ entry.class_timing.end_time }}</span></td>
                 <td>{{ entry.subject.name|default:"—" }}</td>
                 <td>
                     {% if entry.employee %}
                         {{ entry.employee.first_name }} {{ entry.employee.last_name }}
                     {% else %}
-                        <span class="pw-card-meta">Not assigned</span>
+                        <span class="product-card-meta">Not assigned</span>
                     {% endif %}
                 </td>
                 <td>
-                    <button class="pw-table-action" onclick="addSchedule()">Edit</button>
+                    <button class="product-table-action" onclick="addSchedule()">Edit</button>
                 </td>
             </tr>
             {% endfor %}
@@ -42,7 +42,7 @@
 <div class="pw-empty">
     <i class="fas fa-calendar-alt"></i>
     <h5>No timetable created</h5>
-    <button class="pw-btn pw-btn-primary pw-btn-sm" onclick="addSchedule()">
+    <button class="  product-btn product-btn-primary product-btn-sm" onclick="addSchedule()">
         <i class="fas fa-plus"></i> Create Timetable
     </button>
 </div>

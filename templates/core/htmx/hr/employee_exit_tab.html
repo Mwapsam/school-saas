@@ -3,7 +3,7 @@
 
     {% if not exit %}
         {% if 'hr.exit.manage' in perms %}
-        <div class="pw-card">
+        <div class="product-card">
             <h2 class="h6 fw-bold">Start exit process</h2>
             <form onsubmit="startExit(event, '{{ employee.id }}')">
                 <div class="row g-2">
@@ -22,7 +22,7 @@
         </div>
         {% else %}<p class="text-muted">No exit process has been started for this employee.</p>{% endif %}
     {% else %}
-        <div class="pw-card mb-3">
+        <div class="product-card mb-3">
             <dl class="row mb-0">
                 <dt class="col-sm-3">Type</dt><dd class="col-sm-9">{{ exit.get_exit_type_display }}</dd>
                 <dt class="col-sm-3">Notice date</dt><dd class="col-sm-9">{{ exit.notice_date|date:"M j, Y"|default:"—" }}</dd>
@@ -33,7 +33,7 @@
         </div>
 
         {% if 'hr.exit.manage' in perms and exit.status != 'completed' %}
-        <div class="pw-card mb-3">
+        <div class="product-card mb-3">
             <h2 class="h6 fw-bold">Update</h2>
             <form onsubmit="updateExit(event, '{{ exit.id }}')">
                 <div class="row g-2">

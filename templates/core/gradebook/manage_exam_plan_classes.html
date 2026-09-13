@@ -6,16 +6,16 @@
 
 {% block layout_header %}
 <nav aria-label="breadcrumb" class="mb-3">
-    <span class="pw-breadcrumb">
+    <span class="product-breadcrumb">
         <a href="{% url 'core:dashboard' %}">Home</a>
-        <span class="pw-breadcrumb-sep">›</span>
+        <span class="product-breadcrumb-sep">›</span>
         <a href="{% url 'core:gradebook_index' %}">Gradebook</a>
-        <span class="pw-breadcrumb-sep">›</span>
+        <span class="product-breadcrumb-sep">›</span>
         <a href="{% url 'core:exam_planners_list' %}">Exam Planner</a>
-        <span class="pw-breadcrumb-sep">›</span>
+        <span class="product-breadcrumb-sep">›</span>
         <a href="{% url 'core:exam_plan_detail' exam_plan.id %}">{{ exam_plan.name }}</a>
-        <span class="pw-breadcrumb-sep">›</span>
-        <span class="pw-breadcrumb-current">Manage Classes</span>
+        <span class="product-breadcrumb-sep">›</span>
+        <span class="product-breadcrumb-current">Manage Classes</span>
     </span>
 </nav>
 {% url 'core:exam_planners_list' as back_fallback %}
@@ -24,9 +24,9 @@
 
 {% block layout_sections %}
 <div class="gb-manage-plan-classes">
-<div class="pw-card mb-4">
-    <div class="pw-card-header">
-        <span class="pw-card-title">Classes in {{ course.course_name }}</span>
+<div class="product-card mb-4">
+    <div class="product-card-header">
+        <span class="product-card-title">Classes in {{ course.course_name }}</span>
         <span style="font-size:0.8rem;color:var(--color-muted)">
             Check a class to include it in this exam plan (its terms and exams will be copied over); uncheck to exclude it and permanently remove its exams for this plan.
         </span>

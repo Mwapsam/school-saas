@@ -39,10 +39,10 @@
 <!-- Exam Group Info -->
 
 
-<div class="pw-card mb-3">
+<div class="product-card mb-3">
 
 
-    <div class="pw-card-header"><span class="pw-card-title">Exam Group Details</span></div>
+    <div class="product-card-header"><span class="product-card-title">Exam Group Details</span></div>
 
 
     <div style="padding:1rem 1.25rem">
@@ -237,7 +237,7 @@
 {% if scoring_type == 'levels' %}
 
 
-<div class="pw-card mb-3" style="padding:0.75rem 1.25rem">
+<div class="product-card mb-3" style="padding:0.75rem 1.25rem">
 
 
     <div class="row g-2 align-items-center">
@@ -249,7 +249,7 @@
             <label class="form-label mb-0 fw-semibold" style="font-size:0.82rem">Academic Year</label>
 
 
-            <select id="sk-year" class="pw-form-control" style="width:200px">
+            <select id="sk-year" class="product-form-control" style="width:200px">
 
 
                 {% for ay in academic_years %}
@@ -273,7 +273,7 @@
             <label class="form-label mb-0 fw-semibold" style="font-size:0.82rem">Term</label>
 
 
-            <input id="sk-term" type="text" class="pw-form-control" style="width:140px"
+            <input id="sk-term" type="text" class="product-form-control" style="width:140px"
 
 
                    value="{{ term_name }}" placeholder="e.g. Term 1">
@@ -297,10 +297,10 @@
     <div class="col-md-4">
 
 
-        <div class="pw-card" style="padding:0">
+        <div class="product-card" style="padding:0">
 
 
-            <div class="pw-card-header"><span class="pw-card-title">Students ({{ students_with_scores|length }})</span></div>
+            <div class="product-card-header"><span class="product-card-title">Students ({{ students_with_scores|length }})</span></div>
 
 
             <div class="list-group list-group-flush me-sk-sidebar" style="max-height:calc(100vh - 380px);overflow-y:auto">
@@ -357,13 +357,13 @@
     <div class="col-md-8">
 
 
-        <div class="pw-card" style="padding:0">
+        <div class="product-card" style="padding:0">
 
 
-            <div class="pw-card-header">
+            <div class="product-card-header">
 
 
-                <span class="pw-card-title" id="sk-panel-title">Select a student to begin</span>
+                <span class="product-card-title" id="sk-panel-title">Select a student to begin</span>
 
 
                 <button id="sk-save-btn" class="btn btn-primary btn-sm d-none" onclick="skSave()">
@@ -441,10 +441,10 @@
 
 
 
-<div class="pw-table-wrap" style="margin-bottom:0">
+<div class="product-table-wrap" style="margin-bottom:0">
 
 
-    <table class="pw-table">
+    <table class="product-table">
 
 
         <thead>
@@ -758,7 +758,7 @@
         <div class="modal-content" style="border-radius:0">
 
 
-            <div class="modal-header pw-brand py-2">
+            <div class="modal-header product-brand py-2">
 
 
                 <h6 class="modal-title mb-0">
@@ -1257,7 +1257,7 @@ function showResult(success, message) {
     if (success) {
 
 
-        header.className = 'modal-header py-2 pw-brand';
+        header.className = 'modal-header py-2 product-brand';
 
 
         title.innerHTML  = '<i class="fas fa-check-circle me-2"></i>Saved';
@@ -1269,7 +1269,7 @@ function showResult(success, message) {
     } else {
 
 
-        header.className = 'modal-header py-2 pw-danger';
+        header.className = 'modal-header py-2 product-danger';
 
 
         title.innerHTML  = '<i class="fas fa-exclamation-triangle me-2"></i>Error';

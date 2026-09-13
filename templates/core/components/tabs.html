@@ -12,12 +12,12 @@ Params:
   items  (required) — list of {key, label, url?}
   active (required) — the current item's `key`
 {% endcomment %}
-<div class="pw-tabs">
+<div class="product-tabs">
   {% for item in items %}
     {% if item.url %}
-      <a href="{{ item.url }}" class="pw-tab{% if item.key == active %} active{% endif %}">{{ item.label }}</a>
+      <a href="{{ item.url }}" class="product-tab{% if item.key == active %} active{% endif %}">{{ item.label }}</a>
     {% else %}
-      <button type="button" class="pw-tab{% if item.key == active %} active{% endif %}" data-tab-key="{{ item.key }}">{{ item.label }}</button>
+      <button type="button" class="product-tab{% if item.key == active %} active{% endif %}" data-tab-key="{{ item.key }}">{{ item.label }}</button>
     {% endif %}
   {% endfor %}
 </div>

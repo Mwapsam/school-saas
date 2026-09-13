@@ -17,11 +17,11 @@ Params:
                        rendered on the right of the header (forces a header
                        even if `title` is omitted).
 {% endcomment %}
-<div class="pw-card">
+<div class="product-card">
   {% if title or actions %}
-  <div class="pw-card-header">
-    <span class="pw-card-title">{{ title }}</span>
-    {% if meta %}<span class="pw-card-meta">{{ meta }}</span>{% endif %}
+  <div class="product-card-header">
+    <span class="product-card-title">{{ title }}</span>
+    {% if meta %}<span class="product-card-meta">{{ meta }}</span>{% endif %}
     {% if actions %}
     <div class="d-flex gap-2">
       {% for action in actions %}

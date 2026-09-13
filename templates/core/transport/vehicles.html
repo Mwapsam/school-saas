@@ -9,25 +9,25 @@
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
     {% url 'core:transport' as back_fallback %}
     {% include 'core/components/page_header.html' with title="Vehicles" description="The transport fleet, with insurance and roadworthiness tracking." icon="fa-bus" back_url=back_url|default:back_fallback %}
-    <button type="button" class="pw-btn pw-btn-primary" onclick="transportOpenAdd('vehicles')"><i class="fas fa-plus me-1"></i>Add Vehicle</button>
+    <button type="button" class="  product-btn product-btn-primary" onclick="transportOpenAdd('vehicles')"><i class="fas fa-plus me-1"></i>Add Vehicle</button>
   </div>
 {% endblock %}
 
 {% block layout_filters %}
-  <form method="get" class="pw-card mb-3" hx-get="{% url 'core:transport_vehicle_list' %}" hx-target="#transport-vehicles-content" hx-trigger="submit">
+  <form method="get" class="product-card mb-3" hx-get="{% url 'core:transport_vehicle_list' %}" hx-target="#transport-vehicles-content" hx-trigger="submit">
     <div class="row g-2 align-items-end">
       <div class="col-md-5">
-        <label class="pw-form-label" for="search">Search</label>
-        <input class="pw-form-control" type="text" id="search" name="search" placeholder="Number, type or model">
+        <label class="product-form-label" for="search">Search</label>
+        <input class="product-form-control" type="text" id="search" name="search" placeholder="Number, type or model">
       </div>
       <div class="col-md-3">
-        <label class="pw-form-label" for="status">Status</label>
-        <select class="pw-form-control" id="status" name="status">
+        <label class="product-form-label" for="status">Status</label>
+        <select class="product-form-control" id="status" name="status">
           <option value="">All</option><option value="active">Active</option>
           <option value="maintenance">Maintenance</option><option value="inactive">Inactive</option>
         </select>
       </div>
-      <div class="col-md-auto"><button type="submit" class="pw-btn pw-btn-primary pw-btn-sm">Filter</button></div>
+      <div class="col-md-auto"><button type="submit" class="  product-btn product-btn-primary product-btn-sm">Filter</button></div>
     </div>
   </form>
 {% endblock %}

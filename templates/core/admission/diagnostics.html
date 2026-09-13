@@ -49,13 +49,13 @@
     <div class="col-md-8">
 
         {% if diagnostics.checks %}
-        <div class="pw-card" style="margin-bottom:16px">
-            <div class="pw-card-header">
-                <span class="pw-card-title">
+        <div class="product-card" style="margin-bottom:16px">
+            <div class="product-card-header">
+                <span class="product-card-title">
                     <i class="fas fa-check-circle me-2" style="color:#2e7d32" aria-hidden="true"></i>
                     Passed Checks
                 </span>
-                <span class="pw-card-meta">{{ diagnostics.checks|length }} check{{ diagnostics.checks|length|pluralize }}</span>
+                <span class="product-card-meta">{{ diagnostics.checks|length }} check{{ diagnostics.checks|length|pluralize }}</span>
             </div>
             <div style="padding:16px 20px">
                 {% for check in diagnostics.checks %}
@@ -77,13 +77,13 @@
         {% endif %}
 
         {% if diagnostics.warnings %}
-        <div class="pw-card" style="margin-bottom:16px">
-            <div class="pw-card-header">
-                <span class="pw-card-title">
+        <div class="product-card" style="margin-bottom:16px">
+            <div class="product-card-header">
+                <span class="product-card-title">
                     <i class="fas fa-exclamation-triangle me-2" style="color:#f57c00" aria-hidden="true"></i>
                     Warnings
                 </span>
-                <span class="pw-card-meta">{{ diagnostics.warnings|length }} warning{{ diagnostics.warnings|length|pluralize }}</span>
+                <span class="product-card-meta">{{ diagnostics.warnings|length }} warning{{ diagnostics.warnings|length|pluralize }}</span>
             </div>
             <div style="padding:16px 20px">
                 {% for warning in diagnostics.warnings %}
@@ -105,13 +105,13 @@
         {% endif %}
 
         {% if diagnostics.errors %}
-        <div class="pw-card" style="margin-bottom:16px">
-            <div class="pw-card-header">
-                <span class="pw-card-title">
+        <div class="product-card" style="margin-bottom:16px">
+            <div class="product-card-header">
+                <span class="product-card-title">
                     <i class="fas fa-exclamation-circle me-2" style="color:var(--color-danger)" aria-hidden="true"></i>
                     Critical Issues
                 </span>
-                <span class="pw-card-meta">{{ diagnostics.errors|length }} error{{ diagnostics.errors|length|pluralize }}</span>
+                <span class="product-card-meta">{{ diagnostics.errors|length }} error{{ diagnostics.errors|length|pluralize }}</span>
             </div>
             <div style="padding:16px 20px">
                 {% for error in diagnostics.errors %}
@@ -133,9 +133,9 @@
         {% endif %}
 
         {% if diagnostics.recommendations %}
-        <div class="pw-card">
-            <div class="pw-card-header">
-                <span class="pw-card-title">
+        <div class="product-card">
+            <div class="product-card-header">
+                <span class="product-card-title">
                     <i class="fas fa-lightbulb me-2" style="color:#1565c0" aria-hidden="true"></i>
                     Recommendations
                 </span>
@@ -157,9 +157,9 @@
     <div class="col-md-4">
 
         {# Application statistics #}
-        <div class="pw-card" style="margin-bottom:16px">
-            <div class="pw-card-header">
-                <span class="pw-card-title">
+        <div class="product-card" style="margin-bottom:16px">
+            <div class="product-card-header">
+                <span class="product-card-title">
                     <i class="fas fa-chart-bar me-2" style="color:var(--color-brand)" aria-hidden="true"></i>
                     Application Statistics
                 </span>
@@ -205,9 +205,9 @@
         </div>
 
         {# Quick actions #}
-        <div class="pw-card" style="margin-bottom:16px">
-            <div class="pw-card-header">
-                <span class="pw-card-title">
+        <div class="product-card" style="margin-bottom:16px">
+            <div class="product-card-header">
+                <span class="product-card-title">
                     <i class="fas fa-tools me-2" style="color:var(--color-brand)" aria-hidden="true"></i>
                     Quick Actions
                 </span>
@@ -231,9 +231,9 @@
         </div>
 
         {# School information #}
-        <div class="pw-card">
-            <div class="pw-card-header">
-                <span class="pw-card-title">
+        <div class="product-card">
+            <div class="product-card-header">
+                <span class="product-card-title">
                     <i class="fas fa-school me-2" style="color:var(--color-brand)" aria-hidden="true"></i>
                     School Information
                 </span>

@@ -6,14 +6,14 @@
 
 {% block layout_header %}
 <nav aria-label="breadcrumb" class="mb-3">
-    <span class="pw-breadcrumb">
+    <span class="product-breadcrumb">
         <a href="{% url 'core:dashboard' %}">Home</a>
-        <span class="pw-breadcrumb-sep">›</span>
+        <span class="product-breadcrumb-sep">›</span>
         <a href="{% url 'core:gradebook_index' %}">Gradebook</a>
-        <span class="pw-breadcrumb-sep">›</span>
+        <span class="product-breadcrumb-sep">›</span>
         <a href="{% url 'core:gradebook_management' %}">Manage Gradebook</a>
-        <span class="pw-breadcrumb-sep">›</span>
-        <span class="pw-breadcrumb-current">{{ course.course_name }}</span>
+        <span class="product-breadcrumb-sep">›</span>
+        <span class="product-breadcrumb-current">{{ course.course_name }}</span>
     </span>
 </nav>
 {% url 'core:exam_planners_list' as back_fallback %}
@@ -52,9 +52,9 @@
 {% endif %}
 
 <!-- Exam Year Plan Summary -->
-<div class="pw-card mb-4">
-    <div class="pw-card-header">
-        <span class="pw-card-title">Exam Year Plan</span>
+<div class="product-card mb-4">
+    <div class="product-card-header">
+        <span class="product-card-title">Exam Year Plan</span>
         <div style="display:flex;gap:0.5rem;align-items:center">
             {% if exam_planners %}
                 {% with planner=exam_planners.0 %}
@@ -103,15 +103,15 @@
 <div class="gb-class-exam-planner">
 <!-- Per-batch Exam Groups -->
 {% for planner in exam_planners %}
-<div class="pw-card mb-3">
+<div class="product-card mb-3">
     <div class="ep-batch-header">
         <div>
             <p class="ep-batch-title">
                 {{ planner.batch.name }}
                 {% if planner.is_published %}
-                    <span class="pw-badge pw-badge-active ms-2">Active</span>
+                    <span class="product-badge product-badge-active ms-2">Active</span>
                 {% else %}
-                    <span class="pw-badge pw-badge-zero ms-2">Inactive</span>
+                    <span class="product-badge product-badge-zero ms-2">Inactive</span>
                 {% endif %}
             </p>
             <p class="ep-batch-sub">{{ planner.name }}</p>

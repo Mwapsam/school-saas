@@ -1,7 +1,6 @@
 {% comment %}
-Pinewood dashboard nav tile — one link-card in a module dashboard's tile grid
-(the pattern behind the admission/gradebook/hr/finance dashboards' repeated
-hand-written "gb-card" markup, discovered during Phase 2a migration).
+Product UI dashboard nav tile — one link-card in a module dashboard's tile grid
+Modernized from Pinewood gb-card to product-ui design system (Phase 4a).
 
 Usage:
   <div class="row g-3">
@@ -18,11 +17,11 @@ Params:
   description (optional) — muted line under the title
   url         (required) — link target
 {% endcomment %}
-<a href="{{ url }}" class="gb-card">
-  <div class="gb-card-icon"><i class="fas {{ icon }}"></i></div>
-  <div class="gb-card-body">
-    <p class="gb-card-title">{{ title }}</p>
-    {% if description %}<p class="gb-card-desc">{{ description }}</p>{% endif %}
+<a href="{{ url }}" class="product-card-grid">
+  <div class="product-card-icon"><i class="fas {{ icon }}"></i></div>
+  <div class="product-card-body">
+    <p class="product-card-title">{{ title }}</p>
+    {% if description %}<p class="product-card-desc">{{ description }}</p>{% endif %}
   </div>
-  <i class="fas fa-chevron-right gb-card-arrow"></i>
+  <i class="fas fa-chevron-right product-card-arrow"></i>
 </a>

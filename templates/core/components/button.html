@@ -19,7 +19,7 @@ Params:
 {% endcomment %}
 {% if url %}
 <a href="{% if disabled %}#{% else %}{{ url }}{% endif %}"
-   class="pw-btn pw-btn-{{ variant|default:'primary' }}{% if size == 'sm' %} pw-btn-sm{% endif %}"
+   class="  product-btn pw-btn-{{ variant|default:'primary' }}{% if size == 'sm' %} product-btn-sm{% endif %}"
    {% if disabled %}aria-disabled="true" tabindex="-1"{% endif %}
    {% if attrs %}{{ attrs|safe }}{% endif %}>
   {% if loading %}<span class="loading-spinner"></span>{% elif icon %}<i class="fas {{ icon }}"></i>{% endif %}
@@ -27,7 +27,7 @@ Params:
 </a>
 {% else %}
 <button type="{{ type|default:'button' }}"
-        class="pw-btn pw-btn-{{ variant|default:'primary' }}{% if size == 'sm' %} pw-btn-sm{% endif %}"
+        class="  product-btn pw-btn-{{ variant|default:'primary' }}{% if size == 'sm' %} product-btn-sm{% endif %}"
         {% if disabled %}disabled{% endif %}
         {% if attrs %}{{ attrs|safe }}{% endif %}>
   {% if loading %}<span class="loading-spinner"></span>{% elif icon %}<i class="fas {{ icon }}"></i>{% endif %}

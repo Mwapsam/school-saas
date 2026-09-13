@@ -16,11 +16,11 @@ Params:
                                    rendered as a select via components/form_field.html
   clear_url           (optional) — if given, shows a "Clear" link next to Filter
 {% endcomment %}
-<form method="get" class="pw-card mb-3">
+<form method="get" class="product-card mb-3">
   <div class="row g-2 align-items-end">
     <div class="col-md-4">
-      <label class="pw-form-label" for="{{ search_name|default:'query' }}">Search</label>
-      <input class="pw-form-control" type="text" id="{{ search_name|default:'query' }}" name="{{ search_name|default:'query' }}" value="{{ search_value|default_if_none:'' }}" placeholder="{{ search_placeholder }}">
+      <label class="product-form-label" for="{{ search_name|default:'query' }}">Search</label>
+      <input class="product-form-control" type="text" id="{{ search_name|default:'query' }}" name="{{ search_name|default:'query' }}" value="{{ search_value|default_if_none:'' }}" placeholder="{{ search_placeholder }}">
     </div>
     {% for f in filters %}
     <div class="col-md-3">

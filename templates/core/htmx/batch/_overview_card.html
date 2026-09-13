@@ -1,17 +1,17 @@
-<div class="pw-card mb-4" id="batch-overview-card">
-    <div class="pw-card-header">
-        <span class="pw-card-title">Batch Overview</span>
-        <span class="pw-card-meta">{{ batch.start_date|date:"d M Y" }} – {{ batch.end_date|date:"d M Y" }}</span>
+<div class="product-card mb-4" id="batch-overview-card">
+    <div class="product-card-header">
+        <span class="product-card-title">Batch Overview</span>
+        <span class="product-card-meta">{{ batch.start_date|date:"d M Y" }} – {{ batch.end_date|date:"d M Y" }}</span>
     </div>
     <div class="row g-3">
         <div class="col-6 col-md-3">
-            <small class="pw-card-meta d-block mb-1">Class</small>
+            <small class="product-card-meta d-block mb-1">Class</small>
             <strong>{{ batch.course.course_name }}</strong>
         </div>
         <div class="col-6 col-md-4">
             <div class="mb-1">
-                <small class="pw-card-meta">Class Teacher(s)</small>
-                <button class="pw-table-action" onclick="openAssignTeachers()" title="Assign class teachers">Assign</button>
+                <small class="product-card-meta">Class Teacher(s)</small>
+                <button class="product-table-action" onclick="openAssignTeachers()" title="Assign class teachers">Assign</button>
             </div>
             <strong>
                 {% with names=batch.class_teacher_names %}
@@ -20,11 +20,11 @@
             </strong>
         </div>
         <div class="col-6 col-md-2">
-            <small class="pw-card-meta d-block mb-1">Grading</small>
+            <small class="product-card-meta d-block mb-1">Grading</small>
             <strong>{{ batch.grading_type|default:"—" }}</strong>
         </div>
         <div class="col-6 col-md-3">
-            <small class="pw-card-meta d-block mb-1">Status</small>
+            <small class="product-card-meta d-block mb-1">Status</small>
             <strong>{% if batch.is_active %}Active{% else %}Closed{% endif %}</strong>
         </div>
     </div>

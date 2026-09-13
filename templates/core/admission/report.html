@@ -112,16 +112,16 @@
         </div>
 
         {# Applications table #}
-        <div class="pw-card">
-            <div class="pw-card-header">
-                <span class="pw-card-title">
+        <div class="product-card">
+            <div class="product-card-header">
+                <span class="product-card-title">
                     <i class="fas fa-list me-2" style="color:var(--color-brand)" aria-hidden="true"></i>
                     Applications
                 </span>
-                <span class="pw-card-meta">{{ applications|length }} record{{ applications|length|pluralize }}</span>
+                <span class="product-card-meta">{{ applications|length }} record{{ applications|length|pluralize }}</span>
             </div>
-            <div class="pw-table-wrap">
-                <table class="pw-table">
+            <div class="product-table-wrap">
+                <table class="product-table">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -217,9 +217,9 @@
     <div class="col-lg-4">
 
         {# Approval rate #}
-        <div class="pw-card" style="margin-bottom:16px">
-            <div class="pw-card-header">
-                <span class="pw-card-title">
+        <div class="product-card" style="margin-bottom:16px">
+            <div class="product-card-header">
+                <span class="product-card-title">
                     <i class="fas fa-percent me-2" style="color:var(--color-brand)" aria-hidden="true"></i>
                     Approval Rate
                 </span>
@@ -238,9 +238,9 @@
         </div>
 
         {# By status #}
-        <div class="pw-card" style="margin-bottom:16px">
-            <div class="pw-card-header">
-                <span class="pw-card-title">
+        <div class="product-card" style="margin-bottom:16px">
+            <div class="product-card-header">
+                <span class="product-card-title">
                     <i class="fas fa-layer-group me-2" style="color:var(--color-brand)" aria-hidden="true"></i>
                     By Status
                 </span>
@@ -262,9 +262,9 @@
 
         {# By course #}
         {% if course_breakdown %}
-        <div class="pw-card">
-            <div class="pw-card-header">
-                <span class="pw-card-title">
+        <div class="product-card">
+            <div class="product-card-header">
+                <span class="product-card-title">
                     <i class="fas fa-graduation-cap me-2" style="color:var(--color-brand)" aria-hidden="true"></i>
                     By Course
                 </span>

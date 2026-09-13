@@ -81,7 +81,7 @@
                 <input type="hidden" name="action" value="edit">
                 <input type="hidden" name="news_id" value="{{ article.id }}">
                 <div class="modal-content" style="border-radius:0">
-                    <div class="modal-header pw-brand">
+                    <div class="product-modal-header">
                         <h5 class="modal-title">Edit Article</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
@@ -152,7 +152,7 @@
             {% csrf_token %}
             <input type="hidden" name="action" value="create">
             <div class="modal-content" style="border-radius:0">
-                <div class="modal-header pw-brand">
+                <div class="product-modal-header">
                     <h5 class="modal-title">New Article</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>

@@ -49,17 +49,17 @@
 </form>
 
 {# ── Templates table ── #}
-<div class="pw-card">
-    <div class="pw-card-header">
-        <span class="pw-card-title">
+<div class="product-card">
+    <div class="product-card-header">
+        <span class="product-card-title">
             <i class="fas fa-list me-1" aria-hidden="true"></i>Templates
         </span>
-        <span class="pw-card-meta">{{ templates|length }} template{{ templates|length|pluralize }}</span>
+        <span class="product-card-meta">{{ templates|length }} template{{ templates|length|pluralize }}</span>
     </div>
 
     {% if templates %}
-    <div class="pw-table-wrap">
-        <table class="pw-table">
+    <div class="product-table-wrap">
+        <table class="product-table">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -87,7 +87,7 @@
                         {% endif %}
                     </td>
                     <td class="d-none d-md-table-cell">
-                        <span class="pw-badge pw-badge-zero">{{ template.term }}</span>
+                        <span class="product-badge product-badge-zero">{{ template.term }}</span>
                     </td>
                     <td class="d-none d-md-table-cell" style="font-size:12px;color:var(--color-muted)">
                         {{ template.academic_year.name }}
@@ -204,7 +204,7 @@
 <div class="modal fade" id="createTemplateModal" tabindex="-1" aria-labelledby="createModalTitle">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header pw-brand">
+            <div class="product-modal-header">
                 <h5 class="modal-title" id="createModalTitle">
                     <i class="fas fa-plus me-2" aria-hidden="true"></i>Create Report Template
                 </h5>
@@ -229,7 +229,7 @@
 <div class="modal fade" id="editTemplateModal" tabindex="-1" aria-labelledby="editModalTitle">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header pw-brand">
+            <div class="product-modal-header">
                 <h5 class="modal-title" id="editModalTitle">
                     <i class="fas fa-pencil-alt me-2" aria-hidden="true"></i>Edit Report Template
                 </h5>

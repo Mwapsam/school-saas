@@ -1,5 +1,5 @@
 {% comment %}
-Pinewood page header. Two layouts, chosen automatically:
+Product UI page header. Two layouts, chosen automatically (Phase 4a modernization):
 
   - Breadcrumb style (default) — a small breadcrumb trail above a plain title.
     Used when no `icon` is given.
@@ -27,7 +27,7 @@ Params:
                             of this param switches to icon-box style
   actions      (optional) — list of dicts passed straight to components/button.html
                             (label, url, variant, icon, type, size, disabled, attrs)
-  back_url     (optional) — renders a styled ".pw-page-back" button above the
+  back_url     (optional) — renders a styled ".product-page-back" button above the
                             header (both styles). Pass a per-page fallback via
                             {% url 'core:parent' as back_fallback %} +
                             back_url=back_url|default:back_fallback so every page
@@ -41,18 +41,18 @@ tolerates missing variables when they're the base of a filter, not when
 they're a filter *argument*. Keep using {% firstof %} for any future
 optional-alias params here.
 {% endcomment %}
-{% if back_url %}<a href="{{ back_url }}" class="pw-page-back"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back</a>{% endif %}
+{% if back_url %}<a href="{{ back_url }}" class="product-page-back"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back</a>{% endif %}
 {% if icon %}
 <div class="page-header{% if variant == 'compact' %} page-header--compact{% endif %}">
   <div class="page-header__icon"><i class="fas {{ icon }}" aria-hidden="true"></i></div>
   <div style="flex:1">
     {% if breadcrumbs or crumbs %}
-    <nav class="pw-breadcrumb" aria-label="breadcrumb">
+    <nav class="product-breadcrumb" aria-label="breadcrumb">
       {% for c in breadcrumbs %}
-        {% if c.url and not forloop.last %}<a href="{{ c.url }}">{{ c.label }}</a><span class="pw-breadcrumb-sep">›</span>{% else %}<span class="pw-breadcrumb-current">{{ c.label }}</span>{% endif %}
+        {% if c.url and not forloop.last %}<a href="{{ c.url }}">{{ c.label }}</a><span class="product-breadcrumb-sep">›</span>{% else %}<span class="product-breadcrumb-current">{{ c.label }}</span>{% endif %}
       {% endfor %}
       {% for c in crumbs %}
-        {% if c.url and not forloop.last %}<a href="{{ c.url }}">{{ c.label }}</a><span class="pw-breadcrumb-sep">›</span>{% else %}<span class="pw-breadcrumb-current">{{ c.label }}</span>{% endif %}
+        {% if c.url and not forloop.last %}<a href="{{ c.url }}">{{ c.label }}</a><span class="product-breadcrumb-sep">›</span>{% else %}<span class="product-breadcrumb-current">{{ c.label }}</span>{% endif %}
       {% endfor %}
     </nav>
     {% endif %}
@@ -74,23 +74,23 @@ optional-alias params here.
   {% endif %}
 </div>
 {% else %}
-<nav class="pw-breadcrumb" aria-label="breadcrumb">
+<nav class="product-breadcrumb" aria-label="breadcrumb">
   {% for c in breadcrumbs %}
     {% if c.url and not forloop.last %}
-      <a href="{{ c.url }}">{{ c.label }}</a><span class="pw-breadcrumb-sep">›</span>
+      <a href="{{ c.url }}">{{ c.label }}</a><span class="product-breadcrumb-sep">›</span>
     {% else %}
-      <span class="pw-breadcrumb-current">{{ c.label }}</span>
+      <span class="product-breadcrumb-current">{{ c.label }}</span>
     {% endif %}
   {% endfor %}
   {% for c in crumbs %}
     {% if c.url and not forloop.last %}
-      <a href="{{ c.url }}">{{ c.label }}</a><span class="pw-breadcrumb-sep">›</span>
+      <a href="{{ c.url }}">{{ c.label }}</a><span class="product-breadcrumb-sep">›</span>
     {% else %}
-      <span class="pw-breadcrumb-current">{{ c.label }}</span>
+      <span class="product-breadcrumb-current">{{ c.label }}</span>
     {% endif %}
   {% endfor %}
 </nav>
-<h1 class="pw-page-title">{{ title }}</h1>
+<h1 class="product-page-title">{{ title }}</h1>
 {% firstof description subtitle as header_description %}
-{% if header_description %}<p class="pw-page-subtitle">{{ header_description }}</p>{% endif %}
+{% if header_description %}<p class="product-page-subtitle">{{ header_description }}</p>{% endif %}
 {% endif %}

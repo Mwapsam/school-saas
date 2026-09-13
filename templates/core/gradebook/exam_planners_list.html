@@ -6,12 +6,12 @@
 
 {% block layout_header %}
 <nav aria-label="breadcrumb" class="mb-3">
-    <span class="pw-breadcrumb">
+    <span class="product-breadcrumb">
         <a href="{% url 'core:dashboard' %}">Home</a>
-        <span class="pw-breadcrumb-sep">›</span>
+        <span class="product-breadcrumb-sep">›</span>
         <a href="{% url 'core:gradebook_index' %}">Gradebook</a>
-        <span class="pw-breadcrumb-sep">›</span>
-        <span class="pw-breadcrumb-current">Exam Planner</span>
+        <span class="product-breadcrumb-sep">›</span>
+        <span class="product-breadcrumb-current">Exam Planner</span>
     </span>
 </nav>
 {% url 'core:gradebook_index' as back_fallback %}
@@ -89,12 +89,12 @@
 {% include 'core/components/modal.html' with id="importPlannerModal" title="Import Exam Planner" %}
     <div class="mb-3">
         <label for="plannerFile" class="form-label fw-semibold">Choose Planner File</label>
-        <input type="file" class="pw-form-control" id="plannerFile" accept=".csv,.xlsx,.json">
+        <input type="file" class="product-form-control" id="plannerFile" accept=".csv,.xlsx,.json">
         <div class="form-text">Supported formats: CSV, Excel, JSON</div>
     </div>
     <div class="mb-3">
         <label for="plannerName" class="form-label fw-semibold">Planner Name</label>
-        <input type="text" class="pw-form-control" id="plannerName" placeholder="Enter planner name">
+        <input type="text" class="product-form-control" id="plannerName" placeholder="Enter planner name">
     </div>
 {% include 'core/components/modal_close.html' with footer=import_planner_footer %}
 </form>

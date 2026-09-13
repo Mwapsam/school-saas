@@ -2,7 +2,7 @@
     <div id="employee-documents-errors" class="alert alert-danger d-none"></div>
 
     {% if 'hr.document.manage' in perms %}
-    <div class="pw-card mb-3">
+    <div class="product-card mb-3">
         <h2 class="h6 fw-bold">Upload document</h2>
         <form onsubmit="submitDocumentUpload(event, '{{ employee.id }}')" enctype="multipart/form-data">
             <div class="row g-2">

@@ -53,7 +53,7 @@
   <form style="display:none">{% csrf_token %}</form>
   <div class="tab-content pt-3">
     <div class="tab-pane fade show active" id="tab-personal">
-      <div class="pw-card">
+      <div class="product-card">
         <dl class="row mb-0">
           <dt class="col-sm-3">Full name</dt><dd class="col-sm-9">{{ employee.full_name }}</dd>
           <dt class="col-sm-3">Date of birth</dt><dd class="col-sm-9">{{ employee.date_of_birth|date:"M j, Y"|default:"—" }}</dd>
@@ -67,7 +67,7 @@
     </div>
 
     <div class="tab-pane fade" id="tab-employment">
-      <div class="pw-card">
+      <div class="product-card">
         <dl class="row mb-0">
           <dt class="col-sm-3">Employee #</dt><dd class="col-sm-9">{{ employee.employee_number }}</dd>
           <dt class="col-sm-3">Department</dt><dd class="col-sm-9">{{ employee.employee_department.name|default:"—" }}</dd>
@@ -83,45 +83,45 @@
     </div>
 
     <div class="tab-pane fade" id="tab-contract">
-      <div class="pw-card"><p class="text-muted mb-0">Loading contracts…</p></div>
+      <div class="product-card"><p class="text-muted mb-0">Loading contracts…</p></div>
     </div>
 
     <div class="tab-pane fade" id="tab-qualifications">
-      <div class="pw-card"><p class="text-muted mb-0">Loading qualifications…</p></div>
+      <div class="product-card"><p class="text-muted mb-0">Loading qualifications…</p></div>
     </div>
 
     <div class="tab-pane fade" id="tab-history">
-      <div class="pw-card"><p class="text-muted mb-0">Loading history…</p></div>
+      <div class="product-card"><p class="text-muted mb-0">Loading history…</p></div>
     </div>
 
     <div class="tab-pane fade" id="tab-onboarding">
-      <div class="pw-card"><p class="text-muted mb-0">Loading onboarding…</p></div>
+      <div class="product-card"><p class="text-muted mb-0">Loading onboarding…</p></div>
     </div>
 
     <div class="tab-pane fade" id="tab-performance">
-      <div class="pw-card"><p class="text-muted mb-0">Loading performance…</p></div>
+      <div class="product-card"><p class="text-muted mb-0">Loading performance…</p></div>
     </div>
 
     <div class="tab-pane fade" id="tab-training">
-      <div class="pw-card"><p class="text-muted mb-0">Loading training…</p></div>
+      <div class="product-card"><p class="text-muted mb-0">Loading training…</p></div>
     </div>
 
     <div class="tab-pane fade" id="tab-exit">
-      <div class="pw-card"><p class="text-muted mb-0">Loading exit…</p></div>
+      <div class="product-card"><p class="text-muted mb-0">Loading exit…</p></div>
     </div>
 
     {% if 'hr.disciplinary.view' in perms %}
     <div class="tab-pane fade" id="tab-disciplinary">
-      <div class="pw-card"><p class="text-muted mb-0">Loading disciplinary…</p></div>
+      <div class="product-card"><p class="text-muted mb-0">Loading disciplinary…</p></div>
     </div>
     {% endif %}
 
     <div class="tab-pane fade" id="tab-teaching">
-      <div class="pw-card">
+      <div class="product-card">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <h2 class="h6 fw-bold mb-0">Subjects taught</h2>
           {% if 'hr.employee.manage' in perms %}
-          <a class="pw-btn pw-btn-outline pw-btn-sm" href="{% url 'core:hr_subject_assignments' %}?employee={{ employee.id }}"><i class="fas fa-edit me-1"></i>Manage</a>
+          <a class="  product-btn product-btn-outline product-btn-sm" href="{% url 'core:hr_subject_assignments' %}?employee={{ employee.id }}"><i class="fas fa-edit me-1"></i>Manage</a>
           {% endif %}
         </div>
         <ul class="mb-0">
@@ -176,7 +176,7 @@
     </div>
 
     <div class="tab-pane fade" id="tab-payroll">
-      <div class="pw-card">
+      <div class="product-card">
         {% if payroll_profile %}
           <dl class="row mb-0">
             <dt class="col-sm-3">Payroll group</dt><dd class="col-sm-9">{{ payroll_profile.payroll_group.name|default:"—" }}</dd>
@@ -190,11 +190,11 @@
     </div>
 
     <div class="tab-pane fade" id="tab-documents">
-      <div class="pw-card"><p class="text-muted mb-0">Loading documents…</p></div>
+      <div class="product-card"><p class="text-muted mb-0">Loading documents…</p></div>
     </div>
 
     <div class="tab-pane fade" id="tab-roles">
-      <div class="pw-card">
+      <div class="product-card">
         <p class="text-muted mb-0">Loading roles…</p>
       </div>
     </div>

@@ -25,39 +25,39 @@
 {% include 'core/htmx/reassign_teacher_modal.html' %}
 
 <!-- Import Students Modal (Pinewood UI) -->
-<div id="importStudentsModal" class="pw-modal-backdrop">
-    <div class="pw-modal" style="max-width:660px">
-        <div class="pw-modal-header">
-            <span class="pw-modal-title"><i class="fas fa-user-plus me-2"></i>Promote / Import Students</span>
-            <button class="pw-modal-close" onclick="closeImportStudents()" aria-label="Close">&times;</button>
+<div id="importStudentsModal" class="product-modal-backdrop">
+    <div class="product-modal" style="max-width:660px">
+        <div class="product-modal-header">
+            <span class="product-modal-title"><i class="fas fa-user-plus me-2"></i>Promote / Import Students</span>
+            <button class="product-modal-close" onclick="closeImportStudents()" aria-label="Close">&times;</button>
         </div>
-        <div class="pw-modal-body">
-            <p class="pw-card-meta mb-3">Promote students into <strong>{{ batch.name }}</strong>. Pick a year, choose the source batch, then select who to move. Selected students are <strong>removed from the source batch</strong> and their academic records are preserved.</p>
+        <div class="product-modal-body">
+            <p class="product-card-meta mb-3">Promote students into <strong>{{ batch.name }}</strong>. Pick a year, choose the source batch, then select who to move. Selected students are <strong>removed from the source batch</strong> and their academic records are preserved.</p>
             <div class="row g-2">
-                <div class="col-md-6 pw-form-group">
-                    <label class="pw-form-label" for="importYear">Academic Year</label>
-                    <select class="pw-form-control" id="importYear" onchange="loadImportSourceBatches()">
+                <div class="col-md-6 product-form-group">
+                    <label class="product-form-label" for="importYear">Academic Year</label>
+                    <select class="product-form-control" id="importYear" onchange="loadImportSourceBatches()">
                         <option value="">Select year…</option>
                     </select>
                 </div>
-                <div class="col-md-6 pw-form-group">
-                    <label class="pw-form-label" for="importSourceBatch">Source Batch</label>
-                    <select class="pw-form-control" id="importSourceBatch" onchange="loadImportStudents()" disabled>
+                <div class="col-md-6 product-form-group">
+                    <label class="product-form-label" for="importSourceBatch">Source Batch</label>
+                    <select class="product-form-control" id="importSourceBatch" onchange="loadImportStudents()" disabled>
                         <option value="">Select batch…</option>
                     </select>
                 </div>
             </div>
-            <div class="pw-form-group">
-                <input type="text" class="pw-form-control" id="importSearch" placeholder="Filter listed students…" oninput="filterImportRows()" disabled>
+            <div class="product-form-group">
+                <input type="text" class="product-form-control" id="importSearch" placeholder="Filter listed students…" oninput="filterImportRows()" disabled>
             </div>
             <div id="importStudentsArea">
-                <div class="pw-alert pw-alert-info" style="margin-top:4px"><i class="fas fa-info-circle"></i> Choose an academic year and source batch to list students.</div>
+                <div class="product-alert product-alert-info" style="margin-top:4px"><i class="fas fa-info-circle"></i> Choose an academic year and source batch to list students.</div>
             </div>
         </div>
-        <div class="pw-modal-footer">
-            <span id="importSelCount" class="pw-card-meta" style="margin-right:auto"></span>
-            <button class="pw-btn pw-btn-outline pw-btn-sm" onclick="closeImportStudents()">Cancel</button>
-            <button class="pw-btn pw-btn-primary pw-btn-sm" id="importSubmitBtn" onclick="submitImportStudents()" disabled>Promote Selected</button>
+        <div class="product-modal-footer">
+            <span id="importSelCount" class="product-card-meta" style="margin-right:auto"></span>
+            <button class="  product-btn product-btn-outline product-btn-sm" onclick="closeImportStudents()">Cancel</button>
+            <button class="  product-btn product-btn-primary product-btn-sm" id="importSubmitBtn" onclick="submitImportStudents()" disabled>Promote Selected</button>
         </div>
     </div>
 </div>
@@ -100,25 +100,25 @@
 </div>
 
 <!-- Assign Class Teachers Modal (Pinewood UI) -->
-<div id="assignTeachersModal" class="pw-modal-backdrop">
-    <div class="pw-modal" style="max-width:520px">
-        <div class="pw-modal-header">
-            <span class="pw-modal-title"><i class="fas fa-chalkboard-teacher me-2"></i>Assign Class Teachers</span>
-            <button class="pw-modal-close" onclick="closeAssignTeachers()" aria-label="Close">&times;</button>
+<div id="assignTeachersModal" class="product-modal-backdrop">
+    <div class="product-modal" style="max-width:520px">
+        <div class="product-modal-header">
+            <span class="product-modal-title"><i class="fas fa-chalkboard-teacher me-2"></i>Assign Class Teachers</span>
+            <button class="product-modal-close" onclick="closeAssignTeachers()" aria-label="Close">&times;</button>
         </div>
-        <div class="pw-modal-body">
-            <p class="pw-card-meta mb-3">Select the class teacher(s) responsible for <strong>{{ batch.name }}</strong>.</p>
-            <div class="pw-form-group">
-                <input type="text" class="pw-form-control" id="assignSearch" placeholder="Search teachers…" oninput="filterAssignRows()">
+        <div class="product-modal-body">
+            <p class="product-card-meta mb-3">Select the class teacher(s) responsible for <strong>{{ batch.name }}</strong>.</p>
+            <div class="product-form-group">
+                <input type="text" class="product-form-control" id="assignSearch" placeholder="Search teachers…" oninput="filterAssignRows()">
             </div>
             <div id="assignTeachersArea">
                 <div class="text-center text-muted py-4" style="font-size:13px"><i class="fas fa-spinner fa-spin"></i> Loading…</div>
             </div>
         </div>
-        <div class="pw-modal-footer">
-            <span id="assignSelCount" class="pw-card-meta" style="margin-right:auto"></span>
-            <button class="pw-btn pw-btn-outline pw-btn-sm" onclick="closeAssignTeachers()">Cancel</button>
-            <button class="pw-btn pw-btn-primary pw-btn-sm" id="assignSubmitBtn" onclick="submitAssignTeachers()">Save</button>
+        <div class="product-modal-footer">
+            <span id="assignSelCount" class="product-card-meta" style="margin-right:auto"></span>
+            <button class="  product-btn product-btn-outline product-btn-sm" onclick="closeAssignTeachers()">Cancel</button>
+            <button class="  product-btn product-btn-primary product-btn-sm" id="assignSubmitBtn" onclick="submitAssignTeachers()">Save</button>
         </div>
     </div>
 </div>
@@ -226,7 +226,7 @@ function openImportStudents() {
     const search = document.getElementById('importSearch');
     search.value = ''; search.disabled = true;
     document.getElementById('importStudentsArea').innerHTML =
-        '<div class="pw-alert pw-alert-info" style="margin-top:4px"><i class="fas fa-info-circle"></i> Choose an academic year and source batch to list students.</div>';
+        '<div class="product-alert product-alert-info" style="margin-top:4px"><i class="fas fa-info-circle"></i> Choose an academic year and source batch to list students.</div>';
     document.getElementById('importSubmitBtn').disabled = true;
     document.getElementById('importSelCount').textContent = '';
 
@@ -284,7 +284,7 @@ function loadImportSourceBatches() {
 
 function resetImportList(message) {
     document.getElementById('importStudentsArea').innerHTML =
-        `<div class="pw-alert pw-alert-info" style="margin-top:4px"><i class="fas fa-info-circle"></i> ${message}</div>`;
+        `<div class="product-alert product-alert-info" style="margin-top:4px"><i class="fas fa-info-circle"></i> ${message}</div>`;
     const search = document.getElementById('importSearch');
     search.value = ''; search.disabled = true;
     document.getElementById('importSubmitBtn').disabled = true;
@@ -312,12 +312,12 @@ function loadImportStudents() {
                     <tr class="import-row" data-name="${(s.full_name || '').toLowerCase()}" data-adm="${(s.admission_no || '').toLowerCase()}">
                         <td><input type="checkbox" class="import-check" value="${s.id}" onchange="updateImportCount()"></td>
                         <td><strong>${s.full_name}</strong></td>
-                        <td><span class="pw-badge pw-badge-active">${s.admission_no}</span></td>
+                        <td><span class="product-badge product-badge-active">${s.admission_no}</span></td>
                     </tr>`;
             });
             document.getElementById('importStudentsArea').innerHTML = `
-                <div class="pw-table-wrap" style="max-height:320px;overflow-y:auto">
-                    <table class="pw-table">
+                <div class="product-table-wrap" style="max-height:320px;overflow-y:auto">
+                    <table class="product-table">
                         <thead><tr>
                             <th style="width:40px"><input type="checkbox" id="importSelectAll" onclick="toggleImportAll(this)"></th>
                             <th>Student</th>
@@ -498,7 +498,7 @@ function loadAssignTeachers() {
             const teachers = data.teachers || [];
             if (!teachers.length) {
                 document.getElementById('assignTeachersArea').innerHTML =
-                    '<div class="pw-alert pw-alert-info"><i class="fas fa-info-circle"></i> No employees available to assign.</div>';
+                    '<div class="product-alert product-alert-info"><i class="fas fa-info-circle"></i> No employees available to assign.</div>';
                 return;
             }
             let rows = '';
@@ -510,8 +510,8 @@ function loadAssignTeachers() {
                     </tr>`;
             });
             document.getElementById('assignTeachersArea').innerHTML = `
-                <div class="pw-table-wrap" style="max-height:320px;overflow-y:auto">
-                    <table class="pw-table">
+                <div class="product-table-wrap" style="max-height:320px;overflow-y:auto">
+                    <table class="product-table">
                         <thead><tr><th style="width:40px"></th><th>Teacher</th></tr></thead>
                         <tbody id="assignTeacherRows">${rows}</tbody>
                     </table>
