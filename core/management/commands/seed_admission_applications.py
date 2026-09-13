@@ -2,7 +2,7 @@
 Management command to seed sample admission applications for testing
 """
 from django.core.management.base import BaseCommand
-from core.models import School, AdmissionApplication, Course
+from core.models import School, ExtendedAdmissionApplication, Course
 from datetime import date, timedelta
 import random
 
@@ -80,7 +80,7 @@ class Command(BaseCommand):
         start_date = today - timedelta(days=90)
 
         # Get existing app count to ensure unique numbering
-        existing_count = AdmissionApplication.objects.filter(tenant=school).count()
+        existing_count = ExtendedAdmissionApplication.objects.filter(tenant=school).count()
 
         created_count = 0
         for i in range(count):
@@ -108,17 +108,19 @@ class Command(BaseCommand):
             guardian_email = f"{guardian_first.lower()}.{guardian_last.lower()}@school.local"
             guardian_phone = f"+26097{random.randint(1000000, 9999999)}"
 
-            # Status distribution: more pending than others
-            if i < count * 0.4:
-                status = 'pending'
+            # Status distribution: more submitted than others
+            if i < count * 0.2:
+                status = 'draft'
+            elif i < count * 0.4:
+                status = 'submitted'
             elif i < count * 0.6:
                 status = 'under_review'
             elif i < count * 0.8:
                 status = 'approved'
             else:
-                status = random.choice(['on_hold', 'rejected'])
+                status = random.choice(['admitted', 'rejected'])
 
-            app = AdmissionApplication.objects.create(
+            app = ExtendedAdmissionApplication.objects.create(
                 tenant=school,
                 application_number=app_number,
                 first_name=first_name,
@@ -127,12 +129,19 @@ class Command(BaseCommand):
                 date_of_birth=dob,
                 gender=random.choice(['male', 'female']),
                 course_applied=random.choice(courses),
-                guardian_name=guardian_name,
-                guardian_phone=guardian_phone,
-                guardian_email=guardian_email,
-                address=f"Plot {random.randint(1, 999)}, {random.choice(['Lusaka', 'Ndola', 'Kitwe', 'Livingstone', 'Kabwe'])}",
+                academic_year=school.academicyear_set.filter(is_active=True).first(),
+                guardian1_first_name=guardian_first,
+                guardian1_last_name=guardian_last,
+                guardian1_relation=random.choice(['father', 'mother', 'guardian']),
+                guardian1_mobile=guardian_phone,
+                guardian1_email=guardian_email,
+                address_line1=f"Plot {random.randint(1, 999)}",
+                city=random.choice(['Lusaka', 'Ndola', 'Kitwe', 'Livingstone', 'Kabwe']),
+                email=f"{first_name.lower()}.{last_name.lower()}@student.local",
+                mobile=f"+26097{random.randint(1000000, 9999999)}",
                 status=status,
                 application_date=application_date,
+                current_step=1,
                 remarks=random.choice([
                     'Strong academic background',
                     'Good school report',
@@ -151,9 +160,9 @@ class Command(BaseCommand):
         self.stdout.write(f"  ✓ Successfully created {created_count} admission applications")
 
         # Print status summary
-        status_counts = AdmissionApplication.objects.filter(tenant=school).values('status').distinct()
+        status_counts = ExtendedAdmissionApplication.objects.filter(tenant=school).values('status').distinct()
         self.stdout.write("\nStatus breakdown:")
         for status_choice in statuses:
-            count = AdmissionApplication.objects.filter(tenant=school, status=status_choice).count()
+            count = ExtendedAdmissionApplication.objects.filter(tenant=school, status=status_choice).count()
             if count > 0:
                 self.stdout.write(f"  - {status_choice}: {count}")

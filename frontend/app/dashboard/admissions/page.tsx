@@ -12,7 +12,7 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
-import { Button, Alert } from '@mui/material';
+import { Button, Alert, Typography } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import type { GridColDef } from '@mui/x-data-grid';
 import { useTenantStore } from '@/lib/tenant/store';
@@ -34,7 +34,26 @@ export default function AdmissionsPage() {
   });
 
   const columns: GridColDef<AdmissionApplication>[] = [
-    { field: 'application_number', headerName: 'Application #', flex: 1 },
+    {
+      field: 'application_number',
+      headerName: 'Application #',
+      flex: 1,
+      renderCell: (params) => (
+        <Link href={`/dashboard/admissions/${params.row.id}`} passHref legacyBehavior>
+          <Typography
+            component="a"
+            sx={{
+              cursor: 'pointer',
+              color: 'primary.main',
+              textDecoration: 'none',
+              '&:hover': { textDecoration: 'underline' },
+            }}
+          >
+            {params.row.application_number}
+          </Typography>
+        </Link>
+      ),
+    },
     {
       field: 'student_name',
       headerName: 'Student Name',

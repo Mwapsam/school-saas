@@ -162,3 +162,160 @@ export function useBulkStatusUpdate() {
     },
   });
 }
+
+// Application Detail Page Hooks
+export interface ExtendedApplicationDetail {
+  id: string;
+  application_number: string;
+  status: string;
+  first_name: string;
+  middle_name?: string;
+  last_name: string;
+  date_of_birth: string;
+  gender: string;
+  email?: string;
+  mobile?: string;
+  phone?: string;
+  nationality?: string;
+  religion?: string;
+  birth_place?: string;
+  mother_tongue?: string;
+  academic_year?: { id: string; name: string };
+  course_applied?: { id: string; course_name: string };
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  country?: string;
+  guardian1_first_name?: string;
+  guardian1_last_name?: string;
+  guardian1_relation?: string;
+  guardian1_mobile?: string;
+  guardian1_email?: string;
+  guardian1_occupation?: string;
+  guardian2_first_name?: string;
+  guardian2_last_name?: string;
+  guardian2_relation?: string;
+  guardian2_mobile?: string;
+  guardian2_email?: string;
+  guardian2_occupation?: string;
+  previous_school_name?: string;
+  previous_school_address?: string;
+  has_medical_problems?: boolean;
+  recent_hospitalization?: boolean;
+  has_allergies?: boolean;
+  medical_details?: string;
+  religious_observances?: string;
+  background_information?: string;
+  application_date: string;
+  reviewed_at?: string;
+  reviewed_by?: string;
+  remarks?: string;
+  admitted_student?: { id: string };
+  [key: string]: any;
+}
+
+export function useAdmissionApplicationDetail(applicationId: string, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ['admission-application-detail', applicationId],
+    enabled: !!applicationId && options.enabled !== false,
+    queryFn: async () =>
+      await apiClient.get<ExtendedApplicationDetail>(`/admission-admin/${applicationId}/`),
+  });
+}
+
+export function useAdmitStudent(applicationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      batch_id: string;
+      admission_number?: string;
+      admission_date?: string;
+      remarks?: string;
+    }) => await apiClient.post(`/admission-admin/${applicationId}/admit/`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admission-application-detail', applicationId] });
+      queryClient.invalidateQueries({ queryKey: ['applications-for-assignment'] });
+      queryClient.invalidateQueries({ queryKey: ['admission-stats'] });
+    },
+  });
+}
+
+export function useDeleteApplication(applicationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => await apiClient.delete(`/admission-admin/${applicationId}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admission-application-detail', applicationId] });
+      queryClient.invalidateQueries({ queryKey: ['applications-for-assignment'] });
+      queryClient.invalidateQueries({ queryKey: ['admission-stats'] });
+    },
+  });
+}
+
+export function useDuplicateApplication(applicationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => await apiClient.post(`/admission-admin/${applicationId}/duplicate/`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['applications-for-assignment'] });
+    },
+  });
+}
+
+export function useAssignToClass(applicationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      batch_id: string;
+      roll_number?: string;
+      remarks?: string;
+    }) => await apiClient.post(`/admission-admin/${applicationId}/assign_batch/`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admission-application-detail', applicationId] });
+      queryClient.invalidateQueries({ queryKey: ['applications-for-assignment'] });
+    },
+  });
+}
+
+export function useGenerateAdmissionNumber(batchId: string) {
+  return useQuery({
+    queryKey: ['generate-admission-number', batchId],
+    enabled: !!batchId,
+    queryFn: async () => {
+      const response = await apiClient.get<{ admission_number: string; batch_id: string; batch_name: string }>(
+        `/admission-admin/generate_admission_number/?batch_id=${batchId}`
+      );
+      return response;
+    },
+  });
+}
+
+export function useValidateAdmissionNumber() {
+  return useMutation({
+    mutationFn: async (admissionNumber: string) =>
+      await apiClient.post<{ admission_number: string; is_unique: boolean; is_available: boolean }>(
+        '/admission-admin/validate_admission_number/',
+        { admission_number: admissionNumber }
+      ),
+  });
+}
+
+export function useActiveBatches(courseId?: string, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ['active-batches', courseId],
+    enabled: options.enabled !== false,
+    queryFn: async () => {
+      const url = courseId
+        ? `/admission-admin/active_batches/?course_id=${courseId}`
+        : '/admission-admin/active_batches/';
+      const response = await apiClient.get<{ results: BatchOption[] }>(url);
+      return response.results || [];
+    },
+  });
+}
+
+export function useExportApplicationPdf(applicationId: string) {
+  return useMutation({
+    mutationFn: async () => await apiClient.get(`/admission-admin/${applicationId}/export_pdf/`),
+  });
+}

@@ -289,14 +289,15 @@ export default function StudentDetailPage({ params }: { params: { id: string } }
 
               {/* Contact */}
               <SectionCard title="Contact">
-                <Stack spacing={1.5}>
+                <Stack spacing={1.75}>
+                  {/* Email */}
                   <Box>
-                    <Typography variant="caption" color="text.secondary" display="block">
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 550 }}>
                       Email
                     </Typography>
                     {student.email ? (
-                      <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mt: 0.25 }}>
-                        <EmailIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <EmailIcon sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0 }} />
                         <Typography
                           component="a"
                           href={`mailto:${student.email}`}
@@ -306,26 +307,31 @@ export default function StudentDetailPage({ params }: { params: { id: string } }
                             textDecoration: 'none',
                             wordBreak: 'break-all',
                             '&:hover': { textDecoration: 'underline' },
+                            flex: 1,
                           }}
                         >
                           {student.email}
                         </Typography>
                       </Stack>
                     ) : (
-                      <Typography variant="body2" color="text.secondary">
-                        —
-                      </Typography>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <EmailIcon sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0, opacity: 0.4 }} />
+                        <Typography variant="body2" color="text.secondary">
+                          —
+                        </Typography>
+                      </Stack>
                     )}
                   </Box>
 
+                  {/* Phone(s) */}
                   <Box>
-                    <Typography variant="caption" color="text.secondary" display="block">
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 550 }}>
                       Phone
                     </Typography>
-                    <Stack spacing={0.5} sx={{ mt: 0.25 }}>
+                    <Stack spacing={0.75}>
                       {student.phone1 ? (
-                        <Stack direction="row" alignItems="center" spacing={0.75}>
-                          <PhoneIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <PhoneIcon sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0 }} />
                           <Typography
                             component="a"
                             href={`tel:${student.phone1}`}
@@ -334,19 +340,23 @@ export default function StudentDetailPage({ params }: { params: { id: string } }
                               color: 'text.primary',
                               textDecoration: 'none',
                               '&:hover': { color: 'primary.main' },
+                              flex: 1,
                             }}
                           >
                             {student.phone1}
                           </Typography>
                         </Stack>
                       ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          —
-                        </Typography>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <PhoneIcon sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0, opacity: 0.4 }} />
+                          <Typography variant="body2" color="text.secondary">
+                            —
+                          </Typography>
+                        </Stack>
                       )}
                       {student.phone2 && (
-                        <Stack direction="row" alignItems="center" spacing={0.75}>
-                          <PhoneIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <PhoneIcon sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0 }} />
                           <Typography
                             component="a"
                             href={`tel:${student.phone2}`}
@@ -355,6 +365,7 @@ export default function StudentDetailPage({ params }: { params: { id: string } }
                               color: 'text.primary',
                               textDecoration: 'none',
                               '&:hover': { color: 'primary.main' },
+                              flex: 1,
                             }}
                           >
                             {student.phone2}
@@ -394,60 +405,50 @@ export default function StudentDetailPage({ params }: { params: { id: string } }
                               : 'transparent',
                         }}
                       >
-                        <Stack
-                          direction="row"
-                          alignItems="flex-start"
-                          justifyContent="space-between"
-                          spacing={1}
-                        >
-                          <Box sx={{ minWidth: 0 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }} noWrap>
+                        <Stack spacing={0.75}>
+                          {/* Name and Primary Badge */}
+                          <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+                            <Typography
+                              variant="subtitle2"
+                              sx={{ fontWeight: 600, flex: 1, minWidth: 0 }}
+                              noWrap
+                            >
                               {guardian.name}
                             </Typography>
-                            <Stack
-                              direction="row"
-                              alignItems="center"
-                              spacing={1}
-                              sx={{ mt: 0.35 }}
-                              flexWrap="wrap"
-                              useFlexGap
-                            >
-                              <Typography variant="caption" color="text.secondary">
-                                {guardian.relation || 'Guardian'}
-                              </Typography>
-                              {guardian.is_immediate_contact && (
-                                <Chip
-                                  label="Primary"
-                                  size="small"
-                                  color="info"
-                                  variant="outlined"
-                                  sx={{ height: 20, fontSize: '0.7rem' }}
-                                />
-                              )}
-                            </Stack>
-                            {guardian.phone && (
-                              <Stack
-                                direction="row"
-                                alignItems="center"
-                                spacing={0.5}
-                                sx={{ mt: 0.75 }}
-                              >
-                                <PhoneIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-                                <Typography
-                                  component="a"
-                                  href={`tel:${guardian.phone}`}
-                                  variant="caption"
-                                  sx={{
-                                    color: 'text.primary',
-                                    textDecoration: 'none',
-                                    '&:hover': { color: 'primary.main' },
-                                  }}
-                                >
-                                  {guardian.phone}
-                                </Typography>
-                              </Stack>
+                            {guardian.is_immediate_contact && (
+                              <Chip
+                                label="Primary"
+                                size="small"
+                                color="info"
+                                variant="outlined"
+                                sx={{ height: 20, fontSize: '0.7rem', flexShrink: 0 }}
+                              />
                             )}
-                          </Box>
+                          </Stack>
+
+                          {/* Relation */}
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                            {guardian.relation || 'Guardian'}
+                          </Typography>
+
+                          {/* Phone */}
+                          {guardian.phone && (
+                            <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mt: 0.25 }}>
+                              <PhoneIcon sx={{ fontSize: 16, color: 'text.secondary', flexShrink: 0 }} />
+                              <Typography
+                                component="a"
+                                href={`tel:${guardian.phone}`}
+                                variant="body2"
+                                sx={{
+                                  color: 'text.primary',
+                                  textDecoration: 'none',
+                                  '&:hover': { color: 'primary.main' },
+                                }}
+                              >
+                                {guardian.phone}
+                              </Typography>
+                            </Stack>
+                          )}
                         </Stack>
                       </Paper>
                     ))}

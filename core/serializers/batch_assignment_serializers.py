@@ -30,11 +30,12 @@ class BatchSerializer(TenantAwareSerializer):
     """
     Simple Batch serializer for dropdown
     """
+    course_name = serializers.CharField(source='course.course_name', read_only=True)
 
     class Meta:
         model = Batch
-        fields = ['id', 'name', 'section_name', 'grade_name']
-        read_only_fields = ['id']
+        fields = ['id', 'name', 'course_name']
+        read_only_fields = ['id', 'course_name']
 
 
 class SingleAssignmentSerializer(serializers.Serializer):

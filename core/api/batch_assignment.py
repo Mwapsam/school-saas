@@ -468,6 +468,142 @@ class BatchAssignmentViewSet(TenantAwareViewSetMixin, viewsets.ViewSet):
                 return admission_number
 
 
+    @action(detail=True, methods=['get'])
+    def application_detail(self, request, pk=None):
+        """
+        Get a single application detail with assignment info
+        """
+        queryset = self.get_queryset()
+        try:
+            application = queryset.get(pk=pk)
+        except ExtendedAdmissionApplication.DoesNotExist:
+            return Response(
+                {'error': 'Application not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = BatchAssignmentApplicationSerializer(application)
+
+        # Get available batches
+        available_batches = Batch.objects.filter(
+            tenant=request.tenant,
+            is_deleted=False,
+            is_active=True
+        ).order_by('name')
+
+        batch_data = [
+            {
+                'id': str(b.id),
+                'name': b.name,
+                'course_id': str(b.course.id) if b.course else None,
+                'course_name': b.course.course_name if b.course else None,
+            }
+            for b in available_batches
+        ]
+
+        return Response({
+            'application': serializer.data,
+            'available_batches': batch_data
+        })
+
+
+class AdmissionReportViewSet(TenantAwareViewSetMixin, viewsets.ViewSet):
+    """
+    ViewSet for admission reports and analytics
+    """
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """
+        Get admission report summary with stats, filters, and breakdowns
+        """
+        from django.db.models import Count, Q
+
+        queryset = ExtendedAdmissionApplication.objects.filter(tenant=request.tenant)
+
+        # Apply filters
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+
+        academic_year = request.query_params.get('academic_year')
+        if academic_year:
+            queryset = queryset.filter(academic_year__id=academic_year)
+
+        date_from = request.query_params.get('date_from')
+        if date_from:
+            queryset = queryset.filter(application_date__gte=date_from)
+
+        date_to = request.query_params.get('date_to')
+        if date_to:
+            queryset = queryset.filter(application_date__lte=date_to)
+
+        total_count = queryset.count()
+        approved_count = queryset.filter(status='approved').count()
+        admitted_count = queryset.filter(status='admitted').count()
+        rejected_count = queryset.filter(status='rejected').count()
+        pending_count = queryset.filter(status__in=['draft', 'submitted', 'under_review']).count()
+
+        # Approval rate
+        eligible = queryset.exclude(status='draft').count()
+        approval_rate = (approved_count + admitted_count) / eligible * 100 if eligible > 0 else 0
+
+        # By status breakdown
+        by_status = [
+            {
+                'status': 'submitted',
+                'label': 'Submitted',
+                'count': queryset.filter(status='submitted').count()
+            },
+            {
+                'status': 'under_review',
+                'label': 'Under Review',
+                'count': queryset.filter(status='under_review').count()
+            },
+            {
+                'status': 'approved',
+                'label': 'Approved',
+                'count': approved_count
+            },
+            {
+                'status': 'admitted',
+                'label': 'Admitted',
+                'count': admitted_count
+            },
+            {
+                'status': 'rejected',
+                'label': 'Rejected',
+                'count': rejected_count
+            },
+        ]
+
+        # By course breakdown
+        by_course_qs = queryset.values('course_applied__id', 'course_applied__course_name').annotate(count=Count('id')).order_by('course_applied__course_name')
+        by_course = [
+            {
+                'course_id': str(item['course_applied__id']) if item['course_applied__id'] else None,
+                'course_name': item['course_applied__course_name'] or 'Unknown',
+                'count': item['count']
+            }
+            for item in by_course_qs
+        ]
+
+        return Response({
+            'stat_strip': {
+                'total': total_count,
+                'approved': approved_count,
+                'admitted': admitted_count,
+                'rejected': rejected_count,
+                'pending': pending_count,
+            },
+            'approval_rate': round(approval_rate, 2),
+            'by_status': by_status,
+            'by_course': by_course,
+            'filtered_count': total_count
+        })
+
+
 class AdmissionDiagnosticsViewSet(TenantAwareViewSetMixin, viewsets.ViewSet):
     """
     ViewSet for admission system diagnostics

@@ -102,6 +102,7 @@ from .view_modules.enquiry_views import (
 
 from .api.batch_assignment import (
     BatchAssignmentViewSet,
+    AdmissionReportViewSet,
     AdmissionDiagnosticsViewSet,
 )
 
@@ -149,6 +150,7 @@ router.register(r'employee-exits', EmployeeExitViewSet, basename='employee-exit'
 # Admissions domain endpoints
 router.register(r'admission-applications', AdmissionApplicationViewSet, basename='admission-application')
 router.register(r'admission-batch-assignment', BatchAssignmentViewSet, basename='batch-assignment')
+router.register(r'admission-reports', AdmissionReportViewSet, basename='admission-reports')
 router.register(r'admission-diagnostics', AdmissionDiagnosticsViewSet, basename='admission-diagnostics')
 
 # Hostel domain endpoints
