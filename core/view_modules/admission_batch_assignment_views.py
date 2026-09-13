@@ -339,69 +339,30 @@ class BatchAssignmentView(View):
         
         student = Student.objects.create(
             tenant=school,
-            
-            admission_number=admission_number,
+            admission_no=admission_number,
             admission_date=application.application_date.date(),
             first_name=application.first_name,
             middle_name=application.middle_name or '',
             last_name=application.last_name,
             date_of_birth=application.date_of_birth,
-            gender=application.gender,
-            nationality=application.nationality or '',
+            gender=application.gender or 'other',
+            nationality=application.nationality or None,
+            language=application.mother_tongue or '',
             religion=application.religion or '',
             birth_place=application.birth_place or '',
-            mother_tongue=application.mother_tongue or '',
-            
             email=application.email or '',
-            phone=application.phone or '',
-            mobile=application.mobile or '',
-            address=application.address or '',
+            phone1=application.phone or '',
+            phone2=application.mobile or '',
             address_line1=application.address_line1 or '',
             address_line2=application.address_line2 or '',
             city=application.city or '',
             country=application.country,
-            
-            guardian1_first_name=application.guardian1_first_name or '',
-            guardian1_last_name=application.guardian1_last_name or '',
-            guardian1_relation=application.guardian1_relation or '',
-            guardian1_occupation=application.guardian1_occupation or '',
-            guardian1_office_address_line1=application.guardian1_office_address_line1 or '',
-            guardian1_office_city=application.guardian1_office_city or '',
-            guardian1_office_phone1=application.guardian1_office_phone1 or '',
-            guardian1_mobile=application.guardian1_mobile or '',
-            guardian1_email=application.guardian1_email or '',
-            
-            guardian2_first_name=application.guardian2_first_name or '',
-            guardian2_last_name=application.guardian2_last_name or '',
-            guardian2_relation=application.guardian2_relation or '',
-            guardian2_occupation=application.guardian2_occupation or '',
-            guardian2_office_address_line1=application.guardian2_office_address_line1 or '',
-            guardian2_office_city=application.guardian2_office_city or '',
-            guardian2_office_phone1=application.guardian2_office_phone1 or '',
-            guardian2_mobile=application.guardian2_mobile or '',
-            guardian2_email=application.guardian2_email or '',
-            
-            previous_school_name=application.previous_school_name or '',
-            previous_school_address=application.previous_school_address or '',
-            previous_school_phone=application.previous_school_phone or '',
-            previous_school_email=application.previous_school_email or '',
-            
-            has_medical_problems=application.has_medical_problems or False,
-            recent_hospitalization=application.recent_hospitalization or False,
-            has_allergies=application.has_allergies or False,
-            medical_details=application.medical_details or '',
-            
             student_category=application.student_category,
-            
-            religious_observances=application.religious_observances or '',
-            background_information=application.background_information or '',
-            
             is_active=True,
-            is_deleted=False,
-            status='active'
+            is_deleted=False
         )
         
-        logger.info(f"Created student {student.admission_number} from application {application.application_number}")
+        logger.info(f"Created student {student.admission_no} from application {application.application_number}")
         
         return student
     

@@ -4,7 +4,7 @@ Students domain API — UNUSED / BROKEN reference sketch, do not wire up as-is.
 Found 2026-09-12: nothing imports this module (core/api_urls.py registers the
 real, working Student/Course/Batch/Subject ViewSets from core/api_views.py
 instead). This file's serializers reference model fields that don't exist on
-the real Student model (`admission_number`, a plain `full_name`, direct
+the real Student model (`admission_no`, a plain `full_name`, direct
 `batch`/`course` FKs) — the actual model has `admission_no`, computed
 first/last name, and a many-to-many batch relation via BatchStudent. Using
 this ViewSet as registered would raise a DRF AssertionError on first request.
@@ -42,7 +42,7 @@ class StudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = [
-            'id', 'admission_number', 'full_name', 'first_name', 'last_name',
+            'id', 'admission_no', 'full_name', 'first_name', 'last_name',
             'date_of_birth', 'batch', 'batch_name', 'course', 'course_name',
             'gender', 'is_active', 'created_at', 'updated_at'
         ]
@@ -117,8 +117,8 @@ class StudentViewSet(viewsets.ModelViewSet):
     ]
     module = "academics"  # Required for ModuleEnabled permission
     filterset_fields = ['batch', 'course', 'is_active']
-    search_fields = ['admission_number', 'full_name', 'first_name', 'last_name']
-    ordering_fields = ['full_name', 'admission_number', 'created_at']
+    search_fields = ['admission_no', 'full_name', 'first_name', 'last_name']
+    ordering_fields = ['full_name', 'admission_no', 'created_at']
     ordering = ['full_name']
 
     def get_queryset(self):

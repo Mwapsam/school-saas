@@ -510,6 +510,8 @@ class AdmissionAdminViewSet(TenantAwareViewSetMixin, viewsets.ModelViewSet):
 
         try:
             with transaction.atomic():
+                from core.models import Guardian, StudentGuardianRelation
+
                 student = Student.objects.create(
                     tenant=request.tenant,
                     admission_no=admission_number,
@@ -530,6 +532,42 @@ class AdmissionAdminViewSet(TenantAwareViewSetMixin, viewsets.ModelViewSet):
                     student=student,
                     is_active=True,
                 )
+
+                # Create guardians from application data
+                guardians_data = []
+                if application.guardian1_first_name:
+                    guardians_data.append({
+                        'first_name': application.guardian1_first_name,
+                        'last_name': application.guardian1_last_name or '',
+                        'relation': application.guardian1_relation or 'guardian',
+                        'email': application.guardian1_email,
+                        'mobile_phone': application.guardian1_mobile,
+                        'occupation': getattr(application, 'guardian1_occupation', None),
+                    })
+                if application.guardian2_first_name:
+                    guardians_data.append({
+                        'first_name': application.guardian2_first_name,
+                        'last_name': application.guardian2_last_name or '',
+                        'relation': application.guardian2_relation or 'guardian',
+                        'email': application.guardian2_email,
+                        'mobile_phone': application.guardian2_mobile,
+                        'occupation': getattr(application, 'guardian2_occupation', None),
+                    })
+
+                for idx, guardian_data in enumerate(guardians_data):
+                    guardian = Guardian.objects.create(
+                        tenant=request.tenant,
+                        **guardian_data,
+                        is_active=True,
+                    )
+                    StudentGuardianRelation.objects.create(
+                        tenant=request.tenant,
+                        student=student,
+                        guardian=guardian,
+                        relation=guardian_data['relation'],
+                        is_immediate_contact=(idx == 0),
+                        school=request.tenant,
+                    )
 
                 application.status = 'admitted'
                 application.admitted_student = student
