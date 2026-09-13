@@ -1,14 +1,39 @@
+/**
+ * Build-time configuration for the frontend. These values come from environment
+ * variables set at build time and are baked into the Next.js bundle.
+ *
+ * All school-specific branding (name, logo, colors, contact info) is loaded
+ * from the backend API at runtime via /api/school/config/ and is NOT set here.
+ * This keeps the frontend decoupled from any specific school.
+ *
+ * See .env.example for configuration instructions.
+ */
 export const config = {
+  /** Backend API base URL. Required for all deployments. */
   apiBaseUrl:
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000",
 
+  /**
+   * Generic application name used as fallback before school config loads.
+   * Once the app runs, the actual school name is fetched from the backend
+   * and displayed in the UI. This is only shown briefly during initial load.
+   * Defaults to a generic placeholder if not configured.
+   */
   appName:
-    process.env.NEXT_PUBLIC_APP_NAME ?? "Pinewood Portal",
+    process.env.NEXT_PUBLIC_APP_NAME ?? "School Portal",
 
-  /** Sent as X-Client-App on every request; matched against a school's
-   *  registered clients (Configuration → Manage Clients). */
+  /**
+   * Client application identifier. Sent as X-Client-App header to the backend.
+   * Must be registered in the school's Configuration → Manage Clients section.
+   * For multi-tenant deployments, use a generic identifier that is reusable
+   * across all schools (e.g., "generic-school-portal-web"). The backend
+   * validates this header per-school and can enable/disable or version-lock it.
+   * Required for production deployments.
+   */
   clientApp:
-    process.env.NEXT_PUBLIC_CLIENT_APP ?? "pinewood-portal-web",
+    process.env.NEXT_PUBLIC_CLIENT_APP ?? "generic-school-portal-web",
+
+  /** Semantic version of this build, sent as X-Client-App-Version header. */
   clientAppVersion:
     process.env.NEXT_PUBLIC_CLIENT_APP_VERSION ?? "0.1.0",
 } as const;
