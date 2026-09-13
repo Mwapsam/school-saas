@@ -171,7 +171,7 @@ class LeaveRequestViewSet(TenantAwareViewSet):
     permission_classes = [
         IsAuthenticated,
         ModuleEnabled,
-        HasPermission(read="hr.leave.view", write="hr.leave.manage"),
+        HasPermission(read="hr.leave-requests.view", write="hr.leave-requests.manage"),
     ]
     module = "hr"
     filterset_fields = ['employee', 'leave_type', 'status']
@@ -207,7 +207,7 @@ class LeaveRequestViewSet(TenantAwareViewSet):
     )
     @action(
         detail=True, methods=['post'],
-        permission_classes=[IsAuthenticated, ModuleEnabled, HasPermission(read="hr.leave.view", write="hr.leave.approve")],
+        permission_classes=[IsAuthenticated, ModuleEnabled, HasPermission(read="hr.leave-requests.view", write="hr.leave-requests.approve")],
     )
     def approve(self, request, pk=None):
         """Approve a leave request."""
@@ -226,7 +226,7 @@ class LeaveRequestViewSet(TenantAwareViewSet):
     )
     @action(
         detail=True, methods=['post'],
-        permission_classes=[IsAuthenticated, ModuleEnabled, HasPermission(read="hr.leave.view", write="hr.leave.approve")],
+        permission_classes=[IsAuthenticated, ModuleEnabled, HasPermission(read="hr.leave-requests.view", write="hr.leave-requests.approve")],
     )
     def reject(self, request, pk=None):
         """Reject a leave request."""

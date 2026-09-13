@@ -1,20 +1,23 @@
 """The permission registry — the single source of truth for what access
 codenames exist in the system.
 
-A codename is ``"<module>.<resource>.<action>"``. The role editor UI renders
-checkboxes grouped by module, in the order declared here.
+CANONICAL NAMING CONVENTION (as of Phase 2.1):
+  Format: "<domain>.<resource>.<action>"
+  - domain: plural (e.g., hr, finance, admissions, not academic)
+  - resource: plural (e.g., employees, invoices, not employee, invoice)
+  - action: view/manage/specific (e.g., view, manage, approve, conduct)
 
-Enforcement status: the ``hr.*`` codenames declared first are wired into
-the legacy view/API gates (see :mod:`core.authz.mixins`). The DRF ViewSets
-under ``core/api/*.py`` (finance, hr, admissions, hostel, transport, library,
-academics, students) check a second, separately-named set of codenames via
-``core.authz.drf.HasPermission`` — those are declared in the
-"DRF API layer" section below. The two sets evolved independently and use
-different naming conventions in places (e.g. ``hr.employee.view`` singular
-here vs. ``hr.employees.view`` plural checked by ``core/api/hr.py``) — both
-are kept because renaming either risks breaking whichever call sites already
-reference it; new work should use the DRF API layer's codenames since that's
-what every ``core/api/*.py`` ViewSet actually enforces today.
+ENFORCEMENT:
+  - All NEW endpoints in core/api/*.py use DRF API codenames (lines 93-167)
+  - Legacy codenames (lines 39-91) are DEPRECATED but kept for backward compatibility
+  - New work MUST use DRF API codenames; see "DRF API layer" section below
+  - Role editor UI renders both sections but should phase out legacy over time
+
+DRIFT RESOLVED IN PHASE 2.1:
+  - hr.employee.* (legacy singular) → hr.employees.* (canonical plural)
+  - academic.* → academics.* (canonical plural domain name)
+  - transport.view (generic) → transport.routes/stops/staff/fees.* (specific resources)
+  - All new serializers in Phase 2.1 use DRF API codenames exclusively
 """
 from __future__ import annotations
 
@@ -132,9 +135,17 @@ PERMISSIONS: "OrderedDict[str, str]" = OrderedDict([
     ("hr.contracts.manage", "Manage employee contracts"),
     ("hr.leave-types.view", "View leave types"),
     ("hr.leave-types.manage", "Manage leave types"),
+    ("hr.leave-requests.view", "View leave requests"),
+    ("hr.leave-requests.manage", "Create & edit leave requests"),
+    ("hr.leave-requests.approve", "Approve or reject leave requests"),
     ("hr.attendance.view", "View staff attendance"),
+    ("hr.attendance.manage", "Mark & edit staff attendance"),
     ("hr.reviews.view", "View performance reviews"),
     ("hr.reviews.manage", "Conduct & record performance reviews"),
+    ("hr.training.view", "View staff training records"),
+    ("hr.training.manage", "Record & manage staff training"),
+    ("hr.exit.view", "View staff exit records"),
+    ("hr.exit.manage", "Manage staff exit & offboarding"),
 
     # --- Admissions (API) --------------------------------------------------
     ("admissions.application.view", "View admission applications (API)"),
