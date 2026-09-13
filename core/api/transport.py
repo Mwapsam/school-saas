@@ -31,7 +31,7 @@ from core.serializers.transport_serializers import (
 # ViewSets
 # ───────────────────────────────────────────────────────────────────────────
 
-class TransportRouteViewSet(viewsets.ModelViewSet):
+class TransportRouteViewSet(TenantAwareViewSet):
     """
     Transport route management — manage transportation routes.
 
@@ -54,7 +54,7 @@ class TransportRouteViewSet(viewsets.ModelViewSet):
     ordering = ['route_name']
 
 
-class TransportRouteStopViewSet(viewsets.ModelViewSet):
+class TransportRouteStopViewSet(TenantAwareViewSet):
     """
     Transport route stop management — manage stops on routes.
 
@@ -80,7 +80,7 @@ class TransportRouteStopViewSet(viewsets.ModelViewSet):
         return super().get_queryset().select_related('route', 'stop')
 
 
-class TransportStaffViewSet(viewsets.ModelViewSet):
+class TransportStaffViewSet(TenantAwareViewSet):
     """
     Transport staff management — manage drivers, conductors, helpers.
 
@@ -103,7 +103,7 @@ class TransportStaffViewSet(viewsets.ModelViewSet):
     ordering = ['full_name']
 
 
-class TransportFeeViewSet(viewsets.ModelViewSet):
+class TransportFeeViewSet(TenantAwareViewSet):
     """
     Transport fee management — manage transport charges.
 

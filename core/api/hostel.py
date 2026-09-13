@@ -10,48 +10,21 @@ Note: Full hostel block management requires additional models for future impleme
 Reuses existing services: See core/services/
 """
 
-from rest_framework import viewsets, serializers
+from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from core.models import HostelRoom, HostelFee, Student
 from core.authz.drf import ModuleEnabled, HasPermission
-
-
-# ───────────────────────────────────────────────────────────────────────────
-# Serializers
-# ───────────────────────────────────────────────────────────────────────────
-
-class HostelRoomSerializer(serializers.ModelSerializer):
-    """Serializer for HostelRoom — individual rooms."""
-    class Meta:
-        model = HostelRoom
-        fields = [
-            'id', 'room_number', 'room_type', 'capacity', 'rent',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-
-class HostelFeeSerializer(serializers.ModelSerializer):
-    """Serializer for HostelFee — hostel charges."""
-    student_name = serializers.CharField(source='student.full_name', read_only=True)
-
-    class Meta:
-        model = HostelFee
-        fields = [
-            'id', 'student', 'student_name', 'room', 'start_date',
-            'end_date', 'total_amount',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+from core.api.base import TenantAwareViewSet
+from core.serializers.hostel_serializers import HostelRoomSerializer, HostelFeeSerializer
 
 
 # ───────────────────────────────────────────────────────────────────────────
 # ViewSets
 # ───────────────────────────────────────────────────────────────────────────
 
-class HostelRoomViewSet(viewsets.ModelViewSet):
+class HostelRoomViewSet(TenantAwareViewSet):
     """
     Hostel room management — manage hostel rooms.
 
@@ -74,7 +47,7 @@ class HostelRoomViewSet(viewsets.ModelViewSet):
     ordering = ['room_number']
 
 
-class HostelFeeViewSet(viewsets.ModelViewSet):
+class HostelFeeViewSet(TenantAwareViewSet):
     """
     Hostel fee management — manage hostel charges.
 
