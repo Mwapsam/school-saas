@@ -33,7 +33,7 @@
 {% endblock %}
 
 {% block layout_table %}
-  <div class="pinewood-table-container">
+  <div class="product-table-container">
     <div id="transport-vehicles-content" hx-get="{% url 'core:transport_vehicle_list' %}" hx-trigger="load" hx-target="this">
       {% include 'core/components/loading_state.html' with message="Loading vehicles…" %}
     </div>

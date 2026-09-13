@@ -138,8 +138,8 @@
         <div class="pw-stat-card"><p class="pw-stat-label">On leave</p><p class="pw-stat-value">{{ attendance_summary.on_leave }}</p></div>
         <div class="pw-stat-card"><p class="pw-stat-label">Half day</p><p class="pw-stat-value">{{ attendance_summary.half_day }}</p></div>
       </div>
-      <div class="pinewood-table-responsive">
-        <table class="pinewood-table">
+      <div class="product-table-wrap">
+        <table class="product-table">
           <thead><tr><th>Date</th><th>Status</th><th>Remarks</th></tr></thead>
           <tbody>
             {% for rec in recent_attendance %}
@@ -152,8 +152,8 @@
 
     <div class="tab-pane fade" id="tab-leave">
       <h2 class="h6 fw-bold">Balances — {{ leave_year }}</h2>
-      <div class="pinewood-table-responsive mb-3">
-        <table class="pinewood-table">
+      <div class="product-table-wrap mb-3">
+        <table class="product-table">
           <thead><tr><th>Leave type</th><th class="text-end">Allocated</th><th class="text-end">Used</th><th class="text-end">Remaining</th></tr></thead>
           <tbody>
             {% for b in leave_balances %}
@@ -163,8 +163,8 @@
         </table>
       </div>
       <h2 class="h6 fw-bold">Recent requests</h2>
-      <div class="pinewood-table-responsive">
-        <table class="pinewood-table">
+      <div class="product-table-wrap">
+        <table class="product-table">
           <thead><tr><th>Type</th><th>From</th><th>To</th><th>Status</th></tr></thead>
           <tbody>
             {% for lv in recent_leaves %}

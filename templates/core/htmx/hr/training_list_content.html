@@ -1,5 +1,5 @@
-<div class="pinewood-table-responsive">
-    <table class="pinewood-table">
+<div class="product-table-wrap">
+    <table class="product-table">
         <thead><tr><th>Employee</th><th>Training</th><th>Category</th><th>Date</th><th>Expiry</th><th>Mandatory</th><th>Status</th></tr></thead>
         <tbody>
             {% for r in records %}
@@ -22,7 +22,7 @@
 </div>
 
 {% if is_paginated %}
-<div class="pinewood-table-pagination">
+<div class="product-table-pagination">
     <nav><ul class="pagination pagination-sm justify-content-center mb-0">
         {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" hx-get="{% url 'core:hr_training_list' %}?page={{ page_obj.previous_page_number }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" hx-target="#training-list-content">Previous</a></li>{% endif %}
         <li class="page-item active"><span class="page-link">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span></li>

@@ -1,14 +1,12 @@
 {% load core_extras %}
 {% comment %}
-Pinewood data table — opening markup (wrap + green header row).
+Product data table — opening markup (wrap + header row).
 Pair with table_close.html; write your <tbody> rows in between.
 (This is "table" in the component inventory — see the note in card_open.html
 about why open/close pairs are the native way to wrap arbitrary content.)
 
-Renders the `.pinewood-table` system (not `.pw-table`) — Phase 0 found
-`.pinewood-table` in active use across 20 templates vs. one for `.pw-table`,
-so it's the system this component now standardizes on. Wrap with your own
-`.pinewood-table-container` (+ optional `.pinewood-table-header` title bar)
+Renders the `.product-table` system with tenant-aware branding support.
+Wrap with your own `.product-table-container` (+ optional `.product-table-header` title bar)
 if you want the bordered/shadowed card look; this component alone renders a
 plain scrollable table.
 
@@ -33,8 +31,8 @@ Params:
                         screen readers (e.g. "List of students with admission
                         number, name, batch, date of birth, status, actions")
 {% endcomment %}
-<div class="pinewood-table-responsive">
-  <table class="pinewood-table">
+<div class="product-table-wrap">
+  <table class="product-table">
     {% if caption %}<caption class="visually-hidden">{{ caption }}</caption>{% endif %}
     {% if columns %}
     <thead>

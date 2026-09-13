@@ -4,528 +4,428 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block extra_css %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-
 <style>
-/* ===== Pinewood Dashboard ===== */
-:root {
-    --pine-900: #10321f;
-    --pine-700: #1a5f3a;
-    --pine-500: #3c7d55;
-    --pine-100: #e8f0ea;
-    --paper: #faf8f3;
-    --sand: #ece5d6;
-    --card-bg: #ffffff;
-    --line: #e4ded0;
-    --ink: #22281f;
-    --ink-soft: #6b7061;
-    --shadow-card: 0 1px 2px rgba(16, 50, 31, 0.05);
-    --shadow-hover: 0 8px 22px rgba(16, 50, 31, 0.11);
-    --radius: 9px;
-    --transition: 0.18s ease;
+/* ── School Dashboard — uses base.html's real tokens ─────────────── */
+.dash {
+    --line: #e8e8e8;
+    --card: #ffffff;
 }
 
-.fedena-dashboard {
-    padding: 28px 20px 56px;
-    min-height: calc(100vh - 180px);
-    background: var(--paper);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    color: var(--ink);
-}
-
-/* ---------- Page header ---------- */
-.dash-header {
-    max-width: 1180px;
-    margin: 0 auto 26px;
+/* Header */
+.dash-top {
     display: flex;
-    align-items: baseline;
+    align-items: flex-end;
     justify-content: space-between;
     gap: 16px;
-    border-bottom: 1px solid var(--line);
-    padding-bottom: 16px;
+    margin-bottom: 24px;
 }
-
-.dash-header h1 {
-    font-family: 'Fraunces', Georgia, serif;
-    font-weight: 600;
-    font-size: 1.65rem;
-    color: var(--pine-900);
+.dash-top h1 {
+    font-size: 1.4rem;
+    margin: 0 0 2px;
+}
+.dash-top .sub {
+    font-size: 0.85rem;
+    color: var(--color-muted, #555);
     margin: 0;
-    letter-spacing: -0.02em;
 }
-
-.dash-header .dash-date {
-    font-size: 0.84rem;
-    color: var(--ink-soft);
+.dash-top .date {
+    font-size: 0.82rem;
+    color: var(--color-muted, #555);
     font-weight: 500;
 }
 
-/* ---------- Newsletter / News Section ---------- */
-.newsletter-section {
-    max-width: 1180px;
-    margin: 0 auto 36px;
+/* Stats row */
+.dash-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
 }
-
-.newsletter-section .section-label {
-    font-family: 'Fraunces', Georgia, serif;
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--pine-900);
-    margin: 0 0 12px;
-}
-
-.newsletter-section .row {
-    row-gap: 12px;
-}
-
-.newsletter-card {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    height: 100%;
-    min-height: 90px;
-    padding: 15px 17px;
-    background: var(--card-bg);
+.stat-card {
+    background: var(--card);
     border: 1px solid var(--line);
-    border-left: 3px solid var(--pine-700);
-    border-radius: 6px;
-    text-decoration: none;
-    color: inherit;
-    transition: border-color var(--transition), box-shadow var(--transition);
+    border-radius: 0;
+    padding: 16px;
+    transition: border-color 0.15s ease;
 }
-
-.newsletter-card:hover {
-    box-shadow: var(--shadow-card);
-    border-left-color: var(--pine-500);
+.stat-card:hover {
+    border-color: var(--color-brand, #1a7a3c);
 }
-
-.newsletter-card:focus-visible {
-    outline: 2px solid var(--pine-500);
-    outline-offset: 2px;
-}
-
-.newsletter-header h6 {
-    font-size: 0.91rem;
-    font-weight: 600;
-    color: var(--ink);
-    margin: 0 0 7px;
-    line-height: 1.35;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.newsletter-body {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-}
-
-.newsletter-body p {
-    font-size: 0.77rem;
-    color: var(--ink-soft);
-    margin: 0;
-}
-
-.newsletter-body .text-end small {
-    font-size: 0.74rem;
-    color: #a3a08f;
-}
-
-/* ---------- Module groups ---------- */
-.dashboard-modules-grid {
-    max-width: 1180px;
-    margin: 0 auto;
-}
-
-.module-group {
-    margin-bottom: 32px;
-}
-
-.module-group:last-child {
-    margin-bottom: 0;
-}
-
-.module-group-label {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--pine-500);
+.stat-label {
+    font-size: 0.72rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.07em;
-    margin: 0 0 11px 2px;
+    letter-spacing: 0.04em;
+    color: var(--color-muted, #555);
+    margin-bottom: 6px;
 }
-
-.module-group .row {
-    row-gap: 11px;
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text, #1a1a1a);
+    line-height: 1.1;
+    margin-bottom: 4px;
 }
-
-.module-link {
-    display: flex;
-    align-items: center;
-    gap: 13px;
-    height: 100%;
-    padding: 14px 15px;
-    background: var(--card-bg);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-card);
-    text-decoration: none;
-    color: inherit;
-    transition: transform var(--transition),
-                box-shadow var(--transition),
-                border-color var(--transition);
-    position: relative;
-}
-
-.module-link::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 12px;
-    bottom: 12px;
-    width: 3px;
-    background: transparent;
-    border-radius: 0 3px 3px 0;
-    transition: background var(--transition);
-}
-
-.module-link:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-hover);
-    border-color: #cfd8c8;
-}
-
-.module-link:hover::before {
-    background: var(--pine-500);
-}
-
-.module-link:hover .module-icon {
-    background: var(--pine-100);
-}
-
-.module-link:focus-visible {
-    outline: 2px solid var(--pine-500);
-    outline-offset: 2px;
-}
-
-.module-icon {
-    flex: 0 0 42px;
-    width: 42px;
-    height: 42px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    background: var(--sand);
-    transition: background var(--transition);
-}
-
-.module-icon img {
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
-}
-
-.module-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-}
-
-.module-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--ink);
-    margin: 0;
-    line-height: 1.25;
-}
-
-.module-desc {
+.stat-meta {
     font-size: 0.75rem;
-    color: var(--ink-soft);
-    line-height: 1.3;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    color: var(--color-muted, #555);
+}
+.stat-meta.up { color: var(--color-brand, #1a7a3c); }
+.stat-meta.down { color: #c0392b; }
+
+/* Main grid */
+.dash-grid {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 16px;
+    align-items: start;
 }
 
-/* ---------- Responsive ---------- */
+/* Cards */
+.dash-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 0;
+    padding: 16px 16px 14px;
+    margin-bottom: 16px;
+}
+.dash-card:last-child { margin-bottom: 0; }
+.dash-card-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--color-text, #1a1a1a);
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.dash-card-title span {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-muted, #555);
+}
+
+/* Chart containers */
+.chart-wrap { position: relative; height: 220px; }
+.chart-wrap.sm { height: 160px; }
+
+/* Activity list */
+.activity-list { list-style: none; padding: 0; margin: 0; }
+.activity-item {
+    display: flex;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+}
+.activity-item:last-child { border-bottom: none; padding-bottom: 0; }
+.activity-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-brand, #1a7a3c);
+    margin-top: 5px;
+    flex-shrink: 0;
+}
+.activity-body { min-width: 0; }
+.activity-text {
+    font-size: 0.84rem;
+    color: var(--color-text, #1a1a1a);
+    margin: 0 0 2px;
+    line-height: 1.35;
+}
+.activity-time { font-size: 0.72rem; color: var(--color-muted, #555); }
+
+/* Sidebar */
+.side-section { margin-bottom: 16px; }
+.side-section:last-child { margin-bottom: 0; }
+.side-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-muted, #555);
+    margin: 0 0 10px;
+}
+
+/* Quick links */
+.quick-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 0;
+    text-decoration: none;
+    color: var(--color-text, #1a1a1a);
+    font-size: 0.84rem;
+    font-weight: 500;
+    transition: background 0.12s ease;
+}
+.quick-link:hover { background: var(--color-brand-bg, #e8f5ed); color: var(--color-text, #1a1a1a); }
+.quick-link i { width: 18px; text-align: center; color: var(--color-brand, #1a7a3c); font-size: 0.9rem; }
+
+/* Event items */
+.event-item { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.event-item:last-child { border-bottom: none; }
+.event-date { flex: 0 0 42px; text-align: center; }
+.event-day { font-size: 1.1rem; font-weight: 700; color: var(--color-text, #1a1a1a); line-height: 1; }
+.event-month { font-size: 0.65rem; text-transform: uppercase; color: var(--color-muted, #555); letter-spacing: 0.03em; }
+.event-info { min-width: 0; }
+.event-title { font-size: 0.84rem; font-weight: 500; color: var(--color-text, #1a1a1a); margin: 0 0 1px; }
+.event-meta { font-size: 0.72rem; color: var(--color-muted, #555); }
+
+/* Progress bars */
+.progress-row { margin-bottom: 12px; }
+.progress-row:last-child { margin-bottom: 0; }
+.progress-label { display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px; }
+.progress-label span:first-child { color: var(--color-text, #1a1a1a); font-weight: 500; }
+.progress-label span:last-child { color: var(--color-muted, #555); }
+.progress-track { height: 6px; background: #eee; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--color-brand, #1a7a3c); }
+
+/* Responsive */
+@media (max-width: 991.98px) { .dash-grid { grid-template-columns: 1fr; } }
 @media (max-width: 767.98px) {
-    .fedena-dashboard {
-        padding: 18px 14px 40px;
-    }
-
-    .dash-header {
-        margin-bottom: 20px;
-        padding-bottom: 12px;
-    }
-
-    .dash-header h1 {
-        font-size: 1.35rem;
-    }
-
-    .module-group {
-        margin-bottom: 26px;
-    }
-
-    .module-link {
-        padding: 12px 12px;
-        gap: 11px;
-    }
-
-    .module-icon {
-        flex-basis: 38px;
-        width: 38px;
-        height: 38px;
-    }
-
-    .module-icon img {
-        width: 21px;
-        height: 21px;
-    }
-
-    .module-title {
-        font-size: 0.85rem;
-    }
-
-    .module-desc {
-        font-size: 0.72rem;
-    }
+    .dash-stats { grid-template-columns: repeat(2, 1fr); }
+    .dash-top { flex-direction: column; align-items: flex-start; gap: 6px; }
 }
+@media (max-width: 480px) { .dash-stats { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="fedena-dashboard">
+<div class="dash">
 
-    <div class="dash-header">
-        <h1>Dashboard</h1>
-        <span class="dash-date">{% now "l, j F Y" %}</span>
+    <div class="dash-top">
+        <div>
+            <h1>Good morning, {{ request.user.first_name|default:"Admin" }}</h1>
+            <p class="sub">Here's what's happening at {{ request.tenant.name|default:"the school" }} today.</p>
+        </div>
+        <span class="date">{% now "l, j F Y" %}</span>
     </div>
 
-    {% if recent_news %}
-    <div class="newsletter-section">
-        <p class="section-label">Recent news</p>
-        <div class="row">
-            {% for article in recent_news %}
-            <div class="col-lg-4 col-md-6 col-sm-6">
-                <a href="{% url 'core:news' %}" class="newsletter-card">
-                    <div class="newsletter-header">
-                        <h6>{{ article.title|truncatewords:8 }}</h6>
-                    </div>
-                    <div class="newsletter-body">
-                        <p>{{ article.created_at|date:"d M Y" }}</p>
-                        <div class="text-end">
-                            <small><i class="fas fa-comment"></i> 0</small>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            {% endfor %}
+    <div class="dash-stats">
+        <div class="stat-card">
+            <div class="stat-label">Students</div>
+            <div class="stat-value">{{ total_students|default:"—" }}</div>
+            <div class="stat-meta">{% if students_delta_pct %}↑ {{ students_delta_pct }}% this term{% endif %}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Attendance today</div>
+            <div class="stat-value">{{ attendance_pct|default:"—" }}%</div>
+            <div class="stat-meta">{{ present_count|default:"" }}{% if present_count %} present{% endif %}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Fees collected</div>
+            <div class="stat-value">{{ fees_collected|default:"—" }}</div>
+            <div class="stat-meta">{% if fees_delta_pct %}↑ {{ fees_delta_pct }}% vs last month{% endif %}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Pending admissions</div>
+            <div class="stat-value">{{ pending_admissions|default:"—" }}</div>
+            <div class="stat-meta">{{ new_enquiries|default:"" }}{% if new_enquiries %} new enquiries{% endif %}</div>
         </div>
     </div>
-    {% endif %}
 
-    <div class="dashboard-modules-grid">
+    <div class="dash-grid">
 
-        <!-- Academics -->
-        <div class="module-group">
-            <p class="module-group-label">Academics</p>
-            <div class="row">
-                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
-                    <a href="{% url 'core:admission_dashboard' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_admission.png' %}" alt="">
-                        </div>
-                        <div class="module-text">
-                            <h6 class="module-title">Admission</h6>
-                            <span class="module-desc">Enrol new students</span>
-                        </div>
-                    </a>
+        <div class="dash-main">
+
+            <div class="dash-card">
+                <div class="dash-card-title">
+                    Enrollment &amp; Attendance
+                    <span>Last 6 months</span>
                 </div>
-                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
-                    <a href="{% url 'core:student_list' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_student_details.png' %}" alt="">
-                        </div>
-                        <div class="module-text">
-                            <h6 class="module-title">Students</h6>
-                            <span class="module-desc">Records and profiles</span>
-                        </div>
-                    </a>
+                <div class="chart-wrap">
+                    <canvas id="enrollmentChart"
+                        data-labels='{{ enrollment_labels_json|default:"[]" }}'
+                        data-students='{{ enrollment_students_json|default:"[]" }}'
+                        data-attendance='{{ enrollment_attendance_json|default:"[]" }}'></canvas>
                 </div>
-                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
-                    <a href="{% url 'core:gradebook_index' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_examinations.png' %}" alt="">
-                        </div>
-                        <div class="module-text">
-                            <h6 class="module-title">Examinations</h6>
-                            <span class="module-desc">Grades and report cards</span>
-                        </div>
-                    </a>
+            </div>
+
+            <div class="dash-card">
+                <div class="dash-card-title">
+                    Fee Collection
+                    <span>This term</span>
                 </div>
-                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
-                    <a href="{% url 'core:timetable_list' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_timetable.png' %}" alt="">
-                        </div>
-                        <div class="module-text">
-                            <h6 class="module-title">Timetable</h6>
-                            <span class="module-desc">Class schedules</span>
-                        </div>
-                    </a>
+                <div class="chart-wrap sm">
+                    <canvas id="feesChart"
+                        data-labels='{{ fee_category_labels_json|default:"[]" }}'
+                        data-values='{{ fee_category_values_json|default:"[]" }}'></canvas>
                 </div>
-                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
-                    <a href="{% url 'core:attendance_dashboard' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/attendance.png' %}" alt="">
+            </div>
+
+            <div class="dash-card">
+                <div class="dash-card-title">Recent activity</div>
+                <ul class="activity-list">
+                    {% for item in recent_activity %}
+                    <li class="activity-item">
+                        <span class="activity-dot" {% if item.color %}style="background:{{ item.color }}"{% endif %}></span>
+                        <div class="activity-body">
+                            <p class="activity-text">{{ item.text|safe }}</p>
+                            <span class="activity-time">{{ item.time_ago }}</span>
                         </div>
-                        <div class="module-text">
-                            <h6 class="module-title">Attendance</h6>
-                            <span class="module-desc">Mark and track daily</span>
+                    </li>
+                    {% empty %}
+                    <li class="activity-item">
+                        <div class="activity-body">
+                            <p class="activity-text">No recent activity yet.</p>
                         </div>
-                    </a>
-                </div>
-                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
-                    <a href="{% url 'core:library' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_library.png' %}" alt="">
-                        </div>
-                        <div class="module-text">
-                            <h6 class="module-title">Library</h6>
-                            <span class="module-desc">Books and lending</span>
-                        </div>
-                    </a>
-                </div>
+                    </li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
 
-        <!-- People -->
-        <div class="module-group">
-            <p class="module-group-label">People</p>
-            <div class="row">
-                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
-                    <a href="{% url 'core:teacher_list' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_manage_users.png' %}" alt="">
-                        </div>
-                        <div class="module-text">
-                            <h6 class="module-title">Manage users</h6>
-                            <span class="module-desc">Accounts and permissions</span>
-                        </div>
+        <div class="dash-side">
+
+            <div class="dash-card">
+                <div class="side-section">
+                    <p class="side-label">Quick actions</p>
+                    <a href="{% url 'core:admission_dashboard' %}" class="quick-link">
+                        <i class="fas fa-user-plus"></i> New admission
                     </a>
-                </div>
-                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
-                    <a href="{% url 'core:hr_dashboard' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_Human.png' %}" alt="">
-                        </div>
-                        <div class="module-text">
-                            <h6 class="module-title">Human Resources</h6>
-                            <span class="module-desc">Staff records</span>
-                        </div>
+                    <a href="{% url 'core:attendance_dashboard' %}" class="quick-link">
+                        <i class="fas fa-clipboard-check"></i> Mark attendance
                     </a>
-                </div>
-                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
-                    <a href="{% url 'core:student_list' %}?alumni=1" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_student_details.png' %}" alt="">
-                        </div>
-                        <div class="module-text">
-                            <h6 class="module-title">Alumni</h6>
-                            <span class="module-desc">Past student records</span>
-                        </div>
+                    <a href="{% url 'core:collect_fees' %}" class="quick-link">
+                        <i class="fas fa-cash-register"></i> Collect fees
+                    </a>
+                    <a href="{% url 'core:gradebook_index' %}" class="quick-link">
+                        <i class="fas fa-star"></i> Enter grades
+                    </a>
+                    <a href="{% url 'core:news' %}" class="quick-link">
+                        <i class="fas fa-bullhorn"></i> Post announcement
                     </a>
                 </div>
             </div>
-        </div>
 
-        <!-- Operations -->
-        <div class="module-group">
-            <p class="module-group-label">Operations</p>
-            <div class="row">
-                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
-                    <a href="{% url 'core:finance_dashboard' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_finance.png' %}" alt="">
-                        </div>
-                        <div class="module-text">
-                            <h6 class="module-title">Finance</h6>
-                            <span class="module-desc">Fees and payments</span>
-                        </div>
-                    </a>
-                </div>
-                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
-                    <a href="{% url 'core:hostel' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_hostel.png' %}" alt="">
-                        </div>
-                        <div class="module-text">
-                            <h6 class="module-title">Hostel</h6>
-                            <span class="module-desc">Room allocations</span>
-                        </div>
-                    </a>
-                </div>
-                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
-                    <a href="{% url 'core:transport' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_transport.png' %}" alt="">
-                        </div>
-                        <div class="module-text">
-                            <h6 class="module-title">Transport</h6>
-                            <span class="module-desc">Routes and vehicles</span>
-                        </div>
-                    </a>
-                </div>
-                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
-                    <a href="{% url 'core:configuration' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/settings.png' %}" alt="">
-                        </div>
-                        <div class="module-text">
-                            <h6 class="module-title">Settings</h6>
-                            <span class="module-desc">System configuration</span>
-                        </div>
-                    </a>
+            <div class="dash-card">
+                <div class="side-section">
+                    <p class="side-label">Attendance by grade</p>
+                    {% for row in attendance_by_grade %}
+                    <div class="progress-row">
+                        <div class="progress-label"><span>{{ row.label }}</span><span>{{ row.pct }}%</span></div>
+                        <div class="progress-track"><div class="progress-fill" style="width:{{ row.pct }}%"></div></div>
+                    </div>
+                    {% empty %}
+                    <p class="event-meta">No attendance data yet.</p>
+                    {% endfor %}
                 </div>
             </div>
-        </div>
 
-        <!-- Community -->
-        <div class="module-group">
-            <p class="module-group-label">Community</p>
-            <div class="row">
-                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
-                    <a href="{% url 'core:news' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/button_manage_news.png' %}" alt="">
+            <div class="dash-card">
+                <div class="side-section">
+                    <p class="side-label">Upcoming</p>
+                    {% for event in upcoming_events %}
+                    <div class="event-item">
+                        <div class="event-date">
+                            <div class="event-day">{{ event.date|date:"j" }}</div>
+                            <div class="event-month">{{ event.date|date:"M" }}</div>
                         </div>
-                        <div class="module-text">
-                            <h6 class="module-title">Manage news</h6>
-                            <span class="module-desc">Announcements</span>
+                        <div class="event-info">
+                            <p class="event-title">{{ event.title }}</p>
+                            <span class="event-meta">{{ event.meta }}</span>
                         </div>
-                    </a>
-                </div>
-                <div class="col-lg-3 col-md-4 col-sm-6 col-6">
-                    <a href="{% url 'core:news' %}" class="module-link">
-                        <div class="module-icon">
-                            <img src="{% static 'img/blog-icon.png' %}" alt="">
-                        </div>
-                        <div class="module-text">
-                            <h6 class="module-title">Blog</h6>
-                            <span class="module-desc">Posts and articles</span>
-                        </div>
-                    </a>
+                    </div>
+                    {% empty %}
+                    <p class="event-meta">Nothing scheduled.</p>
+                    {% endfor %}
                 </div>
             </div>
-        </div>
 
+        </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const brand = getComputedStyle(document.documentElement).getPropertyValue('--color-brand').trim() || '#1a7a3c';
+
+    function safeJson(el, attr) {
+        try { return JSON.parse(el.dataset[attr] || '[]'); } catch (e) { return []; }
+    }
+
+    const enrollCanvas = document.getElementById('enrollmentChart');
+    const enrollLabels = safeJson(enrollCanvas, 'labels');
+    const enrollStudents = safeJson(enrollCanvas, 'students');
+    const enrollAttendance = safeJson(enrollCanvas, 'attendance');
+
+    if (enrollLabels.length) {
+        new Chart(enrollCanvas, {
+            type: 'line',
+            data: {
+                labels: enrollLabels,
+                datasets: [
+                    {
+                        label: 'Students',
+                        data: enrollStudents,
+                        borderColor: brand,
+                        backgroundColor: 'transparent',
+                        borderWidth: 2.5,
+                        tension: 0.35,
+                        pointRadius: 3,
+                        pointBackgroundColor: brand
+                    },
+                    {
+                        label: 'Avg Attendance %',
+                        data: enrollAttendance,
+                        borderColor: '#94a3b8',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        borderDash: [4, 4],
+                        tension: 0.35,
+                        pointRadius: 2,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'top', align: 'end', labels: { boxWidth: 12, boxHeight: 12, font: { size: 11 }, color: '#555' } },
+                    tooltip: { backgroundColor: '#1a1a1a', titleFont: { size: 12 }, bodyFont: { size: 12 } }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#888', font: { size: 11 } } },
+                    y: { position: 'left', grid: { color: '#f0f0f0' }, ticks: { color: '#888', font: { size: 11 } } },
+                    y1: { position: 'right', grid: { display: false }, ticks: { color: '#888', font: { size: 11 }, callback: v => v + '%' }, min: 0, max: 100 }
+                }
+            }
+        });
+    } else {
+        enrollCanvas.parentElement.insertAdjacentHTML('beforeend', '<p style="color:#888;font-size:0.8rem;text-align:center;padding-top:80px">No data yet</p>');
+    }
+
+    const feesCanvas = document.getElementById('feesChart');
+    const feeLabels = safeJson(feesCanvas, 'labels');
+    const feeValues = safeJson(feesCanvas, 'values');
+
+    if (feeLabels.length) {
+        new Chart(feesCanvas, {
+            type: 'bar',
+            data: {
+                labels: feeLabels,
+                datasets: [{ data: feeValues, backgroundColor: brand, borderRadius: 0, barPercentage: 0.6 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a1a1a' } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#888', font: { size: 11 } } },
+                    y: { grid: { color: '#f0f0f0' }, ticks: { color: '#888', font: { size: 11 } } }
+                }
+            }
+        });
+    } else {
+        feesCanvas.parentElement.insertAdjacentHTML('beforeend', '<p style="color:#888;font-size:0.8rem;text-align:center;padding-top:60px">No data yet</p>');
+    }
+});
+</script>
 {% endblock %}

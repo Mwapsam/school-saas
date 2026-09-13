@@ -28,7 +28,7 @@
 {% endblock %}
 
 {% block layout_table %}
-  <div class="pinewood-table-container">
+  <div class="product-table-container">
     <div id="transport-stops-content" hx-get="{% url 'core:transport_stop_list' %}" hx-trigger="load" hx-target="this">
       {% include 'core/components/loading_state.html' with message="Loading stops…" %}
     </div>
