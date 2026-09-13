@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import type { Role, UserProfile } from "./types";
+import { createSchoolStorage } from "./school-storage";
 
 interface AuthState {
   access: string | null;
@@ -68,6 +69,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "school-portal-auth",
+      storage: createSchoolStorage("schoolCode"),
       partialize: (s) => ({
         access: s.access,
         refresh: s.refresh,
