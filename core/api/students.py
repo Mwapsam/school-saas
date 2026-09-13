@@ -24,76 +24,17 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from core.models import Student, Batch, Course, Subject
 from core.authz.drf import ModuleEnabled, HasPermission
-from core.services import StudentService
-
-
-# ───────────────────────────────────────────────────────────────────────────
-# Serializers
-# ───────────────────────────────────────────────────────────────────────────
-
-from rest_framework import serializers
-
-
-class StudentSerializer(serializers.ModelSerializer):
-    """Serializer for Student model — handles CRUD + nested course/batch info."""
-    batch_name = serializers.CharField(source='batch.name', read_only=True)
-    course_name = serializers.CharField(source='course.name', read_only=True)
-
-    class Meta:
-        model = Student
-        fields = [
-            'id', 'admission_no', 'full_name', 'first_name', 'last_name',
-            'date_of_birth', 'batch', 'batch_name', 'course', 'course_name',
-            'gender', 'is_active', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-
-class BatchSerializer(serializers.ModelSerializer):
-    """Serializer for Batch model — student cohorts."""
-    course_name = serializers.CharField(source='course.name', read_only=True)
-    student_count = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Batch
-        fields = [
-            'id', 'name', 'code', 'course', 'course_name', 'start_date', 'end_date',
-            'student_count', 'is_active', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-    def get_student_count(self, obj):
-        """Return count of students in this batch."""
-        return obj.students.count()
-
-
-class CourseSerializer(serializers.ModelSerializer):
-    """Serializer for Course model — academic programs."""
-    class Meta:
-        model = Course
-        fields = [
-            'id', 'name', 'code', 'description', 'section_name',
-            'is_active', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-
-class SubjectSerializer(serializers.ModelSerializer):
-    """Serializer for Subject model — courses/subjects taught."""
-    class Meta:
-        model = Subject
-        fields = [
-            'id', 'name', 'code', 'description',
-            'is_active', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+from core.api.base import TenantAwareViewSet
+from core.serializers.students_serializers import (
+    StudentSerializer, BatchSerializer, CourseSerializer, SubjectSerializer
+)
 
 
 # ───────────────────────────────────────────────────────────────────────────
 # ViewSets
 # ───────────────────────────────────────────────────────────────────────────
 
-class StudentViewSet(viewsets.ModelViewSet):
+class StudentViewSet(TenantAwareViewSet):
     """
     Student management API.
 
@@ -172,7 +113,7 @@ class StudentViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
 
-class BatchViewSet(viewsets.ModelViewSet):
+class BatchViewSet(TenantAwareViewSet):
     """
     Batch (cohort) management API.
 
@@ -200,7 +141,7 @@ class BatchViewSet(viewsets.ModelViewSet):
         return super().get_queryset().select_related('course').prefetch_related('students')
 
 
-class CourseViewSet(viewsets.ModelViewSet):
+class CourseViewSet(TenantAwareViewSet):
     """
     Course (academic program) management API.
 
@@ -223,7 +164,7 @@ class CourseViewSet(viewsets.ModelViewSet):
     ordering = ['name']
 
 
-class SubjectViewSet(viewsets.ModelViewSet):
+class SubjectViewSet(TenantAwareViewSet):
     """
     Subject (course content) management API.
 
