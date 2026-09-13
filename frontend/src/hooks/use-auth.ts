@@ -34,6 +34,7 @@ export function useAuth() {
     role: user?.role ?? null,
     roles,
     activeRole: activeRole ?? roles[0] ?? null,
+    isSuperuser: user?.is_admin ?? false,
   };
 }
 

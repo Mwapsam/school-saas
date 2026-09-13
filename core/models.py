@@ -8912,3 +8912,50 @@ class AdmissionAdditionalDetail(TenantAwareModel):
 
     def __str__(self):
         return f"{self.application_id} · {self.field_id}"
+
+
+class DemoRequest(BaseModel):
+    """Public schema model for prospective customers to request a demo.
+
+    NOT tenant-scoped (no tenant FK). Lives in the shared schema.
+    """
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("contacted", "Contacted"),
+        ("demo_scheduled", "Demo Scheduled"),
+        ("converted", "Converted"),
+        ("rejected", "Rejected"),
+    ]
+
+    full_name = models.CharField(max_length=255)
+    email = models.EmailField()
+    phone = models.CharField(max_length=20, blank=True)
+    school_name = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Name of the prospective school/organization"
+    )
+    message = models.TextField(
+        blank=True,
+        help_text="Additional message or inquiry"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="pending"
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text="Internal notes from admin"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["email"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.full_name} ({self.email}) - {self.status}"

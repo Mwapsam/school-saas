@@ -108,6 +108,11 @@ from .api.batch_assignment import (
     AdmissionDiagnosticsViewSet,
 )
 
+from .api.tenant import (
+    SchoolViewSet,
+    DemoRequestViewSet,
+)
+
 # Create router for ViewSets
 router = DefaultRouter()
 
@@ -169,6 +174,10 @@ router.register(r'transport-fees', TransportFeeViewSet, basename='transport-fee'
 router.register(r'libraries', LibraryViewSet, basename='library')
 router.register(r'library-staff', LibraryStaffViewSet, basename='library-staff')
 router.register(r'library-books', BookViewSet, basename='library-book')
+
+# Platform admin endpoints (superuser-only)
+router.register(r'schools', SchoolViewSet, basename='school')
+router.register(r'demo-requests', DemoRequestViewSet, basename='demo-request')
 
 # Bootstrap endpoint — tenant configuration contract for frontend
 from .api.bootstrap import bootstrap

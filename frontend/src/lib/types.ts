@@ -33,6 +33,8 @@ export interface UserProfile {
   hr_permissions?: string[];
   /** True when the account is linked to an active employee — gates "My HR". */
   has_employee_profile?: boolean;
+  /** True for platform superusers/admins — gates admin panel. */
+  is_admin?: boolean;
 }
 
 // ── HR portal ───────────────────────────────────────────────────────────────
