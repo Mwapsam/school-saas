@@ -1169,7 +1169,7 @@
                             </div>
                         </div>
                         <a href="{% url 'core:dashboard' %}" class="header-brand">
-                            PINEWOOD PREPARATORY SCHOOL
+                            {{ request.tenant.name|upper|default:"SCHOOL MANAGEMENT" }}
                         </a>
                     </div>
                 </div>

@@ -91,7 +91,7 @@
                 {% if school.logo %}
                     <img src="{{ school.logo.url }}" alt="{{ school.name }}" class="header-logo">
                 {% else %}
-                    <img src="{% static 'img/logo.png' %}" alt="Pinewood" class="header-logo">
+                    <img src="{% static 'img/logo.png' %}" alt="{{ school.name|default:'School' }}" class="header-logo">
                 {% endif %}
                 <div>
                     <div class="school-name">{{ school.name|default:"Pinewood Preparatory School" }}</div>
@@ -120,11 +120,10 @@
     <!-- Footer -->
     <footer class="public-footer">
         <div>
-            &copy; {% now "Y" %} {{ school.name|default:"Pinewood Preparatory School" }} &mdash;
-            <a href="mailto:{{ school.email|default:'office@pinewoodschoolzambia.com' }}">
-                {{ school.email|default:"office@pinewoodschoolzambia.com" }}
-            </a>
-            &mdash; {{ school.phone|default:"0211 291167 / 291461 / 294802" }}
+            &copy; {% now "Y" %} {{ school.name|default:"School Management" }}{% if school.email or school.phone %} &mdash;
+            {% if school.email %}<a href="mailto:{{ school.email }}">{{ school.email }}</a>{% endif %}
+            {% if school.email and school.phone %}&mdash; {% endif %}
+            {% if school.phone %}{{ school.phone }}{% endif %}{% endif %}
         </div>
     </footer>
 
