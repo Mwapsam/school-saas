@@ -1,13 +1,16 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Box, TextField, Alert } from '@mui/material';
 import { step6Schema, type Step6FormData } from '../schemas';
 import { useGetAdditionalFields } from '../hooks';
+import { useFormPersistence } from '../hooks/useFormPersistence';
 import { FormSection, FormActions, FormGrid } from '@/components/forms';
 
 interface Step6FormProps {
+  applicationId: string;
   initialData?: any;
   onSubmit: (data: Step6FormData) => Promise<void>;
   isLoading?: boolean;
@@ -15,13 +18,17 @@ interface Step6FormProps {
   onNext?: () => void;
 }
 
-export function Step6Form({ initialData, onSubmit, isLoading, error, onNext }: Step6FormProps) {
+export function Step6Form({ applicationId, initialData, onSubmit, isLoading, error, onNext }: Step6FormProps) {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid },
+    watch,
+    setValue,
+    getValues,
   } = useForm<Step6FormData>({
     resolver: zodResolver(step6Schema),
+    mode: 'onChange',
     defaultValues: initialData
       ? {
           address_line1: initialData.address_line1 || '',
@@ -43,10 +50,19 @@ export function Step6Form({ initialData, onSubmit, isLoading, error, onNext }: S
 
   const { data: additionalFieldsData } = useGetAdditionalFields();
 
+  const { saveToLocalStorage, clearPersistence } = useFormPersistence(applicationId, 6, setValue, getValues);
+
+  useEffect(() => {
+    const subscription = watch(() => {
+      saveToLocalStorage();
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, saveToLocalStorage]);
+
   const handleFormSubmit = async (data: Step6FormData) => {
     try {
       await onSubmit(data);
-      onNext?.();
+      clearPersistence();
     } catch (err) {
       console.error('Failed to save step 6:', err);
     }
@@ -210,7 +226,7 @@ export function Step6Form({ initialData, onSubmit, isLoading, error, onNext }: S
       <FormActions
         submitLabel="Continue to Step 7"
         isSubmitting={isLoading}
-        isDirty={true}
+        isDirty={isValid}
       />
     </Box>
   );

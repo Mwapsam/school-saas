@@ -105,6 +105,10 @@ export const NAV_MODULES: NavModule[] = [
       { label: 'New Application', href: '/dashboard/admissions/multi-step', capability: 'admissions.application.manage' },
       { label: 'Applicants', href: '/dashboard/admissions/applicants', capability: 'admissions.application.manage' },
       { label: 'Applications', href: '/dashboard/admissions', capability: 'admissions.application.view' },
+      { label: 'Management', href: '/dashboard/admissions/manage', capability: 'admissions.application.manage' },
+      { label: 'Batch Assignment', href: '/dashboard/admissions/batch-assignment', capability: 'admissions.application.manage' },
+      { label: 'Report', href: '/dashboard/admissions/report', capability: 'admissions.application.view' },
+      { label: 'Status Check', href: '/dashboard/admissions/status-check', capability: 'admissions.application.view' },
       { label: 'Inquiries', href: '/dashboard/inquiries', capability: 'admissions.enquiry.view' },
     ],
   },
@@ -286,7 +290,7 @@ export function Sidebar({
             sx={{
               width: 40,
               height: 40,
-              borderRadius: 2,
+              borderRadius: 0,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -317,7 +321,7 @@ export function Sidebar({
               {schoolName}
             </Typography>
             <Typography variant="caption" sx={{ color: colors.text.secondary, fontSize: '0.75rem' }}>
-              Student Information System
+              School Management System
             </Typography>
           </Box>
         </Stack>
@@ -465,7 +469,7 @@ export function Sidebar({
           '&::-webkit-scrollbar-track': { backgroundColor: 'transparent' },
           '&::-webkit-scrollbar-thumb': {
             backgroundColor: colors.border.default,
-            borderRadius: 2,
+            borderRadius: 0,
             '&:hover': { backgroundColor: colors.border.light },
           },
         }}
@@ -501,7 +505,7 @@ export function Sidebar({
               sx={{
                 px: collapsed ? 1 : 1.5,
                 py: 1.25, // more vertical space
-                borderRadius: 2,
+                borderRadius: 0,
                 gap: 1.5,
                 justifyContent: collapsed ? 'center' : 'flex-start',
                 minHeight: 48,

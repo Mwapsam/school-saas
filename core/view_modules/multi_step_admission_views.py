@@ -20,8 +20,9 @@ from core.serializers.multi_step_admission_serializers import (
     AdmissionStep4Serializer, AdmissionStep5Serializer, AdmissionStep6Serializer,
     AdmissionStep8Serializer, AdmissionProgressSerializer, AdmissionTermsSerializer,
     AdditionalFieldLookupSerializer, ExtendedAdmissionApplicationSerializer,
-    AcademicYearSerializer, CourseSerializer, CountrySerializer, StudentCategorySerializer,
-    AdmissionDocumentSerializer, BulkAdmissionStatusSerializer, AdmissionSubmissionSerializer
+    AdmissionApplicationDetailSerializer, AcademicYearSerializer, CourseSerializer,
+    CountrySerializer, StudentCategorySerializer, AdmissionDocumentSerializer,
+    BulkAdmissionStatusSerializer, AdmissionSubmissionSerializer
 )
 from core.api_views import TenantAwareViewSetMixin, StandardResultsSetPagination
 
@@ -350,24 +351,30 @@ class AdmissionAdminViewSet(TenantAwareViewSetMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         """Filter by tenant with admin filters"""
         queryset = self.queryset.filter(tenant=self.request.tenant)
-        
+
         # Filter by status
         status_filter = self.request.query_params.get('status')
         if status_filter:
             queryset = queryset.filter(status=status_filter)
-        
+
         # Filter by academic year
         academic_year = self.request.query_params.get('academic_year')
         if academic_year:
             queryset = queryset.filter(academic_year__id=academic_year)
-        
+
         # Filter by course
         course = self.request.query_params.get('course')
         if course:
             queryset = queryset.filter(course_applied__id=course)
-        
+
         return queryset.order_by('-application_date')
-    
+
+    def get_serializer_class(self):
+        """Use detail serializer for single-record retrieve"""
+        if self.action == 'retrieve':
+            return AdmissionApplicationDetailSerializer
+        return self.serializer_class
+
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
         """Approve admission application"""
@@ -534,39 +541,24 @@ class AdmissionAdminViewSet(TenantAwareViewSetMixin, viewsets.ModelViewSet):
                     is_active=True,
                 )
 
-                # Create guardians from application data
-                guardians_data = []
-                if application.guardian1_first_name:
-                    guardians_data.append({
-                        'first_name': application.guardian1_first_name,
-                        'last_name': application.guardian1_last_name or '',
-                        'relation': application.guardian1_relation or 'guardian',
-                        'email': application.guardian1_email or None,
-                        'mobile_phone': application.guardian1_mobile or None,
-                        'occupation': getattr(application, 'guardian1_occupation', None),
-                    })
+                # Create guardian2 directly (no portal account provisioning for legacy parity)
                 if application.guardian2_first_name:
-                    guardians_data.append({
-                        'first_name': application.guardian2_first_name,
-                        'last_name': application.guardian2_last_name or '',
-                        'relation': application.guardian2_relation or 'guardian',
-                        'email': application.guardian2_email or None,
-                        'mobile_phone': application.guardian2_mobile or None,
-                        'occupation': getattr(application, 'guardian2_occupation', None),
-                    })
-
-                for idx, guardian_data in enumerate(guardians_data):
-                    guardian = Guardian.objects.create(
+                    guardian2 = Guardian.objects.create(
                         tenant=request.tenant,
-                        **guardian_data,
+                        first_name=application.guardian2_first_name,
+                        last_name=application.guardian2_last_name or '',
+                        relation=application.guardian2_relation or 'guardian',
+                        email=application.guardian2_email or None,
+                        mobile_phone=application.guardian2_mobile or None,
+                        occupation=getattr(application, 'guardian2_occupation', None),
                         is_active=True,
                     )
                     StudentGuardianRelation.objects.create(
                         tenant=request.tenant,
                         student=student,
-                        guardian=guardian,
-                        relation=guardian_data['relation'],
-                        is_immediate_contact=(idx == 0),
+                        guardian=guardian2,
+                        relation=guardian2.relation,
+                        is_immediate_contact=False,
                         school=request.tenant,
                     )
 

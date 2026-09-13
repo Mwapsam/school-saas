@@ -1,12 +1,15 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Box, TextField, Alert } from '@mui/material';
 import { step4Schema, type Step4FormData } from '../schemas';
+import { useFormPersistence } from '../hooks/useFormPersistence';
 import { FormSection, FormActions, FormGrid } from '@/components/forms';
 
 interface Step4FormProps {
+  applicationId: string;
   initialData?: any;
   onSubmit: (data: Step4FormData) => Promise<void>;
   isLoading?: boolean;
@@ -14,26 +17,37 @@ interface Step4FormProps {
   onNext?: () => void;
 }
 
-export function Step4Form({ initialData, onSubmit, isLoading, error, onNext }: Step4FormProps) {
+export function Step4Form({ applicationId, initialData, onSubmit, isLoading, error, onNext }: Step4FormProps) {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid },
+    watch,
+    setValue,
+    getValues,
   } = useForm<Step4FormData>({
     resolver: zodResolver(step4Schema),
+    mode: 'onChange',
     defaultValues: initialData || undefined,
   });
+
+  const { saveToLocalStorage, clearPersistence } = useFormPersistence(applicationId, 4, setValue, getValues);
+
+  useEffect(() => {
+    const subscription = watch(() => {
+      saveToLocalStorage();
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, saveToLocalStorage]);
 
   const handleFormSubmit = async (data: Step4FormData) => {
     try {
       await onSubmit(data);
-      onNext?.();
+      clearPersistence();
     } catch (err) {
       console.error('Failed to save step 4:', err);
     }
   };
-
-  const computedValidity = !errors.guardian1_first_name && !errors.guardian1_last_name && !errors.guardian1_relation && !errors.guardian1_mobile;
 
   return (
     <Box component="form" onSubmit={handleSubmit(handleFormSubmit)} noValidate>
@@ -164,7 +178,7 @@ export function Step4Form({ initialData, onSubmit, isLoading, error, onNext }: S
       <FormActions
         submitLabel="Continue to Step 5"
         isSubmitting={isLoading}
-        isDirty={computedValidity}
+        isDirty={isValid}
       />
     </Box>
   );

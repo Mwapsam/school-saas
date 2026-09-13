@@ -28,11 +28,25 @@ export const step3Schema = z.object({
   email: z.string().email('Invalid email address').optional().nullable(),
   student_photo: z.any().optional().nullable(),
   authorized_pickup_persons: z.string().optional().nullable(),
-  has_medical_problems: z.boolean().optional().nullable(),
-  recent_hospitalization: z.boolean().optional().nullable(),
-  has_allergies: z.boolean().optional().nullable(),
+  has_medical_problems: z.string().optional().nullable(),
+  recent_hospitalization: z.string().optional().nullable(),
+  has_allergies: z.string().optional().nullable(),
   medical_details: z.string().optional().nullable(),
-});
+}).refine(
+  (data) => {
+    const hasMedical = data.has_medical_problems === 'yes' ||
+                       data.recent_hospitalization === 'yes' ||
+                       data.has_allergies === 'yes';
+    if (hasMedical) {
+      return !!data.medical_details && data.medical_details.trim().length > 0;
+    }
+    return true;
+  },
+  {
+    message: 'Medical details are required when any health issue is selected',
+    path: ['medical_details'],
+  }
+);
 
 // Step 4: Guardian 1
 export const step4Schema = z.object({

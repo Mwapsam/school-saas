@@ -216,23 +216,38 @@ export function useUpdateApplicationStep(id: string, step: number) {
     mutationFn: async (data: any) => {
       let payload: any = data;
 
-      // If data contains File objects, convert to FormData
+      // Always use FormData for multipart/form-data encoding
       if (data && typeof data === 'object') {
-        const hasFile = Object.values(data).some(v => v instanceof File);
-        if (hasFile) {
-          const formData = new FormData();
-          Object.entries(data).forEach(([key, value]) => {
-            if (value !== null && value !== undefined) {
-              formData.append(key, value as any);
-            }
-          });
+        const formData = new FormData();
+        Object.entries(data).forEach(([key, value]) => {
+          // Skip null and undefined values
+          if (value === null || value === undefined) {
+            return;
+          }
+
+          // Handle File objects
+          if (value instanceof File) {
+            formData.append(key, value);
+          }
+          // Handle other types
+          else if (typeof value === 'boolean' || typeof value === 'number') {
+            formData.append(key, String(value));
+          }
+          else if (typeof value === 'string') {
+            formData.append(key, value);
+          }
+        });
+
+        // Only use FormData if we actually added any fields
+        if (Array.from(formData.entries()).length > 0) {
           payload = formData;
         }
       }
 
       return await apiClient.post<ExtendedAdmissionApplication>(
         `/admission-multistep/${id}/step${step}/`,
-        payload
+        payload,
+        { headers: payload instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {} }
       );
     },
     onSuccess: () => {

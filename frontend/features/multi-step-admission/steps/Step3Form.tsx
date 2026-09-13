@@ -1,12 +1,15 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Box, TextField, Alert, MenuItem } from '@mui/material';
 import { step3Schema, type Step3FormData } from '../schemas';
+import { useFormPersistence } from '../hooks/useFormPersistence';
 import { FormSection, FormActions, FormGrid, FileUploadField } from '@/components/forms';
 
 interface Step3FormProps {
+  applicationId: string;
   initialData?: any;
   onSubmit: (data: Step3FormData) => Promise<void>;
   isLoading?: boolean;
@@ -14,17 +17,29 @@ interface Step3FormProps {
   onNext?: () => void;
 }
 
-export function Step3Form({ initialData, onSubmit, isLoading, error, onNext }: Step3FormProps) {
+export function Step3Form({ applicationId, initialData, onSubmit, isLoading, error, onNext }: Step3FormProps) {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid },
     watch,
     control,
+    setValue,
+    getValues,
   } = useForm<Step3FormData>({
     resolver: zodResolver(step3Schema),
+    mode: 'onChange',
     defaultValues: initialData || undefined,
   });
+
+  const { saveToLocalStorage, clearPersistence } = useFormPersistence(applicationId, 3, setValue, getValues);
+
+  useEffect(() => {
+    const subscription = watch(() => {
+      saveToLocalStorage();
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, saveToLocalStorage]);
 
   const hasMedicalProblems = watch('has_medical_problems');
   const hasHospitalization = watch('recent_hospitalization');
@@ -33,13 +48,11 @@ export function Step3Form({ initialData, onSubmit, isLoading, error, onNext }: S
   const handleFormSubmit = async (data: Step3FormData) => {
     try {
       await onSubmit(data);
-      onNext?.();
+      clearPersistence();
     } catch (err) {
       console.error('Failed to save step 3:', err);
     }
   };
-
-  const computedValidity = !errors.first_name && !errors.last_name && !errors.date_of_birth && !errors.gender && !errors.nationality;
 
   return (
     <Box component="form" onSubmit={handleSubmit(handleFormSubmit)} noValidate>
@@ -250,7 +263,7 @@ export function Step3Form({ initialData, onSubmit, isLoading, error, onNext }: S
       <FormActions
         submitLabel="Continue to Step 4"
         isSubmitting={isLoading}
-        isDirty={computedValidity}
+        isDirty={isValid}
       />
     </Box>
   );

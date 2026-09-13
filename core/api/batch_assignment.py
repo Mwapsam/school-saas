@@ -609,3 +609,61 @@ class AdmissionDiagnosticsViewSet(TenantAwareViewSetMixin, viewsets.ViewSet):
                 {'error': str(e), 'ready_for_admissions': False},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @action(detail=False, methods=['post'])
+    def initialize_data(self, request):
+        """Initialize basic admission system data (academic years, courses, countries, etc.)"""
+        from core.view_modules.admission_diagnostics import initialize_school_data
+        from django.db import transaction
+
+        try:
+            with transaction.atomic():
+                success = initialize_school_data(request.tenant, create_sample_data=True)
+
+                if success:
+                    return Response({
+                        'success': True,
+                        'message': 'Data initialized successfully'
+                    })
+                else:
+                    return Response(
+                        {
+                            'success': False,
+                            'error': 'Failed to initialize data. Check logs for details.'
+                        },
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+        except Exception as e:
+            logger.error(f"Error initializing admission data: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['post'])
+    def ensure_basic_data(self, request):
+        """Ensure basic admission system data exists"""
+        from core.view_modules.admission_diagnostics import ensure_basic_data_exists
+
+        try:
+            success = ensure_basic_data_exists(request.tenant)
+
+            if success:
+                return Response({
+                    'success': True,
+                    'message': 'Basic data ensured'
+                })
+            else:
+                return Response(
+                    {
+                        'success': False,
+                        'error': 'Failed to ensure basic data exists. Check logs.'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except Exception as e:
+            logger.error(f"Error ensuring basic admission data: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

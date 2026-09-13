@@ -1,11 +1,14 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Box, Grid, TextField, Button, CircularProgress, Alert, FormControlLabel, Checkbox, Card, CardContent, Typography } from '@mui/material';
 import { step8Schema, type Step8FormData } from '../schemas';
+import { useFormPersistence } from '../hooks/useFormPersistence';
 
 interface Step8FormProps {
+  applicationId: string;
   applicationData?: any;
   initialData?: any;
   onSubmit: (data: Step8FormData) => Promise<void>;
@@ -13,7 +16,7 @@ interface Step8FormProps {
   error?: string | null;
 }
 
-export function Step8Form({ applicationData, initialData, onSubmit, isLoading, error }: Step8FormProps) {
+export function Step8Form({ applicationId, applicationData, initialData, onSubmit, isLoading, error }: Step8FormProps) {
   const today = new Date().toISOString().split('T')[0];
 
   const {
@@ -21,8 +24,11 @@ export function Step8Form({ applicationData, initialData, onSubmit, isLoading, e
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
+    getValues,
   } = useForm<Step8FormData>({
     resolver: zodResolver(step8Schema),
+    mode: 'onChange',
     defaultValues: initialData
       ? {
           declaration_agreement: initialData.declaration_agreement || false,
@@ -35,12 +41,22 @@ export function Step8Form({ applicationData, initialData, onSubmit, isLoading, e
         },
   });
 
+  const { saveToLocalStorage, clearPersistence } = useFormPersistence(applicationId, 8, setValue, getValues);
+
+  useEffect(() => {
+    const subscription = watch(() => {
+      saveToLocalStorage();
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, saveToLocalStorage]);
+
   const declarationAgreed = watch('declaration_agreement');
   const feeAcknowledged = watch('fee_acknowledgment');
 
   const handleFormSubmit = async (data: Step8FormData) => {
     try {
       await onSubmit(data);
+      clearPersistence();
     } catch (err) {
       console.error('Failed to submit application:', err);
     }
@@ -230,7 +246,7 @@ export function Step8Form({ applicationData, initialData, onSubmit, isLoading, e
             type="submit"
             variant="contained"
             size="large"
-            disabled={isLoading || !declarationAgreed || !feeAcknowledged}
+            disabled={isLoading || !declarationAgreed || !feeAcknowledged || !!errors.declaration_signature_name || !!errors.declaration_date}
             startIcon={isLoading && <CircularProgress size={20} />}
           >
             {isLoading ? 'Submitting...' : 'Submit Application'}

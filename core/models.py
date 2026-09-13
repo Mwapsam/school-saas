@@ -5077,10 +5077,17 @@ class ExtendedAdmissionApplication(TenantAwareModel):
 
     @property
     def is_step1_complete(self):
-        return self.academic_year and self.course_applied and self.terms_agreement
+        # Step 1: Terms and Conditions
+        return bool(self.terms_agreement)
 
     @property
     def is_step2_complete(self):
+        # Step 2: Academic Year & Course
+        return bool(self.academic_year and self.course_applied)
+
+    @property
+    def is_step3_complete(self):
+        # Step 3: Student Personal Details & Health
         required_fields = [
             "first_name",
             "last_name",
@@ -5088,28 +5095,22 @@ class ExtendedAdmissionApplication(TenantAwareModel):
             "gender",
             "nationality",
         ]
-        return all(getattr(self, field) for field in required_fields)
-
-    @property
-    def is_step3_complete(self):
-        # Step 3 = Student Communication Details (see AdmissionStep3Serializer).
-        address_fields = ["address_line1", "city", "country"]
-        return all(getattr(self, field) for field in address_fields)
+        return all(getattr(self, field, None) for field in required_fields)
 
     @property
     def is_step4_complete(self):
-        # Step 4 = Guardian Personal Details (see AdmissionStep4Serializer).
+        # Step 4: Guardian 1 Personal Information
         guardian1_required = [
             "guardian1_first_name",
             "guardian1_last_name",
             "guardian1_relation",
             "guardian1_mobile",
         ]
-        return all(getattr(self, field) for field in guardian1_required)
+        return all(getattr(self, field, None) for field in guardian1_required)
 
     @property
     def is_step5_complete(self):
-        # Health questions are required
+        # Step 5: Guardian 2 & Emergency Contact (all optional but health questions required)
         health_questions_answered = [
             self.has_medical_problems is not None,
             self.recent_hospitalization is not None,
@@ -5119,17 +5120,23 @@ class ExtendedAdmissionApplication(TenantAwareModel):
 
     @property
     def is_step6_complete(self):
-        # Step 6: Document Upload - check if basic required documents are uploaded
-        # This is optional for now, always returns True
-        return True
+        # Step 6: Student Address & Previous School & Additional Information
+        address_fields = ["address_line1", "city", "country"]
+        return all(getattr(self, field, None) for field in address_fields)
 
     @property
     def is_step7_complete(self):
-        # Step 7: Declaration - terms agreement and declaration fields must be True
+        # Step 7: Document Upload (optional, no validation required)
+        return True
+
+    @property
+    def is_step8_complete(self):
+        # Step 8: Declaration & Submission
         return (
-            self.terms_agreement
-            and self.declaration_agreement
-            and self.declaration_date is not None
+            bool(self.declaration_agreement)
+            and bool(self.fee_acknowledgment)
+            and bool(self.declaration_date)
+            and bool(self.declaration_signature_name)
         )
 
     @property

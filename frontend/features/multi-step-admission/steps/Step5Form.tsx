@@ -1,12 +1,15 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Box, TextField, Alert } from '@mui/material';
 import { step5Schema, type Step5FormData } from '../schemas';
+import { useFormPersistence } from '../hooks/useFormPersistence';
 import { FormSection, FormActions, FormGrid } from '@/components/forms';
 
 interface Step5FormProps {
+  applicationId: string;
   initialData?: any;
   onSubmit: (data: Step5FormData) => Promise<void>;
   isLoading?: boolean;
@@ -14,20 +17,33 @@ interface Step5FormProps {
   onNext?: () => void;
 }
 
-export function Step5Form({ initialData, onSubmit, isLoading, error, onNext }: Step5FormProps) {
+export function Step5Form({ applicationId, initialData, onSubmit, isLoading, error, onNext }: Step5FormProps) {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid },
+    watch,
+    setValue,
+    getValues,
   } = useForm<Step5FormData>({
     resolver: zodResolver(step5Schema),
+    mode: 'onChange',
     defaultValues: initialData || undefined,
   });
+
+  const { saveToLocalStorage, clearPersistence } = useFormPersistence(applicationId, 5, setValue, getValues);
+
+  useEffect(() => {
+    const subscription = watch(() => {
+      saveToLocalStorage();
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, saveToLocalStorage]);
 
   const handleFormSubmit = async (data: Step5FormData) => {
     try {
       await onSubmit(data);
-      onNext?.();
+      clearPersistence();
     } catch (err) {
       console.error('Failed to save step 5:', err);
     }

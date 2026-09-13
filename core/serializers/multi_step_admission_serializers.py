@@ -317,6 +317,32 @@ class AdmissionDocumentSerializer(TenantAwareSerializer):
         return value
 
 
+# ===== APPLICATION DETAIL =====
+class AdmissionApplicationDetailSerializer(serializers.ModelSerializer):
+    """
+    Full application detail for single-record API response.
+    Includes nested documents, academic year, course, and all application fields.
+    """
+    documents = AdmissionDocumentSerializer(many=True, read_only=True)
+    academic_year_detail = AcademicYearSerializer(source='academic_year', read_only=True)
+    course_detail = CourseSerializer(source='course_applied', read_only=True)
+    student_category_detail = StudentCategorySerializer(source='student_category', read_only=True)
+    country_detail = CountrySerializer(source='country', read_only=True)
+    reviewed_by_username = serializers.CharField(source='reviewed_by.username', read_only=True, allow_null=True)
+    admitted_student_details = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = ExtendedAdmissionApplication
+        fields = '__all__'
+
+    def get_admitted_student_details(self, obj):
+        """Return admitted student record if admission completed"""
+        if obj.admitted_student:
+            from core.serializers.student_serializers import StudentDetailSerializer
+            return StudentDetailSerializer(obj.admitted_student, read_only=True).data
+        return None
+
+
 # ===== SUPPORT SERIALIZERS =====
 class BulkAdmissionStatusSerializer(serializers.Serializer):
     """Bulk status updates (admin only)"""

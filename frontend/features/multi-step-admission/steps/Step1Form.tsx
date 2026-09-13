@@ -1,13 +1,16 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Box, Grid, Button, CircularProgress, Alert, FormControlLabel, Checkbox, Paper, Typography, Divider } from '@mui/material';
 import DOMPurify from 'isomorphic-dompurify';
 import { step1Schema, type Step1FormData } from '../schemas';
 import { useGetAdmissionTerms } from '../hooks';
+import { useFormPersistence } from '../hooks/useFormPersistence';
 
 interface Step1FormProps {
+  applicationId: string;
   initialData?: any;
   onSubmit: (data: Step1FormData) => Promise<void>;
   isLoading?: boolean;
@@ -40,7 +43,7 @@ const DEFAULT_TERMS = `
 <p>Children must wear school uniforms at all times unless otherwise instructed. Requirements for any special clothing will be announced when required. All clothes and items carried by the child should be clearly labelled.</p>
 `;
 
-export function Step1Form({ initialData, onSubmit, isLoading, error, onNext }: Step1FormProps) {
+export function Step1Form({ applicationId, initialData, onSubmit, isLoading, error, onNext }: Step1FormProps) {
   const { data: termsData } = useGetAdmissionTerms();
 
   const {
@@ -48,19 +51,32 @@ export function Step1Form({ initialData, onSubmit, isLoading, error, onNext }: S
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
+    getValues,
   } = useForm<Step1FormData>({
     resolver: zodResolver(step1Schema),
+    mode: 'onChange',
     defaultValues: {
       terms_agreement: initialData?.terms_agreement || false,
     },
   });
+
+  const { saveToLocalStorage, clearPersistence } = useFormPersistence(applicationId, 1, setValue, getValues);
+
+  // Auto-save to localStorage on form change
+  useEffect(() => {
+    const subscription = watch(() => {
+      saveToLocalStorage();
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, saveToLocalStorage]);
 
   const termsAgreed = watch('terms_agreement');
 
   const handleFormSubmit = async (data: Step1FormData) => {
     try {
       await onSubmit(data);
-      onNext?.();
+      clearPersistence();
     } catch (err) {
       console.error('Failed to save step 1:', err);
     }

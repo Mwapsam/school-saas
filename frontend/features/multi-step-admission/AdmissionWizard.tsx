@@ -85,71 +85,101 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
   const handleStep1Submit = async (data: Step1FormData) => {
     setSubmitError(null);
     try {
+      console.log('Submitting Step 1:', data);
       await step1Mutation.mutateAsync(data);
+      console.log('Step 1 saved successfully');
       handleNext();
     } catch (error: any) {
-      setSubmitError(error?.message || 'Failed to save step 1');
+      console.error('Step 1 error:', error);
+      const errorMsg = error?.response?.data?.error || error?.response?.data?.detail || error?.message || 'Failed to save step 1';
+      setSubmitError(errorMsg);
     }
   };
 
   const handleStep2Submit = async (data: Step2FormData) => {
     setSubmitError(null);
     try {
+      console.log('Submitting Step 2:', data);
       await step2Mutation.mutateAsync(data);
+      console.log('Step 2 saved successfully');
       handleNext();
     } catch (error: any) {
-      setSubmitError(error?.message || 'Failed to save step 2');
+      console.error('Step 2 error:', error);
+      const errorMsg = error?.response?.data?.error || error?.response?.data?.detail || error?.message || 'Failed to save step 2';
+      setSubmitError(errorMsg);
     }
   };
 
   const handleStep3Submit = async (data: Step3FormData) => {
     setSubmitError(null);
     try {
+      console.log('Submitting Step 3:', data);
       await step3Mutation.mutateAsync(data);
+      console.log('Step 3 saved successfully');
       handleNext();
     } catch (error: any) {
-      setSubmitError(error?.message || 'Failed to save step 3');
+      console.error('Step 3 error:', error);
+      const errorMsg = error?.response?.data?.error || error?.response?.data?.detail || error?.message || 'Failed to save step 3';
+      setSubmitError(errorMsg);
     }
   };
 
   const handleStep4Submit = async (data: Step4FormData) => {
     setSubmitError(null);
     try {
+      console.log('Submitting Step 4:', data);
       await step4Mutation.mutateAsync(data);
+      console.log('Step 4 saved successfully');
       handleNext();
     } catch (error: any) {
-      setSubmitError(error?.message || 'Failed to save step 4');
+      console.error('Step 4 error:', error);
+      const errorMsg = error?.response?.data?.error || error?.response?.data?.detail || error?.message || 'Failed to save step 4';
+      setSubmitError(errorMsg);
     }
   };
 
   const handleStep5Submit = async (data: Step5FormData) => {
     setSubmitError(null);
     try {
+      console.log('Submitting Step 5:', data);
       await step5Mutation.mutateAsync(data);
+      console.log('Step 5 saved successfully');
       handleNext();
     } catch (error: any) {
-      setSubmitError(error?.message || 'Failed to save step 5');
+      console.error('Step 5 error:', error);
+      const errorMsg = error?.response?.data?.error || error?.response?.data?.detail || error?.message || 'Failed to save step 5';
+      setSubmitError(errorMsg);
     }
   };
 
   const handleStep6Submit = async (data: Step6FormData) => {
     setSubmitError(null);
     try {
+      console.log('Submitting Step 6:', data);
       await step6Mutation.mutateAsync(data);
+      console.log('Step 6 saved successfully');
       handleNext();
     } catch (error: any) {
-      setSubmitError(error?.message || 'Failed to save step 6');
+      console.error('Step 6 error:', error);
+      const errorMsg = error?.response?.data?.error || error?.response?.data?.detail || error?.message || 'Failed to save step 6';
+      setSubmitError(errorMsg);
     }
   };
 
   const handleStep8Submit = async (data: Step8FormData) => {
     setSubmitError(null);
     try {
+      console.log('Submitting Step 8:', data);
       await step8Mutation.mutateAsync(data);
+      console.log('Step 8 saved successfully');
+      console.log('Submitting application...');
       await submitMutation.mutateAsync({ confirm_submission: true });
+      console.log('Application submitted successfully');
       router.push('/dashboard/admissions');
     } catch (error: any) {
-      setSubmitError(error?.message || 'Failed to submit application');
+      console.error('Step 8 or submission error:', error);
+      const errorMsg = error?.response?.data?.error || error?.response?.data?.detail || error?.message || 'Failed to submit application';
+      setSubmitError(errorMsg);
     }
   };
 
@@ -212,6 +242,7 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
 
           {activeStep === 0 && (
             <Step1Form
+              applicationId={applicationId}
               initialData={application}
               onSubmit={handleStep1Submit}
               isLoading={step1Mutation.isPending}
@@ -222,6 +253,7 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
 
           {activeStep === 1 && (
             <Step2Form
+              applicationId={applicationId}
               initialData={application}
               onSubmit={handleStep2Submit}
               isLoading={step2Mutation.isPending}
@@ -232,6 +264,7 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
 
           {activeStep === 2 && (
             <Step3Form
+              applicationId={applicationId}
               initialData={application}
               onSubmit={handleStep3Submit}
               isLoading={step3Mutation.isPending}
@@ -242,6 +275,7 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
 
           {activeStep === 3 && (
             <Step4Form
+              applicationId={applicationId}
               initialData={application}
               onSubmit={handleStep4Submit}
               isLoading={step4Mutation.isPending}
@@ -252,6 +286,7 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
 
           {activeStep === 4 && (
             <Step5Form
+              applicationId={applicationId}
               initialData={application}
               onSubmit={handleStep5Submit}
               isLoading={step5Mutation.isPending}
@@ -262,6 +297,7 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
 
           {activeStep === 5 && (
             <Step6Form
+              applicationId={applicationId}
               initialData={application}
               onSubmit={handleStep6Submit}
               isLoading={step6Mutation.isPending}
@@ -280,6 +316,7 @@ export function AdmissionWizard({ applicationId }: AdmissionWizardProps) {
 
           {activeStep === 7 && (
             <Step8Form
+              applicationId={applicationId}
               applicationData={application}
               initialData={application}
               onSubmit={handleStep8Submit}

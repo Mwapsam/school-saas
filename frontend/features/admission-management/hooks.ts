@@ -319,3 +319,98 @@ export function useExportApplicationPdf(applicationId: string) {
     mutationFn: async () => await apiClient.get(`/admission-admin/${applicationId}/export_pdf/`),
   });
 }
+
+// Report Hooks
+export interface AdmissionReportData {
+  statistics: {
+    total_applications: number;
+    approved_applications: number;
+    admitted_applications: number;
+    pending_review: number;
+    [key: string]: number;
+  };
+  approval_rate: number;
+  status_breakdown: Array<{ label: string; count: number; percentage: number }>;
+  course_breakdown: Array<{ course: string; count: number }>;
+  academic_years: Array<{ id: string; name: string }>;
+}
+
+export function useAdmissionReport(filters: {
+  status?: string;
+  academic_year?: string;
+  date_from?: string;
+  date_to?: string;
+} = {}) {
+  return useQuery({
+    queryKey: ['admission-report', filters],
+    queryFn: async () => {
+      const qs = new URLSearchParams();
+      if (filters.status) qs.append('status', filters.status);
+      if (filters.academic_year) qs.append('academic_year', filters.academic_year);
+      if (filters.date_from) qs.append('date_from', filters.date_from);
+      if (filters.date_to) qs.append('date_to', filters.date_to);
+      return await apiClient.get<AdmissionReportData>(
+        `/admission-reports/summary/${qs.toString() ? '?' + qs.toString() : ''}`
+      );
+    },
+  });
+}
+
+// Batch Assignment Detail Hook
+export interface BatchAssignmentDetail extends ApplicantForAssignment {
+  documents?: any[];
+  available_batches?: BatchOption[];
+}
+
+export function useBatchAssignmentDetail(applicationId: string, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ['batch-assignment-detail', applicationId],
+    enabled: !!applicationId && options.enabled !== false,
+    queryFn: async () =>
+      await apiClient.get<BatchAssignmentDetail>(
+        `/admission-batch-assignment/application_detail/?application_id=${applicationId}`
+      ),
+  });
+}
+
+// Status Check Hook
+export interface AdmissionStatusResult {
+  application_number: string;
+  status: string;
+  status_display: string;
+  applicant_name: string;
+  application_date: string;
+  remarks?: string;
+}
+
+export function useAdmissionStatusCheck(applicationNumber: string, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ['admission-status-check', applicationNumber],
+    enabled: !!applicationNumber && options.enabled !== false,
+    queryFn: async () =>
+      await apiClient.get<AdmissionStatusResult>(
+        `/public/admission/status/${applicationNumber}/`
+      ),
+  });
+}
+
+// Diagnostics Data Initialization Hooks
+export function useInitializeBasicData() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => await apiClient.post('/admission-diagnostics/initialize_data/', {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admission-diagnostics'] });
+    },
+  });
+}
+
+export function useEnsureBasicData() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => await apiClient.post('/admission-diagnostics/ensure_basic_data/', {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admission-diagnostics'] });
+    },
+  });
+}

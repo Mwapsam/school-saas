@@ -1,13 +1,16 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Box, TextField, Alert, MenuItem } from '@mui/material';
 import { step2Schema, type Step2FormData } from '../schemas';
 import { useGetAcademicYears, useGetCourses } from '../hooks';
+import { useFormPersistence } from '../hooks/useFormPersistence';
 import { FormSection, FormActions, FormGrid } from '@/components/forms';
 
 interface Step2FormProps {
+  applicationId: string;
   initialData?: any;
   onSubmit: (data: Step2FormData) => Promise<void>;
   isLoading?: boolean;
@@ -15,16 +18,20 @@ interface Step2FormProps {
   onNext?: () => void;
 }
 
-export function Step2Form({ initialData, onSubmit, isLoading, error, onNext }: Step2FormProps) {
+export function Step2Form({ applicationId, initialData, onSubmit, isLoading, error, onNext }: Step2FormProps) {
   const { data: academicYearsData } = useGetAcademicYears();
   const { data: coursesData } = useGetCourses();
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid },
+    watch,
+    setValue,
+    getValues,
   } = useForm<Step2FormData>({
     resolver: zodResolver(step2Schema),
+    mode: 'onChange',
     defaultValues: initialData
       ? {
           academic_year: initialData.academic_year?.id || '',
@@ -33,16 +40,24 @@ export function Step2Form({ initialData, onSubmit, isLoading, error, onNext }: S
       : undefined,
   });
 
+  const { saveToLocalStorage, clearPersistence } = useFormPersistence(applicationId, 2, setValue, getValues);
+
+  // Auto-save to localStorage when form data changes
+  useEffect(() => {
+    const subscription = watch((data) => {
+      saveToLocalStorage();
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, saveToLocalStorage]);
+
   const handleFormSubmit = async (data: Step2FormData) => {
     try {
       await onSubmit(data);
-      onNext?.();
+      clearPersistence();
     } catch (err) {
       console.error('Failed to save step 2:', err);
     }
   };
-
-  const computedValidity = !errors.academic_year && !errors.course_applied;
 
   return (
     <Box component="form" onSubmit={handleSubmit(handleFormSubmit)} noValidate>
@@ -89,7 +104,7 @@ export function Step2Form({ initialData, onSubmit, isLoading, error, onNext }: S
       <FormActions
         submitLabel="Continue to Step 3"
         isSubmitting={isLoading}
-        isDirty={computedValidity}
+        isDirty={isValid}
       />
     </Box>
   );
