@@ -12,7 +12,7 @@ Note: Vehicle management requires additional models for future implementation.
 Reuses existing services: See core/services/
 """
 
-from rest_framework import viewsets, serializers
+from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from datetime import time
@@ -21,69 +21,10 @@ from core.models import (
     TransportRoute, TransportRouteStop, TransportStaff, TransportFee
 )
 from core.authz.drf import ModuleEnabled, HasPermission
-
-
-# ───────────────────────────────────────────────────────────────────────────
-# Serializers
-# ───────────────────────────────────────────────────────────────────────────
-
-class TransportRouteStopSerializer(serializers.ModelSerializer):
-    """Serializer for TransportRouteStop — stops on a route."""
-    route_name = serializers.CharField(source='route.route_name', read_only=True)
-    stop_name = serializers.CharField(source='stop.name', read_only=True)
-
-    class Meta:
-        model = TransportRouteStop
-        fields = [
-            'id', 'route', 'route_name', 'stop', 'stop_name', 'order',
-            'pickup_time', 'dropoff_time',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-
-class TransportRouteSerializer(serializers.ModelSerializer):
-    """Serializer for TransportRoute — daily routes."""
-    driver_name = serializers.CharField(source='driver.full_name', read_only=True)
-    attendant_name = serializers.CharField(source='attendant.full_name', read_only=True)
-
-    class Meta:
-        model = TransportRoute
-        fields = [
-            'id', 'route_name', 'code', 'fare', 'description', 'vehicle',
-            'driver', 'driver_name', 'attendant', 'attendant_name',
-            'estimated_duration_minutes',
-            'is_active', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-
-class TransportStaffSerializer(serializers.ModelSerializer):
-    """Serializer for TransportStaff — drivers, conductors, etc."""
-    class Meta:
-        model = TransportStaff
-        fields = [
-            'id', 'full_name', 'staff_type', 'license_number', 'license_expiry',
-            'phone', 'alt_phone', 'email', 'national_id',
-            'emergency_contact_name', 'emergency_contact_phone', 'employee',
-            'is_active', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-
-class TransportFeeSerializer(serializers.ModelSerializer):
-    """Serializer for TransportFee — transport charges (DEPRECATED, historical rows only)."""
-    student_name = serializers.CharField(source='student.full_name', read_only=True)
-    route_name = serializers.CharField(source='route.route_name', read_only=True)
-
-    class Meta:
-        model = TransportFee
-        fields = [
-            'id', 'student', 'student_name', 'route', 'route_name',
-            'start_date', 'end_date', 'total_amount',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+from core.api.base import TenantAwareViewSet
+from core.serializers.transport_serializers import (
+    TransportRouteStopSerializer, TransportRouteSerializer, TransportStaffSerializer, TransportFeeSerializer
+)
 
 
 # ───────────────────────────────────────────────────────────────────────────
