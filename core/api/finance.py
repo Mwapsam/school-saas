@@ -13,7 +13,7 @@ Reuses existing services: FinanceService, FeeService (in core/services/finance_s
 
 from datetime import date, datetime, timedelta
 
-from rest_framework import viewsets, status, serializers
+from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -22,157 +22,25 @@ from django.http import HttpResponse
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from core.models import (
-    FamilyInvoice, FamilyInvoiceLine, FinanceFee, FeeCategory, FinanceTransaction,
-    FeeDiscount, FineSlab, FinanceTransactionCategory, Student
+    FamilyInvoice, FeeCategory, FinanceTransaction,
+    Student
 )
 from core.authz.drf import ModuleEnabled, HasPermission
 from core.services.fee_reporting_service import FeeReportingService
 from core.view_modules.finance_year_context import resolve_selected_year
-
-
-# ───────────────────────────────────────────────────────────────────────────
-# Serializers
-# ───────────────────────────────────────────────────────────────────────────
-
-class FeeCategorySerializer(serializers.ModelSerializer):
-    """Serializer for FeeCategory — charge types (tuition, activity fee, etc.).
-
-    Note: the model has no ``is_active`` field — categories are soft-deleted
-    via ``is_deleted`` instead, which is an internal bookkeeping flag (kept
-    out of this writable serializer; ``FeeCategoryViewSet.get_queryset``
-    filters ``is_deleted=False`` so deleted categories never surface here).
-    """
-    academic_year_label = serializers.CharField(source='academic_year.__str__', read_only=True, default=None)
-
-    class Meta:
-        model = FeeCategory
-        fields = [
-            'id', 'name', 'description', 'academic_year', 'academic_year_label',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-
-class FeeDiscountSerializer(serializers.ModelSerializer):
-    """Serializer for FeeDiscount — discounts applied to fees."""
-    fee_category_name = serializers.CharField(source='fee_category.name', read_only=True)
-
-    class Meta:
-        model = FeeDiscount
-        fields = [
-            'id', 'fee_category', 'fee_category_name', 'name',
-            'discount_type', 'discount_mode', 'discount_value', 'is_active',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-
-class FineSlabSerializer(serializers.ModelSerializer):
-    """Serializer for FineSlab — late payment penalties."""
-    class Meta:
-        model = FineSlab
-        fields = [
-            'id', 'fine_name', 'fine_mode', 'fine_value', 'days_after_due',
-            'is_active', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-
-class FinanceTransactionCategorySerializer(serializers.ModelSerializer):
-    """Serializer for FinanceTransactionCategory — transaction types (income vs expense)."""
-    class Meta:
-        model = FinanceTransactionCategory
-        fields = [
-            'id', 'name', 'prefix', 'description', 'is_income',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-
-class FinanceTransactionSerializer(serializers.ModelSerializer):
-    """Serializer for FinanceTransaction — cash flow transactions."""
-    category_name = serializers.CharField(source='category.name', read_only=True)
-    student_name = serializers.CharField(source='student.full_name', read_only=True, default=None)
-    employee_name = serializers.CharField(source='employee.full_name', read_only=True, default=None)
-
-    class Meta:
-        model = FinanceTransaction
-        fields = [
-            'id', 'title', 'transaction_date', 'category', 'category_name',
-            'student', 'student_name', 'employee', 'employee_name',
-            'academic_year', 'description', 'amount', 'payment_method',
-            'reference_number', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-    def validate_amount(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("Amount must be positive.")
-        return value
-
-
-class StudentFeeSerializer(serializers.ModelSerializer):
-    """Serializer for FinanceFee — fee assigned to a student.
-
-    ``transaction_date`` here is when the fee charge was recorded/generated,
-    not a due date — the model has no separate due-date field. ``is_paid``
-    replaces the non-existent ``is_active`` (a fee doesn't become "inactive",
-    it becomes paid).
-    """
-    student_name = serializers.CharField(source='student.full_name', read_only=True)
-    fee_category_name = serializers.CharField(source='fee_category.name', read_only=True)
-
-    class Meta:
-        model = FinanceFee
-        fields = [
-            'id', 'student', 'student_name', 'fee_category', 'fee_category_name',
-            'academic_year', 'balance', 'transaction_date', 'is_paid',
-            'tax_amount', 'discount_amount', 'invoice_number',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-
-class InvoiceLineSerializer(serializers.ModelSerializer):
-    """Nested read-only serializer for FamilyInvoiceLine — one per child's
-    charge on the guardian's consolidated invoice."""
-    student_name = serializers.CharField(source='student.full_name', read_only=True)
-
-    class Meta:
-        model = FamilyInvoiceLine
-        fields = ['id', 'student', 'student_name', 'description', 'amount']
-        read_only_fields = fields
-
-
-class InvoiceSerializer(serializers.ModelSerializer):
-    """Serializer for FamilyInvoice — the guardian's consolidated invoice for
-    an academic year (aggregates every child's charges into one invoice).
-
-    Entirely read-only: status, totals and due_date are derived by
-    ``InvoiceService.recompute_totals`` whenever a charge or payment changes
-    (see core/services/invoice_service.py) — there is no legitimate manual
-    create/edit/mark-paid path.
-    """
-    guardian_name = serializers.CharField(source='guardian.full_name', read_only=True)
-    academic_year_label = serializers.CharField(source='academic_year.__str__', read_only=True)
-    lines = InvoiceLineSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = FamilyInvoice
-        fields = [
-            'id', 'invoice_number', 'guardian', 'guardian_name',
-            'academic_year', 'academic_year_label', 'status',
-            'subtotal', 'total_amount', 'amount_paid', 'balance_due',
-            'due_date', 'generated_at', 'last_updated_at', 'lines',
-        ]
-        read_only_fields = fields
+from core.serializers.finance_serializers import (
+    FeeCategorySerializer, FeeDiscountSerializer, FineSlabSerializer,
+    FinanceTransactionCategorySerializer, FinanceTransactionSerializer,
+    StudentFeeSerializer, InvoiceLineSerializer, InvoiceSerializer
+)
+from core.api.base import TenantAwareViewSet, TenantAwareReadOnlyViewSet
 
 
 # ───────────────────────────────────────────────────────────────────────────
 # ViewSets
 # ───────────────────────────────────────────────────────────────────────────
 
-class FeeCategoryViewSet(viewsets.ModelViewSet):
+class FeeCategoryViewSet(TenantAwareViewSet):
     """
     Fee category management — define what fees are charged.
 
@@ -197,7 +65,7 @@ class FeeCategoryViewSet(viewsets.ModelViewSet):
         return super().get_queryset().filter(is_deleted=False)
 
 
-class FeeDiscountViewSet(viewsets.ModelViewSet):
+class FeeDiscountViewSet(TenantAwareViewSet):
     """
     Fee discount management — define discounts (scholarships, waivers, etc.).
 
@@ -222,7 +90,7 @@ class FeeDiscountViewSet(viewsets.ModelViewSet):
         return super().get_queryset().select_related('fee_category')
 
 
-class FineSlabViewSet(viewsets.ModelViewSet):
+class FineSlabViewSet(TenantAwareViewSet):
     """
     Fine slab management — define late payment penalties.
 
@@ -244,7 +112,7 @@ class FineSlabViewSet(viewsets.ModelViewSet):
     ordering = ['days_after_due']
 
 
-class FinanceTransactionCategoryViewSet(viewsets.ModelViewSet):
+class FinanceTransactionCategoryViewSet(TenantAwareViewSet):
     """
     Finance transaction category management — define transaction types.
 
@@ -266,7 +134,7 @@ class FinanceTransactionCategoryViewSet(viewsets.ModelViewSet):
     ordering = ['name']
 
 
-class FinanceTransactionViewSet(viewsets.ModelViewSet):
+class FinanceTransactionViewSet(TenantAwareViewSet):
     """
     Finance transaction management — record cash in/out.
 
@@ -304,7 +172,7 @@ class FinanceTransactionViewSet(viewsets.ModelViewSet):
         return super().list(request, *args, **kwargs)
 
 
-class StudentFeeViewSet(viewsets.ModelViewSet):
+class StudentFeeViewSet(TenantAwareViewSet):
     """
     Student fee management — assign fees to students.
 
@@ -365,7 +233,7 @@ class StudentFeeViewSet(viewsets.ModelViewSet):
         })
 
 
-class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
+class InvoiceViewSet(TenantAwareReadOnlyViewSet):
     """
     Invoice viewing — guardian-level consolidated billing invoices.
 
