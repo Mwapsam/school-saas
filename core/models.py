@@ -140,6 +140,12 @@ class School(TenantMixin):
         help_text="Free-form notice appended below every fee note (instalment terms, "
                   "bank account details, reminders). Rendered as plain text with line breaks preserved."
     )
+    # Productization: Per-tenant timezone configuration (fallback to UTC if not set)
+    timezone = models.CharField(
+        max_length=63, default="UTC",
+        help_text="IANA timezone identifier (e.g., 'Africa/Nairobi', 'UTC', 'America/New_York'). "
+                  "Used to display times in the tenant's local timezone."
+    )
 
     auto_create_schema = True
 

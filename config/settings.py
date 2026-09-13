@@ -145,7 +145,10 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'Africa/Lusaka'
+# PRODUCTIZATION: Global default is UTC (neutral).
+# Per-tenant timezone is configured via School.timezone field.
+# Middleware can override this per-request based on tenant configuration.
+TIME_ZONE = 'UTC'
 
 USE_I18N = True
 

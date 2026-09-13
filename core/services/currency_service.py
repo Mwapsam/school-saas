@@ -9,8 +9,15 @@ from ..models import CurrencyConfiguration
 
 
 class CurrencyService:
-    """Service for currency operations and formatting"""
-    
+    """
+    Service for currency operations and formatting.
+
+    IMPORTANT (Productization): Every tenant MUST have an explicit CurrencyConfiguration.
+    There is no fallback to a default currency (Pinewood used ZMW, but that's not safe
+    for multi-tenant operation). If get_active_currency() returns None, the tenant
+    must configure their currency before accessing currency-dependent features.
+    """
+
     def __init__(self, tenant):
         self.tenant = tenant
         self._currency_config = None
@@ -67,15 +74,23 @@ class CurrencyService:
     @staticmethod
     def get_default_currency_context() -> dict:
         """
-        Get default currency context when no tenant is available
-        
+        DEPRECATED: Productization removes this fallback.
+
+        Previously returned hardcoded Zambian Kwacha when currency was not configured.
+        This is no longer safe for multi-tenant operation — each tenant must have
+        explicit currency configuration.
+
+        Use this only for development/testing. Production code should ensure
+        every tenant has a CurrencyConfiguration before attempting currency operations.
+
         Returns:
-            Dictionary with default Zambian Kwacha information
+            Dictionary with UTC/generic defaults (NOT tenant-specific)
         """
+        # Return a generic placeholder, not Pinewood-specific ZMW
         return {
-            'currency_symbol': 'K',
-            'currency_code': 'ZMW',
-            'currency_name': 'Zambian Kwacha',
+            'currency_symbol': '$',
+            'currency_code': 'XXX',
+            'currency_name': 'Generic Currency (Not Configured)',
             'symbol_position': 'before',
             'decimal_places': 2,
             'thousands_separator': ',',
