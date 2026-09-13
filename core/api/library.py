@@ -11,63 +11,20 @@ Note: Borrowing/returns (BookMovement) still requires additional API work for fu
 Reuses existing services: See core/services/
 """
 
-from rest_framework import viewsets, serializers
+from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
 from core.models import Library, LibraryStaff, Book
 from core.authz.drf import ModuleEnabled, HasPermission
-
-
-# ───────────────────────────────────────────────────────────────────────────
-# Serializers
-# ───────────────────────────────────────────────────────────────────────────
-
-class LibrarySerializer(serializers.ModelSerializer):
-    """Serializer for Library — library configuration."""
-    class Meta:
-        model = Library
-        fields = [
-            'id', 'name', 'code', 'description',
-            'is_active', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-
-class LibraryStaffSerializer(serializers.ModelSerializer):
-    """Serializer for LibraryStaff — librarians and library assistants."""
-    employee_name = serializers.CharField(source='employee.full_name', read_only=True)
-    employee_email = serializers.EmailField(source='employee.email', read_only=True)
-    library_name = serializers.CharField(source='library.name', read_only=True)
-
-    class Meta:
-        model = LibraryStaff
-        fields = [
-            'id', 'employee', 'employee_name', 'employee_email',
-            'library', 'library_name', 'is_active',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-
-class BookSerializer(serializers.ModelSerializer):
-    """Serializer for Book — library catalog entries."""
-    category_name = serializers.CharField(source='category.name', read_only=True)
-
-    class Meta:
-        model = Book
-        fields = [
-            'id', 'title', 'author', 'isbn', 'book_number', 'category', 'category_name',
-            'location', 'total_copies', 'available_copies', 'price', 'book_type',
-            'school_level', 'barcode', 'library', 'created_at', 'updated_at',
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+from core.api.base import TenantAwareViewSet
+from core.serializers.library_serializers import LibrarySerializer, LibraryStaffSerializer, BookSerializer
 
 
 # ───────────────────────────────────────────────────────────────────────────
 # ViewSets
 # ───────────────────────────────────────────────────────────────────────────
 
-class LibraryViewSet(viewsets.ModelViewSet):
+class LibraryViewSet(TenantAwareViewSet):
     """
     Library management — manage library configuration.
 
@@ -90,7 +47,7 @@ class LibraryViewSet(viewsets.ModelViewSet):
     ordering = ['name']
 
 
-class LibraryStaffViewSet(viewsets.ModelViewSet):
+class LibraryStaffViewSet(TenantAwareViewSet):
     """
     Library staff management — manage librarians and assistants.
 
@@ -116,7 +73,7 @@ class LibraryStaffViewSet(viewsets.ModelViewSet):
         return super().get_queryset().select_related('employee', 'library')
 
 
-class BookViewSet(viewsets.ModelViewSet):
+class BookViewSet(TenantAwareViewSet):
     """
     Book catalog management.
 
