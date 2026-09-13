@@ -10,61 +10,28 @@ Covers:
 Reuses existing services: AdmissionService (in core/services/admission_service.py)
 """
 
-from rest_framework import viewsets, status, serializers
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from drf_spectacular.utils import extend_schema, OpenApiParameter
-from datetime import date
 
 from core.models import (
     AdmissionApplication, Batch, Course
 )
 from core.authz.drf import ModuleEnabled, HasPermission
 from core.services.admission_service import AdmissionService
-
-
-# ───────────────────────────────────────────────────────────────────────────
-# Serializers
-# ───────────────────────────────────────────────────────────────────────────
-
-class AdmissionApplicationSerializer(serializers.ModelSerializer):
-    """Serializer for AdmissionApplication — student applications."""
-    course_name = serializers.CharField(source='course_applied.course_name', read_only=True)
-
-    class Meta:
-        model = AdmissionApplication
-        fields = [
-            'id', 'application_number', 'first_name', 'middle_name', 'last_name',
-            'date_of_birth', 'gender', 'course_applied', 'course_name',
-            'guardian_name', 'guardian_phone', 'guardian_email', 'address',
-            'application_date', 'status', 'remarks',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = [
-            'id', 'application_number', 'application_date',
-            'created_at', 'updated_at'
-        ]
-
-    def validate_date_of_birth(self, value):
-        """Ensure student is of reasonable age."""
-        if value and value > date.today():
-            raise serializers.ValidationError("Date of birth cannot be in the future.")
-        return value
-
-
-class AdmissionApplicationBatchAssignmentSerializer(serializers.Serializer):
-    """Serializer for assigning applications to batches."""
-    application_id = serializers.UUIDField()
-    batch_id = serializers.UUIDField()
-    notes = serializers.CharField(required=False, allow_blank=True)
+from core.api.base import TenantAwareViewSet
+from core.serializers.admissions_serializers import (
+    AdmissionApplicationSerializer, AdmissionApplicationBatchAssignmentSerializer
+)
 
 
 # ───────────────────────────────────────────────────────────────────────────
 # ViewSets
 # ───────────────────────────────────────────────────────────────────────────
 
-class AdmissionApplicationViewSet(viewsets.ModelViewSet):
+class AdmissionApplicationViewSet(TenantAwareViewSet):
     """
     Admissions application management — student applications.
 
