@@ -7,6 +7,7 @@ from core.models import (
     Role, RolePermission, UserRoleAssignment,
 )
 from core.modules import MODULES
+from core.authz.registry import PERMISSIONS
 
 class DomainInline(TabularInline):
     model = Domain
@@ -161,16 +162,46 @@ class UserAdmin(ModelAdmin):
         return super().get_form(request, obj, **kwargs)
 
 
+class RolePermissionForm(forms.ModelForm):
+    """Permission codename form with dropdown choices from canonical registry.
+
+    Displays canonical codenames (from core.authz.registry.PERMISSIONS) as a
+    dropdown with human-readable descriptions. Excludes legacy codenames to
+    encourage migration to canonical names.
+    """
+    # Build choices from canonical permissions only (no legacy names)
+    CODENAME_CHOICES = [
+        (codename, f"{codename} — {description}")
+        for codename, description in PERMISSIONS.items()
+        # Filter to DRF API layer (lines 93-167 in registry.py)
+        if "API" in description or codename.startswith(("students.", "academics.", "finance.", "hr.", "admissions.", "hostel.", "transport.", "library."))
+    ]
+
+    codename = forms.ChoiceField(
+        choices=CODENAME_CHOICES,
+        label="Permission (Canonical)",
+        help_text="Select from canonical permission codenames. Legacy codenames (singular) are deprecated.",
+    )
+
+    class Meta:
+        model = RolePermission
+        fields = ("codename",)
+
+
 class RolePermissionInline(TabularInline):
     """Inline editor for the permission codenames granted to a Role.
 
     `codename` is a dropdown sourced from core.authz.registry.PERMISSIONS —
     the same registry that actually enforces access (core.authz.access), so
     an operator can't grant a typo'd or non-existent codename.
+
+    Only shows canonical (DRF API) codenames to encourage migration away
+    from legacy singular codenames.
     """
     model = RolePermission
     extra = 0
     fields = ("codename",)
+    form = RolePermissionForm
 
 
 @admin.register(Role)
@@ -182,8 +213,17 @@ class RoleAdmin(ModelAdmin):
     grants that user access to gated API endpoints — module enablement
     (SchoolModule) only controls whether a feature area exists for the
     school at all, it does not grant any user access to it.
+
+    CODENAME NAMING CONVENTION (Phase 2.1+):
+    - Canonical (NEW): plural domain.resource.action format
+      Examples: hr.employees.view, finance.fees.manage, students.manage
+    - Legacy (DEPRECATED): singular format, kept for backward compatibility
+      Examples: hr.employee.view, finance.fees.view (old)
+
+    New roles MUST use canonical codenames. Existing roles using legacy
+    codenames should be migrated gradually via the inline editor below.
     """
-    list_display = ("name", "slug", "is_system", "is_active")
+    list_display = ("name", "slug", "is_system", "is_active", "permission_count")
     list_filter = ("is_system", "is_active")
     search_fields = ("name", "slug", "description")
     prepopulated_fields = {"slug": ("name",)}
@@ -198,6 +238,11 @@ class RoleAdmin(ModelAdmin):
                            "but their permissions can still be edited.",
         }),
     )
+
+    def permission_count(self, obj):
+        """Display count of permissions assigned to this role."""
+        return obj.rolepermission_set.count()
+    permission_count.short_description = "Permissions"
 
 
 class UserRoleAssignmentForm(forms.ModelForm):
