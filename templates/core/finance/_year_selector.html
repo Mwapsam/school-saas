@@ -8,11 +8,11 @@
         {% endif %}
     {% endfor %}
     <div class="d-flex align-items-center gap-2">
-        <label for="academicYearSelect" class="form-label mb-0 text-muted small text-nowrap">
+        <label for="academicYearSelect" class="product-form-label mb-0 text-muted small text-nowrap">
             <i class="fas fa-calendar-alt me-1"></i>Academic Year
         </label>
         <select name="academic_year" id="academicYearSelect"
-                class="form-select form-select-sm"
+                class="product-form-control product-form-control-sm"
                 aria-label="Select academic year"
                 onchange="document.getElementById('yearSelectorForm').submit()">
             {% for ay in academic_years %}

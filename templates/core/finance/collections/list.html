@@ -4,20 +4,20 @@
 
 {% block layout_header %}
 {% url 'core:finance_dashboard' as back_fallback %}
-{% include 'core/components/page_header.html' with title="Fee Collections" description="Term-wise billing runs. Each collection generates fee obligations for every student in the batch." icon="fa-calendar-check" actions=header_actions back_url=back_url|default:back_fallback %}
+{% include 'core/components/page_header.html' with title="Fee Collections" description="Term-wise billing runs. Each collection generates fee obligations for every student in the batch." icon="fa-calendar-check" back_url=back_url|default:back_fallback %}
 {% include 'core/finance/_workflow_nav.html' %}
 {% endblock %}
 
 {% block layout_filters %}
-<div class="card mb-4">
-    <div class="card-header bg-light border-0">
-        <h6 class="mb-0"><i class="fas fa-filter me-2 text-primary"></i>Filter by Academic Year</h6>
+<div class="product-card mb-4">
+    <div class="product-card-header">
+        <h6 class="mb-0"><i class="fas fa-filter me-2"></i>Filter by Academic Year</h6>
     </div>
-    <div class="card-body">
+    <div class="product-card-body">
         <form method="get" class="row g-3 align-items-end">
             <div class="col-md-6">
-                <label for="academic_year" class="form-label fw-500">Academic Year</label>
-                <select name="academic_year" id="academic_year" class="form-select" onchange="this.form.submit()">
+                <label for="academic_year" class="product-form-label">Academic Year</label>
+                <select name="academic_year" id="academic_year" class="product-form-control" onchange="this.form.submit()">
                     {% for y in academic_years %}
                     <option value="{{ y.id }}" {% if y == selected_year %}selected{% endif %}>{{ y.name }}</option>
                     {% endfor %}
@@ -29,7 +29,25 @@
 {% endblock %}
 
 {% block layout_table %}
-    <div class="card-body p-0">
+    <!-- Action buttons -->
+    {% if header_actions %}
+    <div class="d-flex justify-content-end gap-2 mb-3">
+        {% for action in header_actions %}
+            {% if action.type == 'button' %}
+            <button type="button" class="product-btn {% if action.style %}product-btn-{{ action.style }}{% else %}product-btn-primary{% endif %}"
+                    onclick="{{ action.onclick }}" {% if action.id %}id="{{ action.id }}"{% endif %}>
+                {% if action.icon %}<i class="fas fa-{{ action.icon }} me-1"></i>{% endif %}{{ action.label }}
+            </button>
+            {% elif action.type == 'link' %}
+            <a href="{{ action.url }}" class="product-btn {% if action.style %}product-btn-{{ action.style }}{% else %}product-btn-primary{% endif %}">
+                {% if action.icon %}<i class="fas fa-{{ action.icon }} me-1"></i>{% endif %}{{ action.label }}
+            </a>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="product-card-body p-0">
         {% if grouped_collections %}
         <form id="publishForm" method="post" action="{% url 'core:fee_collection_bulk_publish' %}">
             {% csrf_token %}
@@ -99,7 +117,7 @@
                                             </td>
                                             <td class="text-end" onclick="event.stopPropagation();">
                                                 <div class="btn-group btn-group-sm" role="group">
-                                                    <button type="button" class="btn btn-outline-info" title="Add Particular"
+                                                    <button type="button" class="product-btn product-btn-sm product-btn-info" title="Add Particular"
                                                             data-bs-toggle="modal"
                                                             data-bs-target="#addParticularModal"
                                                             data-collection-id="{{ c.id }}"
@@ -110,7 +128,7 @@
                                                             onclick="setParticularModal(this)">
                                                         <i class="fas fa-plus"></i>
                                                     </button>
-                                                    <button type="button" class="btn btn-outline-danger" title="Delete"
+                                                    <button type="button" class="product-btn product-btn-sm product-btn-danger" title="Delete"
                                                             onclick="deleteCollection('{{ c.id }}', '{{ c.name|escapejs }}')">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
@@ -138,8 +156,8 @@
 {% include 'core/components/modal.html' with id="bulkEditModal" title="Edit Selected Collections" icon="fa-edit" %}
     <form id="bulkEditForm">
         <div class="mb-3">
-            <label for="bulkEditTerm" class="form-label">Term</label>
-            <select class="form-select" id="bulkEditTerm" name="term">
+            <label for="bulkEditTerm" class="product-form-label">Term</label>
+            <select class="product-form-control" id="bulkEditTerm" name="term">
                 <option value="">Leave unchanged</option>
                 {% for term in terms %}
                 <option value="{{ term }}">{{ term }}</option>
@@ -148,23 +166,23 @@
             <small class="text-muted d-block mt-1">Select a term or leave blank to keep current term</small>
         </div>
         <div class="mb-3">
-            <label for="bulkEditStartDate" class="form-label">Start Date</label>
-            <input type="date" class="form-control" id="bulkEditStartDate" name="start_date">
+            <label for="bulkEditStartDate" class="product-form-label">Start Date</label>
+            <input type="date" class="product-form-control" id="bulkEditStartDate" name="start_date">
             <small class="text-muted d-block mt-1">Leave blank to keep unchanged</small>
         </div>
         <div class="mb-3">
-            <label for="bulkEditEndDate" class="form-label">End Date</label>
-            <input type="date" class="form-control" id="bulkEditEndDate" name="end_date">
+            <label for="bulkEditEndDate" class="product-form-label">End Date</label>
+            <input type="date" class="product-form-control" id="bulkEditEndDate" name="end_date">
             <small class="text-muted d-block mt-1">Leave blank to keep unchanged</small>
         </div>
         <div class="mb-3">
-            <label for="bulkEditDueDate" class="form-label">Due Date</label>
-            <input type="date" class="form-control" id="bulkEditDueDate" name="due_date">
+            <label for="bulkEditDueDate" class="product-form-label">Due Date</label>
+            <input type="date" class="product-form-control" id="bulkEditDueDate" name="due_date">
             <small class="text-muted d-block mt-1">Leave blank to keep unchanged</small>
         </div>
         <div class="mb-3">
-            <label for="bulkEditStatus" class="form-label">Status</label>
-            <select class="form-select" id="bulkEditStatus" name="status">
+            <label for="bulkEditStatus" class="product-form-label">Status</label>
+            <select class="product-form-control" id="bulkEditStatus" name="status">
                 <option value="">Leave unchanged</option>
                 {% for value, label in status_choices %}
                 <option value="{{ value }}">{{ label }}</option>
@@ -183,10 +201,10 @@
     <p class="text-muted mb-3" id="particularScopeLine"></p>
 
     <div class="mb-3">
-        <label for="masterParticularSelect" class="form-label">
+        <label for="masterParticularSelect" class="product-form-label">
             <strong>Master Particular</strong> <span class="text-danger">*</span>
         </label>
-        <select class="form-select" id="masterParticularSelect" name="master_particular_id" required>
+        <select class="product-form-control" id="masterParticularSelect" name="master_particular_id" required>
             <option value="">-- Select a particular --</option>
             {% for mp in master_particulars %}
             <option value="{{ mp.id }}" data-description="{{ mp.description|default:''|escapejs }}">{{ mp.name }}</option>
@@ -201,41 +219,41 @@
     <!-- Inline: create a new master particular -->
     <div class="border rounded p-3 mb-3 bg-light" id="newMasterBlock" style="display:none;">
         <div class="mb-2">
-            <label for="newMasterName" class="form-label mb-1">New master particular name <span class="text-danger">*</span></label>
-            <input type="text" class="form-control form-control-sm" id="newMasterName" placeholder="e.g., PTA">
+            <label for="newMasterName" class="product-form-label mb-1">New master particular name <span class="text-danger">*</span></label>
+            <input type="text" class="product-form-control form-control-sm" id="newMasterName" placeholder="e.g., PTA">
         </div>
         <div class="mb-2">
-            <label for="newMasterDesc" class="form-label mb-1">Description</label>
-            <input type="text" class="form-control form-control-sm" id="newMasterDesc" placeholder="Optional">
+            <label for="newMasterDesc" class="product-form-label mb-1">Description</label>
+            <input type="text" class="product-form-control form-control-sm" id="newMasterDesc" placeholder="Optional">
         </div>
-        <button type="button" class="btn btn-sm btn-primary" id="createMasterBtn">
+        <button type="button" class="product-btn product-btn-sm btn-primary" id="createMasterBtn">
             <i class="fas fa-save me-1"></i>Save to library
         </button>
-        <button type="button" class="btn btn-sm btn-outline-secondary" id="cancelNewMasterBtn">Cancel</button>
+        <button type="button" class="product-btn product-btn-sm btn-outline-secondary" id="cancelNewMasterBtn">Cancel</button>
     </div>
 
     <div class="row">
         <div class="col-md-6">
             <div class="mb-3">
-                <label for="quickAddAmount" class="form-label">Amount <span class="text-danger">*</span></label>
+                <label for="quickAddAmount" class="product-form-label">Amount <span class="text-danger">*</span></label>
                 <div class="input-group">
                     <span class="input-group-text">{{ currency_symbol|default:'₹' }}</span>
-                    <input type="number" class="form-control" id="quickAddAmount" name="amount"
+                    <input type="number" class="product-form-control" id="quickAddAmount" name="amount"
                            placeholder="0.00" step="0.01" min="0" required>
                 </div>
             </div>
         </div>
         <div class="col-md-6">
             <div class="mb-3">
-                <label for="quickAddDueDate" class="form-label">Due Date</label>
-                <input type="date" class="form-control" id="quickAddDueDate" name="due_date">
+                <label for="quickAddDueDate" class="product-form-label">Due Date</label>
+                <input type="date" class="product-form-control" id="quickAddDueDate" name="due_date">
             </div>
         </div>
     </div>
 
     <div class="mb-3">
-        <label for="quickAddFineSlab" class="form-label">Fine Slab (optional)</label>
-        <select class="form-select" id="quickAddFineSlab" name="fine_slab">
+        <label for="quickAddFineSlab" class="product-form-label">Fine Slab (optional)</label>
+        <select class="product-form-control" id="quickAddFineSlab" name="fine_slab">
             <option value="">No fine slab</option>
             {% for slab_name in fine_slabs %}
             <option value="{{ slab_name }}">{{ slab_name }}</option>
@@ -245,8 +263,8 @@
     </div>
 
     <div class="mb-3">
-        <label for="quickAddDescription" class="form-label">Description</label>
-        <textarea class="form-control" id="quickAddDescription" name="description"
+        <label for="quickAddDescription" class="product-form-label">Description</label>
+        <textarea class="product-form-control" id="quickAddDescription" name="description"
                   rows="2" placeholder="Optional description"></textarea>
     </div>
 
@@ -531,5 +549,4 @@ document.getElementById('quickAddParticularForm').addEventListener('submit', fun
 {% endblock %}
 
 {% block extra_css %}
-{% include 'core/finance/_finance_ui_styles.html' %}
 {% endblock %}

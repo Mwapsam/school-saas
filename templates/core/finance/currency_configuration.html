@@ -12,7 +12,7 @@
 {% block layout_form %}
 <div class="container-lg py-4">
     <div class="d-flex justify-content-end mb-3">
-        <a href="{% url 'core:finance_settings' %}" class="btn btn-outline-secondary btn-sm">
+        <a href="{% url 'core:finance_settings' %}" class="product-btn product-btn-secondary product-btn-sm">
             <i class="fas fa-arrow-left me-1"></i> Back to Finance Settings
         </a>
     </div>
@@ -23,11 +23,11 @@
     <div class="row">
         <!-- Configuration Form -->
         <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
+            <div class="product-card">
+                <div class="product-card-header">
                     <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Currency Settings</h5>
                 </div>
-                <div class="card-body">
+                <div class="product-card-body">
                     <form id="currencyForm">
                         {% csrf_token %}
                         
@@ -35,8 +35,8 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="currencySelect" class="form-label">Select Currency</label>
-                                    <select class="form-select" id="currencySelect">
+                                    <label for="currencySelect" class="product-form-label">Select Currency</label>
+                                    <select class="product-form-control" id="currencySelect">
                                         <option value="">Choose a currency...</option>
                                         {% for option in currency_options %}
                                         <option value="{{ option.code }}" 
@@ -56,8 +56,8 @@
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="currencyCode" class="form-label">Currency Code</label>
-                                    <input type="text" class="form-control" id="currencyCode" name="currency_code" 
+                                    <label for="currencyCode" class="product-form-label">Currency Code</label>
+                                    <input type="text" class="product-form-control" id="currencyCode" name="currency_code" 
                                            value="{% if active_currency %}{{ active_currency.currency_code }}{% else %}ZMW{% endif %}"
                                            placeholder="e.g., ZMW" maxlength="3" required>
                                     <div class="form-text">3-letter ISO currency code</div>
@@ -65,16 +65,16 @@
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="currencySymbol" class="form-label">Currency Symbol</label>
-                                    <input type="text" class="form-control" id="currencySymbol" name="currency_symbol" 
+                                    <label for="currencySymbol" class="product-form-label">Currency Symbol</label>
+                                    <input type="text" class="product-form-control" id="currencySymbol" name="currency_symbol" 
                                            value="{% if active_currency %}{{ active_currency.currency_symbol }}{% else %}K{% endif %}"
                                            placeholder="e.g., K" maxlength="10" required>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="currencyName" class="form-label">Currency Name</label>
-                                    <input type="text" class="form-control" id="currencyName" name="currency_name" 
+                                    <label for="currencyName" class="product-form-label">Currency Name</label>
+                                    <input type="text" class="product-form-control" id="currencyName" name="currency_name" 
                                            value="{% if active_currency %}{{ active_currency.currency_name }}{% endif %}"
                                            placeholder="e.g., US Dollar" maxlength="100" required>
                                 </div>
@@ -87,8 +87,8 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="symbolPosition" class="form-label">Symbol Position</label>
-                                    <select class="form-select" id="symbolPosition" name="symbol_position">
+                                    <label for="symbolPosition" class="product-form-label">Symbol Position</label>
+                                    <select class="product-form-control" id="symbolPosition" name="symbol_position">
                                         <option value="before" {% if active_currency and active_currency.symbol_position == 'before' %}selected{% endif %}>
                                             Before amount ($100)
                                         </option>
@@ -106,8 +106,8 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="decimalPlaces" class="form-label">Decimal Places</label>
-                                    <select class="form-select" id="decimalPlaces" name="decimal_places">
+                                    <label for="decimalPlaces" class="product-form-label">Decimal Places</label>
+                                    <select class="product-form-control" id="decimalPlaces" name="decimal_places">
                                         <option value="0" {% if active_currency and active_currency.decimal_places == 0 %}selected{% endif %}>0 (100)</option>
                                         <option value="1" {% if active_currency and active_currency.decimal_places == 1 %}selected{% endif %}>1 (100.5)</option>
                                         <option value="2" {% if active_currency and active_currency.decimal_places == 2 or not active_currency %}selected{% endif %}>2 (100.50)</option>
@@ -121,8 +121,8 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="thousandsSeparator" class="form-label">Thousands Separator</label>
-                                    <select class="form-select" id="thousandsSeparator" name="thousands_separator">
+                                    <label for="thousandsSeparator" class="product-form-label">Thousands Separator</label>
+                                    <select class="product-form-control" id="thousandsSeparator" name="thousands_separator">
                                         <option value="," {% if active_currency and active_currency.thousands_separator == ',' or not active_currency %}selected{% endif %}>
                                             Comma (1,000)
                                         </option>
@@ -137,8 +137,8 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="decimalSeparator" class="form-label">Decimal Separator</label>
-                                    <select class="form-select" id="decimalSeparator" name="decimal_separator">
+                                    <label for="decimalSeparator" class="product-form-label">Decimal Separator</label>
+                                    <select class="product-form-control" id="decimalSeparator" name="decimal_separator">
                                         <option value="." {% if active_currency and active_currency.decimal_separator == '.' or not active_currency %}selected{% endif %}>
                                             Period (100.50)
                                         </option>
@@ -151,7 +151,7 @@
                         </div>
 
                         <div class="d-flex justify-content-end">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="product-btn product-btn-primary">
                                 <i class="fas fa-save me-2"></i>Save Currency Configuration
                             </button>
                         </div>
@@ -162,11 +162,11 @@
 
         <!-- Preview Panel -->
         <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
+            <div class="product-card">
+                <div class="product-card-header">
                     <h5 class="mb-0"><i class="fas fa-eye me-2"></i>Preview</h5>
                 </div>
-                <div class="card-body">
+                <div class="product-card-body">
                     <div id="previewPanel">
                         <div class="mb-3">
                             <h6 class="text-muted mb-2">Current Configuration:</h6>
@@ -201,26 +201,26 @@
             </div>
 
             <!-- Quick Currency List -->
-            <div class="card mt-3">
-                <div class="card-header">
+            <div class="product-card mt-3">
+                <div class="product-card-header">
                     <h6 class="mb-0"><i class="fas fa-list me-2"></i>Popular Currencies</h6>
                 </div>
-                <div class="card-body p-2">
+                <div class="product-card-body p-2">
                     <div class="row g-2">
                         <div class="col-6">
-                            <button type="button" class="btn btn-primary btn-sm w-100 quick-currency" 
+                            <button type="button" class="product-btn product-btn-primary product-btn-sm w-100 quick-currency"
                                     data-code="ZMW" data-symbol="K" data-name="Zambian Kwacha">ZMW K</button>
                         </div>
                         <div class="col-6">
-                            <button type="button" class="btn btn-outline-secondary btn-sm w-100 quick-currency" 
+                            <button type="button" class="product-btn product-btn-secondary product-btn-sm w-100 quick-currency"
                                     data-code="USD" data-symbol="$" data-name="US Dollar">USD $</button>
                         </div>
                         <div class="col-6">
-                            <button type="button" class="btn btn-outline-secondary btn-sm w-100 quick-currency" 
+                            <button type="button" class="product-btn product-btn-secondary product-btn-sm w-100 quick-currency"
                                     data-code="EUR" data-symbol="€" data-name="Euro">EUR €</button>
                         </div>
                         <div class="col-6">
-                            <button type="button" class="btn btn-outline-secondary btn-sm w-100 quick-currency" 
+                            <button type="button" class="product-btn product-btn-secondary product-btn-sm w-100 quick-currency"
                                     data-code="KES" data-symbol="KSh" data-name="Kenyan Shilling">KES KSh</button>
                         </div>
                     </div>
@@ -350,7 +350,7 @@ $(document).ready(function() {
     function showAlert(type, message) {
         const alertHtml = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
             ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <button type="button" class="product-btn-close" data-bs-dismiss="alert"></button>
         </div>`;
         
         $('.alert-dismissible').remove();
@@ -367,53 +367,4 @@ $(document).ready(function() {
 </script>
 {% endblock %}
 
-{% block extra_css %}
-{% include 'core/finance/_finance_ui_styles.html' %}
-<style>
-.breadcrumb {
-    background: transparent;
-    padding: 0;
-    margin-bottom: 1rem;
-}
-
-.breadcrumb-item a {
-    color: #28a745;
-    text-decoration: none;
-}
-
-.breadcrumb-item a:hover {
-    text-decoration: underline;
-}
-
-.breadcrumb-item.active {
-    color: #6c757d;
-}
-
-.breadcrumb-item + .breadcrumb-item::before {
-    content: ">";
-    color: #6c757d;
-}
-
-.card {
-    border: 1px solid #e9ecef;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.quick-currency {
-    font-size: 0.8rem;
-}
-
-.quick-currency:hover {
-    background-color: #28a745;
-    border-color: #28a745;
-    color: white;
-}
-
-#formatExamples {
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 0.375rem;
-    padding: 0.75rem;
-}
-</style>
-{% endblock %}
+{% block extra_css %}{% endblock %}

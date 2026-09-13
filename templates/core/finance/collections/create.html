@@ -7,25 +7,24 @@
 {% endblock %}
 
 {% block extra_css %}
-{% include 'core/finance/_finance_ui_styles.html' %}
 {% endblock %}
 {% block layout_form %}
 <div class="container-lg py-4" style="max-width:720px">
 
     {% include 'core/finance/_workflow_nav.html' %}
-    <div class="card"><div class="card-body">
+    <div class="product-card"><div class="product-card-body">
         {% if messages %}{% for m in messages %}
             <div class="alert alert-{{ m.tags|default:'info' }}">{{ m }}</div>
         {% endfor %}{% endif %}
         <form method="post" id="collectionForm">{% csrf_token %}
-            <div class="mb-3"><label class="form-label">Collection Name</label>
-                <input type="text" name="name" class="form-control" placeholder="e.g. Term 1 Collection" required></div>
-            <div class="mb-3"><label class="form-label">Academic Year</label>
-                <select name="academic_year" id="academicYearSelect" class="form-select" required>
+            <div class="mb-3"><label class="product-form-label">Collection Name</label>
+                <input type="text" name="name" class="product-form-control" placeholder="e.g. Term 1 Collection" required></div>
+            <div class="mb-3"><label class="product-form-label">Academic Year</label>
+                <select name="academic_year" id="academicYearSelect" class="product-form-control" required>
                     {% for y in academic_years %}<option value="{{ y.id }}" {% if y.is_active %}selected{% endif %}>{{ y.name }}</option>{% endfor %}
                 </select></div>
-            <div class="mb-3"><label class="form-label">Term</label>
-                <select name="term" id="termSelect" class="form-select" required>
+            <div class="mb-3"><label class="product-form-label">Term</label>
+                <select name="term" id="termSelect" class="product-form-control" required>
                     <option value="">Select term…</option>
                     {% for t in terms %}
                     <option value="{{ t.name }}"
@@ -38,12 +37,12 @@
                 </select>
                 <small class="text-muted">Start and end dates are taken from the term.</small>
             </div>
-            <div class="mb-3"><label class="form-label">Fee Group (Category)</label>
-                <select name="fee_category" id="feeCategorySelect" class="form-select" required>
+            <div class="mb-3"><label class="product-form-label">Fee Group (Category)</label>
+                <select name="fee_category" id="feeCategorySelect" class="product-form-control" required>
                     <option value="">Select fee group…</option>
                     {% for c in fee_categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
                 </select></div>
-            <div class="mb-3"><label class="form-label">Batches</label>
+            <div class="mb-3"><label class="product-form-label">Batches</label>
                 <div id="batchesDisplay" class="p-3 bg-light border rounded">
                     <p class="text-muted mb-0" id="batchesPlaceholder">Select a fee category to see assigned batches</p>
                     <div id="batchesList" style="display:none;">
@@ -52,19 +51,19 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col-md-4 mb-3"><label class="form-label">Start Date</label>
-                    <input type="date" id="startDateInput" class="form-control" disabled>
+                <div class="col-md-4 mb-3"><label class="product-form-label">Start Date</label>
+                    <input type="date" id="startDateInput" class="product-form-control" disabled>
                     <small class="text-muted">From term</small></div>
-                <div class="col-md-4 mb-3"><label class="form-label">End Date</label>
-                    <input type="date" id="endDateInput" class="form-control" disabled>
+                <div class="col-md-4 mb-3"><label class="product-form-label">End Date</label>
+                    <input type="date" id="endDateInput" class="product-form-control" disabled>
                     <small class="text-muted">From term</small></div>
-                <div class="col-md-4 mb-3"><label class="form-label">Due Date</label>
-                    <input type="date" name="due_date" id="dueDateInput" class="form-control">
+                <div class="col-md-4 mb-3"><label class="product-form-label">Due Date</label>
+                    <input type="date" name="due_date" id="dueDateInput" class="product-form-control">
                     <small class="text-muted">Defaults to term end</small></div>
             </div>
             <div class="d-flex justify-content-end gap-2">
-                <a href="{% url 'core:fee_collections' %}" class="btn btn-outline-secondary">Cancel</a>
-                <button type="submit" class="btn btn-primary">Create Collection</button>
+                <a href="{% url 'core:fee_collections' %}" class="product-btn product-btn-secondary">Cancel</a>
+                <button type="submit" class="product-btn product-btn-primary">Create Collection</button>
             </div>
         </form>
     </div></div>

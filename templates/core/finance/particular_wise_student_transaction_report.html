@@ -31,18 +31,18 @@
     {% include 'core/finance/_workflow_nav.html' %}
 
     <!-- Filter Card -->
-    <div class="card mb-4">
-        <div class="card-header bg-light border-0">
+    <div class="product-card mb-4">
+        <div class="product-card-header bg-light border-0">
             <h6 class="mb-0"><i class="fas fa-filter me-2 text-primary"></i>Filter Report</h6>
         </div>
-        <div class="card-body">
+        <div class="product-card-body">
             <form method="get">
                 <input type="hidden" name="academic_year" value="{{ selected_year_id }}">
                 <div class="row g-3">
                     <!-- Fee Account -->
                     <div class="col-lg-6">
-                        <label for="fee_account" class="form-label fw-500">Fee Account</label>
-                        <select class="form-select" id="fee_account" name="fee_account">
+                        <label for="fee_account" class="product-form-label">Fee Account</label>
+                        <select class="product-form-control" id="fee_account" name="fee_account">
                             <option value="all" {% if fee_account == 'all' %}selected{% endif %}>All selected</option>
                             {% for category in fee_categories %}
                                 <option value="{{ category.id }}" {% if fee_account == category.id|stringformat:"s" %}selected{% endif %}>
@@ -54,18 +54,18 @@
 
                     <!-- Date Range -->
                     <div class="col-lg-6">
-                        <label for="from_date" class="form-label fw-500">Date Range</label>
+                        <label for="from_date" class="product-form-label">Date Range</label>
                         <div class="input-group input-group-sm">
-                            <input type="date" class="form-control" id="from_date" name="from_date" value="{{ from_date }}">
+                            <input type="date" class="product-form-control" id="from_date" name="from_date" value="{{ from_date }}">
                             <span class="input-group-text">to</span>
-                            <input type="date" class="form-control" id="to_date" name="to_date" value="{{ to_date }}">
+                            <input type="date" class="product-form-control" id="to_date" name="to_date" value="{{ to_date }}">
                         </div>
                     </div>
 
                     <!-- Student Status -->
                     <div class="col-md-6">
-                        <label for="student_status" class="form-label fw-500">Student Status</label>
-                        <select class="form-select" id="student_status" name="student_status">
+                        <label for="student_status" class="product-form-label">Student Status</label>
+                        <select class="product-form-control" id="student_status" name="student_status">
                             <option value="all" {% if student_status == 'all' %}selected{% endif %}>All</option>
                             <option value="active" {% if student_status == 'active' %}selected{% endif %}>Active</option>
                         </select>
@@ -73,8 +73,8 @@
 
                     <!-- Class -->
                     <div class="col-md-6">
-                        <label for="class" class="form-label fw-500">Class</label>
-                        <select class="form-select" id="class" name="class">
+                        <label for="class" class="product-form-label">Class</label>
+                        <select class="product-form-control" id="class" name="class">
                             <option value="all" {% if class_filter == 'all' %}selected{% endif %}>All selected</option>
                             {% for course in courses %}
                                 <option value="{{ course.id }}" {% if class_filter == course.id|stringformat:"s" %}selected{% endif %}>
@@ -86,8 +86,8 @@
 
                     <!-- Batch -->
                     <div class="col-md-6">
-                        <label for="batch" class="form-label fw-500">Batch</label>
-                        <select class="form-select" id="batch" name="batch">
+                        <label for="batch" class="product-form-label">Batch</label>
+                        <select class="product-form-control" id="batch" name="batch">
                             <option value="all" {% if batch_filter == 'all' %}selected{% endif %}>All selected</option>
                             {% for batch in batches %}
                                 <option value="{{ batch.id }}" {% if batch_filter == batch.id|stringformat:"s" %}selected{% endif %}>
@@ -99,8 +99,8 @@
 
                     <!-- Batch Type -->
                     <div class="col-md-6">
-                        <label for="batch_type" class="form-label fw-500">Batch Type</label>
-                        <select class="form-select" id="batch_type" name="batch_type">
+                        <label for="batch_type" class="product-form-label">Batch Type</label>
+                        <select class="product-form-control" id="batch_type" name="batch_type">
                             <option value="active" selected>Active</option>
                             <option value="inactive">Inactive</option>
                         </select>
@@ -118,7 +118,7 @@
 
                     <!-- Action Buttons -->
                     <div class="col-12 pt-2 border-top">
-                        <button type="submit" name="view_report" value="1" class="btn btn-primary">
+                        <button type="submit" name="view_report" value="1" class="product-btn product-btn-primary">
                             <i class="fas fa-eye me-2"></i>View Report
                         </button>
                     </div>
@@ -129,15 +129,15 @@
 
     <!-- Results Section -->
     {% if rows %}
-    <div class="card">
-        <div class="card-header bg-light border-0">
+    <div class="product-card">
+        <div class="product-card-header bg-light border-0">
             <h6 class="mb-0"><i class="fas fa-table me-2 text-primary"></i>Report Results</h6>
         </div>
-        <div class="card-body p-0">
+        <div class="product-card-body p-0">
             <!-- Results Table -->
             <div class="table-responsive">
-                <table class="table table-striped table-hover mb-0">
-                    <thead class="table-light">
+                <table class="product-table">
+                    <thead class="">
                         <tr>
                             {% if with_expected %}<th style="width: 2rem;"></th>{% endif %}
                             <th style="width: 3rem;">Sl No.</th>
@@ -261,12 +261,12 @@
             <div class="p-3 border-top bg-light">
                 <div class="d-flex gap-2">
                     <a href="?{% for key, value in request.GET.items %}{% if key != 'format' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}format=csv"
-                       class="btn btn-outline-success btn-sm">
+                       class="product-btn product-btn-success btn-sm">
                         <i class="fas fa-file-csv me-1"></i>
                         CSV report
                     </a>
                     <a href="?{% for key, value in request.GET.items %}{% if key != 'format' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}format=pdf"
-                       class="btn btn-outline-danger btn-sm">
+                       class="product-btn product-btn-danger btn-sm">
                         <i class="fas fa-file-pdf me-1"></i>
                         PDF report
                     </a>
@@ -283,30 +283,7 @@
 {% block layout_extra %}{% endblock %}
 
 {% block extra_css %}
-{% include 'core/finance/_finance_ui_styles.html' %}
 <style>
-.card-header {
-    padding: 1rem;
-    font-weight: 600;
-}
-
-.card-header h6 {
-    font-weight: 600;
-    color: #212529;
-    margin: 0;
-}
-
-.table th {
-    border-top: none;
-    font-weight: 600;
-    font-size: 0.875rem;
-    background-color: #f8f9fa;
-}
-
-.table tbody tr {
-    vertical-align: middle;
-}
-
 .table tbody tr[role="button"] {
     cursor: pointer;
 }
@@ -331,16 +308,6 @@
     border-color: #ffeaa7;
 }
 
-.form-label.fw-500 {
-    font-weight: 500;
-    color: #212529;
-}
-
-.badge {
-    font-size: 0.75rem;
-    padding: 0.35rem 0.6rem;
-}
-
 .detail-section {
     background-color: #f8f9fa;
     border-radius: 0.25rem;
@@ -349,16 +316,6 @@
 
 .pagination-sm .page-link {
     padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
-}
-
-.btn-sm {
-    padding: 0.375rem 0.75rem;
-    font-size: 0.875rem;
-}
-
-.input-group-sm .form-control {
-    padding: 0.375rem 0.75rem;
     font-size: 0.875rem;
 }
 </style>

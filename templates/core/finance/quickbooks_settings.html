@@ -12,10 +12,10 @@
 {% block layout_form %}
 <div class="container-lg py-4">
     <div class="d-flex flex-wrap justify-content-end align-items-center gap-2 mb-3">
-        <a href="{% url 'core:quickbooks_webhook_review' %}" class="btn btn-outline-warning btn-sm">
+        <a href="{% url 'core:quickbooks_webhook_review' %}" class="product-btn product-btn-warning product-btn-sm">
             <i class="fas fa-flag me-1"></i> Webhook Review
         </a>
-        <a href="{% url 'core:finance_settings' %}" class="btn btn-outline-secondary btn-sm">
+        <a href="{% url 'core:finance_settings' %}" class="product-btn product-btn-secondary product-btn-sm">
             <i class="fas fa-arrow-left me-1"></i> Back to Settings
         </a>
     </div>
@@ -47,13 +47,13 @@
     <div class="row">
         <!-- Connection Status Card -->
         <div class="col-lg-8">
-            <div class="card mb-4">
-                <div class="card-header">
+            <div class="product-card mb-4">
+                <div class="product-card-header">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-plug me-2"></i>Connection Status
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="product-card-body">
                     <div id="connection-status">
                         {% if connection_status.connected %}
                             <div class="d-flex align-items-center mb-3">
@@ -67,10 +67,10 @@
                                 </div>
                             </div>
                             <div class="btn-group">
-                                <button type="button" class="btn btn-outline-success" onclick="testConnection()">
+                                <button type="button" class="product-btn product-btn-success" onclick="testConnection()">
                                     <i class="fas fa-check-circle me-1"></i> Test Connection
                                 </button>
-                                <button type="button" class="btn btn-outline-danger" onclick="disconnectQuickBooks()">
+                                <button type="button" class="product-btn product-btn-danger" onclick="disconnectQuickBooks()">
                                     <i class="fas fa-unlink me-1"></i> Disconnect
                                 </button>
                             </div>
@@ -83,7 +83,7 @@
                                 </div>
                             </div>
                             {% if connection_status.auth_url %}
-                                <a href="{{ connection_status.auth_url }}" class="btn btn-primary" target="_blank">
+                                <a href="{{ connection_status.auth_url }}" class="product-btn product-btn-primary" target="_blank">
                                     <i class="fab fa-quickbooks me-1"></i> Connect to QuickBooks
                                 </a>
                             {% endif %}
@@ -101,20 +101,20 @@
             </div>
 
             <!-- Configuration Form -->
-            <div class="card">
-                <div class="card-header">
+            <div class="product-card">
+                <div class="product-card-header">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-cog me-2"></i>Configuration
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="product-card-body">
                     <form id="quickbooks-config-form">
                         {% csrf_token %}
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="client_id" class="form-label">Client ID <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="client_id" name="client_id" 
+                                    <label for="client_id" class="product-form-label">Client ID <span class="text-danger">*</span></label>
+                                    <input type="text" class="product-form-control" id="client_id" name="client_id" 
                                            value="{% if integration %}{{ integration.client_id }}{% endif %}" 
                                            placeholder="Your QuickBooks App Client ID">
                                     <div class="form-text">Get this from your QuickBooks Developer account</div>
@@ -122,8 +122,8 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="client_secret" class="form-label">Client Secret <span class="text-danger">*</span></label>
-                                    <input type="password" class="form-control" id="client_secret" name="client_secret" 
+                                    <label for="client_secret" class="product-form-label">Client Secret <span class="text-danger">*</span></label>
+                                    <input type="password" class="product-form-control" id="client_secret" name="client_secret" 
                                            value="{% if integration %}{{ integration.client_secret }}{% endif %}" 
                                            placeholder="Your QuickBooks App Client Secret">
                                     <div class="form-text">Keep this secret and secure</div>
@@ -134,8 +134,8 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="environment" class="form-label">Environment</label>
-                                    <select class="form-select" id="environment" name="environment">
+                                    <label for="environment" class="product-form-label">Environment</label>
+                                    <select class="product-form-control" id="environment" name="environment">
                                         <option value="sandbox" {% if integration.environment == 'sandbox' or not integration %}selected{% endif %}>
                                             Sandbox (Testing)
                                         </option>
@@ -148,8 +148,8 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="redirect_uri" class="form-label">Redirect URI</label>
-                                    <input type="url" class="form-control" id="redirect_uri" name="redirect_uri" 
+                                    <label for="redirect_uri" class="product-form-label">Redirect URI</label>
+                                    <input type="url" class="product-form-control" id="redirect_uri" name="redirect_uri" 
                                            value="{% if integration %}{{ integration.redirect_uri }}{% endif %}" 
                                            placeholder="https://your-domain.com/quickbooks/callback" readonly>
                                     <div class="form-text">This is configured automatically</div>
@@ -158,10 +158,10 @@
                         </div>
 
                         <div class="d-flex justify-content-between">
-                            <button type="submit" class="btn btn-primary" id="save-config-btn">
+                            <button type="submit" class="product-btn product-btn-primary" id="save-config-btn">
                                 <i class="fas fa-save me-1"></i> Save Configuration
                             </button>
-                            <button type="button" class="btn btn-primary" id="connect-btn" disabled>
+                            <button type="button" class="product-btn product-btn-primary" id="connect-btn" disabled>
                                 <i class="fab fa-quickbooks me-1"></i> Connect to QuickBooks
                             </button>
                         </div>
@@ -172,13 +172,13 @@
 
         <!-- Help & Information -->
         <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
+            <div class="product-card">
+                <div class="product-card-header">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-info-circle me-2"></i>Setup Instructions
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="product-card-body">
                     <ol class="list-unstyled">
                         <li class="mb-3">
                             <div class="d-flex">
@@ -221,12 +221,12 @@
             </div>
 
             <div class="card mt-4">
-                <div class="card-header">
+                <div class="product-card-header">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-sync-alt me-2"></i>Sync Settings
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="product-card-body">
                     {% if connection_status.connected %}
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" id="auto_sync"
@@ -237,10 +237,10 @@
                             </label>
                         </div>
                         <div class="mb-3">
-                            <label for="default_service_item" class="form-label">
+                            <label for="default_service_item" class="product-form-label">
                                 Service item for fee charges
                             </label>
-                            <select class="form-select" id="default_service_item"
+                            <select class="product-form-control" id="default_service_item"
                                     onchange="saveServiceItem(this.value)"
                                     data-selected="{{ qb_config.default_service_item|default_if_none:'' }}">
                                 <option value="">Loading items from QuickBooks…</option>
@@ -282,53 +282,12 @@
 {% block layout_extra %}{% endblock %}
 
 {% block extra_css %}
-{% include 'core/finance/_finance_ui_styles.html' %}
 <style>
 .status-indicator {
     width: 12px;
     height: 12px;
     border-radius: 50%;
     flex-shrink: 0;
-}
-
-.card {
-    border: 1px solid #e9ecef;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.card-header {
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #e9ecef;
-    padding: 1rem 1.25rem;
-}
-
-.card-title {
-    color: #495057;
-    font-weight: 600;
-}
-
-.breadcrumb {
-    background: transparent;
-    padding: 0;
-    margin-bottom: 1rem;
-}
-
-.breadcrumb-item a {
-    color: #28a745;
-    text-decoration: none;
-}
-
-.breadcrumb-item a:hover {
-    text-decoration: underline;
-}
-
-.breadcrumb-item.active {
-    color: #6c757d;
-}
-
-.breadcrumb-item + .breadcrumb-item::before {
-    content: ">";
-    color: #6c757d;
 }
 
 .badge {

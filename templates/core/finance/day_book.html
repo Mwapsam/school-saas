@@ -22,15 +22,15 @@
 {% block layout_filters %}
 <form method="get" class="row g-3 mb-4">
     <div class="col-md-4">
-        <label for="from_date" class="form-label">From</label>
-        <input type="date" class="form-control" id="from_date" name="from_date" value="{{ date_from|date:'Y-m-d' }}">
+        <label for="from_date" class="product-form-label">From</label>
+        <input type="date" class="product-form-control" id="from_date" name="from_date" value="{{ date_from|date:'Y-m-d' }}">
     </div>
     <div class="col-md-4">
-        <label for="to_date" class="form-label">To</label>
-        <input type="date" class="form-control" id="to_date" name="to_date" value="{{ date_to|date:'Y-m-d' }}">
+        <label for="to_date" class="product-form-label">To</label>
+        <input type="date" class="product-form-control" id="to_date" name="to_date" value="{{ date_to|date:'Y-m-d' }}">
     </div>
     <div class="col-md-4 d-flex align-items-end">
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" class="product-btn product-btn-primary">
             <i class="fas fa-filter me-1"></i> Apply
         </button>
     </div>
