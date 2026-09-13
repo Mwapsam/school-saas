@@ -2,7 +2,7 @@
 
 {% block layout_header %}
 {% url 'core:dashboard' as back_fallback %}
-{% include 'core/components/page_header.html' with icon='fa-cogs' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% include 'core/components/page_header.html' with title='Configuration' description='School settings, academic setup and system preferences' icon='fa-cogs' back_url=back_url|default:back_fallback crumbs=crumbs %}
 {% endblock %}
 {% load static %}
 
@@ -11,17 +11,6 @@
 
 
 {% block layout_form %}
-<div class="gb-header">
-    <div class="gb-header-icon"><i class="fas fa-cogs"></i></div>
-    <div>
-        <h2>Configuration</h2>
-        <p>School settings, academic setup and system preferences</p>
-    </div>
-    <a href="{% url 'core:dashboard' %}" class="btn btn-secondary btn-sm ms-auto">
-        <i class="fas fa-arrow-left me-1"></i> Dashboard
-    </a>
-</div>
-
 <!-- Featured: School Settings -->
 <a href="{% url 'core:school_settings' %}" class="cfg-featured">
     <div class="cfg-icon"><i class="fas fa-school"></i></div>

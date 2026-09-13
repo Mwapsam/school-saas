@@ -2,7 +2,7 @@
 
 {% block layout_header %}
 {% url 'core:configuration' as back_fallback %}
-{% include 'core/components/page_header.html' with icon='fa-school' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% include 'core/components/page_header.html' with title='School Settings' description='Logos, signature, and details printed on every generated report card' icon='fa-school' back_url=back_url|default:back_fallback crumbs=crumbs %}
 {% endblock %}
 {% load static %}
 
@@ -11,23 +11,6 @@
 
 
 {% block layout_form %}
-{# ── Breadcrumb ── #}
-
-
-{# ── Page header ── #}
-<div class="ss-header">
-    <div class="ss-header-icon" aria-hidden="true">
-        <i class="fas fa-school"></i>
-    </div>
-    <div class="ss-header-body">
-        <h1>School Settings</h1>
-        <p>Logos, signature, and details printed on every generated report card</p>
-    </div>
-    <a href="{% url 'core:configuration' %}" class="btn btn-outline-secondary btn-sm flex-shrink-0">
-        <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Configuration
-    </a>
-</div>
-
 {# ── School Logos ── #}
 <div class="product-card ss-section">
     <div class="product-card-header">

@@ -2,7 +2,7 @@
 
 {% block layout_header %}
 {% url 'core:dashboard' as back_fallback %}
-{% include 'core/components/page_header.html' with icon='fa-newspaper' back_url=back_url|default:back_fallback crumbs=crumbs %}
+{% include 'core/components/page_header.html' with title='News & Announcements' description='Publish and manage articles for your school community' icon='fa-newspaper' back_url=back_url|default:back_fallback crumbs=crumbs %}
 {% endblock %}
 {% load static %}
 
@@ -11,18 +11,6 @@
 
 
 {% block layout_table %}
-<div class="news-header">
-    <div class="news-header-icon"><i class="fas fa-newspaper"></i></div>
-    <div style="flex:1">
-        <h2>News &amp; Announcements</h2>
-        <p>Publish and manage articles for your school community</p>
-    </div>
-    <button class="btn btn-primary btn-sm"
-            data-bs-toggle="modal" data-bs-target="#createNewsModal">
-        <i class="fas fa-plus me-1"></i> New Article
-    </button>
-</div>
-
 {% if news_list %}
 <div class="row g-3">
     {% for article in news_list %}
