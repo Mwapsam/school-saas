@@ -16,7 +16,6 @@
 {% url 'core:finance_dashboard' as back_fallback %}
 {% include 'core/components/page_header.html' with title="Day Book" description="Daily cash/bank reconciliation across fee collection and the general ledger" icon="fa-book" back_url=back_url|default:back_fallback %}
 
-{% include 'core/finance/_workflow_nav.html' %}
 {% endblock %}
 
 {% block layout_filters %}

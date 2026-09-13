@@ -11,7 +11,6 @@
     </ol>
 </nav>
 
-{% include 'core/finance/_workflow_nav.html' with active_step=1 %}
 
 {% url 'core:fee_structure' as back_fallback %}
 {% include 'core/components/page_header.html' with title="Fee Groups" description="Also called fee categories — manage the fee groups used across master fees and student billing" icon="fa-tags" actions=header_actions back_url=back_url|default:back_fallback %}

@@ -6,7 +6,6 @@
 {% block layout_header %}
 {% url 'core:fee_collections' as back_fallback %}
 {% include 'core/components/page_header.html' with title=collection_header_title description=collection_description icon="fa-calendar-check" actions=header_actions back_url=back_url|default:back_fallback %}
-{% include 'core/finance/_workflow_nav.html' %}
 <form id="csrfForm">{% csrf_token %}</form>
 {% endblock %}
 

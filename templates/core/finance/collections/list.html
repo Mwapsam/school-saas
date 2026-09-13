@@ -5,7 +5,6 @@
 {% block layout_header %}
 {% url 'core:finance_dashboard' as back_fallback %}
 {% include 'core/components/page_header.html' with title="Fee Collections" description="Term-wise billing runs. Each collection generates fee obligations for every student in the batch." icon="fa-calendar-check" back_url=back_url|default:back_fallback %}
-{% include 'core/finance/_workflow_nav.html' %}
 {% endblock %}
 
 {% block layout_filters %}

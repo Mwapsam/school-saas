@@ -14,8 +14,6 @@
     </ol>
 </nav>
 
-<!-- Workflow Nav -->
-{% include 'core/finance/_workflow_nav.html' %}
 
 {% url 'core:fee_structure' as back_fallback %}
 {% include 'core/components/page_header.html' with title="Fee Masters" description="Configure reusable fee particulars, discounts, and applicability rules" icon="fa-layer-group" back_url=back_url|default:back_fallback %}
