@@ -9,14 +9,18 @@ interface AuthState {
   user: UserProfile | null;
   /** Which of the user's roles is currently in focus (role/module switcher). */
   activeRole: Role | null;
+  /** School code to detect when user switches schools (multi-tenant support) */
+  schoolCode: string | null;
   setSession: (session: {
     access: string;
     refresh: string;
     user: UserProfile;
+    schoolCode?: string;
   }) => void;
   setTokens: (tokens: { access: string; refresh?: string }) => void;
   setUser: (user: UserProfile) => void;
   setActiveRole: (role: Role) => void;
+  setSchoolCode: (code: string) => void;
   clear: () => void;
 }
 
@@ -34,11 +38,13 @@ export const useAuthStore = create<AuthState>()(
       refresh: null,
       user: null,
       activeRole: null,
-      setSession: ({ access, refresh, user }) =>
+      schoolCode: null,
+      setSession: ({ access, refresh, user, schoolCode }) =>
         set({
           access,
           refresh,
           user,
+          schoolCode: schoolCode ?? null,
           activeRole: rolesOf(user)[0] ?? null,
         }),
       setTokens: ({ access, refresh }) =>
@@ -55,16 +61,19 @@ export const useAuthStore = create<AuthState>()(
         set((s) =>
           rolesOf(s.user).includes(role) ? { activeRole: role } : s,
         ),
+      setSchoolCode: (code) =>
+        set({ schoolCode: code }),
       clear: () =>
-        set({ access: null, refresh: null, user: null, activeRole: null }),
+        set({ access: null, refresh: null, user: null, activeRole: null, schoolCode: null }),
     }),
     {
-      name: "pinewood-portal-auth",
+      name: "school-portal-auth",
       partialize: (s) => ({
         access: s.access,
         refresh: s.refresh,
         user: s.user,
         activeRole: s.activeRole,
+        schoolCode: s.schoolCode,
       }),
     },
   ),

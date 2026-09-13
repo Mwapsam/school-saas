@@ -100,6 +100,8 @@ from .view_modules.enquiry_views import (
     ApplicantEnquiryViewSet,
 )
 
+from .api.school import school_config
+
 from .api.batch_assignment import (
     BatchAssignmentViewSet,
     AdmissionReportViewSet,
@@ -188,6 +190,7 @@ urlpatterns = [
     # Public endpoints (no authentication required)
     path('public/admission/apply/', PublicAdmissionApplicationCreateView.as_view(), name='public-admission-apply'),
     path('public/admission/status/<str:application_number>/', PublicAdmissionStatusView.as_view(), name='public-admission-status'),
+    path('school/config/', school_config, name='school-config'),
 
     # Grading API endpoints
     path('grading/subject/<uuid:subject_id>/grades/', get_subject_grades, name='subject-grades'),

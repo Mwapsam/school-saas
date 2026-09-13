@@ -147,6 +147,67 @@ class School(TenantMixin):
                   "Used to display times in the tenant's local timezone."
     )
 
+    # Frontend branding and configuration
+    description = models.TextField(
+        blank=True,
+        null=True,
+        help_text="School's tagline or mission statement"
+    )
+    primary_color = models.CharField(
+        blank=True,
+        null=True,
+        max_length=7,
+        help_text="Primary brand color (hex, e.g., #1a7a3c)"
+    )
+    secondary_color = models.CharField(
+        blank=True,
+        null=True,
+        max_length=7,
+        help_text="Secondary brand color (hex)"
+    )
+
+    # Admission portal configuration
+    admission_enabled = models.BooleanField(
+        default=False,
+        help_text="Whether the admission portal is enabled for this school"
+    )
+    admission_heading = models.CharField(
+        blank=True,
+        null=True,
+        max_length=255,
+        help_text="Custom heading for the admission portal"
+    )
+    admission_cta_text = models.CharField(
+        blank=True,
+        null=True,
+        max_length=100,
+        help_text="Call-to-action button text on admission portal"
+    )
+    admission_description = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Custom description of the admission process"
+    )
+    admission_email = models.EmailField(
+        blank=True,
+        null=True,
+        help_text="Email address for admission inquiries (if different from main email)"
+    )
+
+    # Social media and external links
+    social_links = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Social media links {twitter, facebook, instagram, linkedin}"
+    )
+
+    # Feature flags
+    features = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Feature flags {parent_portal, teacher_portal, librarian_portal, hr_portal, admission_portal}"
+    )
+
     auto_create_schema = True
 
     class Meta:
