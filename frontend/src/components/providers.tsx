@@ -6,6 +6,7 @@ import { ThemeProvider } from "next-themes";
 
 import { ApiError } from "@/lib/api";
 import { Toaster } from "@/components/ui/sonner";
+import { SchoolBrandingProvider } from "@/components/school-branding-provider";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -45,7 +46,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
     >
       <QueryClientProvider client={client}>
-        {children}
+        <SchoolBrandingProvider>
+          {children}
+        </SchoolBrandingProvider>
         <Toaster richColors position="top-right" />
       </QueryClientProvider>
     </ThemeProvider>

@@ -51,6 +51,10 @@
     --sidebar-accent-foreground: 141 65% 22%;
     --sidebar-border: 220 14% 90%;
 
+    /* School branding colors (set by SchoolBrandingProvider from API) */
+    --school-primary: #1a7a3c;
+    --school-secondary: #f5f5f5;
+
     --radius: 0.65rem;
   }
 

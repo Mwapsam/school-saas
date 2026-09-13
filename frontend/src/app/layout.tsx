@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     default: config.appName,
     template: `%s · ${config.appName}`,
   },
-  description: "Parent & Teacher portal for the Pinewood school management system.",
+  description: "Multi-tenant school management platform for parents, teachers, and administrators.",
   icons: {
     icon: "/logo.png",
     shortcut: "/logo.png",

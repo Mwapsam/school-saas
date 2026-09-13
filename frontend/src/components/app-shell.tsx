@@ -16,6 +16,7 @@ import {
 } from "@/lib/navigation";
 import { useAuth, useLogout } from "@/hooks/use-auth";
 import { useAuthStore } from "@/lib/auth-store";
+import { useSchoolConfig } from "@/hooks/useSchoolConfig";
 import { cn, initials } from "@/lib/utils";
 import type { Role } from "@/lib/types";
 
@@ -104,21 +105,33 @@ function NavLinks({
 }
 
 function Brand() {
+  const { data: schoolConfig } = useSchoolConfig();
+  const schoolName = schoolConfig?.name || config.appName;
+  const schoolLogo = schoolConfig?.logo_url || "/logo.png";
+  const schoolAlt = schoolConfig?.name || "School Logo";
+
   return (
     <div className="flex items-center gap-3 px-5 py-4">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/10 p-0.5">
         <Image
-          src="/logo.png"
-          alt="Pinewood Preparatory School"
+          src={schoolLogo}
+          alt={schoolAlt}
           width={36}
           height={36}
           className="object-contain"
           priority
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "/logo.png";
+          }}
         />
       </div>
       <div className="min-w-0 leading-tight">
-        <p className="truncate text-sm font-semibold text-sidebar-foreground">{config.appName}</p>
-        <p className="text-xs text-sidebar-foreground/55">School Portal</p>
+        <p className="truncate text-sm font-semibold text-sidebar-foreground">
+          {schoolName}
+        </p>
+        <p className="text-xs text-sidebar-foreground/55">
+          {schoolConfig?.description || "School Portal"}
+        </p>
       </div>
     </div>
   );
