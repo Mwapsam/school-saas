@@ -43,11 +43,11 @@
     {% include 'core/components/stat_cards.html' with stats=day_book_stats %}
 </div>
 
-<div class="pinewood-table-container">
-    <div class="pinewood-table-header">
+<div class="product-table-container">
+    <div class="product-table-header">
         <h5 class="mb-0">Daily Ledger</h5>
     </div>
-    {% include 'core/components/table_open.html' with columns=ledger_columns %}
+    {% include 'core/components/table_open.html' with columns=ledger_columns table_class="product-table" %}
         <tbody>
             {% for day in day_book.days %}
             <tr>

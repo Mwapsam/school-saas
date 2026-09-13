@@ -454,6 +454,33 @@ select.product-form-control { cursor: pointer; }
     color: var(--product-text-muted);
 }
 
+/* ── Table pagination (convenience for paginated tables) ────– */
+.product-table-pagination {
+  background-color: #f8f9fa;
+  border-top: 1px solid var(--product-gray-border);
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.product-table-pagination .pagination {
+  margin: 0;
+}
+.product-table-pagination .pagination .page-link {
+  color: var(--product-brand);
+  border-color: var(--product-gray-border);
+}
+.product-table-pagination .pagination .page-item.active .page-link {
+  background-color: var(--product-brand-light);
+  border-color: var(--product-brand);
+  color: var(--product-brand);
+}
+.product-table-pagination .pagination .page-link:hover {
+  color: var(--product-brand-dark);
+  background-color: var(--product-brand-light);
+  border-color: var(--product-brand-dark);
+}
+
 /* ──- Responsive breakpoints ─────────────────────────────────– */
 @media (max-width: 768px) {
   .product-stat-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
