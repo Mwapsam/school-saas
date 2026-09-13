@@ -28,15 +28,18 @@ from core.serializers.batch_assignment_serializers import (
     DiagnosticsResultSerializer,
 )
 from core.api_views import TenantAwareViewSetMixin
+from core.authz.drf import ModuleEnabled, HasPermission
 
 logger = logging.getLogger(__name__)
 
 
 class BatchAssignmentViewSet(TenantAwareViewSetMixin, viewsets.ViewSet):
     """
-    ViewSet for batch assignment of approved/admitted applications
+    ViewSet for batch assignment of approved/admitted applications.
+    Requires the 'admissions' module to be enabled for the school.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModuleEnabled]
+    module = "admissions"
 
     def get_queryset(self):
         """Get approved/admitted applications for the tenant"""
@@ -479,9 +482,11 @@ class BatchAssignmentViewSet(TenantAwareViewSetMixin, viewsets.ViewSet):
 
 class AdmissionReportViewSet(TenantAwareViewSetMixin, viewsets.ViewSet):
     """
-    ViewSet for admission reports and analytics
+    ViewSet for admission reports and analytics.
+    Requires the 'admissions' module to be enabled for the school.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModuleEnabled]
+    module = "admissions"
 
     @action(detail=False, methods=['get'])
     def summary(self, request):
@@ -576,9 +581,11 @@ class AdmissionReportViewSet(TenantAwareViewSetMixin, viewsets.ViewSet):
 
 class AdmissionDiagnosticsViewSet(TenantAwareViewSetMixin, viewsets.ViewSet):
     """
-    ViewSet for admission system diagnostics
+    ViewSet for admission system diagnostics.
+    Requires the 'admissions' module to be enabled for the school.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModuleEnabled]
+    module = "admissions"
 
     @action(detail=False, methods=['get'])
     def status(self, request):

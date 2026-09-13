@@ -88,3 +88,36 @@ def require_permission(*codenames, require_all=False):
         return _wrapped
 
     return decorator
+
+
+class ModuleAccessMixin:
+    """Enforce module enablement for class-based views.
+
+    Set ``required_module = "hr"`` on the view class.
+    Returns 403 "portal only" page if the module is not enabled for the school.
+    """
+
+    required_module: "str | None" = None
+
+    def dispatch(self, request, *args, **kwargs):
+        if not self.required_module:
+            return super().dispatch(request, *args, **kwargs)
+
+        tenant = getattr(request, "tenant", None)
+        if not tenant:
+            return _deny_html(request)
+
+        # Check if module is enabled for this tenant
+        from core.models import SchoolModule
+        try:
+            school_module = SchoolModule.objects.get(
+                school=tenant,
+                module=self.required_module
+            )
+            if not school_module.enabled:
+                return _deny_html(request)
+        except SchoolModule.DoesNotExist:
+            # Module row doesn't exist = module is disabled
+            return _deny_html(request)
+
+        return super().dispatch(request, *args, **kwargs)

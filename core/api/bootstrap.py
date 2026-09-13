@@ -137,15 +137,20 @@ def bootstrap(request):
         pass
 
     # Module enablement state
-    modules_enabled = {}
+    # Start with all modules DISABLED (agreement-based access control).
+    # Only modules explicitly enabled in SchoolModule rows are turned on.
+    # Exception: required modules (academics) default to True even if no row exists.
+    modules_enabled = {
+        module_key: MODULES[module_key].get("required", False)
+        for module_key in MODULES.keys()
+    }
     try:
         school_modules = SchoolModule.objects.filter(school=tenant)
         for sm in school_modules:
             modules_enabled[sm.module] = sm.enabled
     except Exception:
-        # If SchoolModule doesn't exist yet, default all to enabled
-        for module_key in MODULES.keys():
-            modules_enabled[module_key] = True
+        # If SchoolModule table doesn't exist (migration not run), keep defaults above
+        pass
 
     return Response({
         "tenant": tenant_data,

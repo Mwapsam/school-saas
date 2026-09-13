@@ -25,19 +25,32 @@ class SchoolModuleInline(TabularInline):
     """
     model = SchoolModule
     extra = 0
-    fields = ("module", "enabled", "configuration")
+    fields = ("module", "module_description", "enabled", "configuration")
+    readonly_fields = ("module_description",)
+
+    def module_description(self, obj):
+        """Display the module's description from the registry."""
+        if obj.pk and obj.module:
+            meta = MODULES.get(obj.module, {})
+            description = meta.get("description", "")
+            is_required = meta.get("required", False)
+            required_badge = " [REQUIRED]" if is_required else ""
+            return f"{description}{required_badge}"
+        return "—"
+    module_description.short_description = "Description"
 
 
 def _provision_all_modules(schools):
     """Ensure every school has a SchoolModule row for every registered module key.
-    Missing rows are created enabled by default; existing rows are left untouched.
+    Missing rows are created disabled by default — superuser must explicitly enable
+    only the modules covered by that school's agreement. Existing rows are left untouched.
     Mirrors `manage.py provision_school_modules`.
     """
     created = 0
     for school in schools:
         for module_key in MODULES.keys():
             _, was_created = SchoolModule.objects.get_or_create(
-                school=school, module=module_key, defaults={"enabled": True}
+                school=school, module=module_key, defaults={"enabled": False}
             )
             if was_created:
                 created += 1
@@ -66,14 +79,14 @@ class SchoolAdmin(ModelAdmin):
     )
     inlines = [DomainInline, SchoolModuleInline]
 
-    @admin.action(description="Provision missing modules (create rows, enabled by default, for all module keys)")
+    @admin.action(description="Provision missing modules (create rows, disabled by default, for all module keys)")
     def provision_missing_modules(self, request, queryset):
         created = _provision_all_modules(queryset)
         if created:
             self.message_user(
                 request,
-                f"Created {created} missing module row(s), enabled by default. "
-                f"Open each school to toggle modules on/off.",
+                f"Created {created} missing module row(s), disabled by default. "
+                f"Open each school to manually enable only the modules in their agreement.",
                 level=messages.SUCCESS,
             )
         else:
@@ -90,22 +103,49 @@ class SchoolModuleAdmin(ModelAdmin):
 
     Platform operators can enable/disable product features (HR, Finance,
     Hostel, etc.) for each school, and configure module-specific settings
-    without code changes.
+    without code changes. Module access is tied to what each school has paid for
+    in their agreement — always manually enable only the modules they're contracted to use.
     """
-    list_display = ("school", "module", "enabled", "updated_at")
+    list_display = ("school", "module_label", "module_category", "is_required_badge", "enabled", "updated_at")
     list_filter = ("enabled", "module")
     search_fields = ("school__name", "school__code", "module")
     autocomplete_fields = ("school",)
+    ordering = ("school", "module")
     fieldsets = (
         ("Module Assignment", {
-            "fields": ("school", "module", "enabled"),
+            "fields": ("school", "module", "module_description", "enabled"),
         }),
         ("Configuration", {
             "fields": ("configuration",),
             "description": "Module-specific settings (JSON). Leave empty for defaults.",
         }),
     )
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("created_at", "updated_at", "module_description")
+
+    def module_label(self, obj):
+        """Display the module's human-readable label."""
+        meta = MODULES.get(obj.module, {})
+        return meta.get("label", obj.module)
+    module_label.short_description = "Module"
+
+    def module_category(self, obj):
+        """Display the module's category (core, enrollment, operations, engagement)."""
+        meta = MODULES.get(obj.module, {})
+        return meta.get("category", "—")
+    module_category.short_description = "Category"
+
+    def is_required_badge(self, obj):
+        """Display a badge if this module is required."""
+        if MODULES.get(obj.module, {}).get("required", False):
+            return "[REQUIRED]"
+        return "—"
+    is_required_badge.short_description = "Required"
+
+    def module_description(self, obj):
+        """Display the module's description from the registry."""
+        meta = MODULES.get(obj.module, {})
+        return meta.get("description", "No description available")
+    module_description.short_description = "Description"
 
 
 @admin.register(SchoolSignature)

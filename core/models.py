@@ -273,11 +273,17 @@ class SchoolModule(BaseModel):
         return f"{self.school.name} - {self.module} [{status}]"
 
     def clean(self):
-        from .modules import get_module_key
+        from .modules import get_module_key, is_module_required
         try:
             get_module_key(self.module)
         except KeyError as e:
             raise ValidationError(f"Invalid module key: {e}")
+
+        if is_module_required(self.module) and not self.enabled:
+            raise ValidationError(
+                f"'{self.module}' is a required module and cannot be disabled. "
+                f"Every school must have access to this feature."
+            )
 
 
 class Domain(DomainMixin):

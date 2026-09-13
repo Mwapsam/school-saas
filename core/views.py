@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse, Http404, FileResponse
 from django.views.generic import TemplateView, ListView, DetailView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
-from core.authz.mixins import PermissionRequiredMixin, require_permission
+from core.authz.mixins import PermissionRequiredMixin, require_permission, ModuleAccessMixin
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
@@ -232,7 +232,8 @@ class DashboardView(LoginRequiredMixin, HTMXResponseMixin, TemplateView):
         return context
 
 
-class AdmissionDashboardView(LoginRequiredMixin, HTMXResponseMixin, TemplateView):
+class AdmissionDashboardView(LoginRequiredMixin, ModuleAccessMixin, HTMXResponseMixin, TemplateView):
+    required_module = "admissions"
     """Admission dashboard showing all admission-related modules"""
     template_name = 'core/admission/dashboard.html'
 
@@ -3028,7 +3029,8 @@ class LowBandwidthMixin:
 
 # ====== ADMISSION VIEWS ======
 
-class AdmissionApplicationView(HTMXResponseMixin, TemplateView):
+class AdmissionApplicationView(ModuleAccessMixin, HTMXResponseMixin, TemplateView):
+    required_module = "admissions"
     template_name = 'core/admission/application.html'
     htmx_template_name = 'core/htmx/admission_form.html'
     
@@ -3116,7 +3118,8 @@ class AdmissionSuccessView(HTMXResponseMixin, TemplateView):
         return context
 
 
-class AdmissionListView(HTMXResponseMixin, ListView):
+class AdmissionListView(ModuleAccessMixin, HTMXResponseMixin, ListView):
+    required_module = "admissions"
     template_name = 'core/admission/list.html'
     htmx_template_name = 'core/htmx/admission_list_content.html'
     context_object_name = 'applications'
@@ -3211,7 +3214,8 @@ class AdmissionListView(HTMXResponseMixin, ListView):
         return context
 
 
-class AdmissionDetailView(HTMXResponseMixin, DetailView):
+class AdmissionDetailView(ModuleAccessMixin, HTMXResponseMixin, DetailView):
+    required_module = "admissions"
     template_name = 'core/admission/detail.html'
     htmx_template_name = 'core/htmx/admission_detail_content.html'
     context_object_name = 'application'
@@ -3259,7 +3263,8 @@ class AdmissionDetailView(HTMXResponseMixin, DetailView):
         return context
 
 
-class AdmissionReviewView(HTMXResponseMixin, TemplateView):
+class AdmissionReviewView(ModuleAccessMixin, HTMXResponseMixin, TemplateView):
+    required_module = "admissions"
     template_name = 'core/admission/review.html'
     htmx_template_name = 'core/htmx/admission_review_content.html'
     
