@@ -1956,14 +1956,15 @@ class ReportTemplate(TenantAwareModel):
         "AcademicYear", on_delete=models.CASCADE, related_name="report_templates"
     )
 
-    # School branding
+    # School branding — source from tenant (School model); no hardcoded defaults
     school_name = models.CharField(
-        max_length=255, default="Pinewood Preparatory School"
+        max_length=255, blank=True, null=True,
+        help_text="Sourced from tenant at creation; left blank to use tenant values at display time"
     )
-    school_address = models.TextField(default="235 Kasangula Road, Roma, Lusaka")
-    school_contact = models.CharField(max_length=255, default="+260 211 294802/ 291167")
-    school_email = models.EmailField(default="office@pinewoodschoolzambia.com")
-    school_website = models.URLField(default="www.pinewoodschoolzambia.com")
+    school_address = models.TextField(blank=True, null=True)
+    school_contact = models.CharField(max_length=255, blank=True, null=True)
+    school_email = models.EmailField(blank=True, null=True)
+    school_website = models.URLField(blank=True, null=True)
     school_logo_url = models.URLField(blank=True, null=True)
 
     # Report configuration
@@ -1988,10 +1989,10 @@ class ReportTemplate(TenantAwareModel):
         help_text="Optional quote or motto to appear on report cards"
     )
 
-    # Branding
+    # Branding — primary color (sourced from tenant or report template config)
     primary_color = models.CharField(
-        max_length=7, default='#5a9e2f',
-        help_text='Hex color for report card headers and accents',
+        max_length=7, blank=True, null=True,
+        help_text='Hex color for report card headers and accents; sourced from tenant if not set',
     )
 
     # Section ordering — list of group keys in the order they should appear in the PDF.
