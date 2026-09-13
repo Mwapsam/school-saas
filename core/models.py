@@ -1977,17 +1977,33 @@ class ReportTemplate(TenantAwareModel):
     school_website = models.URLField(blank=True, null=True)
     school_logo_url = models.URLField(blank=True, null=True)
 
-    # Report configuration
-    include_exam_scores = models.BooleanField(default=True)
-    include_homework_assessment = models.BooleanField(default=True)
-    include_project_work = models.BooleanField(default=True)
-    include_clubs = models.BooleanField(default=True)
-    include_sports = models.BooleanField(default=True)
-    include_other_activities = models.BooleanField(default=True)
-    include_attendance = models.BooleanField(default=True)
-    include_grading_scale = models.BooleanField(default=True)
+    # Report configuration — tenant-configurable, no Pinewood defaults
+    include_exam_scores = models.BooleanField(
+        default=False, help_text="Include exam scores in report"
+    )
+    include_homework_assessment = models.BooleanField(
+        default=False, help_text="Include homework assessment in report"
+    )
+    include_project_work = models.BooleanField(
+        default=False, help_text="Include project work in report"
+    )
+    include_clubs = models.BooleanField(
+        default=False, help_text="Include club participation in report"
+    )
+    include_sports = models.BooleanField(
+        default=False, help_text="Include sports participation in report"
+    )
+    include_other_activities = models.BooleanField(
+        default=False, help_text="Include other activities in report"
+    )
+    include_attendance = models.BooleanField(
+        default=False, help_text="Include attendance data in report"
+    )
+    include_grading_scale = models.BooleanField(
+        default=False, help_text="Include grading scale reference in report"
+    )
     include_skills = models.BooleanField(
-        default=True,
+        default=False,
         help_text='Show the skills checklist (Skills layout only)',
     )
 
@@ -3814,7 +3830,8 @@ class TransportSettings(TenantAwareModel):
         related_name="transport_settings",
     )
     billing_frequency = models.CharField(
-        max_length=20, choices=BILLING_FREQUENCY_CHOICES, default="termly"
+        max_length=20, choices=BILLING_FREQUENCY_CHOICES, null=True, blank=True,
+        help_text="How often transport fees are billed (tenant-configurable; no Pinewood default)"
     )
     attendance_tracking_enabled = models.BooleanField(default=False)
     notify_on_changes = models.BooleanField(default=False)
@@ -5964,7 +5981,7 @@ class QuickBooksConfiguration(TenantAwareModel):
         max_length=10, default="FEE", help_text="Prefix for fee invoices"
     )
     payment_terms_days = models.IntegerField(
-        default=30, help_text="Default payment terms in days"
+        null=True, blank=True, help_text="Default payment terms in days (tenant-configurable; no Pinewood default)"
     )
 
     # Email settings
