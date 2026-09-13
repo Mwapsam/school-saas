@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from datetime import date, datetime
 import logging
 
@@ -371,13 +372,13 @@ class AdmissionAdminViewSet(TenantAwareViewSetMixin, viewsets.ModelViewSet):
     def approve(self, request, pk=None):
         """Approve admission application"""
         application = get_object_or_404(self.get_queryset(), pk=pk)
-        
+
         with transaction.atomic():
             application.status = 'approved'
             application.reviewed_by = request.user
-            application.reviewed_at = datetime.now()
+            application.reviewed_at = timezone.now()
             application.save()
-        
+
         serializer = self.get_serializer(application)
         return Response(serializer.data)
     
@@ -386,20 +387,20 @@ class AdmissionAdminViewSet(TenantAwareViewSetMixin, viewsets.ModelViewSet):
         """Reject admission application"""
         application = get_object_or_404(self.get_queryset(), pk=pk)
         reason = request.data.get('reason', '')
-        
+
         if not reason:
             return Response(
                 {'error': 'Rejection reason is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         with transaction.atomic():
             application.status = 'rejected'
             application.remarks = reason
             application.reviewed_by = request.user
-            application.reviewed_at = datetime.now()
+            application.reviewed_at = timezone.now()
             application.save()
-        
+
         serializer = self.get_serializer(application)
         return Response(serializer.data)
     
@@ -421,7 +422,7 @@ class AdmissionAdminViewSet(TenantAwareViewSetMixin, viewsets.ModelViewSet):
                     if reason:
                         application.remarks = reason
                     application.reviewed_by = request.user
-                    application.reviewed_at = datetime.now()
+                    application.reviewed_at = timezone.now()
                     application.save()
 
             return Response({
@@ -540,8 +541,8 @@ class AdmissionAdminViewSet(TenantAwareViewSetMixin, viewsets.ModelViewSet):
                         'first_name': application.guardian1_first_name,
                         'last_name': application.guardian1_last_name or '',
                         'relation': application.guardian1_relation or 'guardian',
-                        'email': application.guardian1_email,
-                        'mobile_phone': application.guardian1_mobile,
+                        'email': application.guardian1_email or None,
+                        'mobile_phone': application.guardian1_mobile or None,
                         'occupation': getattr(application, 'guardian1_occupation', None),
                     })
                 if application.guardian2_first_name:
@@ -549,8 +550,8 @@ class AdmissionAdminViewSet(TenantAwareViewSetMixin, viewsets.ModelViewSet):
                         'first_name': application.guardian2_first_name,
                         'last_name': application.guardian2_last_name or '',
                         'relation': application.guardian2_relation or 'guardian',
-                        'email': application.guardian2_email,
-                        'mobile_phone': application.guardian2_mobile,
+                        'email': application.guardian2_email or None,
+                        'mobile_phone': application.guardian2_mobile or None,
                         'occupation': getattr(application, 'guardian2_occupation', None),
                     })
 
