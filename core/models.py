@@ -1845,7 +1845,11 @@ class ExamGroup(TenantAwareModel):
 
 
 class Term(TenantAwareModel):
-    """Year-scoped academic term (Term 1, 2, 3 per AcademicYear, not per batch)"""
+    """
+    Year-scoped academic term, configurable per tenant.
+    PRODUCTIZATION: No longer assumes 3 terms per AcademicYear. Tenants configure
+    their own academic structure (3 terms, 2 semesters, quarters, etc.) via admin.
+    """
 
     academic_year = models.ForeignKey(
         "AcademicYear",

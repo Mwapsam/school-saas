@@ -10694,24 +10694,18 @@ class ExamPlanDetailView(TemplateView):
         else:
             terms = Term.objects.none()
 
-        # If no terms exist for this year, create default ones (for backward compatibility)
+        # PRODUCTIZATION: No auto-create of terms.
+        # Each academic year must have terms explicitly configured by admin.
+        # This removes the Pinewood-specific assumption of 3 terms per year.
+        # Different schools use different academic structures (semesters, quarters, etc.)
         if not terms.exists() and academic_year:
-            # Create default 3 terms for this academic year
-            for i in range(1, 4):
-                Term.objects.get_or_create(
-                    tenant=tenant,
-                    academic_year=academic_year,
-                    name=f'TERM {i} {academic_year.name}',
-                    defaults={
-                        'start_date': academic_year.start_date,
-                        'end_date': academic_year.end_date,
-                        'order': i,
-                    }
-                )
-            # Refresh the queryset
-            terms = Term.objects.filter(
-                tenant=tenant, academic_year=academic_year
-            ).order_by('order')
+            # Log warning so admin can configure terms via the admin interface
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                f"No terms configured for academic year {academic_year.name} in tenant {tenant.schema_name}. "
+                "Admin must create terms via the administration interface before using this academic year."
+            )
 
         # Get all exams and assign them to terms using the direct relationship
         all_exams_in_group = exam_plan.exams.all()
