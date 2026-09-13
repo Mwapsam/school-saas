@@ -1,0 +1,127 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Design tokens — Pinewood forest green brand (#1a7a3c).
+ * Light + dark themes expressed purely as CSS variables.
+ */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 24% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 24% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 24% 12%;
+
+    /* Pinewood forest green — matches #1a7a3c */
+    --primary: 141 65% 29%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 16% 96%;
+    --secondary-foreground: 222 24% 16%;
+
+    --muted: 220 16% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    /* Light green tint for hover/accent */
+    --accent: 141 40% 93%;
+    --accent-foreground: 141 65% 18%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 141 65% 29%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 92% 14%;
+
+    --border: 220 14% 90%;
+    --input: 220 14% 90%;
+    --ring: 141 65% 29%;
+
+    /* Sidebar — light mode: crisp white with green accents */
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 222 24% 22%;
+    --sidebar-accent: 141 45% 91%;
+    --sidebar-accent-foreground: 141 65% 22%;
+    --sidebar-border: 220 14% 90%;
+
+    --radius: 0.65rem;
+  }
+
+  .dark {
+    --background: 222 28% 9%;
+    --foreground: 220 14% 92%;
+
+    --card: 222 26% 12%;
+    --card-foreground: 220 14% 92%;
+
+    --popover: 222 26% 12%;
+    --popover-foreground: 220 14% 92%;
+
+    --primary: 141 55% 42%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 222 18% 18%;
+    --secondary-foreground: 220 14% 92%;
+
+    --muted: 222 18% 18%;
+    --muted-foreground: 220 10% 62%;
+
+    --accent: 141 30% 20%;
+    --accent-foreground: 141 55% 80%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 141 55% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 90% 55%;
+    --warning-foreground: 38 92% 12%;
+
+    --border: 222 16% 22%;
+    --input: 222 16% 24%;
+    --ring: 141 55% 42%;
+
+    /* Sidebar — dark mode: deep slate-green */
+    --sidebar: 222 30% 11%;
+    --sidebar-foreground: 220 14% 82%;
+    --sidebar-accent: 141 50% 32%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 222 18% 20%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@media print {
+  aside,
+  header,
+  .sticky {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+}
