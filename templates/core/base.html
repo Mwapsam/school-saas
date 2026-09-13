@@ -13,7 +13,22 @@
     <!-- Font Awesome Icons -->
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
 
-    <!-- Pinewood UI — shared design system (green/white/black) -->
+    <!-- Phase 3: Neutral Product UI + Tenant Branding Layer -->
+    <!-- Product UI: tenant-agnostic design system (all .product-* components) -->
+    <link href="{% static 'css/product-ui.css' %}" rel="stylesheet">
+
+    <!-- Tenant Branding: inject tenant colors dynamically -->
+    <style>
+      :root {
+        /* Tenant-specific branding colors (set from tenant config) */
+        --product-brand: {{ request.tenant.primary_color|default:"#1a7a3c" }};
+        --product-brand-dark: {{ request.tenant.primary_color_dark|default:"#145f2e" }};
+        --product-brand-light: {{ request.tenant.primary_color_light|default:"#e8f5ed" }};
+      }
+    </style>
+
+    <!-- Backward Compatibility: Legacy Pinewood styles (deprecated, phase out in Phase 4) -->
+    <!-- This maintains compatibility with ~200 templates not yet migrated to product-ui.css -->
     <link href="{% static 'css/pinewood-ui.css' %}" rel="stylesheet">
 
     <!-- Base Fedena-style CSS -->

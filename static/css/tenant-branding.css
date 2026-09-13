@@ -1,0 +1,89 @@
+/* ===================================================================
+   Tenant Branding Layer — tenant-specific color overrides
+
+   This file is generated dynamically in templates/core/base.html:
+   - Reads tenant.primary_color, tenant.primary_color_dark, etc.
+   - Injects them as CSS variables
+   - product-ui.css uses these variables for all brand-aware components
+
+   Key principle: Branding is APPLIED NARROWLY — only to:
+   - Component accents (button primary, icon backgrounds)
+   - Interactive states (hover, active, focus)
+   - Primary visual emphasis (headers, borders left)
+
+   NOT applied to:
+   - Table body backgrounds
+   - Form inputs
+   - Text body color
+   - General borders
+   - Empty space backgrounds
+
+   This keeps the UI cohesive and neutral across all tenants while
+   allowing each school's brand to shine through in key moments.
+   =================================================================== */
+
+/* Tenant branding is injected via <style> tag in templates/core/base.html:
+   <style>
+     :root {
+       --product-brand: {{ tenant.primary_color | default:"#1a7a3c" }};
+       --product-brand-dark: {{ tenant.primary_color_dark | default:"#145f2e" }};
+       --product-brand-light: {{ tenant.primary_color_light | default:"#e8f5ed" }};
+     }
+   </style>
+
+   This file serves as documentation of the contract. The actual CSS is generated.
+   Do NOT add CSS rules here; all branding logic is in product-ui.css as variables.
+*/
+
+/* DOCUMENTED BRANDING POINTS (for future reference):
+
+   1. Component Accents — Brand color applied narrowly
+      - .product-btn-primary { background: var(--product-brand); }
+      - .product-stat-icon { color: var(--product-brand); }
+      - .page-header { border-left-color: var(--product-brand); }
+      - .product-modal-header { background: var(--product-brand); }
+
+   2. Interactive States — Brand light used for hover/focus feedback
+      - .product-table tbody tr:hover { background: var(--product-brand-light); }
+      - .product-btn-outline:hover { background: var(--product-brand-light); }
+      - .product-form-control:focus { border-color: var(--product-brand); }
+
+   3. Component Headers — Brand color used for visual hierarchy
+      - .product-table thead tr { background: var(--product-brand); }
+      - .product-topbar { background: var(--product-brand); }
+
+   4. Links & Navigational Elements — Brand color for visual consistency
+      - .product-breadcrumb a { color: var(--product-brand); }
+      - .product-table-action { color: var(--product-brand); }
+
+   5. Semantic Badges — Brand light background with brand dark text
+      - .product-badge-active { background: var(--product-brand-light); color: var(--product-brand-dark); }
+
+   6. Icon Backgrounds — Brand light background, brand dark icon
+      - .page-header__icon { background: var(--product-brand-light); color: var(--product-brand); }
+
+   Colors NOT branded (remain neutral across all tenants):
+   - .product-table tbody { no background — stays white/gray alternating }
+   - .product-form-control { border: gray; background: white; }
+   - .product-gray, .product-gray-border { neutral grays, no brand overlay }
+   - .product-alert-success, .product-alert-warning, etc. { semantic, not brand }
+   - Typography colors { product-black, product-text-muted — fixed }
+*/
+
+/* Example: Expected variables when injected by Django templates:
+
+   Pinewood School:
+   --product-brand: #1a7a3c;
+   --product-brand-dark: #145f2e;
+   --product-brand-light: #e8f5ed;
+
+   Example International School (blue):
+   --product-brand: #1565c0;
+   --product-brand-dark: #0d47a1;
+   --product-brand-light: #e3f2fd;
+
+   Rainbow Academy (purple):
+   --product-brand: #6a1b9a;
+   --product-brand-dark: #4a148c;
+   --product-brand-light: #f3e5f5;
+*/
