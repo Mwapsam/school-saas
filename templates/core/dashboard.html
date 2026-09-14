@@ -249,6 +249,7 @@
 
     <div class="dashboard-modules-grid">
         <div class="row justify-content-center">
+            {% if "admissions" in enabled_modules %}
             <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
                 <div class="dashboard-module">
                     <a href="{% url 'core:admission_dashboard' %}" class="module-link">
@@ -260,6 +261,7 @@
                     </a>
                 </div>
             </div>
+            {% endif %}
             <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
                 <div class="dashboard-module">
                     <a href="{% url 'core:student_list' %}" class="module-link">
@@ -337,6 +339,7 @@
                     </a>
                 </div>
             </div>
+            {% if "hr" in enabled_modules %}
             <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
                 <div class="dashboard-module">
                     <a href="{% url 'core:hr_dashboard' %}" class="module-link">
@@ -348,6 +351,8 @@
                     </a>
                 </div>
             </div>
+            {% endif %}
+            {% if "finance" in enabled_modules %}
             <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
                 <div class="dashboard-module">
                     <a href="{% url 'core:finance_dashboard' %}" class="module-link">
@@ -359,7 +364,9 @@
                     </a>
                 </div>
             </div>
+            {% endif %}
 
+            {% if "hostel" in enabled_modules %}
             <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
                 <div class="dashboard-module">
                     <a href="{% url 'core:hostel' %}" class="module-link">
@@ -371,6 +378,8 @@
                     </a>
                 </div>
             </div>
+            {% endif %}
+            {% if "library" in enabled_modules %}
             <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
                 <div class="dashboard-module">
                     <a href="{% url 'core:library' %}" class="module-link">
@@ -382,6 +391,8 @@
                     </a>
                 </div>
             </div>
+            {% endif %}
+            {% if "transport" in enabled_modules %}
             <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
                 <div class="dashboard-module">
                     <a href="{% url 'core:transport' %}" class="module-link">
@@ -393,6 +404,7 @@
                     </a>
                 </div>
             </div>
+            {% endif %}
 
             <div class="col-5col col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
                 <div class="dashboard-module">

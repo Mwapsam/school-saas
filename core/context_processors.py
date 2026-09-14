@@ -72,11 +72,13 @@ def terminology(request):
 
 def module_access(request):
     """Expose enabled modules for the current tenant to templates."""
-    try:
-        from core.modules import enabled_modules_for
+    from core.modules import enabled_modules_for
 
-        tenant = getattr(request, "tenant", None)
-        enabled = enabled_modules_for(tenant, request=request)
-    except Exception:
-        enabled = set()
-    return {"enabled_modules": enabled}
+    tenant = getattr(request, "tenant", None)
+
+    return {
+        "enabled_modules": enabled_modules_for(
+            tenant,
+            request=request,
+        )
+    }

@@ -101,7 +101,7 @@ class ModuleAccessMiddleware:
     """
     Enforce module-level access control for template-based dashboard views.
 
-    This middleware runs after tenant resolution and URL matching to check whether
+    This middleware runs after tenant resolution and auth to check whether
     a requested URL belongs to a module that is enabled for the current school/tenant.
 
     If a URL is mapped in core.module_urls.URL_MODULE_MAP to a module, that module
@@ -119,11 +119,14 @@ class ModuleAccessMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        match = getattr(request, "resolver_match", None)
-        if not match:
+        path = request.path_info
+
+        try:
+            match = resolve(path)
+        except Resolver404:
             return self.get_response(request)
 
-        url_name = getattr(match, "view_name", None) or getattr(match, "url_name", None)
+        url_name = match.url_name
         if not url_name:
             return self.get_response(request)
 

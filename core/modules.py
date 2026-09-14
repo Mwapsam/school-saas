@@ -93,46 +93,48 @@ def is_module_required(key: str) -> bool:
     return MODULES.get(key, {}).get("required", False)
 
 
-def enabled_modules_for(tenant, request=None) -> set:
+def enabled_modules_for(tenant, request=None) -> frozenset[str]:
     """
-    Return the set of module keys enabled for this tenant.
+    Return the modules enabled for this tenant.
 
-    Required modules are always included. Optional modules are included only if
-    they have a SchoolModule record with enabled=True. A missing optional
-    SchoolModule row means the module is disabled (opt-in model).
+    Required modules are always enabled.
+    Optional modules require an enabled SchoolModule row.
 
-    For request-scoped caching: if request is provided, the result is cached
-    on the request object itself (keyed by tenant.id) to avoid duplicate queries
-    in a single request cycle. This guards against stale process-level caches
-    and ensures tenant isolation (School B's request can never read School A's
-    cached module set).
-
-    Args:
-        tenant: A School/tenant instance (from request.tenant via django-tenants)
-        request: Optional request object for request-scoped caching
-
-    Returns:
-        set[str]: Module keys that are enabled for this tenant
+    When a request is supplied, the result is cached only for the
+    lifetime of that request.
     """
-    required = {k for k in MODULES if is_module_required(k)}
+    required = frozenset(
+        key for key in MODULES
+        if is_module_required(key)
+    )
 
-    if not tenant:
+    if tenant is None:
         return required
 
     if request is not None:
         cache = getattr(request, "_module_access_cache", None)
-        if cache is not None and cache.get("tenant_id") == tenant.id:
+
+        if (
+            cache is not None
+            and cache.get("tenant_id") == tenant.id
+        ):
             return cache["modules"]
 
     from core.models import SchoolModule
 
-    enabled = required | set(
-        SchoolModule.objects.filter(school=tenant, enabled=True).values_list(
-            "module", flat=True
+    enabled = required | frozenset(
+        SchoolModule.objects
+        .filter(
+            school=tenant,
+            enabled=True,
         )
+        .values_list("module", flat=True)
     )
 
     if request is not None:
-        request._module_access_cache = {"tenant_id": tenant.id, "modules": enabled}
+        request._module_access_cache = {
+            "tenant_id": tenant.id,
+            "modules": enabled,
+        }
 
     return enabled
