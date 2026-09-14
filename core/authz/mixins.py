@@ -95,6 +95,8 @@ class ModuleAccessMixin:
 
     Set ``required_module = "hr"`` on the view class.
     Returns 403 "portal only" page if the module is not enabled for the school.
+    Uses the centralized enabled_modules_for() helper for consistency with
+    the middleware, ensuring both mechanisms use the same source of truth.
     """
 
     required_module: "str | None" = None
@@ -107,17 +109,9 @@ class ModuleAccessMixin:
         if not tenant:
             return _deny_html(request)
 
-        # Check if module is enabled for this tenant
-        from core.models import SchoolModule
-        try:
-            school_module = SchoolModule.objects.get(
-                school=tenant,
-                module=self.required_module
-            )
-            if not school_module.enabled:
-                return _deny_html(request)
-        except SchoolModule.DoesNotExist:
-            # Module row doesn't exist = module is disabled
+        from core.modules import enabled_modules_for
+
+        if self.required_module not in enabled_modules_for(tenant, request=request):
             return _deny_html(request)
 
         return super().dispatch(request, *args, **kwargs)

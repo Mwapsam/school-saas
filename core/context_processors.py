@@ -68,3 +68,15 @@ def terminology(request):
     except Exception:
         mapping = {}
     return {"terms": _Terms(mapping)}
+
+
+def module_access(request):
+    """Expose enabled modules for the current tenant to templates."""
+    try:
+        from core.modules import enabled_modules_for
+
+        tenant = getattr(request, "tenant", None)
+        enabled = enabled_modules_for(tenant, request=request)
+    except Exception:
+        enabled = set()
+    return {"enabled_modules": enabled}

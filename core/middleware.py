@@ -95,3 +95,72 @@ class DashboardAccessMiddleware:
             )
 
         return redirect_to_login(request.get_full_path())
+
+
+class ModuleAccessMiddleware:
+    """
+    Enforce module-level access control for template-based dashboard views.
+
+    This middleware runs after tenant resolution and URL matching to check whether
+    a requested URL belongs to a module that is enabled for the current school/tenant.
+
+    If a URL is mapped in core.module_urls.URL_MODULE_MAP to a module, that module
+    must be enabled in SchoolModule for the request to proceed. If disabled, returns
+    a 403 response (portal-only page for HTML, JSON error for API requests).
+
+    Root users (is_root=True) bypass module access control as a break-glass measure.
+    Ordinary administrators do NOT bypass — module enablement is a separate axis from
+    permission/role-based access control.
+
+    Unmapped URLs (not in URL_MODULE_MAP) are allowed to proceed unchanged.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        match = getattr(request, "resolver_match", None)
+        if not match:
+            return self.get_response(request)
+
+        url_name = getattr(match, "view_name", None) or getattr(match, "url_name", None)
+        if not url_name:
+            return self.get_response(request)
+
+        from core.module_urls import URL_MODULE_MAP
+        from core.modules import enabled_modules_for
+
+        module = URL_MODULE_MAP.get(url_name)
+        if not module:
+            return self.get_response(request)
+
+        user = getattr(request, "user", None)
+        if user and getattr(user, "is_root", False):
+            return self.get_response(request)
+
+        tenant = getattr(request, "tenant", None)
+        if not tenant:
+            return self._deny_access(request)
+
+        if module not in enabled_modules_for(tenant, request=request):
+            return self._deny_access(request)
+
+        return self.get_response(request)
+
+    @staticmethod
+    def _deny_access(request):
+        accept = request.META.get("HTTP_ACCEPT", "text/html")
+        if "application/json" in accept:
+            from django.http import JsonResponse
+
+            return JsonResponse(
+                {"error": "This module is not enabled for your school"},
+                status=403,
+            )
+        else:
+            return render(
+                request,
+                "registration/portal_only.html",
+                {"portal_app_url": settings.PORTAL_APP_URL},
+                status=403,
+            )

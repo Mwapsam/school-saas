@@ -76,6 +76,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'core.middleware.DashboardAccessMiddleware',
+    'core.middleware.ModuleAccessMiddleware',
 ]
 
 # URL of the Next.js parent/teacher portal — teachers and parents are gated
@@ -99,6 +100,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'core.authz.context.authz',
                 'core.context_processors.terminology',
+                'core.context_processors.module_access',
             ],
         },
     },
