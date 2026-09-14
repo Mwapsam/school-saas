@@ -398,3 +398,19 @@ class BootstrapConsistencyTests(TestCase):
                 bootstrap_enabled_bool,
                 f"Module {module_key} mismatch: dashboard={dashboard_enabled_bool}, bootstrap={bootstrap_enabled_bool}"
             )
+
+
+class URLMappingCoverageTests(TestCase):
+    """Test that all module URLs are properly mapped in URL_MODULE_MAP."""
+
+    def test_no_unmapped_module_urls(self):
+        """Ensure all module URLs are covered in URL_MODULE_MAP (regression check)."""
+        from core.module_urls import find_unmapped_module_urls
+
+        unmapped = find_unmapped_module_urls()
+        self.assertEqual(
+            unmapped,
+            set(),
+            f"Found {len(unmapped)} unmapped module URL(s): {sorted(unmapped)}. "
+            f"Add these to core/module_urls.py URL_MODULE_MAP with their module keys.",
+        )

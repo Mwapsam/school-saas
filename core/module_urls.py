@@ -34,7 +34,15 @@ URL_MODULE_MAP = {
     # HR Employee Management
     # ───────────────────────────────────────────────────────────────────────────
     "employee_detail": "hr",
+    "employees_api": "hr",
+    "employee_categories_api": "hr",
+    "employee_positions_api": "hr",
+    "employee_grades_api": "hr",
     "hr_subject_assignments": "hr",
+    "employee_subjects_tab": "hr",
+    "employee_subjects_update": "hr",
+    "employee_roles_tab": "hr",
+    "employee_roles_update": "hr",
     "hr_reports": "hr",
 
     # ───────────────────────────────────────────────────────────────────────────
@@ -173,6 +181,16 @@ URL_MODULE_MAP = {
     "admission_review": "admissions",
     "admission_dashboard": "admissions",
     "admission_report": "admissions",
+    "admission_manage": "admissions",
+    "admission_delete": "admissions",
+    "admission_admit": "admissions",
+    "admission_assign_batch": "admissions",
+    "admission_approve": "admissions",
+    "admission_reject": "admissions",
+    "admission_duplicate": "admissions",
+    "admission_export_pdf": "admissions",
+    "admission_diagnostics": "admissions",
+    "admission_data_status_ajax": "admissions",
 
     # ───────────────────────────────────────────────────────────────────────────
     # Enquiry Management
@@ -240,6 +258,10 @@ URL_MODULE_MAP = {
     "quickbooks_test": "finance",
     "quickbooks_webhook_review": "finance",
     "quickbooks_reconciliation": "finance",
+    "quickbooks_fee_payment": "finance",
+    "quickbooks_student_sync": "finance",
+    "quickbooks_bulk_student_sync": "finance",
+    "quickbooks_receipt_reconciliation": "finance",
 
     # ───────────────────────────────────────────────────────────────────────────
     # Finance Currency Configuration
@@ -378,3 +400,56 @@ def check_duplicate_mappings():
     conflicts = {k: v for k, v in duplicates.items() if len(v) > 1}
     if conflicts:
         raise ValueError(f"Duplicate URL mappings found: {conflicts}")
+
+
+def find_unmapped_module_urls():
+    """
+    Find all URL names that belong to a module but have no entry in URL_MODULE_MAP.
+
+    Walks the URLconf to collect all named URL patterns and checks whether they
+    belong to a module-specific namespace/app (hr, finance, admissions, etc.) but
+    are missing from the module-to-URL mapping. This detects drift when new URLs
+    are added to a module's views without updating URL_MODULE_MAP.
+
+    Returns:
+        set: URL names that are unmapped module URLs.
+    """
+    from django.urls import get_resolver
+
+    # Module-owning app prefixes in core/urls.py (derived from the groupings in URL_MODULE_MAP comments).
+    # These are the core.urls.py URL path prefixes where module-specific routes are registered.
+    module_app_prefixes = {
+        "hr_dashboard": "hr",
+        "admission": "admissions",
+        "enquiry": "admissions",
+        "batch": "admissions",
+        "finance": "finance",
+        "fee": "finance",
+        "transport": "transport",
+        "library": "library",
+        "hostel": "hostel",
+    }
+
+    resolver = get_resolver()
+    unmapped = set()
+
+    def walk_patterns(patterns, prefix=""):
+        for pattern in patterns:
+            if hasattr(pattern, "url_patterns"):
+                # Include/namespace pattern; recurse.
+                walk_patterns(pattern.url_patterns, prefix + str(pattern.pattern))
+            else:
+                # Leaf pattern; check if it's a module URL.
+                url_name = pattern.name
+                if url_name:
+                    # Check if this url_name looks like it belongs to a module
+                    # by matching known module URL prefixes.
+                    for prefix_key, module_key in module_app_prefixes.items():
+                        if url_name.startswith(prefix_key.split("_")[0]):
+                            # This url_name probably belongs to a module. Check if mapped.
+                            if url_name not in URL_MODULE_MAP:
+                                unmapped.add(url_name)
+                            break
+
+    walk_patterns(resolver.url_patterns)
+    return unmapped
