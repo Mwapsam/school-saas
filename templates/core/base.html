@@ -801,12 +801,16 @@
                                         <li class="nav-item">
                                             <a class="nav-link" data-bs-toggle="tab" href="#gradebookDropdown">Gradebook</a>
                                         </li>
+                                        {% if "finance" in enabled_modules %}
                                         <li class="nav-item">
                                             <a class="nav-link" data-bs-toggle="tab" href="#financeDropdown">Finance</a>
                                         </li>
+                                        {% endif %}
+                                        {% if "hr" in enabled_modules %}
                                         <li class="nav-item">
                                             <a class="nav-link" data-bs-toggle="tab" href="#humanResourcesDropdown">HR</a>
                                         </li>
+                                        {% endif %}
                                         <li class="nav-item">
                                             <a class="nav-link" data-bs-toggle="tab" href="#administrationDropdown">Administration</a>
                                         </li>
@@ -828,10 +832,12 @@
                                                     <i class="fas fa-user-graduate quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
                                                     {{ terms.student_plural }}
                                                 </a>
+                                                {% if "admissions" in enabled_modules %}
                                                 <a href="{% url 'core:admission_dashboard' %}" class="quick-link-item-dropdown">
                                                     <i class="fas fa-user-plus quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
                                                     Admission
                                                 </a>
+                                                {% endif %}
                                                 <a href="{% url 'core:attendance_dashboard' %}" class="quick-link-item-dropdown">
                                                     <i class="fas fa-check-square quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
                                                     Attendance
@@ -844,10 +850,12 @@
                                                     <i class="fas fa-book quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
                                                     Gradebook
                                                 </a>
+                                                {% if "finance" in enabled_modules %}
                                                 <a href="{% url 'core:finance_dashboard' %}" class="quick-link-item-dropdown">
                                                     <i class="fas fa-money-bill-wave quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
                                                     Finance
                                                 </a>
+                                                {% endif %}
                                                 <a href="{% url 'core:news' %}" class="quick-link-item-dropdown">
                                                     <i class="fas fa-newspaper quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
                                                     News
@@ -893,6 +901,7 @@
                                                     <i class="fas fa-user-graduate quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
                                                     All Students
                                                 </a>
+                                                {% if "admissions" in enabled_modules %}
                                                 <a href="{% url 'core:admission_dashboard' %}" class="quick-link-item-dropdown">
                                                     <i class="fas fa-user-plus quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
                                                     Admission Dashboard
@@ -905,6 +914,7 @@
                                                     <i class="fas fa-question-circle quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
                                                     Enquiries
                                                 </a>
+                                                {% endif %}
                                                 <a href="{% url 'core:batch_transfer_list' %}" class="quick-link-item-dropdown">
                                                     <i class="fas fa-exchange-alt quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
                                                     Batch Transfer
@@ -955,18 +965,24 @@
                                                     <i class="fas fa-trophy quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
                                                     Activities
                                                 </a>
+                                                {% if "hostel" in enabled_modules %}
                                                 <a href="{% url 'core:hostel' %}" class="quick-link-item-dropdown">
                                                     <i class="fas fa-building quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
                                                     Hostel
                                                 </a>
+                                                {% endif %}
+                                                {% if "transport" in enabled_modules %}
                                                 <a href="{% url 'core:transport' %}" class="quick-link-item-dropdown">
                                                     <i class="fas fa-bus quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
                                                     Transport
                                                 </a>
+                                                {% endif %}
+                                                {% if "library" in enabled_modules %}
                                                 <a href="{% url 'core:library' %}" class="quick-link-item-dropdown">
                                                     <i class="fas fa-book-open quick-link-icon" style="color:var(--color-brand, #1a7a3c)" aria-hidden="true"></i>
                                                     Library
                                                 </a>
+                                                {% endif %}
                                             </div>
                                         </div>
 
@@ -1013,6 +1029,7 @@
                                         </div>
 
                                         <!-- Finance Tab -->
+                                        {% if "finance" in enabled_modules %}
                                         <div class="tab-pane fade" id="financeDropdown">
                                             <div class="quick-links-grid-dropdown">
                                                 <a href="{% url 'core:finance_dashboard' %}" class="quick-link-item-dropdown">
@@ -1045,8 +1062,10 @@
                                                 </a>
                                             </div>
                                         </div>
+                                        {% endif %}
 
                                         <!-- HR Tab -->
+                                        {% if "hr" in enabled_modules %}
                                         <div class="tab-pane fade" id="humanResourcesDropdown">
                                             <div class="quick-links-grid-dropdown">
                                                 <a href="{% url 'core:hr_dashboard' %}" class="quick-link-item-dropdown">
@@ -1129,6 +1148,7 @@
                                                 </a>
                                             </div>
                                         </div>
+                                        {% endif %}
 
                                         <!-- Administration Tab -->
                                         <div class="tab-pane fade" id="administrationDropdown">
