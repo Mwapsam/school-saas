@@ -88,6 +88,8 @@ class DemoRequestSerializer(serializers.ModelSerializer):
 class DemoRequestAdminSerializer(serializers.ModelSerializer):
     """Admin-only serializer with notes field."""
 
+    converted_school_code = serializers.CharField(source='converted_school.code', read_only=True, default=None)
+
     class Meta:
         model = DemoRequest
         fields = [
@@ -99,7 +101,9 @@ class DemoRequestAdminSerializer(serializers.ModelSerializer):
             'message',
             'status',
             'notes',
+            'converted_school',
+            'converted_school_code',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'converted_school', 'converted_school_code', 'created_at', 'updated_at']

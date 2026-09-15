@@ -9012,6 +9012,14 @@ class DemoRequest(BaseModel):
         blank=True,
         help_text="Internal notes from admin"
     )
+    converted_school = models.ForeignKey(
+        "School",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="demo_requests",
+        help_text="The tenant provisioned from this request, once converted.",
+    )
 
     class Meta:
         ordering = ["-created_at"]

@@ -273,4 +273,11 @@ export const API = {
   enquirySubmit: withBaseUrl(
     "/api/portal/enquiry/submit/"
   ),
+
+  // Platform admin — demo requests / tenant provisioning
+  demoRequests: withBaseUrl("/api/v1/demo-requests/"),
+  demoRequestContact: (id: string) => withBaseUrl(`/api/v1/demo-requests/${id}/contact/`),
+  demoRequestScheduleDemo: (id: string) => withBaseUrl(`/api/v1/demo-requests/${id}/schedule_demo/`),
+  demoRequestConvert: (id: string) => withBaseUrl(`/api/v1/demo-requests/${id}/convert/`),
+  demoRequestReject: (id: string) => withBaseUrl(`/api/v1/demo-requests/${id}/reject/`),
 } as const;

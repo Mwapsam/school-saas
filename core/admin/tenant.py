@@ -4,7 +4,7 @@ from unfold.admin import ModelAdmin, TabularInline
 from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
 from core.models import (
     School, User, Domain, SchoolSignature, SchoolModule,
-    Role, RolePermission, UserRoleAssignment,
+    Role, RolePermission, UserRoleAssignment, DemoRequest,
 )
 from core.modules import MODULES
 from core.authz.registry import PERMISSIONS
@@ -179,6 +179,31 @@ class SchoolModuleAdmin(ModelAdmin):
         meta = MODULES.get(obj.module, {})
         return meta.get("description", "No description available")
     module_description.short_description = "Description"
+
+
+@admin.register(DemoRequest)
+class DemoRequestAdmin(ModelAdmin):
+    """Read/triage view of prospective-customer demo requests. Conversion into
+    a provisioned tenant is a self-contained flow (provision_school +
+    create_tenant_superuser + default modules + trial billing status) driven
+    from the admin frontend's Convert action, not from here — this page is
+    for visibility and manual status/notes triage only.
+    """
+    list_display = ("full_name", "email", "school_name", "status", "converted_school", "created_at")
+    list_filter = ("status",)
+    search_fields = ("full_name", "email", "school_name")
+    readonly_fields = ("converted_school", "created_at", "updated_at")
+    fieldsets = (
+        ("Request", {
+            "fields": ("full_name", "email", "phone", "school_name", "message"),
+        }),
+        ("Triage", {
+            "fields": ("status", "notes"),
+        }),
+        ("Conversion", {
+            "fields": ("converted_school",),
+        }),
+    )
 
 
 @admin.register(SchoolSignature)

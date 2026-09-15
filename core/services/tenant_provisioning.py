@@ -196,6 +196,25 @@ def provision_school(
     return result
 
 
+def provision_default_modules(school: School) -> int:
+    """Create a SchoolModule row for every registered module key, disabled by
+    default. Mirrors ``core.admin.tenant._provision_all_modules`` and
+    ``manage.py provision_school_modules`` — an operator still has to
+    explicitly enable only what the school's agreement covers. Existing rows
+    are left untouched. Returns the number of rows created."""
+    from core.models import SchoolModule
+    from core.modules import MODULES
+
+    created = 0
+    for module_key in MODULES.keys():
+        _, was_created = SchoolModule.objects.get_or_create(
+            school=school, module=module_key, defaults={"enabled": False}
+        )
+        if was_created:
+            created += 1
+    return created
+
+
 def create_tenant_superuser(
     school: School,
     *,
