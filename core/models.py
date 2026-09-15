@@ -208,6 +208,52 @@ class School(TenantMixin):
         help_text="Feature flags {parent_portal, teacher_portal, librarian_portal, hr_portal, admission_portal}"
     )
 
+    # Subscription / billing status. Payment collection itself is manual
+    # (invoiced outside the app) — these fields are the source of truth the
+    # platform operator updates by hand, and that the app enforces access against.
+    BILLING_STATUS_TRIAL = "trial"
+    BILLING_STATUS_ACTIVE = "active"
+    BILLING_STATUS_PAST_DUE = "past_due"
+    BILLING_STATUS_SUSPENDED = "suspended"
+    BILLING_STATUS_CHOICES = [
+        (BILLING_STATUS_TRIAL, "Trial"),
+        (BILLING_STATUS_ACTIVE, "Active"),
+        (BILLING_STATUS_PAST_DUE, "Past due"),
+        (BILLING_STATUS_SUSPENDED, "Suspended"),
+    ]
+    billing_status = models.CharField(
+        max_length=20,
+        choices=BILLING_STATUS_CHOICES,
+        default=BILLING_STATUS_TRIAL,
+        help_text="Manually maintained by the platform operator. Trial/active grant "
+                   "access; past_due/suspended block the staff dashboard and portal.",
+    )
+    PLAN_TIER_BASIC = "basic"
+    PLAN_TIER_STANDARD = "standard"
+    PLAN_TIER_PREMIUM = "premium"
+    PLAN_TIER_CHOICES = [
+        (PLAN_TIER_BASIC, "Basic"),
+        (PLAN_TIER_STANDARD, "Standard"),
+        (PLAN_TIER_PREMIUM, "Premium"),
+    ]
+    plan_tier = models.CharField(
+        max_length=20,
+        choices=PLAN_TIER_CHOICES,
+        default=PLAN_TIER_BASIC,
+        help_text="Pricing tier this school is contracted for.",
+    )
+    trial_ends_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="When the trial period ends. Ignored unless billing_status is 'trial'.",
+    )
+    billing_notes = models.TextField(
+        blank=True,
+        default="",
+        help_text="Free-form notes for the platform operator (invoice references, "
+                  "payment dates, follow-ups). Not shown to the school.",
+    )
+
     auto_create_schema = True
 
     class Meta:
@@ -223,6 +269,18 @@ class School(TenantMixin):
         if self.logo and self.logo.name:
             return self.logo.url
         return None
+
+    @property
+    def is_billing_active(self):
+        """Whether this school currently has paid/trial access to the product."""
+        if self.billing_status == self.BILLING_STATUS_ACTIVE:
+            return True
+        if self.billing_status == self.BILLING_STATUS_TRIAL:
+            if self.trial_ends_at is None:
+                return True
+            from django.utils import timezone
+            return timezone.now() < self.trial_ends_at
+        return False
 
 
 class SchoolModule(BaseModel):

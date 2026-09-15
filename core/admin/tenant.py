@@ -59,15 +59,30 @@ def _provision_all_modules(schools):
 
 @admin.register(School)
 class SchoolAdmin(ModelAdmin):
-    list_display = ("name", "code", "email", "is_active")
-    list_filter = ("is_active",)
+    """Payment collection is manual (invoiced outside the app) — `billing_status`,
+    `plan_tier`, and `trial_ends_at` here are the record the operator maintains by
+    hand, and the only thing `core.middleware.BillingAccessMiddleware` reads to
+    decide whether the school's dashboard is reachable. Always update this when a
+    payment lands or a trial is extended.
+    """
+    list_display = ("name", "code", "email", "billing_status", "plan_tier", "trial_ends_at", "is_active")
+    list_filter = ("is_active", "billing_status", "plan_tier")
     search_fields = ("name", "code", "email")
     search_help_text = "Search by school name, code, or email"
-    actions = ["provision_missing_modules"]
+    actions = [
+        "provision_missing_modules",
+        "mark_billing_active",
+        "mark_billing_suspended",
+    ]
 
     fieldsets = (
         ("Basic Information", {
             "fields": ("name", "code", "is_active"),
+        }),
+        ("Billing & Subscription", {
+            "fields": ("billing_status", "plan_tier", "trial_ends_at", "billing_notes"),
+            "description": "Payment is collected manually. Set billing_status to 'suspended' or "
+                           "'past_due' to block this school's dashboard immediately.",
         }),
         ("Contact Details", {
             "fields": ("email", "phone", "address_line1", "city", "country"),
@@ -95,6 +110,24 @@ class SchoolAdmin(ModelAdmin):
                 "Every selected school already has a row for every module.",
                 level=messages.INFO,
             )
+
+    @admin.action(description="Mark billing as active (payment received)")
+    def mark_billing_active(self, request, queryset):
+        updated = queryset.update(billing_status=School.BILLING_STATUS_ACTIVE)
+        self.message_user(
+            request,
+            f"Marked {updated} school(s) as billing-active.",
+            level=messages.SUCCESS,
+        )
+
+    @admin.action(description="Suspend billing (payment overdue/cancelled)")
+    def mark_billing_suspended(self, request, queryset):
+        updated = queryset.update(billing_status=School.BILLING_STATUS_SUSPENDED)
+        self.message_user(
+            request,
+            f"Suspended {updated} school(s) — their dashboard is now blocked.",
+            level=messages.WARNING,
+        )
 
 
 @admin.register(SchoolModule)

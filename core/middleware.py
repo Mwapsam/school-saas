@@ -97,6 +97,70 @@ class DashboardAccessMiddleware:
         return redirect_to_login(request.get_full_path())
 
 
+class BillingAccessMiddleware:
+    """Gate the staff dashboard (`core` namespace) on the tenant's billing status.
+
+    Payment collection is manual — a platform operator sets `School.billing_status`
+    (trial/active/past_due/suspended), `plan_tier`, and `trial_ends_at` by hand via
+    core/admin/tenant.py. This middleware is what turns that record into an actual
+    access block instead of just a label: it runs the same `is_billing_active`
+    check (`School.is_billing_active`) on every dashboard request.
+
+    Runs after DashboardAccessMiddleware, so only authenticated `is_admin` users
+    reach here — anonymous/non-admin requests are already redirected or denied
+    upstream. Root users (is_root=True) bypass, mirroring the ModuleAccessMiddleware
+    break-glass rule, so operators can always get in to fix a tenant's billing state.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        path = request.path_info
+
+        if path.startswith(_SKIP_PREFIXES):
+            return self.get_response(request)
+
+        try:
+            match = resolve(path)
+        except Resolver404:
+            return self.get_response(request)
+
+        if match.namespace != "core":
+            return self.get_response(request)
+
+        url_name = f"{match.namespace}:{match.url_name}"
+        if url_name in _PUBLIC_DASHBOARD_URL_NAMES:
+            return self.get_response(request)
+
+        user = getattr(request, "user", None)
+        if user and getattr(user, "is_root", False):
+            return self.get_response(request)
+
+        tenant = getattr(request, "tenant", None)
+        if tenant is not None and not tenant.is_billing_active:
+            return self._deny_access(request, tenant)
+
+        return self.get_response(request)
+
+    @staticmethod
+    def _deny_access(request, tenant):
+        accept = request.META.get("HTTP_ACCEPT", "text/html")
+        if "application/json" in accept:
+            from django.http import JsonResponse
+
+            return JsonResponse(
+                {"error": "This school's subscription is not active. Contact support to renew."},
+                status=402,
+            )
+        return render(
+            request,
+            "core/billing_suspended.html",
+            {"tenant": tenant},
+            status=402,
+        )
+
+
 class ModuleAccessMiddleware:
     """
     Enforce module-level access control for template-based dashboard views.

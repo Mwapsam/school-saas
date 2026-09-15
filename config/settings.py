@@ -76,6 +76,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'core.middleware.DashboardAccessMiddleware',
+    'core.middleware.BillingAccessMiddleware',
     'core.middleware.ModuleAccessMiddleware',
 ]
 
